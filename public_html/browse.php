@@ -26,16 +26,16 @@ setSEO($seoTitle, $seoDesc);
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <!-- Navbar -->
         <nav class="flex justify-between items-center mb-10">
-            <a href="index.php" class="flex items-center gap-2 text-3xl font-bold tracking-tighter">SoulMD</a>
+            <a href="/" class="flex items-center gap-2 text-3xl font-bold tracking-tighter">SoulMD</a>
             <div class="hidden md:flex items-center gap-8 text-sm">
-                <a href="browse.php" class="font-medium text-emerald-400">Browse</a>
-                <a href="generate.php" class="hover:text-emerald-400 transition">AI Generator</a>
-                <a href="upload.php" class="hover:text-emerald-400 transition">Upload</a>
-                <a href="my-souls.php" class="hover:text-emerald-400 transition">My Souls</a>
+                <a href="browse" class="font-medium text-emerald-400">Browse</a>
+                <a href="generate" class="hover:text-emerald-400 transition">AI Generator</a>
+                <a href="upload" class="hover:text-emerald-400 transition">Upload</a>
+                <a href="my-souls" class="hover:text-emerald-400 transition">My Souls</a>
             </div>
             <div class="flex items-center gap-3">
-                <a href="login.php" class="text-sm px-6 py-2 border border-white/30 rounded-3xl hover:bg-white/5 transition">Log in</a>
-                <a href="register.php" class="text-sm px-6 py-2 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">Sign up</a>
+                <a href="login" class="text-sm px-6 py-2 border border-white/30 rounded-3xl hover:bg-white/5 transition">Log in</a>
+                <a href="register" class="text-sm px-6 py-2 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">Sign up</a>
             </div>
         </nav>
 

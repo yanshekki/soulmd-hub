@@ -6,7 +6,7 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
@@ -50,7 +50,7 @@ if (!$apiKey) {
                 <h1 class="text-4xl font-bold tracking-tighter">My API Key</h1>
                 <p class="text-zinc-400 mt-1">For programmatic access to SoulMD Hub</p>
             </div>
-            <a href="my-souls.php" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
+            <a href="my-souls" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
                 <i class="fas fa-arrow-left"></i> My Souls
             </a>
         </div>

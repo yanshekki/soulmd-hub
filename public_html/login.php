@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
-        header('Location: my-souls.php');
+        header('Location: my-souls');
         exit;
     } else {
         $error = 'Invalid username or password';
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <div class="text-center mt-8 text-sm text-zinc-400">
-            Don't have an account? <a href="register.php" class="text-emerald-400 hover:underline font-medium">Sign up</a>
+            Don't have an account? <a href="register" class="text-emerald-400 hover:underline font-medium">Sign up</a>
         </div>
     </div>
 
@@ -98,11 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             loading.classList.remove('hidden');
 
             const formData = new FormData(form);
-            const res = await fetch('login.php', { method: 'POST', body: formData });
+            const res = await fetch('login', { method: 'POST', body: formData });
             const html = await res.text();
 
-            if (html.includes('Location: my-souls.php')) {
-                window.location.href = 'my-souls.php';
+            if (html.includes('Location: my-souls')) {
+                window.location.href = 'my-souls';
             } else {
                 document.body.innerHTML = html;
             }

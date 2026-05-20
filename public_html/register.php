@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$username, $email, $hash]);
             $_SESSION['user_id'] = $pdo->lastInsertId();
             $_SESSION['username'] = $username;
-            header('Location: my-souls.php');
+            header('Location: my-souls');
             exit;
         } catch (Exception $e) {
             $error = 'Username already taken';
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <div class="text-center mt-8 text-sm text-zinc-400">
-            Already have an account? <a href="login.php" class="text-emerald-400 hover:underline font-medium">Log in</a>
+            Already have an account? <a href="login" class="text-emerald-400 hover:underline font-medium">Log in</a>
         </div>
     </div>
 
@@ -107,11 +107,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             loading.classList.remove('hidden');
 
             const formData = new FormData(form);
-            const res = await fetch('register.php', { method: 'POST', body: formData });
+            const res = await fetch('register', { method: 'POST', body: formData });
             const html = await res.text();
 
-            if (html.includes('Location: my-souls.php')) {
-                window.location.href = 'my-souls.php';
+            if (html.includes('Location: my-souls')) {
+                window.location.href = 'my-souls';
             } else {
                 document.body.innerHTML = html;
             }

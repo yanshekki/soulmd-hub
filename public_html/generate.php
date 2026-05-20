@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php else: ?>
             <div class="mb-8 flex justify-between items-center">
                 <h2 class="text-3xl font-bold">Generated successfully!</h2>
-                <a href="generate.php" class="text-emerald-400 hover:underline text-sm flex items-center gap-1">
+                <a href="generate" class="text-emerald-400 hover:underline text-sm flex items-center gap-1">
                     <i class="fas fa-redo"></i> Generate again
                 </a>
             </div>
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="mt-12 flex justify-center">
-                <a href="upload.php" class="inline-flex items-center gap-4 px-12 py-6 bg-white text-black text-2xl font-semibold rounded-3xl hover:bg-zinc-200 transition shadow-2xl">
+                <a href="upload" class="inline-flex items-center gap-4 px-12 py-6 bg-white text-black text-2xl font-semibold rounded-3xl hover:bg-zinc-200 transition shadow-2xl">
                     <i class="fas fa-arrow-right"></i> Use this Soul
                 </a>
             </div>

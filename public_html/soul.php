@@ -11,7 +11,7 @@ $pdo = $db->getConnection();
 $id = (int)($_GET['id'] ?? 0);
 
 if (!$id) {
-    header('Location: browse.php');
+    header('Location: browse');
     exit;
 }
 
@@ -63,7 +63,7 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <!-- Back + Actions -->
         <div class="flex items-center justify-between mb-8">
-            <a href="browse.php" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition">
+            <a href="browse" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition">
                 <i class="fas fa-arrow-left"></i> Back to Browse
             </a>
             <div class="flex items-center gap-3">
@@ -155,7 +155,7 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
             btns.forEach((btn, i) => btn.style.pointerEvents = 'none');
 
             try {
-                const res = await fetch('api/rate.php', {
+                const res = await fetch('api/rate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars })
@@ -188,7 +188,7 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span id="like-count"><?= $soul['like_count'] + 1 ?></span>`;
 
             try {
-                const res = await fetch('api/like.php', {
+                const res = await fetch('api/like', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ soul_id: <?= $id ?> })
@@ -219,7 +219,7 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Forking...`;
 
             try {
-                const res = await fetch('api/fork.php', {
+                const res = await fetch('api/fork', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ soul_id: <?= $id ?> })

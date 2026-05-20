@@ -6,7 +6,7 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
@@ -19,7 +19,7 @@ $soulId = (int)($_GET['id'] ?? 0);
 $userId = $_SESSION['user_id'];
 
 if (!$soulId) {
-    header('Location: my-souls.php');
+    header('Location: my-souls');
     exit;
 }
 
@@ -78,7 +78,7 @@ $versions = $versionsStmt->fetchAll();
                 <h1 class="text-4xl font-bold tracking-tighter">Version History</h1>
                 <p class="text-zinc-400 mt-1"><?= htmlspecialchars($soul['title']) ?></p>
             </div>
-            <a href="my-souls.php" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
+            <a href="my-souls" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
                 <i class="fas fa-arrow-left"></i> My Souls
             </a>
         </div>
@@ -125,7 +125,7 @@ $versions = $versionsStmt->fetchAll();
         async function restoreVersion(versionId) {
             if (!confirm('Restore this version? Current version will be saved as new.')) return;
 
-            const res = await fetch('soul-versions.php', {
+            const res = await fetch('soul-versions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'ajax_restore=1&version_id=' + versionId

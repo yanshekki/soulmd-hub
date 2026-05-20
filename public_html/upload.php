@@ -6,7 +6,7 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h1 class="text-4xl font-bold tracking-tighter">Upload Soul</h1>
                 <p class="text-zinc-400 mt-1">Share your AI personality with the world</p>
             </div>
-            <a href="my-souls.php" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
+            <a href="my-souls" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
                 <i class="fas fa-arrow-left"></i> My Souls
             </a>
         </div>
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             loading.classList.remove('hidden');
 
             const formData = new FormData(form);
-            const res = await fetch('upload.php', { method: 'POST', body: formData });
+            const res = await fetch('upload', { method: 'POST', body: formData });
             const html = await res.text();
             document.body.innerHTML = html;
         });

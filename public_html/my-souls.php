@@ -6,7 +6,7 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
@@ -71,8 +71,8 @@ $mySouls = $stmt->fetchAll();
                 <p class="text-zinc-400 mt-1">Manage your uploaded AI personalities</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="my-api.php" class="px-5 py-2 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition">My API Key</a>
-                <a href="upload.php" class="px-6 py-3 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition flex items-center gap-2">
+                <a href="my-api" class="px-5 py-2 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition">My API Key</a>
+                <a href="upload" class="px-6 py-3 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition flex items-center gap-2">
                     <i class="fas fa-plus"></i> New Soul
                 </a>
             </div>
@@ -85,7 +85,7 @@ $mySouls = $stmt->fetchAll();
                 </div>
                 <h2 class="text-2xl font-semibold mb-2">No souls yet</h2>
                 <p class="text-zinc-400 mb-8">Start sharing your AI personalities</p>
-                <a href="upload.php" class="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">
+                <a href="upload" class="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">
                     <i class="fas fa-plus"></i> Upload your first soul
                 </a>
             </div>
@@ -181,7 +181,7 @@ $mySouls = $stmt->fetchAll();
             formData.append('description', document.getElementById('edit-description').value);
             formData.append('content', document.getElementById('edit-content').value);
 
-            const res = await fetch('my-souls.php', { method: 'POST', body: formData });
+            const res = await fetch('my-souls', { method: 'POST', body: formData });
             const data = await res.json();
 
             if (data.success) {
@@ -232,7 +232,7 @@ $mySouls = $stmt->fetchAll();
             formData.append('ajax_delete', '1');
             formData.append('id', id);
 
-            const res = await fetch('my-souls.php', { method: 'POST', body: formData });
+            const res = await fetch('my-souls', { method: 'POST', body: formData });
             const data = await res.json();
 
             if (data.success) {

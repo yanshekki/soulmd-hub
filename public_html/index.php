@@ -29,15 +29,15 @@ setSEO(
             </div>
             
             <div class="hidden md:flex items-center gap-8 text-sm">
-                <a href="browse.php" class="hover:text-emerald-400 transition">Browse</a>
-                <a href="generate.php" class="hover:text-emerald-400 transition">AI Generator</a>
-                <a href="upload.php" class="hover:text-emerald-400 transition">Upload</a>
-                <a href="my-souls.php" class="hover:text-emerald-400 transition">My Souls</a>
+                <a href="browse" class="hover:text-emerald-400 transition">Browse</a>
+                <a href="generate" class="hover:text-emerald-400 transition">AI Generator</a>
+                <a href="upload" class="hover:text-emerald-400 transition">Upload</a>
+                <a href="my-souls" class="hover:text-emerald-400 transition">My Souls</a>
             </div>
             
             <div class="flex items-center gap-3">
-                <a href="login.php" class="text-sm px-5 py-2 border border-white/30 rounded-3xl hover:bg-white/5 transition">Log in</a>
-                <a href="register.php" class="text-sm px-5 py-2 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">Sign up</a>
+                <a href="login" class="text-sm px-5 py-2 border border-white/30 rounded-3xl hover:bg-white/5 transition">Log in</a>
+                <a href="register" class="text-sm px-5 py-2 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">Sign up</a>
             </div>
         </nav>
 
@@ -53,10 +53,10 @@ setSEO(
                 The cleanest platform for humans and AI to upload, discover, and reuse .md-based personalities.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="generate.php" class="flex items-center justify-center gap-3 px-10 py-5 bg-white text-black text-xl font-semibold rounded-3xl hover:bg-zinc-200 transition shadow-xl">
+                <a href="generate" class="flex items-center justify-center gap-3 px-10 py-5 bg-white text-black text-xl font-semibold rounded-3xl hover:bg-zinc-200 transition shadow-xl">
                     <i class="fas fa-magic"></i> Generate with AI
                 </a>
-                <a href="upload.php" class="flex items-center justify-center gap-3 px-10 py-5 border border-white/30 text-xl font-semibold rounded-3xl hover:bg-white/5 transition">
+                <a href="upload" class="flex items-center justify-center gap-3 px-10 py-5 border border-white/30 text-xl font-semibold rounded-3xl hover:bg-white/5 transition">
                     Upload manually
                 </a>
             </div>
@@ -109,7 +109,7 @@ setSEO(
         <div>
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-semibold">Trending Souls</h2>
-                <a href="browse.php" class="flex items-center gap-1 text-emerald-400 text-sm hover:underline">
+                <a href="browse" class="flex items-center gap-1 text-emerald-400 text-sm hover:underline">
                     View all <span class="text-xl">→</span>
                 </a>
             </div>
