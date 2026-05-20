@@ -1,4 +1,4 @@
--- SoulMD Hub Database Schema (with User System)
+-- SoulMD Hub Full Schema (with Ratings + Version History)
 
 CREATE DATABASE IF NOT EXISTS soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE soulmd_hub;
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100),
-    password VARCHAR(255) NOT NULL,           -- Hashed password
+    password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -22,10 +22,31 @@ CREATE TABLE IF NOT EXISTS souls (
     domain VARCHAR(100),
     compatibility VARCHAR(100),
     is_public BOOLEAN DEFAULT TRUE,
-    download_count INT DEFAULT 0,
+    like_count INT DEFAULT 0,
     fork_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Version History
+CREATE TABLE IF NOT EXISTS soul_versions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    soul_id INT,
+    content LONGTEXT NOT NULL,
+    title VARCHAR(255),
+    edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
+);
+
+-- Simple Ratings
+CREATE TABLE IF NOT EXISTS soul_ratings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    soul_id INT,
+    user_id INT,
+    rating TINYINT NOT NULL, -- 1 to 5
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_rating (soul_id, user_id),
+    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS categories (
