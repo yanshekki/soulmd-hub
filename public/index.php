@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/seo.php';
             </div>
             <div class="flex gap-3">
                 <a href="my-souls.php" class="px-5 py-2.5 text-sm border border-white/30 rounded-2xl hover:bg-white/5 transition">My Souls</a>
+                <a href="generate.php" class="px-5 py-2.5 text-sm border border-emerald-500/50 text-emerald-400 rounded-2xl hover:bg-emerald-900/20 transition">AI Generator</a>
                 <a href="browse.php" class="px-5 py-2.5 bg-white text-black rounded-2xl font-semibold hover:bg-zinc-200 transition">Browse</a>
                 <a href="upload.php" class="px-5 py-2.5 border border-white/40 rounded-2xl hover:bg-white/10 transition">Upload Soul</a>
             </div>
@@ -34,11 +35,13 @@ require_once __DIR__ . '/../includes/seo.php';
             <p class="max-w-md mx-auto text-xl text-zinc-400">The simplest platform to upload, discover, and reuse .md-based AI personalities.</p>
         </div>
 
-        <!-- Quick Upload CTA -->
-        <div class="text-center mb-16">
-            <a href="upload.php" 
-               class="inline-block px-10 py-4 bg-white text-black text-lg font-semibold rounded-3xl hover:bg-zinc-200 transition">
-                立即上傳你的 Soul
+        <!-- Quick Actions -->
+        <div class="flex justify-center gap-4 mb-16">
+            <a href="generate.php" class="px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-3xl transition flex items-center gap-2">
+                ✨ AI 生成 Soul
+            </a>
+            <a href="upload.php" class="px-10 py-4 bg-white text-black font-semibold rounded-3xl hover:bg-zinc-200 transition">
+                手動上傳
             </a>
         </div>
 
