@@ -63,7 +63,7 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <!-- Back + Actions -->
         <div class="flex items-center justify-between mb-8">
-            <a href="browse" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition">
+            <a href="/browse" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition">
                 <i class="fas fa-arrow-left"></i> Back to Browse
             </a>
             <div class="flex items-center gap-3">

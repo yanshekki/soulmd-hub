@@ -3,6 +3,17 @@ require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
+$db = Database::getInstance();
+$pdo = $db->getConnection();
+
+// 獲取真實統計數據
+$statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1")->fetchColumn();
+$statsUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$statsForks = $pdo->query("SELECT SUM(fork_count) FROM souls")->fetchColumn() ?: 0;
+
+// 獲取前 6 個分類數據
+$categories = $pdo->query("SELECT name, slug, icon FROM categories LIMIT 6")->fetchAll();
+
 setSEO(
     'SoulMD Hub - Share AI Souls',
     'The simplest platform to share, discover, and fork AI agent souls as .md files. Human & AI friendly.',
@@ -21,7 +32,6 @@ setSEO(
 </head>
 <body class="bg-zinc-950 text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <!-- Navbar -->
         <nav class="flex justify-between items-center mb-16">
             <div class="flex items-center gap-3">
                 <div class="text-4xl font-bold tracking-tighter">SoulMD</div>
@@ -41,7 +51,6 @@ setSEO(
             </div>
         </nav>
 
-        <!-- Hero -->
         <div class="text-center py-16">
             <div class="inline-flex items-center gap-2 bg-emerald-900/30 text-emerald-400 px-5 py-2 rounded-3xl text-sm mb-6">
                 <i class="fas fa-sparkles"></i> Now supporting full soul folders
@@ -62,50 +71,35 @@ setSEO(
             </div>
         </div>
 
-        <!-- Stats -->
         <div class="grid grid-cols-3 gap-6 text-center mb-20">
             <div>
-                <div class="text-4xl font-bold text-emerald-400">1,284</div>
+                <div class="text-4xl font-bold text-emerald-400"><?= number_format($statsSouls) ?></div>
                 <div class="text-zinc-400 text-sm">Souls shared</div>
             </div>
             <div>
-                <div class="text-4xl font-bold text-emerald-400">342</div>
+                <div class="text-4xl font-bold text-emerald-400"><?= number_format($statsUsers) ?></div>
                 <div class="text-zinc-400 text-sm">Active users</div>
             </div>
             <div>
-                <div class="text-4xl font-bold text-emerald-400">8,942</div>
-                <div class="text-zinc-400 text-sm">Forks this month</div>
+                <div class="text-4xl font-bold text-emerald-400"><?= number_format($statsForks) ?></div>
+                <div class="text-zinc-400 text-sm">Forks total</div>
             </div>
         </div>
 
-        <!-- Categories -->
         <div class="mb-20">
             <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
-                Popular Categories <span class="text-xs bg-white/10 px-3 py-1 rounded-full text-zinc-400">20+ more</span>
+                Popular Categories <span class="text-xs bg-white/10 px-3 py-1 rounded-full text-zinc-400">View more in Browse</span>
             </h2>
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <a href="browse?role=Developer" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
-                    <div class="text-4xl mb-3">💻</div><div class="font-medium">Developer</div>
-                </a>
-                <a href="browse?role=Writer" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
-                    <div class="text-4xl mb-3">✍️</div><div class="font-medium">Writer</div>
-                </a>
-                <a href="browse?role=Business Analyst" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
-                    <div class="text-4xl mb-3">📊</div><div class="font-medium">Business Analyst</div>
-                </a>
-                <a href="browse?role=Researcher" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
-                    <div class="text-4xl mb-3">🔬</div><div class="font-medium">Researcher</div>
-                </a>
-                <a href="browse?role=Creative" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
-                    <div class="text-4xl mb-3">🎨</div><div class="font-medium">Creative</div>
-                </a>
-                <a href="browse?role=Personal Assistant" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
-                    <div class="text-4xl mb-3">🤖</div><div class="font-medium">Personal Assistant</div>
-                </a>
+                <?php foreach ($categories as $cat): ?>
+                    <a href="browse?role=<?= urlencode($cat['slug']) ?>" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                        <div class="text-4xl mb-3"><?= htmlspecialchars($cat['icon'] ?? '✨') ?></div>
+                        <div class="font-medium"><?= htmlspecialchars($cat['name']) ?></div>
+                    </a>
+                <?php endforeach; ?>
             </div>
         </div>
 
-        <!-- Trending -->
         <div>
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-semibold">Trending Souls</h2>
@@ -114,8 +108,7 @@ setSEO(
                 </a>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="trending-souls">
-                <!-- Loaded via AJAX -->
-            </div>
+                </div>
         </div>
     </div>
 
@@ -125,7 +118,7 @@ setSEO(
             container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
             try {
-                const res = await fetch('api/souls?limit=3');
+                const res = await fetch('api/souls?limit=30');
                 const data = await res.json();
 
                 if (data.success && data.data.length > 0) {
