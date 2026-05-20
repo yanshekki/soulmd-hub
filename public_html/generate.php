@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/seo.php';
+require_once __DIR__ . '/../private/includes/seo.php';
 setSEO('AI Soul Generator', 'Describe your AI and instantly generate a professional SOUL.md + STYLE.md');
 
 $generated = false;

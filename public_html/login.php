@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/Database.php';
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();

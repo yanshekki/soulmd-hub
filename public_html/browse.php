@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/seo.php';
+require_once __DIR__ . '/../private/includes/seo.php';
 
 // Dynamic SEO based on search/filters
 $seoTitle = 'Browse Souls';

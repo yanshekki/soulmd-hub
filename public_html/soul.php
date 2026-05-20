@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../includes/seo.php';
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/Database.php';
 
 session_start();
 $db = Database::getInstance();

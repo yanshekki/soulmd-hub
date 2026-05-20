@@ -1,8 +1,8 @@
 <?php
 session_start();
-require_once __DIR__ . '/../includes/seo.php';
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/Database.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');

@@ -4,8 +4,8 @@
  * Supports: Paste .md content + Upload .md file + Zip (full soul folder)
  */
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/Database.php';
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
