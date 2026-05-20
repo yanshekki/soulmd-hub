@@ -1,6 +1,5 @@
 <?php
-// SoulMD Hub - Simple Starting Point
-// TODO: Add database connection from config.php
+// SoulMD Hub - Simple Entry Point
 ?>
 <!DOCTYPE html>
 <html lang="zh-HK">
@@ -19,8 +18,8 @@
                 <p class="text-xl text-zinc-400 mt-2">.md souls for humans & AI</p>
             </div>
             <div class="flex gap-3">
-                <a href="#" class="px-5 py-2.5 bg-white text-black rounded-2xl font-semibold hover:bg-zinc-200 transition">Browse</a>
-                <a href="#" class="px-5 py-2.5 border border-white/40 rounded-2xl hover:bg-white/10 transition">Upload</a>
+                <a href="browse.php" class="px-5 py-2.5 bg-white text-black rounded-2xl font-semibold hover:bg-zinc-200 transition">Browse</a>
+                <a href="upload.php" class="px-5 py-2.5 border border-white/40 rounded-2xl hover:bg-white/10 transition">Upload Soul</a>
             </div>
         </div>
 
@@ -32,6 +31,14 @@
             </div>
             <h2 class="text-6xl font-bold tracking-tighter mb-4">Share your AI's soul.<br>Let others fork it.</h2>
             <p class="max-w-md mx-auto text-xl text-zinc-400">The simplest platform to upload, discover, and reuse .md-based AI personalities.</p>
+        </div>
+
+        <!-- Quick Upload CTA -->
+        <div class="text-center mb-16">
+            <a href="upload.php" 
+               class="inline-block px-10 py-4 bg-white text-black text-lg font-semibold rounded-3xl hover:bg-zinc-200 transition">
+                立即上傳你的 Soul
+            </a>
         </div>
 
         <!-- Categories -->
@@ -50,10 +57,9 @@
         <div>
             <div class="flex justify-between items-end mb-6">
                 <h3 class="text-2xl font-semibold">Trending Souls</h3>
-                <a href="#" class="text-sm text-zinc-400 hover:text-white">View all →</a>
+                <a href="browse.php" class="text-sm text-zinc-400 hover:text-white">View all →</a>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <!-- Placeholder cards -->
                 <div class="bg-zinc-900 border border-white/10 p-6 rounded-3xl">
                     <div class="font-semibold mb-1">Full-Stack Developer Soul</div>
                     <div class="text-sm text-zinc-400 mb-4">By yanshekki • 142 forks</div>
