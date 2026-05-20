@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/seo.php';
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../src/Database.php';
 
+session_start();
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
@@ -13,7 +14,6 @@ if (!$id) {
     exit;
 }
 
-// Get soul
 $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND is_public = 1");
 $stmt->execute([$id]);
 $soul = $stmt->fetch();
@@ -23,16 +23,22 @@ if (!$soul) {
     die('Soul not found');
 }
 
-// SEO
 setSEO($soul['title'], $soul['description'] ?: 'View this AI soul on SoulMD Hub.');
 
-// Handle Fork
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fork'])) {
-    $pdo->prepare("UPDATE souls SET fork_count = fork_count + 1 WHERE id = ?")->execute([$id]);
-    $message = "Forked successfully! You can now edit it in your collection.";
+// Like system
+if (isset($_POST['like']) && isset($_SESSION['user_id'])) {
+    $userId = $_SESSION['user_id'];
+    $pdo->prepare("UPDATE souls SET like_count = like_count + 1 WHERE id = ?")->execute([$id]);
+    header("Location: soul.php?id=$id");
+    exit;
 }
 
-// Render content
+// Fork
+if (isset($_POST['fork'])) {
+    $pdo->prepare("UPDATE souls SET fork_count = fork_count + 1 WHERE id = ?")->execute([$id]);
+    $message = "Forked successfully!";
+}
+
 $isFolder = $soul['file_type'] === 'full_soul_folder';
 $contentData = $soul['content'];
 
@@ -50,14 +56,11 @@ if ($isFolder) {
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .markdown-content { line-height: 1.7; }
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 { font-weight: 600; margin-top: 1.5em; }
         .markdown-content pre { background: #111; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
-        .markdown-content code { font-family: ui-monospace, monospace; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white">
     <div class="max-w-4xl mx-auto px-6 py-12">
-        <!-- Header -->
         <div class="flex justify-between items-start mb-8">
             <div>
                 <div class="flex items-center gap-3 mb-2">
@@ -67,15 +70,19 @@ if ($isFolder) {
                     </span>
                 </div>
                 <div class="text-sm text-zinc-400">
-                    <?= date('F j, Y', strtotime($soul['created_at'])) ?> • <?= $soul['fork_count'] ?> forks
+                    <?= date('F j, Y', strtotime($soul['created_at'])) ?> • <?= $soul['fork_count'] ?> forks • <?= $soul['like_count'] ?> likes
                 </div>
             </div>
 
             <div class="flex gap-3">
-                <a href="browse.php" class="px-5 py-2 border border-white/30 rounded-2xl text-sm hover:bg-white/5 transition">Back to Browse</a>
+                <a href="browse.php" class="px-5 py-2 border border-white/30 rounded-2xl text-sm">Back</a>
                 <form method="POST">
-                    <button type="submit" name="fork" 
-                            class="px-6 py-2 bg-white text-black font-semibold rounded-2xl hover:bg-zinc-200 transition flex items-center gap-2">
+                    <button type="submit" name="like" class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-2xl text-sm flex items-center gap-1">
+                        ❤️ Like
+                    </button>
+                </form>
+                <form method="POST">
+                    <button type="submit" name="fork" class="px-6 py-2 bg-white text-black font-semibold rounded-2xl">
                         🔄 Fork
                     </button>
                 </form>
@@ -88,7 +95,6 @@ if ($isFolder) {
             </div>
         <?php endif; ?>
 
-        <!-- Metadata -->
         <div class="flex flex-wrap gap-2 mb-8">
             <?php if ($soul['role']): ?>
                 <span class="px-4 py-1 bg-white/10 rounded-full text-sm"><?= $soul['role'] ?></span>
@@ -101,21 +107,17 @@ if ($isFolder) {
             <?php endif; ?>
         </div>
 
-        <!-- Description -->
         <?php if ($soul['description']): ?>
             <div class="text-lg text-zinc-300 mb-10">
                 <?= nl2br(htmlspecialchars($soul['description'])) ?>
             </div>
         <?php endif; ?>
 
-        <!-- Content -->
         <div class="bg-zinc-900 border border-white/10 rounded-3xl p-8">
             <?php if ($isFolder && count($files) > 1): ?>
-                <!-- Tabs for full folder -->
                 <div class="flex border-b border-white/20 mb-6">
                     <?php $i = 0; foreach ($files as $filename => $fileContent): $i++; ?>
-                        <button onclick="showFileTab(<?= $i ?> )" 
-                                class="tab-btn px-6 py-3 text-sm font-medium <?= $i === 1 ? 'border-b-2 border-white text-white' : 'text-zinc-400' ?>">
+                        <button onclick="showFileTab(<?= $i ?> )" class="tab-btn px-6 py-3 text-sm font-medium <?= $i === 1 ? 'border-b-2 border-white' : 'text-zinc-400' ?>">
                             <?= htmlspecialchars($filename) ?>
                         </button>
                     <?php endforeach; ?>
@@ -127,13 +129,12 @@ if ($isFolder) {
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <!-- Single file -->
                 <pre class="markdown-content whitespace-pre-wrap text-sm leading-relaxed"><?= htmlspecialchars($contentData) ?></pre>
             <?php endif; ?>
         </div>
 
         <div class="mt-8 text-center text-xs text-zinc-500">
-            This soul is publicly available. Fork it to customize for your own AI.
+            This soul is publicly available. Fork it to customize.
         </div>
     </div>
 
@@ -141,7 +142,6 @@ if ($isFolder) {
         function showFileTab(tabNum) {
             document.querySelectorAll('.file-tab').forEach(el => el.classList.add('hidden'));
             document.getElementById('file-tab-' + tabNum).classList.remove('hidden');
-            
             document.querySelectorAll('.tab-btn').forEach((btn, index) => {
                 btn.classList.toggle('border-b-2', index + 1 === tabNum);
                 btn.classList.toggle('border-white', index + 1 === tabNum);
