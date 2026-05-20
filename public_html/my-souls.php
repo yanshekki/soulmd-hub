@@ -115,7 +115,7 @@ $mySouls = $stmt->fetchAll();
                         <div class="flex gap-3 mt-6 pt-6 border-t border-white/10">
                             <button onclick="editSoul(<?= $soul['id'] ?>)" class="flex-1 py-3 text-sm border border-white/30 rounded-3xl hover:bg-white/5 transition">Edit</button>
                             <button onclick="deleteSoul(<?= $soul['id'] ?>)" class="flex-1 py-3 text-sm border border-red-500/50 text-red-400 rounded-3xl hover:bg-red-900/20 transition">Delete</button>
-                            <a href="soul.php?id=<?= $soul['id'] ?>" class="flex-1 py-3 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition text-center">View</a>
+                            <a href="soul/<?= $soul['id'] ?>" class="flex-1 py-3 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition text-center">View</a>
                         </div>
                     </div>
                 <?php endforeach; ?>

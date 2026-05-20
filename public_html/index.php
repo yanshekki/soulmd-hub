@@ -84,22 +84,22 @@ setSEO(
                 Popular Categories <span class="text-xs bg-white/10 px-3 py-1 rounded-full text-zinc-400">20+ more</span>
             </h2>
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <a href="browse.php?role=Developer" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=Developer" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
                     <div class="text-4xl mb-3">💻</div><div class="font-medium">Developer</div>
                 </a>
-                <a href="browse.php?role=Writer" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=Writer" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
                     <div class="text-4xl mb-3">✍️</div><div class="font-medium">Writer</div>
                 </a>
-                <a href="browse.php?role=Business Analyst" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=Business Analyst" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
                     <div class="text-4xl mb-3">📊</div><div class="font-medium">Business Analyst</div>
                 </a>
-                <a href="browse.php?role=Researcher" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=Researcher" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
                     <div class="text-4xl mb-3">🔬</div><div class="font-medium">Researcher</div>
                 </a>
-                <a href="browse.php?role=Creative" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=Creative" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
                     <div class="text-4xl mb-3">🎨</div><div class="font-medium">Creative</div>
                 </a>
-                <a href="browse.php?role=Personal Assistant" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=Personal Assistant" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
                     <div class="text-4xl mb-3">🤖</div><div class="font-medium">Personal Assistant</div>
                 </a>
             </div>
@@ -125,14 +125,14 @@ setSEO(
             container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
             try {
-                const res = await fetch('api/souls.php?limit=3');
+                const res = await fetch('api/souls?limit=3');
                 const data = await res.json();
 
                 if (data.success && data.data.length > 0) {
                     let html = '';
                     data.data.forEach(soul => {
                         html += `
-                            <a href="soul.php?id=${soul.id}" class="group bg-zinc-900 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all">
+                            <a href="soul/${soul.id}" class="group bg-zinc-900 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all">
                                 <div class="flex justify-between items-start mb-4">
                                     <div class="font-semibold text-xl group-hover:text-emerald-400 transition">${soul.title}</div>
                                     <div class="text-xs px-3 py-1 rounded-full ${soul.file_type === 'full_soul_folder' ? 'bg-purple-900 text-purple-400' : 'bg-emerald-900 text-emerald-400'}">

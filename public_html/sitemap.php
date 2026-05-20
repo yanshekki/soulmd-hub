@@ -28,7 +28,7 @@ echo '  </url>' . "\n";
 
 // Browse page
 echo '  <url>' . "\n";
-echo '    <loc>' . $baseUrl . '/browse.php</loc>' . "\n";
+echo '    <loc>' . $baseUrl . '/browse</loc>' . "\n";
 echo '    <lastmod>' . date('Y-m-d') . '</lastmod>' . "\n";
 echo '    <changefreq>daily</changefreq>' . "\n";
 echo '    <priority>0.9</priority>' . "\n";
@@ -37,7 +37,7 @@ echo '  </url>' . "\n";
 // All public souls
 $stmt = $pdo->query("SELECT id, created_at FROM souls WHERE is_public = 1 ORDER BY created_at DESC");
 while ($soul = $stmt->fetch()) {
-    $url = $baseUrl . '/soul.php?id=' . $soul['id'];
+    $url = $baseUrl . '/soul/' . $soul['id'];
     $lastmod = date('Y-m-d', strtotime($soul['created_at']));
     echo '  <url>' . "\n";
     echo '    <loc>' . htmlspecialchars($url) . '</loc>' . "\n";

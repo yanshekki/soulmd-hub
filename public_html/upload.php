@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO souls (user_id, title, description, content, file_type, role, domain, compatibility, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
             $stmt->execute([$_SESSION['user_id'], $title, $description, $content, $fileType, $role, $domain, $compatibility]);
             $newId = $pdo->lastInsertId();
-            $message = "✅ Soul uploaded successfully! <a href='soul.php?id=$newId' class='underline text-emerald-400'>View it now</a>";
+            $message = "✅ Soul uploaded successfully! <a href='soul/$newId' class='underline text-emerald-400'>View it now</a>";
         } catch (Exception $e) {
             $error = 'Failed to save soul';
         }

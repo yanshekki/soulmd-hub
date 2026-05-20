@@ -105,14 +105,14 @@ setSEO($seoTitle, $seoDesc);
             if (type) params.append('file_type', type);
 
             try {
-                const res = await fetch(`api/souls.php?${params.toString()}`);
+                const res = await fetch(`api/souls?${params.toString()}`);
                 const data = await res.json();
 
                 if (data.success && data.data.length > 0) {
                     let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
                     data.data.forEach(soul => {
                         html += `
-                            <a href="soul.php?id=${soul.id}" class="group bg-zinc-900 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all">
+                            <a href="soul/${soul.id}" class="group bg-zinc-900 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all">
                                 <div class="flex justify-between items-start mb-4">
                                     <div class="font-semibold text-xl group-hover:text-emerald-400 transition">${soul.title}</div>
                                     <div class="text-xs px-3 py-1 rounded-full ${soul.file_type === 'full_soul_folder' ? 'bg-purple-900 text-purple-400' : 'bg-emerald-900 text-emerald-400'}">

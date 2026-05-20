@@ -227,7 +227,7 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
                 const data = await res.json();
 
                 if (data.success && data.new_soul_id) {
-                    window.location.href = `soul.php?id=${data.new_soul_id}`;
+                    window.location.href = `soul/${data.new_soul_id}`;
                 } else {
                     alert(data.error || 'Fork failed');
                     btn.innerHTML = originalText;
