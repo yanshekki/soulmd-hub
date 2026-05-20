@@ -1,15 +1,19 @@
 <?php
+session_start();
 require_once __DIR__ . '/../includes/seo.php';
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../src/Database.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
 setSEO('My Souls', 'Manage your uploaded AI souls.');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
-
-// Demo: Use user_id = 1 for now (can be replaced with real auth later)
-$user_id = 1;
+$user_id = $_SESSION['user_id'];
 
 $message = '';
 
@@ -51,7 +55,10 @@ $mySouls = $stmt->fetchAll();
                 <h1 class="text-4xl font-bold">My Souls</h1>
                 <p class="text-zinc-400 mt-1">管理你上傳嘅所有 AI souls</p>
             </div>
-            <a href="upload.php" class="px-6 py-3 bg-white text-black rounded-2xl font-semibold hover:bg-zinc-200 transition">+ 上傳新 Soul</a>
+            <div class="flex gap-3">
+                <a href="my-api.php" class="px-5 py-2.5 text-sm border border-emerald-500/50 text-emerald-400 rounded-2xl hover:bg-emerald-900/20 transition">My API Key</a>
+                <a href="upload.php" class="px-6 py-3 bg-white text-black rounded-2xl font-semibold hover:bg-zinc-200 transition">+ 上傳新 Soul</a>
+            </div>
         </div>
 
         <?php if ($message): ?>
