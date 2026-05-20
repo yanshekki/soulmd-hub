@@ -25,10 +25,22 @@ if (!$soul) {
 
 setSEO($soul['title'], $soul['description'] ?: 'View this AI soul on SoulMD Hub.');
 
-// Like system
+// Like
 if (isset($_POST['like']) && isset($_SESSION['user_id'])) {
-    $userId = $_SESSION['user_id'];
     $pdo->prepare("UPDATE souls SET like_count = like_count + 1 WHERE id = ?")->execute([$id]);
+    header("Location: soul.php?id=$id");
+    exit;
+}
+
+// Rating (1-5 stars)
+if (isset($_POST['rating']) && isset($_SESSION['user_id'])) {
+    $userId = $_SESSION['user_id'];
+    $rating = (int)$_POST['rating'];
+    if ($rating >= 1 && $rating <= 5) {
+        $pdo->prepare("INSERT INTO soul_ratings (soul_id, user_id, rating) 
+                       VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE rating = VALUES(rating)")
+            ->execute([$id, $userId, $rating]);
+    }
     header("Location: soul.php?id=$id");
     exit;
 }
@@ -47,6 +59,11 @@ if ($isFolder) {
 } else {
     $files = ['SOUL.md' => $contentData];
 }
+
+// Get average rating
+$avgRating = $pdo->prepare("SELECT AVG(rating) as avg FROM soul_ratings WHERE soul_id = ?");
+$avgRating->execute([$id]);
+$avg = $avgRating->fetch()['avg'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="zh-HK">
@@ -57,6 +74,7 @@ if ($isFolder) {
     <style>
         .markdown-content { line-height: 1.7; }
         .markdown-content pre { background: #111; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
+        .star { color: #fbbf24; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -94,6 +112,22 @@ if ($isFolder) {
                 <?= $message ?>
             </div>
         <?php endif; ?>
+
+        <!-- Rating -->
+        <div class="mb-8 flex items-center gap-4">
+            <div class="text-sm text-zinc-400">評分：</div>
+            <div class="flex text-2xl">
+                <?php for ($i = 1; $i <= 5; $i++): ?>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="rating" value="<?= $i ?>">
+                        <button type="submit" class="hover:scale-125 transition <?= $i <= round($avg) ? 'star' : 'text-zinc-700' ?>">
+                            ★
+                        </button>
+                    </form>
+                <?php endfor; ?>
+            </div>
+            <div class="text-sm text-zinc-400 ml-2"><?= number_format($avg, 1) ?> / 5</div>
+        </div>
 
         <div class="flex flex-wrap gap-2 mb-8">
             <?php if ($soul['role']): ?>
