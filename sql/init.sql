@@ -1,4 +1,4 @@
--- SoulMD Hub Full Schema (with Ratings + Version History)
+-- SoulMD Hub Full Schema (with Ratings + API Keys)
 
 CREATE DATABASE IF NOT EXISTS soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE soulmd_hub;
@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100),
     password VARCHAR(255) NOT NULL,
+    api_key VARCHAR(64) UNIQUE,                    -- For API access
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -38,12 +39,12 @@ CREATE TABLE IF NOT EXISTS soul_versions (
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
 );
 
--- Simple Ratings
+-- Ratings (1-5 stars)
 CREATE TABLE IF NOT EXISTS soul_ratings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     soul_id INT,
     user_id INT,
-    rating TINYINT NOT NULL, -- 1 to 5
+    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_rating (soul_id, user_id),
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
