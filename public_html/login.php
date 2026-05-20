@@ -60,34 +60,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form id="login-form" class="bg-zinc-900 border border-white/10 rounded-3xl p-8 space-y-6">
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400">Username</label>
-                <input type="text" id="username" name="username" required 
-                       class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                <input type="text" id="username" name="username" required class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
             </div>
 
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400">Password</label>
-                <input type="password" id="password" name="password" required 
-                       class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                <input type="password" id="password" name="password" required class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
             </div>
 
             <div class="flex items-center justify-between text-sm">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" class="accent-emerald-400">
-                    Remember me
+                    <input type="checkbox" class="accent-emerald-400"> Remember me
                 </label>
                 <a href="#" class="text-emerald-400 hover:underline">Forgot password?</a>
             </div>
 
-            <button type="submit" id="submit-btn"
-                    class="w-full py-5 bg-white text-black font-semibold text-lg rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
+            <button type="submit" id="submit-btn" class="w-full py-5 bg-white text-black font-semibold text-lg rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
                 <span id="submit-text">Log in</span>
                 <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-black border-t-transparent rounded-full"></span>
             </button>
         </form>
 
         <div class="text-center mt-8 text-sm text-zinc-400">
-            Don't have an account? 
-            <a href="register.php" class="text-emerald-400 hover:underline font-medium">Sign up</a>
+            Don't have an account? <a href="register.php" class="text-emerald-400 hover:underline font-medium">Sign up</a>
         </div>
     </div>
 
@@ -95,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const form = document.getElementById('login-form');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const btn = document.getElementById('submit-btn');
             const text = document.getElementById('submit-text');
             const loading = document.getElementById('submit-loading');
@@ -104,26 +98,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             loading.classList.remove('hidden');
 
             const formData = new FormData(form);
+            const res = await fetch('login.php', { method: 'POST', body: formData });
+            const html = await res.text();
 
-            try {
-                const res = await fetch('login.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const html = await res.text();
-
-                if (html.includes('Location: my-souls.php')) {
-                    window.location.href = 'my-souls.php';
-                } else {
-                    document.body.innerHTML = html;
-                }
-            } catch (err) {
-                alert('Login failed. Please try again.');
+            if (html.includes('Location: my-souls.php')) {
+                window.location.href = 'my-souls.php';
+            } else {
+                document.body.innerHTML = html;
             }
-
-            text.classList.remove('hidden');
-            loading.classList.add('hidden');
         });
     </script>
 </body>

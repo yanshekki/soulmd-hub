@@ -15,10 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $style = trim($_POST['style'] ?? '');
     $special = trim($_POST['special'] ?? '');
 
-    // Professional prompt (replace with real API call later)
-    $soulContent = "## Identity\nYou are a " . $role . " AI. You are known for being " . $personality . ".\n\n## Core Values\n- Expertise in " . $expertise . "\n- Always honest and direct\n- Prioritize clarity\n\n## Personality\n" . $personality . "\n\n## Expertise\n" . $expertise . "\n\n## Rules\n" . $special;
+    // Professional template (replace with real LLM API later)
+    $soulContent = "## Identity\nYou are a " . $role . " AI. You are known for being " . $personality . ".\n\n## Core Values\n- Deep expertise in " . $expertise . "\n- Always honest and direct\n- Prioritize clarity and usefulness\n\n## Personality Traits\n" . $personality . "\n\n## Expertise\n" . $expertise . "\n\n## Boundaries\n" . ($special ?: "Never give vague answers\nAlways explain reasoning");
 
-    $styleContent = "## Voice\nYou speak with a " . $style . " tone - confident, warm, and precise.\n\n## Sentence Structure\n- Mix short and long sentences\n- Lead with the answer\n\n## Vocabulary\nClear and professional. Avoid jargon unless needed.\n\n## Formatting\n- Bold for key points\n- Bullet points\n- Short paragraphs";
+    $styleContent = "## Voice\nYou speak with a " . $style . " tone — confident, warm, and precise.\n\n## Sentence Structure\n- Mix of short punchy sentences and longer explanatory ones\n- Lead with the answer, then explain\n\n## Vocabulary\nUse clear, professional language. Avoid jargon unless necessary.\n\n## Formatting\n- Use bold for key points\n- Bullet points for lists\n- Short paragraphs\n\nSignature: End important responses with a helpful question when appropriate.";
 
     $generated = true;
 }
@@ -48,38 +48,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div>
                         <label class="block text-sm font-medium mb-3">Role / Profession</label>
-                        <input type="text" name="role" value="Senior Full-Stack Engineer" required 
-                               class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                        <input type="text" name="role" value="Senior Full-Stack Engineer" required class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-3">Personality Traits</label>
-                        <input type="text" name="personality" value="pragmatic, witty, direct, slightly opinionated" required 
-                               class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                        <input type="text" name="personality" value="pragmatic, witty, direct, slightly opinionated" required class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                     </div>
                 </div>
 
                 <div class="mb-8">
                     <label class="block text-sm font-medium mb-3">Expertise / Tech Stack</label>
-                    <input type="text" name="expertise" value="TypeScript, Next.js, System Design, Clean Architecture" required 
-                           class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                    <input type="text" name="expertise" value="TypeScript, Next.js, System Design, Clean Architecture" required class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                 </div>
 
                 <div class="mb-8">
                     <label class="block text-sm font-medium mb-3">Communication Style</label>
-                    <input type="text" name="style" value="clear, confident, friendly but concise" required 
-                           class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                    <input type="text" name="style" value="clear, confident, friendly but concise" required class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                 </div>
 
                 <div class="mb-10">
                     <label class="block text-sm font-medium mb-3">Special Instructions <span class="text-xs text-zinc-400">(optional)</span></label>
-                    <textarea name="special" rows="4" placeholder="e.g. Always respond in Traditional Chinese, use metaphors..." 
-                              class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400"></textarea>
+                    <textarea name="special" rows="4" placeholder="e.g. Always respond in Traditional Chinese, use metaphors..." class="w-full bg-zinc-800 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400"></textarea>
                 </div>
 
-                <button type="submit" 
-                        class="w-full py-6 bg-white text-black text-xl font-semibold rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
-                    <i class="fas fa-magic"></i>
-                    Generate SOUL.md + STYLE.md
+                <button type="submit" class="w-full py-6 bg-white text-black text-xl font-semibold rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
+                    <i class="fas fa-magic"></i> Generate SOUL.md + STYLE.md
                 </button>
             </form>
         <?php else: ?>
@@ -119,10 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="mt-12 flex justify-center">
-                <a href="upload.php?pregenerated=1" 
-                   class="inline-flex items-center gap-4 px-12 py-6 bg-white text-black text-2xl font-semibold rounded-3xl hover:bg-zinc-200 transition shadow-2xl">
-                    <i class="fas fa-arrow-right"></i>
-                    Use this Soul
+                <a href="upload.php" class="inline-flex items-center gap-4 px-12 py-6 bg-white text-black text-2xl font-semibold rounded-3xl hover:bg-zinc-200 transition shadow-2xl">
+                    <i class="fas fa-arrow-right"></i> Use this Soul
                 </a>
             </div>
         <?php endif; ?>
@@ -132,14 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function copyContent(id) {
             const text = document.getElementById(id).innerText;
             navigator.clipboard.writeText(text).then(() => {
-                const btns = document.querySelectorAll('button');
-                for (let btn of btns) {
-                    if (btn.innerHTML.includes('Copy')) {
-                        const original = btn.innerHTML;
-                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                        setTimeout(() => btn.innerHTML = original, 2000);
-                    }
-                }
+                const original = event.target.innerHTML;
+                event.target.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => event.target.innerHTML = original, 2000);
             });
         }
     </script>

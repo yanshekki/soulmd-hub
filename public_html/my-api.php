@@ -18,24 +18,19 @@ $userId = $_SESSION['user_id'];
 
 $message = '';
 
-// Regenerate API Key
 if (isset($_POST['regenerate'])) {
-    $newKey = bin2hex(random_bytes(32)); // 64 char secure key
-    $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")
-        ->execute([$newKey, $userId]);
+    $newKey = bin2hex(random_bytes(32));
+    $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$newKey, $userId]);
     $message = '✅ API Key regenerated successfully!';
 }
 
-// Get current API Key
 $stmt = $pdo->prepare("SELECT api_key FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $apiKey = $stmt->fetch()['api_key'] ?? null;
 
-// Auto-generate if none
 if (!$apiKey) {
     $apiKey = bin2hex(random_bytes(32));
-    $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")
-        ->execute([$apiKey, $userId]);
+    $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$apiKey, $userId]);
 }
 ?>
 
@@ -84,9 +79,7 @@ if (!$apiKey) {
             </div>
 
             <form method="POST" class="flex justify-center">
-                <button type="submit" name="regenerate" 
-                        onclick="this.innerHTML = '<i class=\"fas fa-spinner animate-spin\"></i> Regenerating...';"
-                        class="px-10 py-4 border border-white/30 text-sm font-medium rounded-3xl hover:bg-white/5 transition flex items-center gap-2">
+                <button type="submit" name="regenerate" class="px-10 py-4 border border-white/30 text-sm font-medium rounded-3xl hover:bg-white/5 transition flex items-center gap-2">
                     <i class="fas fa-redo"></i> Regenerate Key
                 </button>
             </form>

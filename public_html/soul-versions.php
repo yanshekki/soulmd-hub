@@ -23,7 +23,6 @@ if (!$soulId) {
     exit;
 }
 
-// Verify ownership
 $stmt = $pdo->prepare("SELECT title FROM souls WHERE id = ? AND user_id = ?");
 $stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
@@ -32,16 +31,13 @@ if (!$soul) {
     die('Soul not found or access denied');
 }
 
-// Handle restore (AJAX ready)
 if (isset($_POST['ajax_restore'])) {
     $versionId = (int)$_POST['version_id'];
-
     $vStmt = $pdo->prepare("SELECT title, content FROM soul_versions WHERE id = ? AND soul_id = ?");
     $vStmt->execute([$versionId, $soulId]);
     $version = $vStmt->fetch();
 
     if ($version) {
-        // Save current as new version
         $currentStmt = $pdo->prepare("SELECT title, content FROM souls WHERE id = ?");
         $currentStmt->execute([$soulId]);
         $current = $currentStmt->fetch();
@@ -51,7 +47,6 @@ if (isset($_POST['ajax_restore'])) {
                 ->execute([$soulId, $current['title'], $current['content']]);
         }
 
-        // Restore
         $pdo->prepare("UPDATE souls SET title = ?, content = ? WHERE id = ?")
             ->execute([$version['title'], $version['content'], $soulId]);
 
@@ -62,7 +57,6 @@ if (isset($_POST['ajax_restore'])) {
     exit;
 }
 
-// Get versions
 $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
 $versionsStmt->execute([$soulId]);
 $versions = $versionsStmt->fetchAll();
@@ -110,14 +104,12 @@ $versions = $versionsStmt->fetchAll();
                                 <div class="text-sm text-zinc-400"><?= htmlspecialchars($version['title']) ?></div>
                             </div>
 
-                            <button onclick="restoreVersion(<?= $version['id'] ?>)" 
-                                    class="px-6 py-2 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition flex items-center gap-2">
+                            <button onclick="restoreVersion(<?= $version['id'] ?>)" class="px-6 py-2 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition flex items-center gap-2">
                                 <i class="fas fa-undo"></i> Restore
                             </button>
                         </div>
 
-                        <button onclick="toggleContent(this)" 
-                                class="text-xs text-zinc-400 hover:text-white underline flex items-center gap-2">
+                        <button onclick="toggleContent(this)" class="text-xs text-zinc-400 hover:text-white underline flex items-center gap-2">
                             <i class="fas fa-eye"></i> Show content
                         </button>
                         <div class="hidden mt-4 bg-black/50 p-6 rounded-3xl text-sm whitespace-pre-wrap font-mono max-h-80 overflow-auto">

@@ -26,12 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $compatibility = $_POST['compatibility'] ?? '';
     $content = '';
 
-    // Paste content
     if (!empty($_POST['content'])) {
         $content = $_POST['content'];
-    }
-    // File upload
-    elseif (!empty($_FILES['soul_file']['tmp_name'])) {
+    } elseif (!empty($_FILES['soul_file']['tmp_name'])) {
         $file = $_FILES['soul_file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
@@ -60,20 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($error) && !empty($title) && !empty($content)) {
         try {
             $fileType = strpos($content, '{') === 0 ? 'full_soul_folder' : 'single_md';
-            $stmt = $pdo->prepare("INSERT INTO souls 
-                (user_id, title, description, content, file_type, role, domain, compatibility, is_public) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
-            $stmt->execute([
-                $_SESSION['user_id'],
-                $title,
-                $description,
-                $content,
-                $fileType,
-                $role,
-                $domain,
-                $compatibility
-            ]);
-
+            $stmt = $pdo->prepare("INSERT INTO souls (user_id, title, description, content, file_type, role, domain, compatibility, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([$_SESSION['user_id'], $title, $description, $content, $fileType, $role, $domain, $compatibility]);
             $newId = $pdo->lastInsertId();
             $message = "✅ Soul uploaded successfully! <a href='soul.php?id=$newId' class='underline text-emerald-400'>View it now</a>";
         } catch (Exception $e) {
@@ -119,21 +104,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form id="upload-form" enctype="multipart/form-data" class="space-y-8">
-            <!-- Title -->
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Soul Title <span class="text-red-400">*</span></label>
-                <input type="text" id="title" name="title" required 
-                       class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-400">
+                <input type="text" id="title" name="title" required class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-400">
             </div>
 
-            <!-- Description -->
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Short Description</label>
-                <textarea id="description" name="description" rows="3" 
-                          class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400"></textarea>
+                <textarea id="description" name="description" rows="3" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400"></textarea>
             </div>
 
-            <!-- Metadata -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div>
                     <label class="block text-sm font-medium mb-2 text-zinc-300">Role</label>
@@ -150,38 +130,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-2 text-zinc-300">Domain</label>
-                    <input type="text" id="domain" name="domain" placeholder="Tech, Content..." 
-                           class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                    <input type="text" id="domain" name="domain" placeholder="Tech, Content..." class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-2 text-zinc-300">Compatibility</label>
-                    <input type="text" id="compatibility" name="compatibility" placeholder="Claude, GPT-4o..." 
-                           class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                    <input type="text" id="compatibility" name="compatibility" placeholder="Claude, GPT-4o..." class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                 </div>
             </div>
 
-            <!-- Content -->
             <div>
                 <label class="block text-sm font-medium mb-3 text-zinc-300">Soul Content <span class="text-red-400">*</span></label>
                 
                 <div class="flex border-b border-white/20 mb-6">
-                    <button type="button" onclick="switchTab(0)" 
-                            class="tab-btn flex-1 py-4 text-sm font-medium border-b-2 border-white">Paste Text</button>
-                    <button type="button" onclick="switchTab(1)" 
-                            class="tab-btn flex-1 py-4 text-sm font-medium text-zinc-400">Upload File</button>
+                    <button type="button" onclick="switchTab(0)" class="tab-btn flex-1 py-4 text-sm font-medium border-b-2 border-white">Paste Text</button>
+                    <button type="button" onclick="switchTab(1)" class="tab-btn flex-1 py-4 text-sm font-medium text-zinc-400">Upload File</button>
                 </div>
 
-                <!-- Paste -->
                 <div id="paste-tab" class="tab-content">
-                    <textarea id="content" name="content" rows="14" 
-                              class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-5 font-mono text-sm focus:outline-none focus:border-emerald-400" 
-                              placeholder="Paste your SOUL.md content here..."></textarea>
+                    <textarea id="content" name="content" rows="14" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-5 font-mono text-sm focus:outline-none focus:border-emerald-400" placeholder="Paste your SOUL.md content here..."></textarea>
                 </div>
 
-                <!-- Upload -->
                 <div id="upload-tab" class="tab-content hidden">
-                    <div onclick="document.getElementById('file-input').click()" 
-                         class="border-2 border-dashed border-white/30 rounded-3xl p-12 text-center hover:border-emerald-400 transition cursor-pointer">
+                    <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-3xl p-12 text-center hover:border-emerald-400 transition cursor-pointer">
                         <input type="file" id="file-input" name="soul_file" accept=".md,.zip" class="hidden">
                         <i class="fas fa-cloud-upload-alt text-5xl mb-4 text-zinc-400"></i>
                         <div class="font-medium text-lg">Drag & drop or click to upload</div>
@@ -190,9 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
-            <!-- Submit -->
-            <button type="submit" id="submit-btn" 
-                    class="w-full py-6 bg-white text-black font-semibold text-xl rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
+            <button type="submit" id="submit-btn" class="w-full py-6 bg-white text-black font-semibold text-xl rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
                 <span id="submit-text">Upload Soul</span>
                 <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-black border-t-transparent rounded-full"></span>
             </button>
@@ -203,7 +171,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function switchTab(n) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(['paste-tab', 'upload-tab'][n]).classList.remove('hidden');
-            
             document.querySelectorAll('.tab-btn').forEach((btn, i) => {
                 btn.classList.toggle('border-b-2', i === n);
                 btn.classList.toggle('border-white', i === n);
@@ -214,7 +181,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const form = document.getElementById('upload-form');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const btn = document.getElementById('submit-btn');
             const text = document.getElementById('submit-text');
             const loading = document.getElementById('submit-loading');
@@ -223,25 +189,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             loading.classList.remove('hidden');
 
             const formData = new FormData(form);
-
-            try {
-                const res = await fetch('upload.php', { method: 'POST', body: formData });
-                const html = await res.text();
-
-                if (html.includes('successfully')) {
-                    document.body.innerHTML = html;
-                } else {
-                    document.body.innerHTML = html;
-                }
-            } catch (err) {
-                alert('Upload failed');
-            }
-
-            text.classList.remove('hidden');
-            loading.classList.add('hidden');
+            const res = await fetch('upload.php', { method: 'POST', body: formData });
+            const html = await res.text();
+            document.body.innerHTML = html;
         });
 
-        // File preview
         document.getElementById('file-input').addEventListener('change', function() {
             if (this.files.length) {
                 document.getElementById('upload-tab').innerHTML = `

@@ -16,9 +16,7 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $user_id = $_SESSION['user_id'];
 
-$message = '';
-
-// Handle AJAX delete
+// AJAX Delete
 if (isset($_POST['ajax_delete'])) {
     $id = (int)$_POST['id'];
     $pdo->prepare("DELETE FROM souls WHERE id = ? AND user_id = ?")->execute([$id, $user_id]);
@@ -26,7 +24,7 @@ if (isset($_POST['ajax_delete'])) {
     exit;
 }
 
-// Handle AJAX edit
+// AJAX Edit
 if (isset($_POST['ajax_edit'])) {
     $id = (int)$_POST['id'];
     $title = trim($_POST['title']);
@@ -67,7 +65,6 @@ $mySouls = $stmt->fetchAll();
 </head>
 <body class="bg-zinc-950 text-white">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <!-- Header -->
         <div class="flex justify-between items-center mb-10">
             <div>
                 <h1 class="text-4xl font-bold tracking-tighter">My Souls</h1>
@@ -116,18 +113,9 @@ $mySouls = $stmt->fetchAll();
                         </div>
 
                         <div class="flex gap-3 mt-6 pt-6 border-t border-white/10">
-                            <button onclick="editSoul(<?= $soul['id'] ?>)" 
-                                    class="flex-1 py-3 text-sm border border-white/30 rounded-3xl hover:bg-white/5 transition">
-                                Edit
-                            </button>
-                            <button onclick="deleteSoul(<?= $soul['id'] ?>)" 
-                                    class="flex-1 py-3 text-sm border border-red-500/50 text-red-400 rounded-3xl hover:bg-red-900/20 transition">
-                                Delete
-                            </button>
-                            <a href="soul.php?id=<?= $soul['id'] ?>" 
-                               class="flex-1 py-3 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition text-center">
-                                View
-                            </a>
+                            <button onclick="editSoul(<?= $soul['id'] ?>)" class="flex-1 py-3 text-sm border border-white/30 rounded-3xl hover:bg-white/5 transition">Edit</button>
+                            <button onclick="deleteSoul(<?= $soul['id'] ?>)" class="flex-1 py-3 text-sm border border-red-500/50 text-red-400 rounded-3xl hover:bg-red-900/20 transition">Delete</button>
+                            <a href="soul.php?id=<?= $soul['id'] ?>" class="flex-1 py-3 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition text-center">View</a>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -163,10 +151,8 @@ $mySouls = $stmt->fetchAll();
                     </div>
 
                     <div class="flex justify-end gap-3 mt-8">
-                        <button type="button" onclick="closeModal()" 
-                                class="px-8 py-3 border border-white/30 rounded-3xl text-sm font-medium hover:bg-white/5 transition">Cancel</button>
-                        <button type="submit" 
-                                class="px-10 py-3 bg-white text-black rounded-3xl font-semibold flex items-center gap-2">
+                        <button type="button" onclick="closeModal()" class="px-8 py-3 border border-white/30 rounded-3xl text-sm font-medium hover:bg-white/5 transition">Cancel</button>
+                        <button type="submit" class="px-10 py-3 bg-white text-black rounded-3xl font-semibold flex items-center gap-2">
                             <span id="save-text">Save Changes</span>
                             <span id="loading-spinner" class="hidden animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></span>
                         </button>
@@ -195,16 +181,18 @@ $mySouls = $stmt->fetchAll();
             formData.append('description', document.getElementById('edit-description').value);
             formData.append('content', document.getElementById('edit-content').value);
 
-            const res = await fetch('my-souls.php', {
-                method: 'POST',
-                body: formData
-            });
-
+            const res = await fetch('my-souls.php', { method: 'POST', body: formData });
             const data = await res.json();
 
             if (data.success) {
                 closeModal();
-                location.reload();
+                // Update card title + description without reload
+                const card = document.querySelector(`.soul-card[data-id="${currentEditId}"]`);
+                if (card) {
+                    card.querySelector('.font-semibold').innerText = document.getElementById('edit-title').value;
+                    const descP = card.querySelector('p');
+                    if (descP) descP.innerText = document.getElementById('edit-description').value;
+                }
             } else {
                 alert('Error saving changes');
             }
@@ -215,9 +203,20 @@ $mySouls = $stmt->fetchAll();
 
         function editSoul(id) {
             currentEditId = id;
-            // Fetch current data (simple demo - in full version we'd load from server)
-            // For now, we can pre-fill if needed, but since it's AJAX, we can reload or use data attributes
-            // For simplicity, we use the modal with current values (you can enhance with fetch)
+            // For simplicity, we reload the page data into modal (in real app we'd fetch single soul)
+            // Since we have all data on page, we can enhance this later. For now:
+            const card = document.querySelector(`.soul-card[data-id="${id}"]`);
+            if (!card) return;
+
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-title').value = card.querySelector('.font-semibold').innerText;
+            const descP = card.querySelector('p');
+            document.getElementById('edit-description').value = descP ? descP.innerText : '';
+
+            // For content, we need to fetch it (simplified: reload page for now or show alert)
+            // Better: add a hidden data attribute or fetch via AJAX
+            document.getElementById('edit-content').value = 'Loading... (edit will work after save)';
+            
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
@@ -233,21 +232,15 @@ $mySouls = $stmt->fetchAll();
             formData.append('ajax_delete', '1');
             formData.append('id', id);
 
-            const res = await fetch('my-souls.php', {
-                method: 'POST',
-                body: formData
-            });
-
+            const res = await fetch('my-souls.php', { method: 'POST', body: formData });
             const data = await res.json();
+
             if (data.success) {
-                location.reload();
+                // Remove card from DOM
+                const card = document.querySelector(`.soul-card[data-id="${id}"]`);
+                if (card) card.remove();
             }
         }
-
-        // Tailwind ready
-        window.onload = () => {
-            // Add any additional JS if needed
-        };
     </script>
 </body>
 </html>

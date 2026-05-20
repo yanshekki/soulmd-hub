@@ -54,8 +54,9 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
         .markdown-content h1, .markdown-content h2, .markdown-content h3 { margin-top: 1.5em; font-weight: 600; }
         .markdown-content pre { background: #111827; padding: 1.25rem; border-radius: 1rem; overflow-x: auto; font-size: 0.875rem; }
         .markdown-content code { font-family: ui-monospace, monospace; }
-        .star { color: #fbbf24; cursor: pointer; }
-        .star:hover { transform: scale(1.2); }
+        .star { color: #fbbf24; cursor: pointer; transition: transform 0.1s; }
+        .star:hover { transform: scale(1.3); }
+        .star.active { color: #fbbf24; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -66,12 +67,15 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
                 <i class="fas fa-arrow-left"></i> Back to Browse
             </a>
             <div class="flex items-center gap-3">
-                <button onclick="likeSoul()" 
+                <!-- Like Button -->
+                <button onclick="likeSoul()" id="like-btn"
                         class="flex items-center gap-2 px-5 py-2 border border-white/30 rounded-3xl hover:bg-white/5 transition">
-                    <i class="fas fa-heart"></i>
+                    <i class="fas fa-heart text-red-400"></i>
                     <span id="like-count"><?= $soul['like_count'] ?></span>
                 </button>
-                <button onclick="forkSoul()" 
+                
+                <!-- Fork Button -->
+                <button onclick="forkSoul()" id="fork-btn"
                         class="flex items-center gap-2 px-5 py-2 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">
                     <i class="fas fa-copy"></i> Fork
                 </button>
@@ -143,39 +147,104 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
     </div>
 
     <script>
-        let currentRating = 0;
+        let currentRating = <?= round($avgRating) ?>;
 
+        // Rate Soul (1-5 stars)
         async function rateSoul(stars) {
-            const res = await fetch('api/rate.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars })
-            });
-            const data = await res.json();
-            if (data.success) {
-                currentRating = stars;
-                document.querySelectorAll('#rating-stars button').forEach((btn, i) => {
-                    btn.classList.toggle('text-amber-400', i + 1 <= stars);
+            const btns = document.querySelectorAll('#rating-stars button');
+            btns.forEach((btn, i) => btn.style.pointerEvents = 'none');
+
+            try {
+                const res = await fetch('api/rate.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars })
                 });
+                const data = await res.json();
+
+                if (data.success) {
+                    currentRating = stars;
+                    // Update stars
+                    btns.forEach((btn, i) => {
+                        btn.classList.toggle('text-amber-400', i + 1 <= stars);
+                        btn.classList.toggle('text-zinc-600', i + 1 > stars);
+                    });
+                    // Update average (simple refresh for now)
+                    location.reload();
+                } else {
+                    alert(data.error || 'Rating failed');
+                }
+            } catch (e) {
+                alert('Network error');
+            } finally {
+                btns.forEach((btn, i) => btn.style.pointerEvents = 'auto');
             }
         }
 
+        // Like Soul
         async function likeSoul() {
-            const res = await fetch('api/like.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ soul_id: <?= $id ?> })
-            });
-            const data = await res.json();
-            if (data.success) {
-                // Update like count (simple demo)
+            const btn = document.getElementById('like-btn');
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span id="like-count"><?= $soul['like_count'] + 1 ?></span>`;
+
+            try {
+                const res = await fetch('api/like.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ soul_id: <?= $id ?> })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Update count without reload
+                    document.getElementById('like-count').innerText = <?= $soul['like_count'] + 1 ?>;
+                    btn.innerHTML = `<i class="fas fa-heart text-red-400"></i> <span id="like-count"><?= $soul['like_count'] + 1 ?></span>`;
+                } else {
+                    alert(data.error || 'Like failed');
+                    location.reload();
+                }
+            } catch (e) {
+                alert('Network error');
                 location.reload();
+            } finally {
+                btn.style.pointerEvents = 'auto';
             }
         }
 
+        // Fork Soul
+        async function forkSoul() {
+            const btn = document.getElementById('fork-btn');
+            const originalText = btn.innerHTML;
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Forking...`;
+
+            try {
+                const res = await fetch('api/fork.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ soul_id: <?= $id ?> })
+                });
+                const data = await res.json();
+
+                if (data.success && data.new_soul_id) {
+                    window.location.href = `soul.php?id=${data.new_soul_id}`;
+                } else {
+                    alert(data.error || 'Fork failed');
+                    btn.innerHTML = originalText;
+                    btn.style.pointerEvents = 'auto';
+                }
+            } catch (e) {
+                alert('Network error');
+                btn.innerHTML = originalText;
+                btn.style.pointerEvents = 'auto';
+            }
+        }
+
+        // File tab switching
         function showFile(n) {
             document.querySelectorAll('.file-tab').forEach(el => el.classList.add('hidden'));
             document.getElementById('file-' + n).classList.remove('hidden');
+            
             document.querySelectorAll('.tab-btn').forEach((btn, i) => {
                 btn.classList.toggle('border-b-2', i + 1 === n);
                 btn.classList.toggle('border-white', i + 1 === n);
@@ -184,11 +253,17 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
             });
         }
 
-        // Tailwind ready
-        function initTailwind() {
-            return;
-        }
-        window.onload = initTailwind;
+        // Init
+        window.onload = function() {
+            // Highlight current rating
+            const btns = document.querySelectorAll('#rating-stars button');
+            btns.forEach((btn, i) => {
+                if (i + 1 <= currentRating) {
+                    btn.classList.add('text-amber-400');
+                    btn.classList.remove('text-zinc-600');
+                }
+            });
+        };
     </script>
 </body>
 </html>
