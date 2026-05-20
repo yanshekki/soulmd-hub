@@ -24,16 +24,28 @@ if (isset($_GET['delete'])) {
     $message = 'Soul 已刪除';
 }
 
-// Handle Edit
+// Handle Edit + Save Version History
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
     $id = (int)$_POST['edit_id'];
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
-    $content = $_POST['content'];
+    $newContent = $_POST['content'];
 
+    // Save old version first
+    $oldStmt = $pdo->prepare("SELECT title, content FROM souls WHERE id = ? AND user_id = ?");
+    $oldStmt->execute([$id, $user_id]);
+    $old = $oldStmt->fetch();
+
+    if ($old) {
+        $pdo->prepare("INSERT INTO soul_versions (soul_id, title, content) VALUES (?, ?, ?)")
+            ->execute([$id, $old['title'], $old['content']]);
+    }
+
+    // Update current soul
     $pdo->prepare("UPDATE souls SET title = ?, description = ?, content = ? WHERE id = ? AND user_id = ?")
-        ->execute([$title, $description, $content, $id, $user_id]);
-    $message = '已更新成功！';
+        ->execute([$title, $description, $newContent, $id, $user_id]);
+
+    $message = '已更新成功！（舊版本已自動儲存）';
 }
 
 // Get user's souls
@@ -103,6 +115,7 @@ $mySouls = $stmt->fetchAll();
 
                         <div class="flex gap-2">
                             <a href="soul.php?id=<?= $soul['id'] ?>" class="text-emerald-400 text-sm hover:underline">查看詳情 →</a>
+                            <a href="soul-versions.php?id=<?= $soul['id'] ?>" class="text-xs text-zinc-400 hover:text-white underline">版本歷史</a>
                         </div>
                     </div>
                 <?php endforeach; ?>
