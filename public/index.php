@@ -18,6 +18,7 @@ require_once __DIR__ . '/../includes/seo.php';
                 <p class="text-xl text-zinc-400 mt-2">.md souls for humans & AI</p>
             </div>
             <div class="flex gap-3">
+                <a href="my-souls.php" class="px-5 py-2.5 text-sm border border-white/30 rounded-2xl hover:bg-white/5 transition">My Souls</a>
                 <a href="browse.php" class="px-5 py-2.5 bg-white text-black rounded-2xl font-semibold hover:bg-zinc-200 transition">Browse</a>
                 <a href="upload.php" class="px-5 py-2.5 border border-white/40 rounded-2xl hover:bg-white/10 transition">Upload Soul</a>
             </div>
