@@ -1,4 +1,4 @@
--- SoulMD Hub Full Schema (with Ratings + API Keys)
+-- SoulMD Hub Full Schema (with Ratings + API Keys + Categories)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
@@ -50,11 +50,24 @@ CREATE TABLE IF NOT EXISTS soul_ratings (
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
 );
 
+-- Categories (Added icon column)
 CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    slug VARCHAR(100) UNIQUE
+    slug VARCHAR(100) UNIQUE,
+    icon VARCHAR(20) DEFAULT '✨'
 );
+
+-- Insert Default Categories
+INSERT IGNORE INTO categories (name, slug, icon) VALUES 
+('Developer', 'Developer', '💻'),
+('Writer', 'Writer', '✍️'),
+('Business Analyst', 'Business Analyst', '📊'),
+('Researcher', 'Researcher', '🔬'),
+('Creative', 'Creative', '🎨'),
+('Personal Assistant', 'Personal Assistant', '🤖'),
+('Marketing', 'Marketing', '📈'),
+('Education', 'Education', '👨‍🏫');
 
 CREATE TABLE IF NOT EXISTS soul_tags (
     soul_id INT,
