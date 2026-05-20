@@ -1,59 +1,25 @@
 <?php
-/**
- * SoulMD Hub - Browse Page
- * Search + Filters by Role, Domain, File Type
- */
+require_once __DIR__ . '/../includes/seo.php';
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../src/Database.php';
+// Dynamic SEO based on search/filters
+$seoTitle = 'Browse Souls';
+$seoDesc = 'Discover and explore AI agent souls shared by the community.';
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
-// Get filter values
-$search = trim($_GET['q'] ?? '');
-$role = $_GET['role'] ?? '';
-$domain = $_GET['domain'] ?? '';
-$file_type = $_GET['file_type'] ?? '';
-
-// Build query
-$sql = "SELECT * FROM souls WHERE is_public = 1";
-$params = [];
-
-if ($search) {
-    $sql .= " AND (title LIKE ? OR description LIKE ? OR content LIKE ?)";
-    $params[] = "%$search%";
-    $params[] = "%$search%";
-    $params[] = "%$search%";
-}
-if ($role) {
-    $sql .= " AND role = ?";
-    $params[] = $role;
-}
-if ($domain) {
-    $sql .= " AND domain LIKE ?";
-    $params[] = "%$domain%";
-}
-if ($file_type) {
-    $sql .= " AND file_type = ?";
-    $params[] = $file_type;
+if (!empty($_GET['q'])) {
+    $seoTitle = 'Search: ' . $_GET['q'];
+    $seoDesc = 'Search results for "' . $_GET['q'] . '" on SoulMD Hub.';
+} elseif (!empty($_GET['role'])) {
+    $seoTitle = $_GET['role'] . ' Souls';
+    $seoDesc = 'Browse all ' . $_GET['role'] . ' souls on SoulMD Hub.';
 }
 
-$sql .= " ORDER BY created_at DESC LIMIT 50";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$souls = $stmt->fetchAll();
-
-// Get distinct roles for filter
-$roles = $pdo->query("SELECT DISTINCT role FROM souls WHERE role != '' AND is_public = 1 ORDER BY role")->fetchAll(PDO::FETCH_COLUMN);
+setSEO($seoTitle, $seoDesc);
 ?>
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browse Souls - SoulMD Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -70,22 +36,24 @@ $roles = $pdo->query("SELECT DISTINCT role FROM souls WHERE role != '' AND is_pu
         <!-- Search + Filters -->
         <form method="GET" class="mb-10 flex flex-col md:flex-row gap-4">
             <div class="flex-1">
-                <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" 
+                <input type="text" name="q" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" 
                        placeholder="搜尋標題、描述或內容..." 
                        class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-5 py-3 text-lg focus:outline-none focus:border-white">
             </div>
 
             <select name="role" class="bg-zinc-900 border border-white/20 rounded-2xl px-5 py-3">
                 <option value="">所有角色</option>
-                <?php foreach ($roles as $r): ?>
-                    <option value="<?= $r ?>" <?= $role === $r ? 'selected' : '' ?>><?= $r ?></option>
+                <?php 
+                $roles = $pdo->query("SELECT DISTINCT role FROM souls WHERE role != '' AND is_public = 1 ORDER BY role")->fetchAll(PDO::FETCH_COLUMN);
+                foreach ($roles as $r): ?>
+                    <option value="<?= $r ?>" <?= ($_GET['role'] ?? '') === $r ? 'selected' : '' ?>><?= $r ?></option>
                 <?php endforeach; ?>
             </select>
 
             <select name="file_type" class="bg-zinc-900 border border-white/20 rounded-2xl px-5 py-3">
                 <option value="">所有類型</option>
-                <option value="single_md" <?= $file_type === 'single_md' ? 'selected' : '' ?>>單一 .md</option>
-                <option value="full_soul_folder" <?= $file_type === 'full_soul_folder' ? 'selected' : '' ?>>完整 Soul Folder</option>
+                <option value="single_md" <?= ($_GET['file_type'] ?? '') === 'single_md' ? 'selected' : '' ?>>單一 .md</option>
+                <option value="full_soul_folder" <?= ($_GET['file_type'] ?? '') === 'full_soul_folder' ? 'selected' : '' ?>>完整 Soul Folder</option>
             </select>
 
             <button type="submit" class="px-8 py-3 bg-white text-black font-semibold rounded-2xl hover:bg-zinc-200 transition">
