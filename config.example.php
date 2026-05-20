@@ -4,7 +4,7 @@
  * 
  * 1. Copy this file to config.php
  * 2. Fill in your MySQL credentials
- * 3. Never commit config.php to git (already in .gitignore)
+ * 3. Never commit config.php to git
  */
 
 define('DB_HOST', 'localhost');
@@ -14,4 +14,3 @@ define('DB_PASS', '');           // Change this!
 define('DB_CHARSET', 'utf8mb4');
 
 define('SITE_NAME', 'SoulMD Hub');
-define('UPLOAD_DIR', __DIR__ . '/uploads/');
