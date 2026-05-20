@@ -1,15 +1,16 @@
 <?php
-session_start();
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../includes/seo.php';
+require_once __DIR__ . '/../private/includes/seo.php';
+
+session_start();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
 
-setSEO('Version History', 'View version history of your soul.');
+setSEO('Version History', 'View and restore previous versions of your soul.');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -31,17 +32,16 @@ if (!$soul) {
     die('Soul not found or access denied');
 }
 
-// Handle Restore
-if (isset($_POST['restore_id'])) {
-    $versionId = (int)$_POST['restore_id'];
+// Handle restore (AJAX ready)
+if (isset($_POST['ajax_restore'])) {
+    $versionId = (int)$_POST['version_id'];
 
-    // Get version content
     $vStmt = $pdo->prepare("SELECT title, content FROM soul_versions WHERE id = ? AND soul_id = ?");
     $vStmt->execute([$versionId, $soulId]);
     $version = $vStmt->fetch();
 
     if ($version) {
-        // Save current as new version first
+        // Save current as new version
         $currentStmt = $pdo->prepare("SELECT title, content FROM souls WHERE id = ?");
         $currentStmt->execute([$soulId]);
         $current = $currentStmt->fetch();
@@ -51,15 +51,18 @@ if (isset($_POST['restore_id'])) {
                 ->execute([$soulId, $current['title'], $current['content']]);
         }
 
-        // Restore old version
+        // Restore
         $pdo->prepare("UPDATE souls SET title = ?, content = ? WHERE id = ?")
             ->execute([$version['title'], $version['content'], $soulId]);
 
-        $message = '✅ Restored to the selected version successfully!';
+        echo json_encode(['success' => true]);
+        exit;
     }
+    echo json_encode(['success' => false]);
+    exit;
 }
 
-// Get all versions (newest first)
+// Get versions
 $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
 $versionsStmt->execute([$soulId]);
 $versions = $versionsStmt->fetchAll();
@@ -70,59 +73,55 @@ $versions = $versionsStmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Version History - <?= htmlspecialchars($soul['title']) ?> - SoulMD Hub</title>
+    <title>Version History - SoulMD Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="bg-zinc-950 text-white">
-    <div class="max-w-4xl mx-auto px-6 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div class="flex justify-between items-center mb-10">
             <div>
-                <h1 class="text-4xl font-bold">Version History</h1>
+                <h1 class="text-4xl font-bold tracking-tighter">Version History</h1>
                 <p class="text-zinc-400 mt-1"><?= htmlspecialchars($soul['title']) ?></p>
             </div>
-            <a href="my-souls.php" class="text-sm text-zinc-400 hover:text-white">← Back to My Souls</a>
+            <a href="my-souls.php" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
+                <i class="fas fa-arrow-left"></i> My Souls
+            </a>
         </div>
 
-        <?php if (!empty($message)): ?>
-            <div class="bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-6">
-                <?= $message ?>
-            </div>
-        <?php endif; ?>
-
         <?php if (empty($versions)): ?>
-            <div class="text-center py-16 text-zinc-400">
-                <div class="text-6xl mb-4">📁</div>
-                <p>No version history yet</p>
-                <p class="text-sm mt-2">Every edit automatically saves the previous version</p>
+            <div class="text-center py-24 text-zinc-400">
+                <div class="mx-auto w-20 h-20 flex items-center justify-center bg-zinc-900 rounded-3xl mb-6">
+                    <i class="fas fa-history text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-semibold mb-2">No versions yet</h2>
+                <p class="text-sm">Every edit automatically saves the previous version</p>
             </div>
         <?php else: ?>
-            <div class="space-y-4">
+            <div class="space-y-6">
                 <?php foreach ($versions as $index => $version): ?>
-                    <div class="bg-zinc-900 border border-white/10 rounded-3xl p-6">
-                        <div class="flex justify-between items-start">
+                    <div class="bg-zinc-900 border border-white/10 rounded-3xl p-8">
+                        <div class="flex justify-between items-start mb-6">
                             <div>
-                                <div class="font-semibold text-lg mb-1">
+                                <div class="font-semibold text-xl mb-1">
                                     Version #<?= count($versions) - $index ?>
-                                    <span class="text-xs text-zinc-500 ml-2"><?= date('Y-m-d H:i', strtotime($version['edited_at'])) ?></span>
+                                    <span class="text-xs text-zinc-500 ml-3"><?= date('M j, Y • H:i', strtotime($version['edited_at'])) ?></span>
                                 </div>
                                 <div class="text-sm text-zinc-400"><?= htmlspecialchars($version['title']) ?></div>
                             </div>
 
-                            <form method="POST" onsubmit="return confirm('Are you sure you want to restore this version?')">
-                                <input type="hidden" name="restore_id" value="<?= $version['id'] ?>">
-                                <button type="submit" class="px-5 py-2 text-sm border border-emerald-500/50 text-emerald-400 rounded-2xl hover:bg-emerald-900/20 transition">
-                                    Restore
-                                </button>
-                            </form>
+                            <button onclick="restoreVersion(<?= $version['id'] ?>)" 
+                                    class="px-6 py-2 text-sm border border-emerald-400 text-emerald-400 rounded-3xl hover:bg-emerald-900/20 transition flex items-center gap-2">
+                                <i class="fas fa-undo"></i> Restore
+                            </button>
                         </div>
 
-                        <div class="mt-4">
-                            <button onclick="toggleContent(this)" class="text-xs text-zinc-400 hover:text-white underline">
-                                Show Content
-                            </button>
-                            <div class="hidden mt-3 bg-black/50 p-4 rounded-2xl text-sm whitespace-pre-wrap font-mono max-h-64 overflow-auto">
-                                <?= htmlspecialchars($version['content']) ?>
-                            </div>
+                        <button onclick="toggleContent(this)" 
+                                class="text-xs text-zinc-400 hover:text-white underline flex items-center gap-2">
+                            <i class="fas fa-eye"></i> Show content
+                        </button>
+                        <div class="hidden mt-4 bg-black/50 p-6 rounded-3xl text-sm whitespace-pre-wrap font-mono max-h-80 overflow-auto">
+                            <?= htmlspecialchars($version['content']) ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -131,14 +130,32 @@ $versions = $versionsStmt->fetchAll();
     </div>
 
     <script>
+        async function restoreVersion(versionId) {
+            if (!confirm('Restore this version? Current version will be saved as new.')) return;
+
+            const res = await fetch('soul-versions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'ajax_restore=1&version_id=' + versionId
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Restore failed');
+            }
+        }
+
         function toggleContent(btn) {
             const content = btn.nextElementSibling;
             if (content.classList.contains('hidden')) {
                 content.classList.remove('hidden');
-                btn.innerText = 'Hide Content';
+                btn.innerHTML = `<i class="fas fa-eye-slash"></i> Hide content`;
             } else {
                 content.classList.add('hidden');
-                btn.innerText = 'Show Content';
+                btn.innerHTML = `<i class="fas fa-eye"></i> Show content`;
             }
         }
     </script>

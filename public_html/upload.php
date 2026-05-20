@@ -1,11 +1,16 @@
 <?php
-/**
- * SoulMD Hub - Upload Page
- * Supports: Paste .md content + Upload .md file + Zip (full soul folder)
- */
-
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
+require_once __DIR__ . '/../private/includes/seo.php';
+
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+setSEO('Upload Soul', 'Upload your AI personality as .md or full soul folder.');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -20,13 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $domain = $_POST['domain'] ?? '';
     $compatibility = $_POST['compatibility'] ?? '';
     $content = '';
-    $file_type = 'single_md';
 
-    // Handle paste content
+    // Paste content
     if (!empty($_POST['content'])) {
         $content = $_POST['content'];
     }
-    // Handle file upload (.md or .zip)
+    // File upload
     elseif (!empty($_FILES['soul_file']['tmp_name'])) {
         $file = $_FILES['soul_file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -34,8 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($ext === 'md') {
             $content = file_get_contents($file['tmp_name']);
         } elseif ($ext === 'zip') {
-            $file_type = 'full_soul_folder';
-            // Simple zip handling - store as JSON for now
             $zip = new ZipArchive();
             if ($zip->open($file['tmp_name']) === TRUE) {
                 $files = [];
@@ -48,138 +50,208 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $zip->close();
                 $content = json_encode($files, JSON_UNESCAPED_UNICODE);
             } else {
-                $error = '無法開啟 zip 檔案';
+                $error = 'Could not open zip file';
             }
         } else {
-            $error = '只支援 .md 或 .zip 檔案';
+            $error = 'Only .md or .zip files are supported';
         }
     }
 
     if (empty($error) && !empty($title) && !empty($content)) {
         try {
+            $fileType = strpos($content, '{') === 0 ? 'full_soul_folder' : 'single_md';
             $stmt = $pdo->prepare("INSERT INTO souls 
-                (title, description, content, file_type, role, domain, compatibility, is_public) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
-            $stmt->execute([$title, $description, $content, $file_type, $role, $domain, $compatibility]);
-            
+                (user_id, title, description, content, file_type, role, domain, compatibility, is_public) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([
+                $_SESSION['user_id'],
+                $title,
+                $description,
+                $content,
+                $fileType,
+                $role,
+                $domain,
+                $compatibility
+            ]);
+
             $newId = $pdo->lastInsertId();
-            $message = "上傳成功！Soul ID: #{$newId} <a href='soul.php?id={$newId}' class='underline'>查看</a>";
+            $message = "✅ Soul uploaded successfully! <a href='soul.php?id=$newId' class='underline text-emerald-400'>View it now</a>";
         } catch (Exception $e) {
-            $error = '儲存失敗: ' . $e->getMessage();
+            $error = 'Failed to save soul';
         }
     } elseif (empty($error)) {
-        $error = '請填寫標題同內容';
+        $error = 'Title and content are required';
     }
 }
 ?>
+
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>上傳 Soul - SoulMD Hub</title>
+    <title>Upload Soul - SoulMD Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="bg-zinc-950 text-white">
-    <div class="max-w-3xl mx-auto px-6 py-12">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold">上傳 Soul</h1>
-            <a href="index.php" class="text-zinc-400 hover:text-white">← 返回首頁</a>
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-4xl font-bold tracking-tighter">Upload Soul</h1>
+                <p class="text-zinc-400 mt-1">Share your AI personality with the world</p>
+            </div>
+            <a href="my-souls.php" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
+                <i class="fas fa-arrow-left"></i> My Souls
+            </a>
         </div>
 
         <?php if ($message): ?>
-            <div class="bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-6">
+            <div class="bg-emerald-900/50 border border-emerald-500 p-6 rounded-3xl mb-8 text-lg">
                 <?= $message ?>
             </div>
         <?php endif; ?>
 
         <?php if ($error): ?>
-            <div class="bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-6">
+            <div class="bg-red-900/50 border border-red-500 p-6 rounded-3xl mb-8">
                 <?= $error ?>
             </div>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        <form id="upload-form" enctype="multipart/form-data" class="space-y-8">
             <!-- Title -->
             <div>
-                <label class="block text-sm font-medium mb-2">Soul 標題 *</label>
-                <input type="text" name="title" required class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-4 py-3 focus:outline-none focus:border-white">
+                <label class="block text-sm font-medium mb-2 text-zinc-300">Soul Title <span class="text-red-400">*</span></label>
+                <input type="text" id="title" name="title" required 
+                       class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-400">
             </div>
 
             <!-- Description -->
             <div>
-                <label class="block text-sm font-medium mb-2">簡短描述</label>
-                <textarea name="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-4 py-3"></textarea>
+                <label class="block text-sm font-medium mb-2 text-zinc-300">Short Description</label>
+                <textarea id="description" name="description" rows="3" 
+                          class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400"></textarea>
             </div>
 
             <!-- Metadata -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div>
-                    <label class="block text-sm font-medium mb-2">角色 (Role)</label>
-                    <select name="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-4 py-3">
-                        <option value="">-- 選擇 --</option>
+                    <label class="block text-sm font-medium mb-2 text-zinc-300">Role</label>
+                    <select id="role" name="role" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
+                        <option value="">Select role</option>
                         <option value="Developer">Developer</option>
                         <option value="Writer">Writer</option>
                         <option value="Business Analyst">Business Analyst</option>
                         <option value="Researcher">Researcher</option>
                         <option value="Creative">Creative</option>
                         <option value="Personal Assistant">Personal Assistant</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-2">領域 (Domain)</label>
-                    <input type="text" name="domain" placeholder="Tech, Content, Business..." class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-4 py-3">
+                    <label class="block text-sm font-medium mb-2 text-zinc-300">Domain</label>
+                    <input type="text" id="domain" name="domain" placeholder="Tech, Content..." 
+                           class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-2">相容 Model</label>
-                    <input type="text" name="compatibility" placeholder="Claude, GPT-4o, All..." class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-4 py-3">
+                    <label class="block text-sm font-medium mb-2 text-zinc-300">Compatibility</label>
+                    <input type="text" id="compatibility" name="compatibility" placeholder="Claude, GPT-4o..." 
+                           class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400">
                 </div>
             </div>
 
-            <!-- Content Input -->
+            <!-- Content -->
             <div>
-                <label class="block text-sm font-medium mb-3">Soul 內容 *</label>
+                <label class="block text-sm font-medium mb-3 text-zinc-300">Soul Content <span class="text-red-400">*</span></label>
                 
-                <!-- Tabs -->
-                <div class="flex border-b border-white/20 mb-4">
-                    <button type="button" onclick="showTab('paste')" class="tab-btn active px-6 py-2 text-sm font-medium border-b-2 border-white">貼上文字</button>
-                    <button type="button" onclick="showTab('upload')" class="tab-btn px-6 py-2 text-sm font-medium text-zinc-400">上傳檔案</button>
+                <div class="flex border-b border-white/20 mb-6">
+                    <button type="button" onclick="switchTab(0)" 
+                            class="tab-btn flex-1 py-4 text-sm font-medium border-b-2 border-white">Paste Text</button>
+                    <button type="button" onclick="switchTab(1)" 
+                            class="tab-btn flex-1 py-4 text-sm font-medium text-zinc-400">Upload File</button>
                 </div>
 
-                <!-- Paste Tab -->
-                <div id="paste-tab">
-                    <textarea name="content" rows="12" placeholder="貼上 SOUL.md / STYLE.md 內容..." 
-                              class="w-full bg-zinc-900 border border-white/20 rounded-2xl px-4 py-3 font-mono text-sm"></textarea>
+                <!-- Paste -->
+                <div id="paste-tab" class="tab-content">
+                    <textarea id="content" name="content" rows="14" 
+                              class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-5 font-mono text-sm focus:outline-none focus:border-emerald-400" 
+                              placeholder="Paste your SOUL.md content here..."></textarea>
                 </div>
 
-                <!-- Upload Tab -->
-                <div id="upload-tab" class="hidden">
-                    <div class="border-2 border-dashed border-white/30 rounded-3xl p-8 text-center">
-                        <input type="file" name="soul_file" accept=".md,.zip" class="hidden" id="file-input">
-                        <label for="file-input" class="cursor-pointer">
-                            <div class="text-4xl mb-3">↓</div>
-                            <div class="font-medium">拖放或點擊上傳 .md / .zip</div>
-                            <div class="text-xs text-zinc-500 mt-1">支援單一 .md 或完整 soul/ 資料夾 (zip)</div>
-                        </label>
+                <!-- Upload -->
+                <div id="upload-tab" class="tab-content hidden">
+                    <div onclick="document.getElementById('file-input').click()" 
+                         class="border-2 border-dashed border-white/30 rounded-3xl p-12 text-center hover:border-emerald-400 transition cursor-pointer">
+                        <input type="file" id="file-input" name="soul_file" accept=".md,.zip" class="hidden">
+                        <i class="fas fa-cloud-upload-alt text-5xl mb-4 text-zinc-400"></i>
+                        <div class="font-medium text-lg">Drag & drop or click to upload</div>
+                        <div class="text-xs text-zinc-400 mt-2">.md or .zip (full soul folder)</div>
                     </div>
                 </div>
             </div>
 
-            <button type="submit" 
-                    class="w-full py-4 bg-white text-black font-semibold rounded-2xl hover:bg-zinc-200 transition">
-                上傳 Soul
+            <!-- Submit -->
+            <button type="submit" id="submit-btn" 
+                    class="w-full py-6 bg-white text-black font-semibold text-xl rounded-3xl hover:bg-zinc-200 transition flex items-center justify-center gap-3">
+                <span id="submit-text">Upload Soul</span>
+                <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-black border-t-transparent rounded-full"></span>
             </button>
         </form>
     </div>
 
     <script>
-        function showTab(tab) {
-            document.getElementById('paste-tab').classList.toggle('hidden', tab !== 'paste');
-            document.getElementById('upload-tab').classList.toggle('hidden', tab !== 'upload');
+        function switchTab(n) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(['paste-tab', 'upload-tab'][n]).classList.remove('hidden');
             
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'border-b-2', 'border-white'));
-            event.target.classList.add('active', 'border-b-2', 'border-white');
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('border-b-2', i === n);
+                btn.classList.toggle('border-white', i === n);
+                btn.classList.toggle('text-zinc-400', i !== n);
+            });
         }
+
+        const form = document.getElementById('upload-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('submit-btn');
+            const text = document.getElementById('submit-text');
+            const loading = document.getElementById('submit-loading');
+
+            text.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            const formData = new FormData(form);
+
+            try {
+                const res = await fetch('upload.php', { method: 'POST', body: formData });
+                const html = await res.text();
+
+                if (html.includes('successfully')) {
+                    document.body.innerHTML = html;
+                } else {
+                    document.body.innerHTML = html;
+                }
+            } catch (err) {
+                alert('Upload failed');
+            }
+
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+        });
+
+        // File preview
+        document.getElementById('file-input').addEventListener('change', function() {
+            if (this.files.length) {
+                document.getElementById('upload-tab').innerHTML = `
+                    <div class="text-emerald-400 flex items-center justify-center gap-3 py-8">
+                        <i class="fas fa-check-circle text-3xl"></i>
+                        <span class="font-medium">${this.files[0].name}</span>
+                    </div>
+                `;
+            }
+        });
     </script>
 </body>
 </html>
