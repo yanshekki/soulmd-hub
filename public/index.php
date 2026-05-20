@@ -1,12 +1,12 @@
 <?php
-// SoulMD Hub - Simple Entry Point
+require_once __DIR__ . '/../includes/seo.php';
 ?>
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoulMD Hub — Share .md Souls</title>
+    <?php setSEO('Home', 'Share and discover AI agent souls as .md files. The simplest platform for humans and AI.'); ?>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-zinc-950 text-white">
