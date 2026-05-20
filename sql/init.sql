@@ -1,4 +1,4 @@
--- SoulMD Hub Initial Database Schema
+-- SoulMD Hub Database Schema (MySQL only, no file storage)
 
 CREATE DATABASE IF NOT EXISTS soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE soulmd_hub;
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS souls (
     user_id INT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    file_path VARCHAR(255) NOT NULL,
+    content LONGTEXT NOT NULL,           -- .md content stored directly in DB
     file_type ENUM('single_md', 'full_soul_folder') DEFAULT 'single_md',
     role VARCHAR(100),
     domain VARCHAR(100),
