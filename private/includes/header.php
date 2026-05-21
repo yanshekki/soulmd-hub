@@ -2,6 +2,26 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// 處理公開頁面 (如首頁/Browse) 的 Remember Me 自動登入
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
+    require_once __DIR__ . '/../src/Database.php';
+    try {
+        $db = Database::getInstance();
+        $pdo = $db->getConnection();
+        $tokenParts = explode(':', $_COOKIE['remember_token']);
+        if (count($tokenParts) === 2) {
+            $stmt = $pdo->prepare("SELECT id, username FROM users WHERE id = ? AND remember_token = ?");
+            $stmt->execute([$tokenParts[0], $tokenParts[1]]);
+            $user = $stmt->fetch();
+            if ($user) {
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+            }
+        }
+    } catch(Exception $e) {}
+}
+
 $isLoggedIn = isset($_SESSION['user_id']);
 ?>
 <!DOCTYPE html>
@@ -10,7 +30,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php 
-    // SEO 動態注入
     if (isset($pageTitle)) {
         setSEO($pageTitle, $pageDesc ?? '');
     } else {
@@ -51,11 +70,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
         <div class="flex items-center gap-3 shrink-0">
             <?php if ($isLoggedIn): ?>
-                <a href="/my-souls" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2">
+                <a href="/my-souls" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2" title="My Souls">
                     <i class="fas fa-user-circle text-emerald-400"></i> <span class="hidden sm:inline">My Souls</span>
                 </a>
-                <a href="/logout" class="text-sm px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition flex items-center gap-2">
-                    <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Log out</span>
+                <a href="/change-password" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2" title="Change Password">
+                    <i class="fas fa-key text-emerald-400"></i>
+                </a>
+                <a href="/logout" class="text-sm px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition flex items-center gap-2" title="Log out">
+                    <i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Log out</span>
                 </a>
             <?php else: ?>
                 <a href="/login" class="text-sm px-5 py-2 border border-white/30 rounded-2xl hover:bg-white/5 transition">Log in</a>
