@@ -25,10 +25,9 @@ Built with an architecture that feels like a Single Page Application (SPA), comp
 ## 🚀 Quick Start (Local)
 
 1. Clone the repository:
-   ```bash
-   git clone [https://github.com/yanshekki/soulmd-hub.git](https://github.com/yanshekki/soulmd-hub.git)
-   cd soulmd-hub
-
+```bash
+git clone [https://github.com/yanshekki/soulmd-hub.git](https://github.com/yanshekki/soulmd-hub.git)
+cd soulmd-hub
 ```
 
 2. Set up the database and configuration:
@@ -36,7 +35,6 @@ Built with an architecture that feels like a Single Page Application (SPA), comp
 * Copy the config template:
 ```bash
 cp private/config.example.php private/config.php
-
 ```
 
 
@@ -131,5 +129,3 @@ MIT © Ki (yanshekki)
 ---
 
 Powered by [YSK Limited](https://ysk.hk/) — Hong Kong Remote Dev Team & Enterprise Solutions
-
-```
