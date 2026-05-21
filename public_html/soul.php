@@ -52,12 +52,17 @@ $versionCount = $vStmt->fetchColumn() + 1;
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
 
-// 【修復】支援多語言：只過濾系統不允許的非法路徑字元
+// ==========================================
+// 完美解決 URL 403 錯誤的 URL Slug 化邏輯
+// ==========================================
 $safeTitle = preg_replace('/[\/\\\:\*\?\"\<\>\|]/', '_', $soul['title']);
 
-// 針對網址各部分進行標準化編碼，確保中文不亂碼
+// 將空格替換成橫線 (-)，並移除括號，讓網址變得乾淨且絕對安全
+$urlSlug = preg_replace('/[\s_]+/', '-', $safeTitle);
+$urlSlug = preg_replace('/[()\[\]\{\}]/', '', $urlSlug);
+
 $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
-$encodedTitle = rawurlencode($safeTitle);
+$encodedTitle = rawurlencode($urlSlug);
 
 function getFileStyle($filename) {
     $name = strtoupper($filename);
