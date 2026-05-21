@@ -1,4 +1,4 @@
--- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token)
+-- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100),
     password VARCHAR(255) NOT NULL,
-    remember_token VARCHAR(100) NULL,              -- 新增：用於 Remember Me 30日免登入
-    api_key VARCHAR(64) UNIQUE,                    -- For API access
+    remember_token VARCHAR(100) NULL,
+    api_key VARCHAR(64) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS souls (
     content LONGTEXT NOT NULL,
     file_type ENUM('single_md', 'full_soul_folder') DEFAULT 'single_md',
     role VARCHAR(100),
-    domain VARCHAR(255),                           -- 擴充長度：支援多選標籤 (逗號分隔)
-    compatibility VARCHAR(255),                    -- 擴充長度：支援多選標籤 (逗號分隔)
+    domain VARCHAR(255),
+    compatibility VARCHAR(255),
     is_public BOOLEAN DEFAULT TRUE,
     like_count INT DEFAULT 0,
     fork_count INT DEFAULT 0,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS categories (
     icon VARCHAR(20) DEFAULT '✨'
 );
 
--- Insert Default Categories (Ignored if already exists)
+-- Insert Default Categories
 INSERT IGNORE INTO categories (name, slug, icon) VALUES 
 ('Developer', 'Developer', '💻'),
 ('Writer', 'Writer', '✍️'),
@@ -72,13 +72,7 @@ INSERT IGNORE INTO categories (name, slug, icon) VALUES
 ('Marketing', 'Marketing', '📈'),
 ('Education', 'Education', '👨‍🏫');
 
--- (Optional) 保留作未來擴充，目前 Tag 系統已整合進 souls 表的 domain 與 compatibility 欄位
-CREATE TABLE IF NOT EXISTS soul_tags (
-    soul_id INT,
-    tag VARCHAR(100),
-    PRIMARY KEY (soul_id, tag)
-);
-
+-- Dynamic Tags Tracking
 CREATE TABLE IF NOT EXISTS tags_domain (
     name VARCHAR(100) PRIMARY KEY,
     usage_count INT DEFAULT 0
@@ -89,7 +83,7 @@ CREATE TABLE IF NOT EXISTS tags_compatibility (
     usage_count INT DEFAULT 0
 );
 
--- 預設插入初始的 Tags
+-- Insert Default Tags
 INSERT IGNORE INTO tags_domain (name, usage_count) VALUES 
 ('Tech', 0), ('Content Creation', 0), ('Finance & Business', 0), 
 ('Coding & Dev', 0), ('Gaming', 0), ('Education', 0), 
