@@ -122,15 +122,15 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
-    // 建立 Soul
-    $userId = getAuthUserId($pdo);
+    // 建立 Soul$userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
         exit;
     }
 
-    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+    // 🚨 完美修復：嚴格限定 JSON，杜絕 CSRF Form 創建垃圾大腦
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
     $title = trim($input['title'] ?? '');
     $content = $input['content'] ?? '';

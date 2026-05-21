@@ -1,18 +1,10 @@
 <?php
-/**
- * SoulMD Hub Public API
- * POST /api/register - Register a new user and generate an API key
- */
-
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
@@ -23,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+// 🚨 完美修復：嚴格限定 JSON，杜絕 CSRF Form 提交
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $username = trim($input['username'] ?? '');
 $email = trim($input['email'] ?? '');
@@ -59,7 +52,6 @@ try {
     
     $userId = $pdo->lastInsertId();
 
-    // 🚨 完美安全修復：防禦 Session Fixation 攻擊
     session_start();
     session_regenerate_id(true);
     
@@ -67,12 +59,7 @@ try {
     $_SESSION['username'] = $username;
 
     http_response_code(201);
-    echo json_encode([
-        'success' => true,
-        'message' => 'Account created successfully',
-        'api_key' => $apiKey
-    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
+    echo json_encode(['success' => true, 'message' => 'Account created successfully', 'api_key' => $apiKey], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 } catch (Exception $e) {
     http_response_code(409);
     echo json_encode(['success' => false, 'error' => 'Username already taken']);

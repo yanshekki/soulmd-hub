@@ -89,7 +89,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
     <script>
     async function handleLogout() {
-        try { await fetch('/api/logout', {method: 'POST'}); } catch(e) {}
+        try { await fetch('/logout', {method: 'POST'}); } catch(e) {}
         window.location.href = '/login';
     }
     </script>
