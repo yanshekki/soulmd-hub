@@ -3,30 +3,33 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 1. 外部重定向：將舊的 .php 或帶有 ?id= 參數的網址 301 轉址到乾淨靜態路徑
-    # -------------------------------------------------------------------------
-    # 防止內部重定向導致的無限迴圈
-    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    # ==========================================
+    # 1. 外部重定向 (External Redirects - 301)
+    # 僅針對使用者在瀏覽器 "真實發出" 的請求進行轉址，完全防止無限迴圈
+    # ==========================================
 
     # 將 /soul.php?id=123 自動轉址到 /soul/123
-    RewriteCond %{QUERY_STRING} ^id=([0-9]+)$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^soul\.php$ /soul/%1? [R=301,L]
 
     # 將 /soul-versions.php?id=123 自動轉址到 /soul-versions/123
-    RewriteCond %{QUERY_STRING} ^id=([0-9]+)$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+soul-versions\.php\?id=([0-9]+) [NC]
     RewriteRule ^soul-versions\.php$ /soul-versions/%1? [R=301,L]
 
     # 將 /api/soul.php?id=123 自動轉址到 /api/soul/123
-    RewriteCond %{QUERY_STRING} ^id=([0-9]+)$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+api/soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^api/soul\.php$ /api/soul/%1? [R=301,L]
 
     # 將其他所有直接訪問 .php 的請求，轉址到不帶 .php 的網址 (例如 /browse.php -> /browse)
-    RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /+(.*)\.php[\ ?]
+    RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
     RewriteRule ^(.*)\.php$ /$1 [R=301,L]
 
 
-    # 2. 內部重寫：將乾淨的靜態網址對應回實際的 PHP 檔案和參數
-    # -------------------------------------------------------------------------
+    # ==========================================
+    # 2. 內部重寫 (Internal Rewrites)
+    # 將乾淨的靜態網址對應回實際的 PHP 檔案和參數
+    # ==========================================
+
     # 處理 Soul 詳情頁 (/soul/123)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -54,8 +57,10 @@
     RewriteRule ^(.*?)/?$ $1.php [L,QSA]
 
 
+    # ==========================================
     # 3. 安全性設定
-    # -------------------------------------------------------------------------
+    # ==========================================
+    
     # 禁止直接存取敏感配置檔
     RewriteRule ^(config\.php|\.env) - [F,L]
 </IfModule>

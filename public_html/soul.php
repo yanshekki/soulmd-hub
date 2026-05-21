@@ -11,17 +11,24 @@ $pdo = $db->getConnection();
 $id = (int)($_GET['id'] ?? 0);
 
 if (!$id) {
-    header('Location: browse');
+    header('Location: /browse');
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND is_public = 1");
+// 升級 SQL：JOIN users 取得作者名稱，JOIN categories 取得分類 Icon
+$stmt = $pdo->prepare("
+    SELECT s.*, u.username, c.icon as role_icon, c.name as role_name 
+    FROM souls s 
+    LEFT JOIN users u ON s.user_id = u.id 
+    LEFT JOIN categories c ON s.role = c.slug 
+    WHERE s.id = ? AND s.is_public = 1
+");
 $stmt->execute([$id]);
 $soul = $stmt->fetch();
 
 if (!$soul) {
     http_response_code(404);
-    die('Soul not found');
+    die('Soul not found or is private.');
 }
 
 setSEO($soul['title'], $soul['description'] ?: 'View this AI soul on SoulMD Hub.');
@@ -35,10 +42,16 @@ if ($isFolder) {
     $files = ['SOUL.md' => $contentData];
 }
 
-// Average rating
-$avgStmt = $pdo->prepare("SELECT AVG(rating) as avg FROM soul_ratings WHERE soul_id = ?");
+// 取得平均評分與總評分人數
+$avgStmt = $pdo->prepare("SELECT AVG(rating) as avg_rating, COUNT(id) as total_ratings FROM soul_ratings WHERE soul_id = ?");
 $avgStmt->execute([$id]);
-$avgRating = $avgStmt->fetch()['avg'] ?? 0;
+$ratingData = $avgStmt->fetch();
+$avgRating = $ratingData['avg_rating'] ?? 0;
+$totalRatings = $ratingData['total_ratings'] ?? 0;
+
+// 處理 Tags (將逗號分隔的字串轉為陣列)
+$domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
+$compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
 ?>
 
 <!DOCTYPE html>
@@ -47,115 +60,226 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($soul['title']) ?> - SoulMD Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
     <style>
-        .markdown-content { line-height: 1.75; }
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 { margin-top: 1.5em; font-weight: 600; }
-        .markdown-content pre { background: #111827; padding: 1.25rem; border-radius: 1rem; overflow-x: auto; font-size: 0.875rem; }
-        .markdown-content code { font-family: ui-monospace, monospace; }
-        .star { color: #fbbf24; cursor: pointer; transition: transform 0.1s; }
-        .star:hover { transform: scale(1.3); }
-        .star.active { color: #fbbf24; }
+        .star { cursor: pointer; transition: transform 0.2s, color 0.2s; }
+        .star:hover { transform: scale(1.2); }
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
     </style>
 </head>
-<body class="bg-zinc-950 text-white">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <!-- Back + Actions -->
-        <div class="flex items-center justify-between mb-8">
-            <a href="/browse" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition">
-                <i class="fas fa-arrow-left"></i> Back to Browse
+<body class="bg-zinc-950 text-white min-h-screen flex flex-col">
+    <nav class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex justify-between items-center">
+        <a href="/" class="flex items-center gap-2 text-2xl font-bold tracking-tighter hover:text-emerald-400 transition">
+            SoulMD <span class="text-emerald-400 text-[10px] px-2 py-1 bg-emerald-900/30 rounded-full">HUB</span>
+        </a>
+        <div class="flex items-center gap-6 text-sm">
+            <a href="/browse" class="text-zinc-400 hover:text-white transition"><i class="fas fa-search"></i> Browse</a>
+            <a href="/my-souls" class="text-zinc-400 hover:text-white transition">My Souls</a>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <a href="/browse" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
+                <i class="fas fa-arrow-left"></i> Back to Hub
             </a>
             <div class="flex items-center gap-3">
-                <!-- Like Button -->
-                <button onclick="likeSoul()" id="like-btn"
-                        class="flex items-center gap-2 px-5 py-2 border border-white/30 rounded-3xl hover:bg-white/5 transition">
-                    <i class="fas fa-heart text-red-400"></i>
-                    <span id="like-count"><?= $soul['like_count'] ?></span>
+                <button onclick="likeSoul()" id="like-btn" class="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl hover:border-red-500/50 hover:text-red-400 transition shadow-sm">
+                    <i class="fas fa-heart <?= $soul['like_count'] > 0 ? 'text-red-400' : 'text-zinc-500' ?>"></i>
+                    <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
                 </button>
-                
-                <!-- Fork Button -->
-                <button onclick="forkSoul()" id="fork-btn"
-                        class="flex items-center gap-2 px-5 py-2 bg-white text-black rounded-3xl font-semibold hover:bg-zinc-200 transition">
-                    <i class="fas fa-copy"></i> Fork
+                <button onclick="forkSoul()" id="fork-btn" class="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-xl font-bold hover:bg-emerald-400 transition shadow-lg hover:shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
+                    <i class="fas fa-code-branch"></i> Fork Soul
                 </button>
             </div>
         </div>
 
-        <!-- Title + Metadata -->
-        <div class="mb-8">
-            <div class="flex items-center gap-3 mb-3">
-                <h1 class="text-4xl font-bold"><?= htmlspecialchars($soul['title']) ?></h1>
-                <span class="px-4 py-1 text-xs font-medium rounded-3xl <?= $isFolder ? 'bg-purple-900 text-purple-300' : 'bg-emerald-900 text-emerald-300' ?>">
-                    <?= $isFolder ? 'Full Soul Folder' : 'Single .md' ?>
+        <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 mb-10 backdrop-blur-sm">
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <?php if ($soul['role_name']): ?>
+                    <a href="/browse?role=<?= urlencode($soul['role']) ?>" class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium hover:bg-white/10 transition">
+                        <?= htmlspecialchars($soul['role_icon'] ?? '✨') ?> <?= htmlspecialchars($soul['role_name']) ?>
+                    </a>
+                <?php endif; ?>
+                <span class="px-3 py-1 text-xs font-medium rounded-full <?= $isFolder ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' ?>">
+                    <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>"></i> <?= $isFolder ? 'Full Folder' : 'Single .md' ?>
                 </span>
             </div>
-            <div class="flex items-center gap-6 text-sm text-zinc-400">
-                <div><?= date('F j, Y', strtotime($soul['created_at'])) ?></div>
-                <div><?= $soul['fork_count'] ?> forks</div>
-                <div class="flex items-center gap-1">
-                    <span id="avg-rating"><?= number_format($avgRating, 1) ?></span>
-                    <span class="text-amber-400">★</span>
+
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4"><?= htmlspecialchars($soul['title']) ?></h1>
+            
+            <?php if ($soul['description']): ?>
+                <p class="text-lg text-zinc-400 leading-relaxed mb-8 max-w-3xl">
+                    <?= nl2br(htmlspecialchars($soul['description'])) ?>
+                </p>
+            <?php endif; ?>
+
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-6 border-t border-white/10">
+                <div class="flex flex-wrap items-center gap-6 text-sm text-zinc-400">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-bold">
+                            <?= strtoupper(substr($soul['username'] ?? 'A', 0, 1)) ?>
+                        </div>
+                        <span class="font-medium text-white">@<?= htmlspecialchars($soul['username'] ?? 'Anonymous') ?></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="far fa-calendar-alt"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> forks
+                    </div>
+                    
+                    <div class="flex items-center gap-2 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-white/5">
+                        <div class="flex text-lg" id="rating-stars">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <i onclick="rateSoul(<?= $i ?>)" class="fas fa-star star <?= $i <= round($avgRating) ? 'text-amber-400' : 'text-zinc-600' ?>"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <span class="text-xs ml-1"><span id="avg-rating" class="text-white font-bold"><?= number_format($avgRating, 1) ?></span> <span class="opacity-50">(<?= $totalRatings ?>)</span></span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 lg:items-end">
+                    <?php if (!empty($domains)): ?>
+                        <div class="flex flex-wrap gap-2 justify-end">
+                            <?php foreach($domains as $tag): ?>
+                                <span class="px-2 py-1 text-[11px] bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-md">#<?= htmlspecialchars($tag) ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($compatibilities)): ?>
+                        <div class="flex flex-wrap gap-2 justify-end">
+                            <?php foreach($compatibilities as $tag): ?>
+                                <span class="px-2 py-1 text-[11px] bg-zinc-800 text-zinc-300 border border-white/10 rounded-md"><i class="fas fa-robot text-xs opacity-50"></i> <?= htmlspecialchars($tag) ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
-        <!-- Rating -->
-        <div class="mb-10 flex items-center gap-3">
-            <span class="text-sm text-zinc-400">Rate this soul</span>
-            <div class="flex text-3xl" id="rating-stars">
-                <?php for ($i = 1; $i <= 5; $i++): ?>
-                    <button onclick="rateSoul(<?= $i ?>)" class="star transition hover:scale-125 <?= $i <= round($avgRating) ? 'text-amber-400' : 'text-zinc-600' ?>">
-                        ★
-                    </button>
-                <?php endfor; ?>
-            </div>
-        </div>
-
-        <!-- Description -->
-        <?php if ($soul['description']): ?>
-            <div class="text-lg text-zinc-300 mb-12 leading-relaxed">
-                <?= nl2br(htmlspecialchars($soul['description'])) ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Content -->
-        <div class="bg-zinc-900 border border-white/10 rounded-3xl p-8">
-            <?php if ($isFolder && count($files) > 1): ?>
-                <div class="flex border-b border-white/20 mb-8 overflow-x-auto">
+        <div class="bg-zinc-900/40 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+            <div class="flex items-center justify-between border-b border-white/10 bg-zinc-950/50 px-2 overflow-x-auto">
+                <div class="flex">
                     <?php $i = 0; foreach ($files as $filename => $fileContent): $i++; ?>
-                        <button onclick="showFile(<?= $i ?>)" 
-                                class="tab-btn px-8 py-4 text-sm font-medium whitespace-nowrap <?= $i === 1 ? 'border-b-2 border-white text-white' : 'text-zinc-400' ?>">
-                            <?= htmlspecialchars($filename) ?>
+                        <button onclick="showFile(<?= $i ?>)" id="tab-btn-<?= $i ?>" class="tab-btn px-6 py-4 text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-zinc-400 hover:text-white' ?>">
+                            <i class="fas <?= str_ends_with($filename, '.md') ? 'fa-file-markdown' : 'fa-file-code' ?> mr-2"></i><?= htmlspecialchars($filename) ?>
                         </button>
                     <?php endforeach; ?>
                 </div>
+                
+                <?php if ($isFolder): ?>
+                    <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition my-2 mr-4 whitespace-nowrap shrink-0">
+                        <i class="fas fa-copy"></i> Copy JSON
+                    </button>
+                <?php endif; ?>
+            </div>
 
+            <div class="p-0">
                 <?php $i = 0; foreach ($files as $filename => $fileContent): $i++; ?>
-                    <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? '' : 'hidden' ?>">
-                        <pre class="markdown-content whitespace-pre-wrap text-sm leading-relaxed p-6 bg-black/50 rounded-2xl"><?= htmlspecialchars($fileContent) ?></pre>
+                    <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
+                        <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none">
+                            <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                <i class="far fa-copy"></i> Copy Raw
+                            </button>
+                        </div>
+                        
+                        <textarea id="raw-<?= $i ?>" class="hidden"><?= htmlspecialchars($fileContent) ?></textarea>
+                        
+                        <div id="render-<?= $i ?>" class="prose prose-invert prose-emerald max-w-none px-8 pb-10 -mt-6">
+                            <div class="animate-pulse text-zinc-500">Rendering Markdown...</div>
+                        </div>
                     </div>
                 <?php endforeach; ?>
-            <?php else: ?>
-                <pre class="markdown-content whitespace-pre-wrap text-sm leading-relaxed p-6 bg-black/50 rounded-2xl"><?= htmlspecialchars($contentData) ?></pre>
-            <?php endif; ?>
-        </div>
-
-        <div class="mt-12 text-center text-xs text-zinc-500">
-            This soul is public. Fork it to make your own copy.
+            </div>
         </div>
     </div>
 
     <script>
+        // === Markdown 解析設定 ===
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            }
+        });
+
+        // 頁面載入時，將隱藏的 Raw Text 轉換為漂亮的 Markdown
+        window.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.file-tab');
+            tabs.forEach((tab, idx) => {
+                const i = idx + 1;
+                const rawContent = document.getElementById(`raw-${i}`).value;
+                document.getElementById(`render-${i}`).innerHTML = marked.parse(rawContent);
+            });
+        });
+
+        // === 檔案切換功能 ===
+        function showFile(n) {
+            // Hide all tabs
+            document.querySelectorAll('.file-tab').forEach(el => {
+                el.classList.remove('block');
+                el.classList.add('hidden');
+            });
+            // Show target
+            document.getElementById('file-' + n).classList.remove('hidden');
+            document.getElementById('file-' + n).classList.add('block');
+            
+            // Update Tab styles
+            document.querySelectorAll('.tab-btn').forEach((btn) => {
+                btn.classList.remove('border-emerald-400', 'text-emerald-400');
+                btn.classList.add('border-transparent', 'text-zinc-400');
+            });
+            const activeBtn = document.getElementById('tab-btn-' + n);
+            activeBtn.classList.remove('border-transparent', 'text-zinc-400');
+            activeBtn.classList.add('border-emerald-400', 'text-emerald-400');
+        }
+
+        // === 複製功能 ===
+        function copyRaw(id, btn) {
+            const text = document.getElementById('raw-' + id).value;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> Copied!';
+                btn.classList.add('border-emerald-400/50', 'text-white');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('border-emerald-400/50', 'text-white');
+                }, 2000);
+            });
+        }
+
+        function copyFullFolder() {
+            <?php if($isFolder): ?>
+                const jsonStr = <?= json_encode($contentData) ?>;
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    alert('✅ Copied as Full Folder JSON!\n\nYou can share this JSON or paste it into the Upload page.');
+                });
+            <?php endif; ?>
+        }
+
+        // === 互動 API 功能 ===
         let currentRating = <?= round($avgRating) ?>;
 
-        // Rate Soul (1-5 stars)
         async function rateSoul(stars) {
-            const btns = document.querySelectorAll('#rating-stars button');
-            btns.forEach((btn, i) => btn.style.pointerEvents = 'none');
+            const btns = document.querySelectorAll('#rating-stars i');
+            btns.forEach(btn => btn.style.pointerEvents = 'none');
 
             try {
-                const res = await fetch('api/rate', {
+                const res = await fetch('/api/rate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars })
@@ -164,31 +288,31 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
 
                 if (data.success) {
                     currentRating = stars;
-                    // Update stars
-                    btns.forEach((btn, i) => {
-                        btn.classList.toggle('text-amber-400', i + 1 <= stars);
-                        btn.classList.toggle('text-zinc-600', i + 1 > stars);
-                    });
-                    // Update average (simple refresh for now)
-                    location.reload();
+                    location.reload(); // 重新整理以抓取最新平均分
                 } else {
-                    alert(data.error || 'Rating failed');
+                    if(data.error === 'Login required') {
+                        window.location.href = '/login';
+                    } else {
+                        alert(data.error || 'Rating failed');
+                    }
                 }
             } catch (e) {
                 alert('Network error');
             } finally {
-                btns.forEach((btn, i) => btn.style.pointerEvents = 'auto');
+                btns.forEach(btn => btn.style.pointerEvents = 'auto');
             }
         }
 
-        // Like Soul
         async function likeSoul() {
             const btn = document.getElementById('like-btn');
+            const icon = btn.querySelector('i');
+            const countSpan = document.getElementById('like-count');
+            
             btn.style.pointerEvents = 'none';
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span id="like-count"><?= $soul['like_count'] + 1 ?></span>`;
+            icon.className = 'fas fa-spinner fa-spin text-zinc-400';
 
             try {
-                const res = await fetch('api/like', {
+                const res = await fetch('/api/like', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ soul_id: <?= $id ?> })
@@ -196,30 +320,29 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
                 const data = await res.json();
 
                 if (data.success) {
-                    // Update count without reload
-                    document.getElementById('like-count').innerText = <?= $soul['like_count'] + 1 ?>;
-                    btn.innerHTML = `<i class="fas fa-heart text-red-400"></i> <span id="like-count"><?= $soul['like_count'] + 1 ?></span>`;
+                    let currentCount = parseInt(countSpan.innerText);
+                    countSpan.innerText = currentCount + 1;
+                    icon.className = 'fas fa-heart text-red-400 animate-bounce';
+                    setTimeout(() => icon.classList.remove('animate-bounce'), 1000);
                 } else {
-                    alert(data.error || 'Like failed');
-                    location.reload();
+                    if(data.error === 'Login required') window.location.href = '/login';
+                    else alert(data.error || 'Like failed');
                 }
             } catch (e) {
                 alert('Network error');
-                location.reload();
             } finally {
                 btn.style.pointerEvents = 'auto';
             }
         }
 
-        // Fork Soul
         async function forkSoul() {
             const btn = document.getElementById('fork-btn');
-            const originalText = btn.innerHTML;
+            const originalHtml = btn.innerHTML;
             btn.style.pointerEvents = 'none';
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Forking...`;
 
             try {
-                const res = await fetch('api/fork', {
+                const res = await fetch('/api/fork', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ soul_id: <?= $id ?> })
@@ -227,43 +350,19 @@ $avgRating = $avgStmt->fetch()['avg'] ?? 0;
                 const data = await res.json();
 
                 if (data.success && data.new_soul_id) {
-                    window.location.href = `soul/${data.new_soul_id}`;
+                    window.location.href = `/soul/${data.new_soul_id}`;
                 } else {
-                    alert(data.error || 'Fork failed');
-                    btn.innerHTML = originalText;
-                    btn.style.pointerEvents = 'auto';
+                    if(data.error === 'Login required') window.location.href = '/login';
+                    else alert(data.error || 'Fork failed');
+                    btn.innerHTML = originalHtml;
                 }
             } catch (e) {
                 alert('Network error');
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalHtml;
+            } finally {
                 btn.style.pointerEvents = 'auto';
             }
         }
-
-        // File tab switching
-        function showFile(n) {
-            document.querySelectorAll('.file-tab').forEach(el => el.classList.add('hidden'));
-            document.getElementById('file-' + n).classList.remove('hidden');
-            
-            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-                btn.classList.toggle('border-b-2', i + 1 === n);
-                btn.classList.toggle('border-white', i + 1 === n);
-                btn.classList.toggle('text-white', i + 1 === n);
-                btn.classList.toggle('text-zinc-400', i + 1 !== n);
-            });
-        }
-
-        // Init
-        window.onload = function() {
-            // Highlight current rating
-            const btns = document.querySelectorAll('#rating-stars button');
-            btns.forEach((btn, i) => {
-                if (i + 1 <= currentRating) {
-                    btn.classList.add('text-amber-400');
-                    btn.classList.remove('text-zinc-600');
-                }
-            });
-        };
     </script>
 </body>
 </html>
