@@ -55,7 +55,6 @@ $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORD
 $versionsStmt->execute([$soulId]);
 $versions = $versionsStmt->fetchAll();
 
-// 智慧圖示與顏色系統 (與 upload.php, soul.php 同步)
 function getFileStyle($filename) {
     $name = strtoupper($filename);
     if (str_contains($name, 'SOUL')) return ['icon' => 'fa-brain', 'color' => 'text-emerald-400', 'border' => 'border-emerald-400'];
@@ -149,9 +148,30 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <div id="content-<?= $version['id'] ?>" class="hidden mt-4 pt-4 border-t border-white/5">
                             <?php if (count($files) > 1): ?>
                                 <div class="flex overflow-x-auto border-b border-white/10 mb-4 pb-2 custom-scrollbar gap-2">
-                                    <?php $fIdx = 0; foreach($files as $fname => $fcontent): $fIdx++; $fStyle = getFileStyle($fname); ?>
+                                    <?php 
+                                    $fIdx = 0; 
+                                    foreach($files as $fname => $fcontent): 
+                                        $fIdx++; 
+                                        $fStyle = getFileStyle($fname); 
+                                        
+                                        $displayName = htmlspecialchars($fname);
+                                        $pathPrefix = '';
+                                        if (strpos($fname, '/') !== false) {
+                                            $parts = explode('/', $fname);
+                                            $nameOnly = array_pop($parts);
+                                            $pathOnly = implode('/', $parts);
+                                            $displayName = htmlspecialchars($nameOnly);
+                                            $pathPrefix = '<div class="text-[9px] opacity-50 -mb-1 truncate max-w-[80px] leading-tight">' . htmlspecialchars($pathOnly) . '/</div>';
+                                        }
+                                    ?>
                                         <button onclick="showVersionFile(<?= $version['id'] ?>, <?= $fIdx ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-v<?= $version['id'] ?>-<?= $fIdx ?>" class="tab-btn-v<?= $version['id'] ?> px-3 py-1.5 text-[11px] font-medium whitespace-nowrap transition border-b-2 rounded-t-lg bg-zinc-950/50 <?= $fIdx === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-800' ?>">
-                                            <i class="fas <?= $fStyle['icon'] ?> mr-1"></i><?= htmlspecialchars($fname) ?>
+                                            <div class="flex items-center gap-1.5 text-left">
+                                                <i class="fas <?= $fStyle['icon'] ?>"></i>
+                                                <div class="flex flex-col justify-center min-h-[24px]">
+                                                    <?= $pathPrefix ?>
+                                                    <div class="truncate max-w-[100px] leading-tight"><?= $displayName ?></div>
+                                                </div>
+                                            </div>
                                         </button>
                                     <?php endforeach; ?>
                                 </div>

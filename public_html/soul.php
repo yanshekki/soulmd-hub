@@ -45,15 +45,13 @@ $ratingData = $avgStmt->fetch();
 $avgRating = $ratingData['avg_rating'] ?? 0;
 $totalRatings = $ratingData['total_ratings'] ?? 0;
 
-// 取得版本數量
 $vStmt = $pdo->prepare("SELECT COUNT(*) FROM soul_versions WHERE soul_id = ?");
 $vStmt->execute([$id]);
-$versionCount = $vStmt->fetchColumn() + 1; // +1 for the current version
+$versionCount = $vStmt->fetchColumn() + 1;
 
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
 
-// 智慧圖示與顏色系統
 function getFileStyle($filename) {
     $name = strtoupper($filename);
     if (str_contains($name, 'SOUL')) return ['icon' => 'fa-brain', 'color' => 'text-emerald-400', 'border' => 'border-emerald-400'];
@@ -160,26 +158,43 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 
     <div class="bg-zinc-900/40 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
-        <div class="flex items-center justify-between border-b border-white/10 bg-zinc-950/50 px-2 overflow-x-auto">
-            <div class="flex">
+        <div class="flex items-center justify-between border-b border-white/10 bg-zinc-950/50 px-2 overflow-x-auto custom-scrollbar">
+            <div class="flex pt-2">
                 <?php 
                 $i = 0; 
                 foreach ($files as $filename => $fileContent): 
                     $i++; 
                     $fStyle = getFileStyle($filename);
+                    
+                    // Folder structure display logic
+                    $displayName = htmlspecialchars($filename);
+                    $pathPrefix = '';
+                    if (strpos($filename, '/') !== false) {
+                        $parts = explode('/', $filename);
+                        $nameOnly = array_pop($parts);
+                        $pathOnly = implode('/', $parts);
+                        $displayName = htmlspecialchars($nameOnly);
+                        $pathPrefix = '<div class="text-[9px] opacity-50 -mb-1 truncate max-w-[100px] leading-tight">' . htmlspecialchars($pathOnly) . '/</div>';
+                    }
                 ?>
-                    <button onclick="showFile(<?= $i ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-<?= $i ?>" class="tab-btn px-6 py-4 text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white' ?>" data-border="<?= $fStyle['border'] ?>" data-color="<?= $fStyle['color'] ?>">
-                        <i class="fas <?= $fStyle['icon'] ?> mr-2"></i><?= htmlspecialchars($filename) ?>
+                    <button onclick="showFile(<?= $i ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-<?= $i ?>" class="tab-btn px-5 py-3 text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-900/50' ?> rounded-t-lg" data-border="<?= $fStyle['border'] ?>" data-color="<?= $fStyle['color'] ?>">
+                        <div class="flex items-center gap-2 text-left">
+                            <i class="fas <?= $fStyle['icon'] ?>"></i>
+                            <div class="flex flex-col justify-center min-h-[32px]">
+                                <?= $pathPrefix ?>
+                                <div class="truncate max-w-[150px] leading-tight"><?= $displayName ?></div>
+                            </div>
+                        </div>
                     </button>
                 <?php endforeach; ?>
             </div>
             
-            <div class="flex items-center gap-2 my-2 mr-4 shrink-0">
+            <div class="flex items-center gap-2 my-2 ml-4 shrink-0">
                 <?php if ($isFolder): ?>
-                    <button onclick="downloadZip()" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2">
+                    <button onclick="downloadZip()" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-file-archive text-amber-400"></i> Download .zip
                     </button>
-                    <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2">
+                    <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-copy"></i> Copy JSON
                     </button>
                 <?php endif; ?>
@@ -224,7 +239,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('file-' + n).classList.add('block');
         
         document.querySelectorAll('.tab-btn').forEach((btn) => {
-            // Remove all possible dynamic colors
             btn.className = btn.className.replace(/border-[a-z]+-400/g, 'border-transparent');
             btn.className = btn.className.replace(/text-[a-z]+-400/g, 'text-zinc-400');
             btn.classList.add('border-transparent', 'text-zinc-400');
@@ -257,6 +271,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const zip = new JSZip();
             const folderData = <?= json_encode($files) ?>;
             for (const [filename, content] of Object.entries(folderData)) {
+                // JSZip handles creating folders automatically if the filename contains "/"
                 zip.file(filename, content);
             }
             zip.generateAsync({type:"blob"}).then(function(content) {
@@ -265,7 +280,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php endif; ?>
     }
 
-    // Rate, Like, Fork functions remain unchanged (omitted for brevity in explanation, but fully functional in code)
     async function rateSoul(stars) {
         const btns = document.querySelectorAll('#rating-stars i');
         btns.forEach(btn => btn.style.pointerEvents = 'none');

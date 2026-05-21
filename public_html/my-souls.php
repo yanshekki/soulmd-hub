@@ -158,7 +158,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/20 shrink-0">
             <h3 class="text-2xl font-bold tracking-tight">Edit Modular AI Soul</h3>
-            <button onclick="closeModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            <button type="button" onclick="closeModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
         </div>
 
         <form id="edit-form" onsubmit="handleEdit(event)" class="flex flex-col flex-grow overflow-hidden">
@@ -215,18 +215,17 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                 <div>
                     <label class="block text-xs font-medium mb-1.5 text-zinc-400">Modular Files Editor</label>
-                    
                     <div class="border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row bg-zinc-950 min-h-[300px]">
                         <div class="w-full md:w-48 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
                             <div class="p-2 border-b border-white/10 text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center">
-                                Files <button type="button" onclick="editModalFileEditor.promptNewFile()" class="text-emerald-400"><i class="fas fa-plus"></i></button>
+                                Files <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
                             </div>
                             <div id="modal-file-list" class="flex-grow overflow-y-auto p-1 space-y-1 custom-scrollbar"></div>
                         </div>
                         <div class="flex-1 flex flex-col relative">
                             <div class="bg-zinc-900 border-b border-white/10 px-3 py-2 text-xs font-mono text-zinc-300 flex justify-between items-center">
                                 <span id="modal-current-filename">Loading...</span>
-                                <button type="button" id="modal-btn-delete-file" onclick="editModalFileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden"><i class="fas fa-trash-alt"></i></button>
+                                <button type="button" id="modal-btn-delete-file" onclick="editModalFileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden transition"><i class="fas fa-trash-alt"></i></button>
                             </div>
                             <textarea id="modal-file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs text-zinc-300 resize-none custom-scrollbar"></textarea>
                         </div>
@@ -244,6 +243,54 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
+            <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
+            <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label class="block text-sm font-medium mb-3 text-zinc-400">Suggested Modules</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md
+                    </button>
+                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md
+                    </button>
+                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md
+                    </button>
+                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md
+                    </button>
+                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md
+                    </button>
+                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/
+                    </button>
+                </div>
+            </div>
+            
+            <div class="relative flex items-center py-2">
+                <div class="flex-grow border-t border-white/10"></div>
+                <span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span>
+                <div class="flex-grow border-t border-white/10"></div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
+                <div class="flex gap-2">
+                    <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
+                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5">Add</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -327,19 +374,31 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 const isActive = filename === this.activeFile;
-                btn.className = `w-full text-left px-2 py-1.5 rounded text-xs font-mono transition flex items-center gap-1.5 ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-400 hover:bg-white/5'}`;
+                btn.className = `w-full text-left px-2 py-1.5 rounded text-xs font-mono transition flex items-start gap-1.5 ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-400 hover:bg-white/5'}`;
                 
                 let icon = 'fa-file-alt';
-                const name = filename.toUpperCase();
-                if(name.includes('SOUL')) icon = 'fa-brain';
-                else if(name.includes('STYLE')) icon = 'fa-palette text-purple-400';
-                else if(name.includes('RULE')) icon = 'fa-shield-alt text-red-400';
-                else if(name.includes('SKILL')) icon = 'fa-tools text-amber-400';
-                else if(name.includes('MEMORY')) icon = 'fa-memory text-blue-400';
-                else if(name.includes('CONTEXT')) icon = 'fa-globe text-cyan-400';
-                else if(name.includes('PROMPT')) icon = 'fa-terminal text-green-400';
+                const nameUpper = filename.toUpperCase();
+                if(nameUpper.includes('SOUL')) icon = 'fa-brain';
+                else if(nameUpper.includes('STYLE')) icon = 'fa-palette text-purple-400';
+                else if(nameUpper.includes('RULE')) icon = 'fa-shield-alt text-red-400';
+                else if(nameUpper.includes('SKILL')) icon = 'fa-tools text-amber-400';
+                else if(nameUpper.includes('MEMORY')) icon = 'fa-memory text-blue-400';
+                else if(nameUpper.includes('CONTEXT')) icon = 'fa-globe text-cyan-400';
+                else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
+                else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
-                btn.innerHTML = `<i class="fas ${icon} w-3 text-center"></i> <span class="truncate">${filename}</span>`;
+                // Display Folder Path Structure Support
+                let displayHtml = '';
+                if (filename.includes('/')) {
+                    const parts = filename.split('/');
+                    const name = parts.pop();
+                    const path = parts.join('/');
+                    displayHtml = `<div class="flex flex-col overflow-hidden"><span class="text-[9px] text-zinc-500 truncate leading-none mb-0.5">${path}/</span><span class="truncate leading-tight">${name}</span></div>`;
+                } else {
+                    displayHtml = `<span class="truncate mt-0.5">${filename}</span>`;
+                }
+
+                btn.innerHTML = `<i class="fas ${icon} w-3 text-center shrink-0 mt-1"></i> ${displayHtml}`;
                 btn.onclick = () => this.switchFile(filename);
                 this.fileListEl.appendChild(btn);
             });
@@ -351,15 +410,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             this.btnDelete.classList.toggle('hidden', Object.keys(this.files).length <= 1);
             this.renderFileList();
         }
-        promptNewFile() {
-            let name = prompt("Enter new file name (e.g. RULES.md):");
-            if (!name) return;
-            name = name.trim();
-            if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
-            if (this.files[name] !== undefined) return alert("File already exists!");
-            this.files[name] = '';
-            this.switchFile(name);
-        }
         deleteCurrentFile() {
             if (Object.keys(this.files).length <= 1) return alert("You must have at least one file.");
             if (!confirm(`Delete ${this.activeFile}?`)) return;
@@ -368,12 +418,51 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
         getPayload() {
             const keys = Object.keys(this.files);
-            if (keys.length === 1) return this.files[keys[0]]; 
+            if (keys.length === 1 && !keys[0].includes('/')) return this.files[keys[0]]; 
             return JSON.stringify(this.files, null, 2);
         }
     }
     const editModalFileEditor = new MultiFileEditor();
 
+    // --- Add File Modal Logic ---
+    function openAddFileModal() {
+        const modal = document.getElementById('add-file-modal');
+        modal.classList.remove('hidden');
+        document.getElementById('custom-filename-input').value = '';
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.firstElementChild.classList.remove('scale-95');
+            modal.firstElementChild.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeAddFileModal() {
+        const modal = document.getElementById('add-file-modal');
+        modal.classList.add('opacity-0');
+        modal.firstElementChild.classList.remove('scale-100');
+        modal.firstElementChild.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
+    function processNewFileName(name) {
+        if (!name) return;
+        name = name.trim().replace(/\\/g, '/');
+        name = name.replace(/^\/+|\/+$/g, ''); 
+        if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
+        
+        if (editModalFileEditor.files[name] !== undefined) {
+            alert("File already exists!");
+            return;
+        }
+        editModalFileEditor.files[name] = '';
+        editModalFileEditor.switchFile(name);
+        closeAddFileModal();
+    }
+
+    function addSpecificFile(name) { processNewFileName(name); }
+    function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
+
+    // --- Main Edit Modal Logic ---
     let currentEditId = null;
 
     async function editSoul(id) {
@@ -398,7 +487,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 modalTagInputs['domain'].setTags(soul.domain);
                 modalTagInputs['compatibility'].setTags(soul.compatibility);
                 
-                // 載入 Modular Files 到 Visual Builder
                 editModalFileEditor.loadData(soul.content);
             } else {
                 alert(result.error); closeModal();
@@ -409,7 +497,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function handleEdit(e) {
         e.preventDefault();
         
-        // 提交前，從 Visual Builder 取得最新的 JSON Payload
         document.getElementById('edit-final-payload').value = editModalFileEditor.getPayload();
 
         const btn = e.target.querySelector('button[type="submit"]');

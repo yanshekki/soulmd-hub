@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $files = [];
                     for ($i = 0; $i < $zip->numFiles; $i++) {
                         $filename = $zip->getNameIndex($i);
-                        if (str_ends_with($filename, '.md') || str_ends_with($filename, '.txt') || str_ends_with($filename, '.json')) {
+                        if (str_ends_with(strtolower($filename), '.md') || str_ends_with(strtolower($filename), '.txt') || str_ends_with(strtolower($filename), '.json')) {
                             $files[$filename] = $zip->getFromIndex($i);
                         }
                     }
@@ -225,7 +225,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
             <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
@@ -249,22 +249,22 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm">
                         <i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md
                     </button>
-                    <button type="button" onclick="addSpecificFile('PROMPTS.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-terminal text-green-400 w-4 text-center"></i> PROMPTS.md
+                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm">
+                        <i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/
                     </button>
                 </div>
             </div>
             
             <div class="relative flex items-center py-2">
                 <div class="flex-grow border-t border-white/10"></div>
-                <span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom</span>
+                <span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span>
                 <div class="flex-grow border-t border-white/10"></div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-400">Custom Filename</label>
+                <label class="block text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-filename-input" placeholder="e.g. DATA.json" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
+                    <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
                     <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5">Add</button>
                 </div>
             </div>
@@ -371,20 +371,31 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 const isActive = filename === this.activeFile;
-                btn.className = `w-full text-left px-3 py-2 rounded-lg text-sm font-mono transition flex items-center gap-2 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:bg-white/5 border border-transparent'}`;
+                btn.className = `w-full text-left px-3 py-2 rounded-lg text-sm font-mono transition flex items-start gap-2 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:bg-white/5 border border-transparent'}`;
                 
                 let icon = 'fa-file-alt';
-                const name = filename.toUpperCase();
-                if(name.includes('SOUL')) icon = 'fa-brain';
-                else if(name.includes('STYLE')) icon = 'fa-palette text-purple-400';
-                else if(name.includes('RULE')) icon = 'fa-shield-alt text-red-400';
-                else if(name.includes('SKILL')) icon = 'fa-tools text-amber-400';
-                else if(name.includes('MEMORY')) icon = 'fa-memory text-blue-400';
-                else if(name.includes('CONTEXT')) icon = 'fa-globe text-cyan-400';
-                else if(name.includes('PROMPT')) icon = 'fa-terminal text-green-400';
-                else if(name.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
+                const nameUpper = filename.toUpperCase();
+                if(nameUpper.includes('SOUL')) icon = 'fa-brain';
+                else if(nameUpper.includes('STYLE')) icon = 'fa-palette text-purple-400';
+                else if(nameUpper.includes('RULE')) icon = 'fa-shield-alt text-red-400';
+                else if(nameUpper.includes('SKILL')) icon = 'fa-tools text-amber-400';
+                else if(nameUpper.includes('MEMORY')) icon = 'fa-memory text-blue-400';
+                else if(nameUpper.includes('CONTEXT')) icon = 'fa-globe text-cyan-400';
+                else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
+                else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
-                btn.innerHTML = `<i class="fas ${icon} w-4 text-center"></i> <span class="truncate">${filename}</span>`;
+                // Display Folder Path Structure Support
+                let displayHtml = '';
+                if (filename.includes('/')) {
+                    const parts = filename.split('/');
+                    const name = parts.pop();
+                    const path = parts.join('/');
+                    displayHtml = `<div class="flex flex-col overflow-hidden"><span class="text-[9px] text-zinc-500 truncate leading-none mb-0.5">${path}/</span><span class="truncate leading-tight">${name}</span></div>`;
+                } else {
+                    displayHtml = `<span class="truncate mt-0.5">${filename}</span>`;
+                }
+
+                btn.innerHTML = `<i class="fas ${icon} w-4 text-center shrink-0 mt-1"></i> ${displayHtml}`;
                 btn.onclick = () => this.switchFile(filename);
                 this.fileListEl.appendChild(btn);
             });
@@ -407,7 +418,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         getPayload() {
             const keys = Object.keys(this.files);
-            if (keys.length === 1) return this.files[keys[0]];
+            if (keys.length === 1 && !keys[0].includes('/')) return this.files[keys[0]];
             return JSON.stringify(this.files, null, 2);
         }
     }
@@ -417,28 +428,28 @@ require_once __DIR__ . '/../private/includes/header.php';
     // --- Add File Modal Logic ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
-        const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
         setTimeout(() => {
             modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
+            modal.firstElementChild.classList.remove('scale-95');
+            modal.firstElementChild.classList.add('scale-100');
         }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
-        const content = document.getElementById('add-file-content');
         modal.classList.add('opacity-0');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
+        modal.firstElementChild.classList.remove('scale-100');
+        modal.firstElementChild.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
     function processNewFileName(name) {
         if (!name) return;
-        name = name.trim();
+        // 處理目錄分隔符，確保正確儲存為 json key
+        name = name.trim().replace(/\\/g, '/');
+        name = name.replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
         if (fileEditor.files[name] !== undefined) {
@@ -450,14 +461,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         closeAddFileModal();
     }
 
-    function addSpecificFile(name) {
-        processNewFileName(name);
-    }
-
-    function addCustomFile() {
-        const name = document.getElementById('custom-filename-input').value;
-        if(name) processNewFileName(name);
-    }
+    function addSpecificFile(name) { processNewFileName(name); }
+    function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
     // --- Form Submit Interceptor ---
     const form = document.getElementById('upload-form');
