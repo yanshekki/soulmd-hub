@@ -22,7 +22,9 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
+// ==========================================
 // 權限助手函數
+// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -37,12 +39,33 @@ function getAuthUserId($pdo) {
     return null;
 }
 
+// ==========================================
+// 路由處理
+// ==========================================
 if ($method === 'GET') {
     // 獲取歷史版本列表
     $soulId = (int)($_GET['soul_id'] ?? 0);
     if (!$soulId) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'soul_id is required']);
+        exit;
+    }
+
+    // 🚨 安全修復：檢查該 Soul 是否公開，或者請求者是否為作者本人
+    $userId = getAuthUserId($pdo);
+    $checkStmt = $pdo->prepare("SELECT is_public, user_id FROM souls WHERE id = ?");
+    $checkStmt->execute([$soulId]);
+    $soulCheck = $checkStmt->fetch();
+
+    if (!$soulCheck) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Soul not found']);
+        exit;
+    }
+
+    if (!$soulCheck['is_public'] && $soulCheck['user_id'] !== $userId) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Access denied. This soul is private.']);
         exit;
     }
 

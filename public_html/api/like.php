@@ -1,10 +1,18 @@
 <?php
+/**
+ * SoulMD Hub Public API
+ * POST /api/like - Increment the like count of a soul
+ */
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { 
+    http_response_code(200); 
+    exit; 
+}
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
@@ -12,6 +20,7 @@ require_once __DIR__ . '/../../private/src/Database.php';
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
+// 1. 驗證身份
 $userId = null;
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -31,23 +40,31 @@ if (!$userId) {
     exit;
 }
 
+// 2. 獲取請求數據
 $input = json_decode(file_get_contents('php://input'), true);
 
-if (empty($input['soul_id']) || empty($input['rating'])) {
+if (empty($input['soul_id'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'soul_id and rating are required']);
+    echo json_encode(['success' => false, 'error' => 'soul_id is required']);
     exit;
 }
 
 $soulId = (int)$input['soul_id'];
-$rating = (int)$input['rating'];
 
-if ($rating < 1 || $rating > 5) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Rating must be 1-5']);
+// 3. 確認 Soul 存在且公開（或屬於自己）
+$stmt = $pdo->prepare("SELECT id FROM souls WHERE id = ? AND (is_public = 1 OR user_id = ?)");
+$stmt->execute([$soulId, $userId]);
+if (!$stmt->fetch()) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'error' => 'Soul not found or access denied']);
     exit;
 }
 
-$stmt = $pdo->prepare("INSERT INTO soul_ratings (soul_id, user_id, rating) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE rating = VALUES(rating)");
-$stmt->execute([$soulId, $userId, $rating]);
-echo json_encode(['success' => true]);
+// 4. 增加 Like Count
+try {
+    $pdo->prepare("UPDATE souls SET like_count = like_count + 1 WHERE id = ?")->execute([$soulId]);
+    echo json_encode(['success' => true, 'message' => 'Soul liked successfully']);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Failed to like soul']);
+}
