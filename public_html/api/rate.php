@@ -48,6 +48,19 @@ if ($rating < 1 || $rating > 5) {
     exit;
 }
 
+// 寫入或更新評分
 $stmt = $pdo->prepare("INSERT INTO soul_ratings (soul_id, user_id, rating) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE rating = VALUES(rating)");
 $stmt->execute([$soulId, $userId, $rating]);
-echo json_encode(['success' => true]);
+
+// 🚨 核心優化：即時撈出最新統計數據
+$avgStmt = $pdo->prepare("SELECT AVG(rating) as avg_rating, COUNT(id) as total_ratings FROM soul_ratings WHERE soul_id = ?");
+$avgStmt->execute([$soulId]);
+$ratingData = $avgStmt->fetch();
+
+// 回傳給前端，等前端可以直接局部刷新畫面
+echo json_encode([
+    'success' => true,
+    'message' => 'Rating submitted successfully',
+    'avg_rating' => (float)($ratingData['avg_rating'] ?? 0),
+    'total_ratings' => (int)($ratingData['total_ratings'] ?? 0)
+], JSON_UNESCAPED_UNICODE);

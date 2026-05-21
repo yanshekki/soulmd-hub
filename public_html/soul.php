@@ -30,7 +30,7 @@ if (!$soul) {
     die('Soul not found or is private.');
 }
 
-// 🚨 配合新機制：檢查當前登入用戶是否已經點讚過此項目
+// 檢查當前登入用戶是否已經點讚過此項目
 $hasLiked = false;
 if (isset($_SESSION['user_id'])) {
     $likeCheck = $pdo->prepare("SELECT 1 FROM soul_likes WHERE soul_id = ? AND user_id = ?");
@@ -146,7 +146,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <i onclick="rateSoul(<?= $i ?>)" class="fas fa-star cursor-pointer hover:scale-110 transition <?= $i <= round($avgRating) ? 'text-amber-400' : 'text-zinc-600' ?>"></i>
                         <?php endfor; ?>
                     </div>
-                    <span class="text-xs ml-1"><span id="avg-rating" class="text-white font-bold"><?= number_format($avgRating, 1) ?></span> <span class="opacity-50">(<?= $totalRatings ?>)</span></span>
+                    <span class="text-xs ml-1">
+                        <span id="avg-rating" class="text-white font-bold"><?= number_format($avgRating, 1) ?></span> 
+                        <span id="total-ratings" class="opacity-50">(<?= $totalRatings ?>)</span>
+                    </span>
                 </div>
             </div>
 
@@ -292,37 +295,86 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btns = document.querySelectorAll('#rating-stars i');
         btns.forEach(btn => btn.style.pointerEvents = 'none');
         try {
-            const res = await fetch('/api/rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars }) });
+            const res = await fetch('/api/rate', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars }) 
+            });
             const data = await res.json();
-            if (data.success) location.reload(); 
-            else if(data.error === 'Login required') window.location.href = '/login';
-            else alert(data.error || 'Rating failed');
-        } catch (e) { alert('Network error'); } finally { btns.forEach(btn => btn.style.pointerEvents = 'auto'); }
+
+            if (data.success) {
+                document.getElementById('avg-rating').innerText = parseFloat(data.avg_rating).toFixed(1);
+                document.getElementById('total-ratings').innerText = `(${data.total_ratings})`;
+                
+                const roundedAvg = Math.round(data.avg_rating);
+                btns.forEach((btn, idx) => {
+                    if (idx + 1 <= roundedAvg) {
+                        btn.classList.remove('text-zinc-600');
+                        btn.classList.add('text-amber-400');
+                    } else {
+                        btn.classList.remove('text-amber-400');
+                        btn.classList.add('text-zinc-600');
+                    }
+                });
+            } else {
+                if (data.error && data.error.includes('Login')) {
+                    window.location.href = '/login';
+                } else {
+                    alert(data.error || 'Rating failed');
+                }
+            }
+        } catch (e) { 
+            alert('Network error'); 
+        } finally { 
+            btns.forEach(btn => btn.style.pointerEvents = 'auto'); 
+        }
     }
 
+    // 🚨 完美 Toggle Like/Unlike 局部刷新系統 (支援無限次彈性點擊切換)
     async function likeSoul() {
         const btn = document.getElementById('like-btn');
         const icon = btn.querySelector('i');
         const countSpan = document.getElementById('like-count');
         btn.style.pointerEvents = 'none';
+        
+        // 暫存目前的狀態，以便萬一 API 報錯時可以原地還原 UI
+        const originalClassName = icon.className;
         icon.className = 'fas fa-spinner fa-spin text-zinc-400';
+
         try {
-            const res = await fetch('/api/like', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
+            const res = await fetch('/api/like', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ soul_id: <?= $id ?> }) 
+            });
             const data = await res.json();
+
             if (data.success) {
-                countSpan.innerText = parseInt(countSpan.innerText) + 1;
-                icon.className = 'fas fa-heart text-red-400 animate-bounce';
-                setTimeout(() => icon.classList.remove('animate-bounce'), 1000);
+                let currentCount = parseInt(countSpan.innerText);
+                if (data.liked) {
+                    // 情況 A：新點讚成功 -> 數字 +1，心心變紅，加跳躍特效
+                    countSpan.innerText = currentCount + 1;
+                    icon.className = 'fas fa-heart text-red-400 animate-bounce';
+                    setTimeout(() => icon.classList.remove('animate-bounce'), 1000);
+                } else {
+                    // 情況 B：取消點讚成功 -> 數字 -1，心心變灰
+                    countSpan.innerText = Math.max(currentCount - 1, 0);
+                    icon.className = 'fas fa-heart text-zinc-500';
+                }
             } else {
-                if (data.error.includes('Login')) {
+                if (data.error && data.error.includes('Login')) {
                     window.location.href = '/login';
                 } else {
-                    // 如果已經 Like 過，會有優雅的提示
-                    alert(data.error || 'Like failed');
-                    icon.className = 'fas fa-heart text-red-400';
+                    alert(data.error || 'Operation failed');
+                    icon.className = originalClassName;
                 }
             }
-        } catch (e) { alert('Network error'); } finally { btn.style.pointerEvents = 'auto'; }
+        } catch (e) { 
+            alert('Network error'); 
+            icon.className = originalClassName;
+        } finally { 
+            btn.style.pointerEvents = 'auto'; 
+        }
     }
 
     async function forkSoul() {

@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API
- * POST /api/like - Increment the like count of a soul (Enforced per-user constraint)
+ * POST /api/like - Toggle like/unlike status of a soul (Enforced per-user constraint)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -60,29 +60,41 @@ if (!$stmt->fetch()) {
     exit;
 }
 
-// 4. 🚨 核心防護：檢查此用戶是否已經 Like 過
+// 4. 🧠 核心 Toggle 邏輯：檢查此用戶是否已經 Like 過
 $checkLike = $pdo->prepare("SELECT id FROM soul_likes WHERE soul_id = ? AND user_id = ?");
 $checkLike->execute([$soulId, $userId]);
-if ($checkLike->fetch()) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'You have already liked this soul']);
-    exit;
-}
+$likeRow = $checkLike->fetch();
 
-// 5. 使用 Transaction 確保數據一致性
 try {
     $pdo->beginTransaction();
 
-    // 插入 per-user 記錄 (若併發漏過上面的檢查，UNIQUE KEY 也會在此處觸發報錯防禦)
-    $pdo->prepare("INSERT INTO soul_likes (soul_id, user_id) VALUES (?, ?)")->execute([$soulId, $userId]);
-
-    // 增加該 Soul 總讚數
-    $pdo->prepare("UPDATE souls SET like_count = like_count + 1 WHERE id = ?")->execute([$soulId]);
+    if ($likeRow) {
+        // 🚨 情況 A：已經點讚過 -> 執行「取消點讚 (Unlike)」
+        $pdo->prepare("DELETE FROM soul_likes WHERE soul_id = ? AND user_id = ?")->execute([$soulId, $userId]);
+        $pdo->prepare("UPDATE souls SET like_count = GREATEST(like_count - 1, 0) WHERE id = ?")->execute([$soulId]);
+        
+        $liked = false;
+        $message = 'Soul unliked successfully';
+    } else {
+        // 🚨 情況 B：從未點讚過 -> 執行「新增點讚 (Like)」
+        $pdo->prepare("INSERT INTO soul_likes (soul_id, user_id) VALUES (?, ?)")->execute([$soulId, $userId]);
+        $pdo->prepare("UPDATE souls SET like_count = like_count + 1 WHERE id = ?")->execute([$soulId]);
+        
+        $liked = true;
+        $message = 'Soul liked successfully';
+    }
 
     $pdo->commit();
-    echo json_encode(['success' => true, 'message' => 'Soul liked successfully']);
+    
+    // 回傳給前端當前的狀態（liked: true/false），等前端可以直接做出反應
+    echo json_encode([
+        'success' => true,
+        'liked' => $liked,
+        'message' => $message
+    ], JSON_UNESCAPED_UNICODE);
+
 } catch (Exception $e) {
     $pdo->rollBack();
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Failed to like soul due to server error']);
+    echo json_encode(['success' => false, 'error' => 'Failed to process like toggle due to server error']);
 }
