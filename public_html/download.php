@@ -1,7 +1,6 @@
 <?php
 /**
  * SoulMD Hub - Download & Raw File Handler
- * 支援單一檔案輸出、ZIP 打包、Cloudflare Edge Caching 以及多國語言檔名
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -44,7 +43,6 @@ if (!$soul['is_public'] && !$isOwner) {
     die('Access denied. This soul is private.');
 }
 
-// 緩存控制
 $lastModifiedTime = strtotime($soul['last_modified']);
 $etag = '"' . md5($soulId . $lastModifiedTime . $format . $requestedFile) . '"';
 
@@ -79,7 +77,14 @@ if ($format === 'zip') {
     }
     
     foreach ($filesData as $filename => $content) {
-        $zip->addFromString($filename, $content);
+        // 🚨 完美安全修復 1：過濾 ../ 防止 Zip Slip 漏洞 (目錄穿越攻擊)
+        $safeFileName = preg_replace('/\.+\//', '', $filename);
+        $safeFileName = ltrim($safeFileName, '/\\');
+        
+        // 🚨 完美安全修復 2：防止黑客惡意傳入 nested JSON 導致 addFromString 崩潰
+        $strContent = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
+        
+        $zip->addFromString($safeFileName, $strContent);
     }
     $zip->close();
     
@@ -99,10 +104,10 @@ if (!isset($filesData[$requestedFile])) {
     die('File not found inside this soul.');
 }
 
-$fileContent = $filesData[$requestedFile];
+// 🚨 完美安全修復：強制轉為字串
+$fileContent = is_string($filesData[$requestedFile]) ? $filesData[$requestedFile] : json_encode($filesData[$requestedFile], JSON_UNESCAPED_UNICODE);
 $ext = strtolower(pathinfo($requestedFile, PATHINFO_EXTENSION));
 
-// 🚨 完美安全修復：拔除 text/html，強制所有不明檔案及前端代碼渲染為 text/plain，徹底封殺 Inline XSS 攻擊
 if ($ext === 'md') {
     $mimeType = 'text/markdown';
 } elseif ($ext === 'json') {

@@ -27,7 +27,6 @@ $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
 $username = trim($input['username'] ?? '');
 $password = $input['password'] ?? '';
-// 支援 JSON 布林值或字串 'true'/'1'
 $remember = isset($input['remember']) && ($input['remember'] === true || $input['remember'] === 'true' || $input['remember'] === '1' || $input['remember'] === 1);
 
 if (empty($username) || empty($password)) {
@@ -45,12 +44,13 @@ $user = $stmt->fetch();
 
 if ($user && password_verify($password, $user['password'])) {
     
-    // 為網站用戶設定 Session
+    // 🚨 完美安全修復：防禦 Session Fixation 攻擊
     session_start();
+    session_regenerate_id(true);
+    
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
 
-    // 處理 Remember Me (30日免登入 Cookie)
     if ($remember) {
         $token = bin2hex(random_bytes(32));
         try {
@@ -62,7 +62,7 @@ if ($user && password_verify($password, $user['password'])) {
     echo json_encode([
         'success' => true,
         'message' => 'Login successful',
-        'api_key' => $user['api_key'] // 提供給 API Client 使用
+        'api_key' => $user['api_key']
     ], JSON_UNESCAPED_UNICODE);
 
 } else {

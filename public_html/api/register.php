@@ -35,10 +35,9 @@ if (strlen($username) < 3) {
     exit;
 }
 
-// 🚨 核心安全防護：限制用戶名只能使用英數字、底線與橫線，確保百分之百網址安全，防止髒數據弄爛外部路由！
 if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $username)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Username can only contain alphanumeric characters, underscores, and dashes (No spaces or special symbols allowed).']);
+    echo json_encode(['success' => false, 'error' => 'Username can only contain alphanumeric characters, underscores, and dashes.']);
     exit;
 }
 
@@ -60,8 +59,10 @@ try {
     
     $userId = $pdo->lastInsertId();
 
-    // Set session for website users
+    // 🚨 完美安全修復：防禦 Session Fixation 攻擊
     session_start();
+    session_regenerate_id(true);
+    
     $_SESSION['user_id'] = $userId;
     $_SESSION['username'] = $username;
 

@@ -16,7 +16,6 @@ if (!$soulId) {
     exit;
 }
 
-// 🚨 完美權限修復：允許查看 Public 靈魂的歷史紀錄，不再強制擋駕
 $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND (is_public = 1 OR user_id = ?)");
 $stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
@@ -27,7 +26,6 @@ if (!$soul) {
     exit;
 }
 
-// 判斷是否為作者本人
 $isOwner = ($soul['user_id'] === $userId);
 
 $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
@@ -160,7 +158,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <?php endif; ?>
 
                             <div class="bg-zinc-950 border border-white/5 p-5 rounded-2xl relative shadow-inner">
-                                <?php $fIdx = 0; foreach($files as $fname => $fcontent): $fIdx++; ?>
+                                <?php 
+                                $fIdx = 0; 
+                                foreach($files as $fname => $fcontent): 
+                                    $fIdx++; 
+                                    // 🚨 完美安全修復：強制轉換為字串
+                                    $safeContent = is_string($fcontent) ? $fcontent : json_encode($fcontent, JSON_UNESCAPED_UNICODE);
+                                ?>
                                     <div id="file-v<?= $version['id'] ?>-<?= $fIdx ?>" class="file-tab-v<?= $version['id'] ?> <?= $fIdx === 1 ? 'block' : 'hidden' ?>">
                                         <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
                                             <span class="text-xs font-mono text-zinc-500"><?= htmlspecialchars($fname) ?></span>
@@ -168,7 +172,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                                 <i class="far fa-copy mr-1"></i> Copy
                                             </button>
                                         </div>
-                                        <textarea id="raw-v<?= $version['id'] ?>-<?= $fIdx ?>" class="raw-v<?= $version['id'] ?> hidden" data-idx="<?= $fIdx ?>"><?= htmlspecialchars($fcontent) ?></textarea>
+                                        <textarea id="raw-v<?= $version['id'] ?>-<?= $fIdx ?>" class="raw-v<?= $version['id'] ?> hidden" data-idx="<?= $fIdx ?>"><?= htmlspecialchars($safeContent) ?></textarea>
                                         
                                         <div id="render-v<?= $version['id'] ?>-<?= $fIdx ?>" class="prose prose-invert prose-emerald max-w-none prose-sm overflow-y-auto max-h-[350px] custom-scrollbar pr-2 text-zinc-300 leading-relaxed">
                                             <div class="animate-pulse text-zinc-500 flex items-center gap-2"><i class="fas fa-spinner fa-spin"></i> Rendering Markdown...</div>
@@ -234,7 +238,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const idx = ta.dataset.idx;
                 const renderDiv = document.getElementById(`render-v${versionId}-${idx}`);
                 if (renderDiv.innerHTML.includes('Rendering Markdown...')) {
-                    // 🚨 完美安全修復：使用 DOMPurify 攔截所有 XSS 攻擊字串
                     const parsedHTML = marked.parse(ta.value);
                     renderDiv.innerHTML = DOMPurify.sanitize(parsedHTML);
                 }

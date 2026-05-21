@@ -31,7 +31,6 @@ if (!$soul) {
     exit;
 }
 
-// 檢查當前登入用戶是否已經點讚過此項目
 $hasLiked = false;
 if (isset($_SESSION['user_id'])) {
     $likeCheck = $pdo->prepare("SELECT 1 FROM soul_likes WHERE soul_id = ? AND user_id = ?");
@@ -61,7 +60,6 @@ $versionCount = $vStmt->fetchColumn() + 1;
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
 
-// 完美解決 URL 403 錯誤的 URL Slug 化邏輯
 $safeTitle = preg_replace('/[\/\\\:\*\?\"\<\>\|]/', '_', $soul['title']);
 $urlSlug = preg_replace('/[\s_]+/', '-', $safeTitle);
 $urlSlug = preg_replace('/[()\[\]\{\}]/', '', $urlSlug);
@@ -225,6 +223,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             foreach ($files as $filename => $fileContent): 
                 $i++; 
                 $encodedFilename = implode('/', array_map('rawurlencode', explode('/', $filename)));
+                // 🚨 完美安全修復：強制轉換成字串，防止 htmlspecialchars 崩潰
+                $safeContent = is_string($fileContent) ? $fileContent : json_encode($fileContent, JSON_UNESCAPED_UNICODE);
             ?>
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
@@ -238,7 +238,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         </button>
                     </div>
                     
-                    <textarea id="raw-<?= $i ?>" class="hidden"><?= htmlspecialchars($fileContent) ?></textarea>
+                    <textarea id="raw-<?= $i ?>" class="hidden"><?= htmlspecialchars($safeContent) ?></textarea>
                     
                     <div id="render-<?= $i ?>" class="prose prose-invert prose-emerald max-w-none px-8 pb-10 -mt-6">
                         <div class="animate-pulse text-zinc-500">Rendering Markdown...</div>
@@ -250,7 +250,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // 🚨 完美安全修復：加入安全的 Highlight 解析，避免 crash
     marked.setOptions({ 
         breaks: true, 
         gfm: true, 
@@ -267,7 +266,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         tabs.forEach((tab, idx) => {
             const i = idx + 1;
             const rawContent = document.getElementById(`raw-${i}`).value;
-            // 🚨 完美安全修復：使用 DOMPurify 攔截所有 XSS 攻擊字串
             const parsedHTML = marked.parse(rawContent);
             document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
         });
