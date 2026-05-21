@@ -12,16 +12,8 @@ if (!isset($_SESSION['user_id'])) {
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 $userId = $_SESSION['user_id'];
-$message = '';
 
-// Regenerate API Key
-if (isset($_POST['regenerate'])) {
-    $newKey = bin2hex(random_bytes(32));
-    $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$newKey, $userId]);
-    $message = '✅ API Key regenerated successfully!';
-}
-
-// Get current API Key (🚨 已修復：防禦性編程，避免 PHP 8+ bool array offset 報錯)
+// Get current API Key (防禦性編程)
 $stmt = $pdo->prepare("SELECT api_key FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $userRow = $stmt->fetch();
@@ -51,11 +43,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
-    <?php if ($message): ?>
-        <div class="bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-emerald-100 shadow-lg flex items-center gap-2">
-            <i class="fas fa-check-circle"></i> <?= $message ?>
-        </div>
-    <?php endif; ?>
+    <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-emerald-100 shadow-lg flex items-center gap-2 transition-all">
+        <i class="fas fa-check-circle"></i> <span id="success-msg"></span>
+    </div>
+    <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-red-200 shadow-lg flex items-center gap-2 transition-all">
+        <i class="fas fa-exclamation-circle"></i> <span id="error-msg"></span>
+    </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
         
@@ -72,11 +65,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </button>
                 </div>
 
-                <form method="POST" class="mb-3">
-                    <button type="submit" name="regenerate" onclick="return confirm('Are you sure you want to roll your API Key? All applications using the old key will lose access immediately.')" class="w-full py-3 bg-zinc-800 hover:bg-red-500/20 text-zinc-300 hover:text-red-400 border border-white/5 hover:border-red-500/30 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2">
-                        <i class="fas fa-redo text-xs"></i> Roll API Key
-                    </button>
-                </form>
+                <button type="button" id="roll-btn" onclick="rollApiKey()" class="mb-3 w-full py-3 bg-zinc-800 hover:bg-red-500/20 text-zinc-300 hover:text-red-400 border border-white/5 hover:border-red-500/30 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2">
+                    <span id="roll-text"><i class="fas fa-redo text-xs"></i> Roll API Key</span>
+                    <span id="roll-loading" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                </button>
 
                 <button onclick="downloadPostmanCollection()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10">
                     <i class="fas fa-file-download"></i> Download Postman Collection
@@ -507,8 +499,49 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
-    // 內嵌全範例綁定的 Postman Collection (v2.1.0) 完整腳本流
+    // 🚨 完美 SPA 修復：利用 AJAX 異步請求 Roll API Key，不再 Reload 頁面
+    async function rollApiKey() {
+        if (!confirm('Are you sure you want to roll your API Key? All applications using the old key will lose access immediately.')) return;
+        
+        const btn = document.getElementById('roll-btn');
+        const text = document.getElementById('roll-text');
+        const loading = document.getElementById('roll-loading');
+        const successBox = document.getElementById('success-box');
+        const errorBox = document.getElementById('error-box');
+
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        successBox.classList.add('hidden');
+        errorBox.classList.add('hidden');
+
+        try {
+            const res = await fetch('/api/regenerate-key', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                // 即時更新畫面上的 API Key
+                document.getElementById('key-display').innerText = data.new_api_key;
+                document.getElementById('success-msg').innerText = data.message;
+                successBox.classList.remove('hidden');
+            } else {
+                document.getElementById('error-msg').innerText = data.error || 'Operation failed';
+                errorBox.classList.remove('hidden');
+            }
+        } catch(e) {
+            document.getElementById('error-msg').innerText = 'Network error. Please try again.';
+            errorBox.classList.remove('hidden');
+        } finally {
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    // 🚨 完美細節：下載 Postman 時，動態實時抓取畫面上最新的 API Key
     function downloadPostmanCollection() {
+        const currentApiKey = document.getElementById('key-display').innerText;
+        
         const collection = {
             "info": {
                 "name": "SoulMD Hub Public API",
@@ -845,11 +878,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             ],
             "variable": [
                 { "key": "baseUrl", "value": "<?= $baseUrl ?>", "type": "string" },
-                { "key": "apiKey", "value": "<?= htmlspecialchars($apiKey) ?>", "type": "string" }
+                { "key": "apiKey", "value": currentApiKey, "type": "string" }
             ]
         };
 
-        // 打包物件並觸發純客戶端安全 Blob 流下載
         const jsonStr = JSON.stringify(collection, null, 2);
         const blob = new Blob([jsonStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);

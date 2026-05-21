@@ -4,54 +4,6 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-$generated = false;
-$folderJson = '';
-$role = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $role = trim($_POST['role'] ?? '');
-    $personality = trim($_POST['personality'] ?? '');
-    $expertise = trim($_POST['expertise'] ?? '');
-    $style = trim($_POST['style'] ?? '');
-    $special = trim($_POST['special'] ?? '');
-
-    // 1. 核心大腦
-    $soulContent = "## 🤖 Identity\n";
-    $soulContent .= "You are an expert **{$role}**. You are known for being {$personality}.\n\n";
-    $soulContent .= "## 🎯 Core Objectives\n";
-    $soulContent .= "- Provide top-tier assistance leveraging your deep expertise in **{$expertise}**.\n";
-    $soulContent .= "- Deliver solutions that are accurate, actionable, and highly insightful.\n";
-
-    // 2. 語氣與風格
-    $styleContent = "## 🗣️ Voice & Tone\n";
-    $styleContent .= "- Speak with a {$style} tone.\n";
-    $styleContent .= "- Use bold text for key concepts and code blocks for technical details.\n";
-    $styleContent .= "- Lead with a direct answer, followed by structured elaboration.\n";
-
-    // 3. 嚴格規則
-    $rulesContent = "## 🚧 Boundaries & Hard Rules\n";
-    if ($special) {
-        $rulesContent .= "- {$special}\n";
-    }
-    $rulesContent .= "- Maintain character and role consistency at all times.\n";
-    $rulesContent .= "- Never fabricate facts or guess answers if information is missing.\n";
-    $rulesContent .= "- Avoid passive voice and unnecessary fluff.\n";
-
-    // 打包成 Modular Folder
-    $filesObj = [
-        'SOUL.md' => $soulContent,
-        'STYLE.md' => $styleContent,
-        'RULES.md' => $rulesContent
-    ];
-    $folderJson = json_encode($filesObj, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
-    $_SESSION['preset_title'] = $role;
-    $_SESSION['preset_content'] = $folderJson;
-    $_SESSION['preset_role'] = $role;
-
-    $generated = true;
-}
-
 $pageTitle = 'AI Soul Generator';
 $pageDesc = 'Describe your AI and instantly generate a modular Modular Folder.';
 require_once __DIR__ . '/../private/includes/header.php';
@@ -66,7 +18,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         <p class="text-lg text-zinc-400 max-w-xl mx-auto">Instantly generate a complete agent architecture containing <code>SOUL.md</code>, <code>STYLE.md</code>, and <code>RULES.md</code>.</p>
     </div>
 
-    <?php if (!$generated): ?>
+    <div id="form-section">
         <div class="max-w-3xl mx-auto mb-8 flex flex-wrap justify-center gap-3">
             <span class="text-sm text-zinc-500 py-2">Quick Presets:</span>
             <button type="button" onclick="fillTemplate('dev')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition">💻 Expert Coder</button>
@@ -74,33 +26,33 @@ require_once __DIR__ . '/../private/includes/header.php';
             <button type="button" onclick="fillTemplate('assistant')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition">🤖 Executive Assistant</button>
         </div>
 
-        <form id="generate-form" method="POST" class="max-w-3xl mx-auto bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-2xl">
+        <form id="generate-form" class="max-w-3xl mx-auto bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-2xl">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-sm font-medium mb-2 text-zinc-300">Role / Profession</label>
-                    <input type="text" id="input-role" name="role" required placeholder="e.g. Senior Data Scientist" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                    <input type="text" id="input-role" required placeholder="e.g. Senior Data Scientist" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-2 text-zinc-300">Personality Traits</label>
-                    <input type="text" id="input-personality" name="personality" required placeholder="e.g. pragmatic, direct, witty" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                    <input type="text" id="input-personality" required placeholder="e.g. pragmatic, direct, witty" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
                 </div>
             </div>
 
             <div class="mb-6">
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Expertise / Tech Stack</label>
-                <input type="text" id="input-expertise" name="expertise" required placeholder="e.g. Python, Machine Learning, Data Viz" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                <input type="text" id="input-expertise" required placeholder="e.g. Python, Machine Learning, Data Viz" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
             </div>
 
             <div class="mb-6">
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Communication Style</label>
-                <input type="text" id="input-style" name="style" required placeholder="e.g. clear, confident, highly technical" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                <input type="text" id="input-style" required placeholder="e.g. clear, confident, highly technical" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
             </div>
 
             <div class="mb-8">
                 <label class="block text-sm font-medium mb-2 text-zinc-300 flex justify-between">
                     Hard Rules <span class="text-xs text-zinc-500 font-normal">Optional</span>
                 </label>
-                <textarea id="input-special" name="special" rows="3" placeholder="e.g. Always output code in blocks, do not explain basics..." class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition"></textarea>
+                <textarea id="input-special" rows="3" placeholder="e.g. Always output code in blocks, do not explain basics..." class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition"></textarea>
             </div>
 
             <button type="submit" id="submit-btn" class="w-full py-4 bg-emerald-500 text-zinc-950 text-lg font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3">
@@ -108,17 +60,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
             </button>
         </form>
+    </div>
 
-    <?php else: ?>
+    <div id="result-section" class="hidden">
         <div class="max-w-3xl mx-auto mb-6 flex justify-between items-end border-b border-white/10 pb-6">
             <div>
                 <h2 class="text-3xl font-bold mb-2">Modular Folder Generated! 📁</h2>
                 <p class="text-zinc-400 text-sm">We compiled your inputs into a multi-file JSON. Click 'Go to Upload' to publish.</p>
             </div>
             <div class="flex gap-3">
-                <a href="/generate" class="px-5 py-2.5 border border-white/20 rounded-xl text-sm font-medium hover:bg-white/5 transition flex items-center gap-2">
+                <button type="button" onclick="resetForm()" class="px-5 py-2.5 border border-white/20 rounded-xl text-sm font-medium hover:bg-white/5 transition flex items-center gap-2">
                     <i class="fas fa-redo text-xs"></i> New
-                </a>
+                </button>
             </div>
         </div>
 
@@ -128,7 +81,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <i class="fas fa-folder-open text-purple-400"></i> JSON Output
                 </div>
             </div>
-            <pre id="folder-content" class="bg-zinc-950 border border-white/5 p-5 rounded-2xl text-[13px] whitespace-pre-wrap overflow-y-auto max-h-[450px] font-mono text-zinc-300 leading-relaxed"><?= htmlspecialchars($folderJson) ?></pre>
+            <pre id="folder-content" class="bg-zinc-950 border border-white/5 p-5 rounded-2xl text-[13px] whitespace-pre-wrap overflow-y-auto max-h-[450px] font-mono text-zinc-300 leading-relaxed"></pre>
         </div>
 
         <div class="flex flex-col items-center justify-center pt-4">
@@ -136,7 +89,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 Go to Upload <i class="fas fa-arrow-right"></i>
             </a>
         </div>
-    <?php endif; ?>
+    </div>
 </div>
 
 <script>
@@ -159,14 +112,61 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => form.classList.remove('ring-2', 'ring-emerald-400', 'scale-[1.01]'), 300);
     }
 
-    const genForm = document.getElementById('generate-form');
-    if (genForm) {
-        genForm.addEventListener('submit', function() {
-            document.getElementById('submit-text').classList.add('hidden');
-            document.getElementById('submit-loading').classList.remove('hidden');
-            document.getElementById('submit-btn').classList.add('opacity-80', 'cursor-not-allowed');
-        });
+    function resetForm() {
+        document.getElementById('result-section').classList.add('hidden');
+        document.getElementById('form-section').classList.remove('hidden');
     }
+
+    const genForm = document.getElementById('generate-form');
+    genForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('submit-btn');
+        const text = document.getElementById('submit-text');
+        const loading = document.getElementById('submit-loading');
+        
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        // 1. 純前端生成大腦文字
+        const role = document.getElementById('input-role').value.trim();
+        const personality = document.getElementById('input-personality').value.trim();
+        const expertise = document.getElementById('input-expertise').value.trim();
+        const style = document.getElementById('input-style').value.trim();
+        const special = document.getElementById('input-special').value.trim();
+
+        let soulContent = `## 🤖 Identity\nYou are an expert **${role}**. You are known for being ${personality}.\n\n## 🎯 Core Objectives\n- Provide top-tier assistance leveraging your deep expertise in **${expertise}**.\n- Deliver solutions that are accurate, actionable, and highly insightful.\n`;
+        let styleContent = `## 🗣️ Voice & Tone\n- Speak with a ${style} tone.\n- Use bold text for key concepts and code blocks for technical details.\n- Lead with a direct answer, followed by structured elaboration.\n`;
+        let rulesContent = `## 🚧 Boundaries & Hard Rules\n${special ? '- ' + special + '\n' : ''}- Maintain character and role consistency at all times.\n- Never fabricate facts or guess answers if information is missing.\n- Avoid passive voice and unnecessary fluff.\n`;
+
+        const filesObj = {
+            'SOUL.md': soulContent,
+            'STYLE.md': styleContent,
+            'RULES.md': rulesContent
+        };
+        const folderJson = JSON.stringify(filesObj, null, 2);
+
+        // 2. 透過 API 將結果存入 Session
+        try {
+            await fetch('/api/save-preset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: role, role: role, content: folderJson })
+            });
+            
+            // 3. 無縫切換 UI
+            document.getElementById('form-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            document.getElementById('folder-content').textContent = folderJson; // 使用 textContent 防範 HTML 解析
+        } catch(err) {
+            alert('Error generating preset. Please check connection.');
+        } finally {
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    });
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

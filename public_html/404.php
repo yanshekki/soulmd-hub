@@ -31,7 +31,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </p>
 
         <div class="bg-zinc-900/50 border border-white/10 p-4 rounded-3xl mb-8 backdrop-blur-sm shadow-inner max-w-md mx-auto">
-            <form action="/browse" method="GET" class="relative">
+            <form onsubmit="window.location.href='/browse?q='+encodeURIComponent(this.q.value); return false;" class="relative">
                 <input type="text" name="q" placeholder="Search other titles or tags..." 
                        class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:border-emerald-400 pl-12 transition text-white">
                 <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-zinc-500"></i>

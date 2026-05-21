@@ -69,9 +69,6 @@ if ($isFolder) {
     $filesData = ['SOUL.md' => $soul['content']];
 }
 
-// ==========================================
-// 輸出模式 1：打包為 ZIP 下載
-// ==========================================
 if ($format === 'zip') {
     $tmpFile = tempnam(sys_get_temp_dir(), 'soul_zip_');
     $zip = new ZipArchive();
@@ -86,11 +83,9 @@ if ($format === 'zip') {
     }
     $zip->close();
     
-    // 【修復】支援多語言：只過濾系統不允許的非法路徑字元 (\ / : * ? " < > |)
     $safeTitle = preg_replace('/[\/\\\:\*\?\"\<\>\|]/', '_', $soul['title']);
     
     header('Content-Type: application/zip');
-    // 使用 rawurlencode 確保部分舊瀏覽器也能正確下載中文檔名
     header('Content-Disposition: attachment; filename="' . $safeTitle . '.zip"; filename*=UTF-8\'\'' . rawurlencode($safeTitle) . '.zip');
     header('Content-Length: ' . filesize($tmpFile));
     
@@ -99,30 +94,23 @@ if ($format === 'zip') {
     exit;
 }
 
-// ==========================================
-// 輸出模式 2：單一檔案 Raw 輸出
-// ==========================================
 if (!isset($filesData[$requestedFile])) {
     http_response_code(404);
     die('File not found inside this soul.');
 }
 
 $fileContent = $filesData[$requestedFile];
-
 $ext = strtolower(pathinfo($requestedFile, PATHINFO_EXTENSION));
-$mimeType = 'text/plain'; 
 
+// 🚨 完美安全修復：拔除 text/html，強制所有不明檔案及前端代碼渲染為 text/plain，徹底封殺 Inline XSS 攻擊
 if ($ext === 'md') {
     $mimeType = 'text/markdown';
 } elseif ($ext === 'json') {
     $mimeType = 'application/json';
-} elseif ($ext === 'txt') {
-    $mimeType = 'text/plain';
-} elseif ($ext === 'html') {
-    $mimeType = 'text/html';
+} else {
+    $mimeType = 'text/plain'; 
 }
 
-// 取出最後的檔名（去除資料夾路徑）
 $baseFilename = basename($requestedFile);
 
 header('Content-Type: ' . $mimeType . '; charset=utf-8');
