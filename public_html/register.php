@@ -109,26 +109,19 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // Modal 控制
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
         modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
-        }, 10);
+        setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
     }
     function closeModal(modalId) {
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
-        modal.classList.add('opacity-0');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
+        modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
-    document.getElementById('terms-modal').addEventListener('click', function(e) { if (e.target === this) closeModal('terms-modal'); });
-    document.getElementById('privacy-modal').addEventListener('click', function(e) { if (e.target === this) closeModal('privacy-modal'); });
 
     const form = document.getElementById('register-form');
     form.addEventListener('submit', async (e) => {
@@ -139,13 +132,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         const errorBox = document.getElementById('error-box');
         const errorMsg = document.getElementById('error-msg');
 
-        // Reset UI States
         errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        // Construct JSON Payload
         const payload = {
             username: document.getElementById('username').value,
             email: document.getElementById('email').value,
@@ -153,7 +144,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
 
         try {
-            // Hit the newly created registration API endpoint
             const res = await fetch('/api/register', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -162,10 +152,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                // Redirect on success (Session is already set by the API)
-                window.location.href = '/my-souls';
+                // 🚨 完美跳轉優化：註冊成功後使用 encodeURIComponent 進行網址安全編碼，直達佢嘅 Profile 頁面！
+                window.location.href = '/profile/' + encodeURIComponent(payload.username);
             } else {
-                // Display API error message dynamically
                 errorMsg.innerText = data.error || 'Registration failed.';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');

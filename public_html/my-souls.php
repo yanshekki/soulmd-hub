@@ -16,8 +16,8 @@ $user_id = $_SESSION['user_id'];
 
 // 獲取分類與熱門標籤，供 Edit Modal 的下拉選單使用
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
-$topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
-$topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
+$topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::COLUMN_OR_EXCEPTIONS ? PDO::FETCH_COLUMN : PDO::FETCH_COLUMN);
+$topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::COLUMN_OR_EXCEPTIONS ? PDO::FETCH_COLUMN : PDO::FETCH_COLUMN);
 
 // 初次載入時透過 PHP 渲染列表（保持後台載入速度與 SEO）
 $stmt = $pdo->prepare("
@@ -42,6 +42,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-zinc-400 mt-1">Manage and edit your uploaded AI personalities</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
+            <a href="/profile/<?= rawurlencode($_SESSION['username'] ?? '') ?>" target="_blank" class="px-5 py-2.5 text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center gap-2">
+                <i class="fas fa-external-link-alt text-[10px] text-zinc-500"></i> View Profile
+            </a>
             <a href="/my-api" class="px-5 py-2.5 text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition">My API Key</a>
             <a href="/upload" class="px-6 py-3 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center gap-2 shadow-lg">
                 <i class="fas fa-plus"></i> New Soul
@@ -260,39 +263,44 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // --- Tags System ---
+    // --- 標籤核心驅動系統 (Tags System) ---
     const modalTagInputs = {};
     function setupModalTagInput(inputId) {
         const hiddenInput = document.getElementById('edit-' + inputId);
         const visibleInput = document.getElementById(inputId + '-input');
         const tagsContainer = document.getElementById(inputId + '-tags');
         let tags = [];
+        
         const renderTags = () => {
             tagsContainer.innerHTML = '';
             tags.forEach((tag, idx) => {
                 const tagEl = document.createElement('span');
-                tagEl.className = 'inline-flex items-center gap-1 bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-500/10';
+                tagEl.className = 'inline-flex items-center gap-1 bg-emerald-900 text-emerald-400 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-500/10';
                 tagEl.innerHTML = `${tag} <button type="button" class="hover:text-white" onclick="removeModalTag('${inputId}', ${idx})"><i class="fas fa-times text-[10px]"></i></button>`;
                 tagsContainer.appendChild(tagEl);
             });
             hiddenInput.value = tags.join(', ');
         };
+        
         const addTag = (val) => {
             const newTags = val.split(',').map(t => t.trim()).filter(Boolean);
             newTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
             visibleInput.value = '';
             renderTags();
         };
+        
         visibleInput.addEventListener('change', function() { addTag(this.value); });
         visibleInput.addEventListener('keydown', function(e) {
             if (e.key === ',' || e.key === 'Enter') { e.preventDefault(); addTag(this.value); } 
             else if (e.key === 'Backspace' && this.value === '' && tags.length > 0) { tags.pop(); renderTags(); }
         });
+        
         modalTagInputs[inputId] = {
             setTags: (str) => { tags = str ? str.split(',').map(t => t.trim()).filter(Boolean) : []; renderTags(); },
             getTags: () => tags
         };
     }
+    
     window.removeModalTag = function(inputId, index) {
         const instance = modalTagInputs[inputId];
         let currentTags = instance.getTags();
@@ -300,10 +308,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         instance.setTags(currentTags.join(', '));
         document.getElementById(inputId + '-input').focus();
     };
+    
     setupModalTagInput('domain');
     setupModalTagInput('compatibility');
 
-    // --- Visual Builder System for Edit Modal ---
+    // --- 虛擬多文件整合編輯器 (Visual Builder for Edit Modal) ---
     class MultiFileEditor {
         constructor() {
             this.files = {};
@@ -385,38 +394,28 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
     const editModalFileEditor = new MultiFileEditor();
 
-    // --- Add File Modal Logic ---
+    // --- 子視窗控制彈出邏輯 (Add File Popup) ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
         const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
-        }, 10);
+        setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
         const content = document.getElementById('add-file-content');
-        modal.classList.add('opacity-0');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
+        modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
     function processNewFileName(name) {
         if (!name) return;
-        name = name.trim().replace(/\\/g, '/');
-        name = name.replace(/^\/+|\/+$/g, ''); 
+        name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
-        if (editModalFileEditor.files[name] !== undefined) {
-            alert("File already exists!");
-            return;
-        }
+        if (editModalFileEditor.files[name] !== undefined) return alert("File already exists!");
         editModalFileEditor.files[name] = '';
         editModalFileEditor.switchFile(name);
         closeAddFileModal();
@@ -426,7 +425,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
     // ==========================================
-    // 透過 API 呼叫的 CRUD 操作 (純 AJAX)
+    // 全站 100% 異步 AJAX API 調用控制核心
     // ==========================================
     let currentEditId = null;
 
@@ -437,14 +436,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('edit-modal').classList.remove('hidden');
 
         try {
-            // 呼叫 GET API 取得資料
             const res = await fetch(`/api/soul/${id}`);
             const result = await res.json();
             
             if (result.success) {
                 const soul = result.data;
                 document.getElementById('edit-title').value = soul.title;
-                document.getElementById('edit-description').value = soul.description;
+                document.getElementById('edit-description').value = soul.description || '';
                 document.getElementById('edit-role').value = soul.role || '';
                 document.getElementById('edit-public').value = soul.is_public;
                 modalTagInputs['domain'].setTags(soul.domain);
@@ -460,7 +458,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function handleEdit(e) {
         e.preventDefault();
-        
         document.getElementById('edit-final-payload').value = editModalFileEditor.getPayload();
 
         const btn = e.target.querySelector('button[type="submit"]');
@@ -468,7 +465,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const spinner = btn.querySelector('#loading-spinner');
         text.classList.add('hidden'); spinner.classList.remove('hidden');
 
-        // 建構 JSON Payload 發送到 PUT API
         const payload = {
             title: document.getElementById('edit-title').value,
             description: document.getElementById('edit-description').value,
@@ -492,18 +488,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else { 
                 alert(data.error); text.classList.remove('hidden'); spinner.classList.add('hidden'); 
             }
-        } catch(e) { 
-            alert('Network error.'); text.classList.remove('hidden'); spinner.classList.add('hidden'); 
-        }
+        } catch(e) { alert('Network error.'); text.classList.remove('hidden'); spinner.classList.add('hidden'); }
     }
 
     function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); currentEditId = null; }
 
     async function deleteSoul(id) {
         if (!confirm('Are you sure you want to permanently delete this AI soul?')) return;
-        
         try {
-            // 呼叫 DELETE API
             const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) { location.reload(); } else { alert(data.error || 'Failed to delete'); }

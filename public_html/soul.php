@@ -25,9 +25,11 @@ $stmt = $pdo->prepare("
 $stmt->execute([$id]);
 $soul = $stmt->fetch();
 
+// 🚨 完美對接 404 頁面機制：不再使用死板的 die()，改為加載動態 404 畫面
 if (!$soul) {
     http_response_code(404);
-    die('Soul not found or is private.');
+    include __DIR__ . '/404.php';
+    exit;
 }
 
 // 檢查當前登入用戶是否已經點讚過此項目
@@ -128,7 +130,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-bold">
                         <?= strtoupper(substr($soul['username'] ?? 'A', 0, 1)) ?>
                     </div>
-                    <span class="font-medium text-white">@<?= htmlspecialchars($soul['username'] ?? 'Anonymous') ?></span>
+                    <a href="/profile/<?= rawurlencode($soul['username'] ?? 'anonymous') ?>" class="font-medium text-white hover:text-emerald-400 transition">
+                        @<?= htmlspecialchars($soul['username'] ?? 'Anonymous') ?>
+                    </a>
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="far fa-calendar-alt"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
@@ -330,14 +334,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 完美 Toggle Like/Unlike 局部刷新系統 (支援無限次彈性點擊切換)
     async function likeSoul() {
         const btn = document.getElementById('like-btn');
         const icon = btn.querySelector('i');
         const countSpan = document.getElementById('like-count');
         btn.style.pointerEvents = 'none';
         
-        // 暫存目前的狀態，以便萬一 API 報錯時可以原地還原 UI
         const originalClassName = icon.className;
         icon.className = 'fas fa-spinner fa-spin text-zinc-400';
 
@@ -352,18 +354,16 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) {
                 let currentCount = parseInt(countSpan.innerText);
                 if (data.liked) {
-                    // 情況 A：新點讚成功 -> 數字 +1，心心變紅，加跳躍特效
                     countSpan.innerText = currentCount + 1;
                     icon.className = 'fas fa-heart text-red-400 animate-bounce';
                     setTimeout(() => icon.classList.remove('animate-bounce'), 1000);
                 } else {
-                    // 情況 B：取消點讚成功 -> 數字 -1，心心變灰
                     countSpan.innerText = Math.max(currentCount - 1, 0);
                     icon.className = 'fas fa-heart text-zinc-500';
                 }
             } else {
                 if (data.error && data.error.includes('Login')) {
-                    window.location.href = '/login';
+                    window.location.href = '/login'; 
                 } else {
                     alert(data.error || 'Operation failed');
                     icon.className = originalClassName;
