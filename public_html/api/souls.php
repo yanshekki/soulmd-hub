@@ -129,6 +129,9 @@ if ($method === 'GET') {
     $role = $input['role'] ?? '';
     $domain = trim($input['domain'] ?? '');
     $compatibility = trim($input['compatibility'] ?? '');
+    
+    // 🚨 完美修復：允許透過 API 建立 Private 大腦 (預設為 1 公開)
+    $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 1;
 
     if (empty($title) || empty($content)) {
         http_response_code(400);
@@ -143,7 +146,7 @@ if ($method === 'GET') {
 
         $stmt = $pdo->prepare("INSERT INTO souls 
             (user_id, title, description, content, file_type, role, domain, compatibility, is_public) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $userId,
             $title,
@@ -152,7 +155,8 @@ if ($method === 'GET') {
             $fileType,
             $role,
             $domain,
-            $compatibility
+            $compatibility,
+            $is_public // 🚨 動態傳入
         ]);
 
         $newId = $pdo->lastInsertId();

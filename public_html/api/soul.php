@@ -111,7 +111,7 @@ if ($method === 'GET') {
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT title, content, domain, compatibility FROM souls WHERE id = ? AND user_id = ?");
+    $stmt = $pdo->prepare("SELECT title, description, content, role, domain, compatibility, is_public FROM souls WHERE id = ? AND user_id = ?");
     $stmt->execute([$id, $userId]);
     $old = $stmt->fetch();
 
@@ -121,17 +121,18 @@ if ($method === 'GET') {
         exit;
     }
 
-    $title = trim($input['title'] ?? '');
-    $description = trim($input['description'] ?? '');
-    $content = $input['content'] ?? '';
-    $role = $input['role'] ?? '';
-    $domain = trim($input['domain'] ?? '');
-    $compatibility = trim($input['compatibility'] ?? '');
-    $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 0;
+    // 🚨 完美修復：實現真正的 Partial Update (局部更新)，沒傳入的欄位自動沿用資料庫舊值
+    $title = isset($input['title']) ? trim($input['title']) : $old['title'];
+    $description = isset($input['description']) ? trim($input['description']) : ($old['description'] ?? '');
+    $content = isset($input['content']) ? $input['content'] : $old['content'];
+    $role = isset($input['role']) ? $input['role'] : ($old['role'] ?? '');
+    $domain = isset($input['domain']) ? trim($input['domain']) : ($old['domain'] ?? '');
+    $compatibility = isset($input['compatibility']) ? trim($input['compatibility']) : ($old['compatibility'] ?? '');
+    $is_public = isset($input['is_public']) ? (int)$input['is_public'] : (int)$old['is_public'];
 
     if (empty($title) || empty($content)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Title and content are required']);
+        echo json_encode(['success' => false, 'error' => 'Title and content cannot be empty']);
         exit;
     }
 
