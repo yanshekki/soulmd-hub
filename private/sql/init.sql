@@ -1,9 +1,11 @@
--- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking)
+-- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking + Default Users)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
 
--- Users Table
+-- ==========================================
+-- 1. Users Table
+-- ==========================================
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -14,7 +16,17 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Souls Table (Main Content)
+-- 🚨 預先插入 4 個預設使用者
+-- 注意：所有預設帳號的登入密碼皆為 "password"
+INSERT IGNORE INTO users (username, email, password, api_key) VALUES 
+('yanshekki', 'yanshekki@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b'),
+('ysk', 'ysk@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c'),
+('ysklimited', 'ysklimited@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d'),
+('ki', 'ki@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e');
+
+-- ==========================================
+-- 2. Souls Table (Main Content)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS souls (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
@@ -32,7 +44,9 @@ CREATE TABLE IF NOT EXISTS souls (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Version History Table
+-- ==========================================
+-- 3. Version History Table
+-- ==========================================
 CREATE TABLE IF NOT EXISTS soul_versions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     soul_id INT,
@@ -42,7 +56,9 @@ CREATE TABLE IF NOT EXISTS soul_versions (
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
 );
 
--- Ratings Table (1-5 stars)
+-- ==========================================
+-- 4. Ratings Table (1-5 stars)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS soul_ratings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     soul_id INT,
@@ -53,7 +69,9 @@ CREATE TABLE IF NOT EXISTS soul_ratings (
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
 );
 
--- Categories Table (With Emoji Icons)
+-- ==========================================
+-- 5. Categories Table (With Emoji Icons)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -72,7 +90,9 @@ INSERT IGNORE INTO categories (name, slug, icon) VALUES
 ('Marketing', 'Marketing', '📈'),
 ('Education', 'Education', '👨‍🏫');
 
--- Dynamic Tags Tracking
+-- ==========================================
+-- 6. Dynamic Tags Tracking
+-- ==========================================
 CREATE TABLE IF NOT EXISTS tags_domain (
     name VARCHAR(100) PRIMARY KEY,
     usage_count INT DEFAULT 0
@@ -94,7 +114,9 @@ INSERT IGNORE INTO tags_compatibility (name, usage_count) VALUES
 ('Gemini 1.5 Pro', 0), ('DeepSeek-V3', 0), ('Llama 3', 0), 
 ('Qwen 2.5', 0), ('General LLM', 0);
 
--- Soul Likes Table (per-user like tracking to prevent duplicate spamming)
+-- ==========================================
+-- 7. Soul Likes Table (per-user like tracking)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS soul_likes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     soul_id INT NOT NULL,
