@@ -1,41 +1,32 @@
-# SoulMD Hub Architecture
+# SoulMD Hub Architecture 🏗️
 
-## Core Principles
-- **.md First** — All content is .md files stored in MySQL
-- **Extremely Simple** — Single main PHP file + simple frontend
-- **Human + AI Friendly** — Easy upload for both
-- **Clear Categories** — Role / Domain / FileType / Compatibility
-- **SEO Optimized** — Good for Google "site:soulmd-hub.ysk.hk"
+SoulMD Hub is built on a **100% API-First** and **SPA-like (Single Page Application)** architecture, using Vanilla JavaScript and modern PHP 8.2+. It intentionally avoids heavy frontend frameworks to maximize raw performance and maintainability.
 
-## SEO Strategy
-- Dynamic sitemap.xml (public/sitemap.php)
-- robots.txt
-- Proper meta title & description per page
-- Clean URLs (planned with .htaccess)
-- JSON-LD structured data for souls (future)
-- Fast loading with Tailwind CDN
+## 🌟 Core Principles
 
-## Database Design (MySQL)
+- **API-Driven UI**: All frontend interactions (forms, likes, forks, profile loading) are powered by asynchronous `fetch()` API calls. Zero full-page reloads.
+- **Markdown (.md) First**: All AI configurations, prompts, and architectures are natively stored and rendered as Markdown.
+- **Security by Design**: Native protection against SQLi, CSRF, DOM-based XSS, Session Fixation, and Path Traversal (Zip Slip).
+- **SEO Optimized**: Fully dynamic `sitemap.xml` and `robots.txt` supported by Apache `.htaccess` clean URL rewriting.
 
-### Main Tables
-- `souls` — Main table (content stored directly in `content LONGTEXT`)
-- `users`
-- `categories`
-- `soul_tags`
-- `forks`
-- `ratings`
+## 🗄️ Database Schema (MySQL 8.0+)
 
-## Upload Flow
-1. User/AI pastes .md content or uploads file
-2. System saves title + content directly into MySQL
-3. Auto categorize + generate preview
+The relational database is highly optimized with strict foreign key constraints and `ON DELETE CASCADE` behaviors.
 
-## Frontend Highlights
-- Homepage with Trending + Categories
-- Browse page with filters & search
-- Beautiful .md rendering on detail page
-- Upload form with drag & drop + AI generation
+* `users`: Stores developer accounts securely (bcrypt password hashing, API keys).
+* `souls`: The core table storing modular agent configurations (`LONGTEXT` JSON payload or single markdown).
+* `soul_versions`: Automated historical archiving of every edit made to a soul.
+* `soul_ratings`: 1-5 star rating system (Atomic uniqueness per user/soul).
+* `soul_likes`: Tracks user likes to prevent duplicate spamming.
+* `categories` & `tags_*`: Dynamic normalization of tags and roles for high-speed indexing.
 
-## Security & Simplicity
-- Prepared statements (PDO)
-- No file uploads to disk (everything in DB)
+## 🚀 Routing Architecture (Apache `.htaccess`)
+
+We utilize aggressive URL rewriting to provide clean, RESTful-looking URLs:
+- `/soul/:id` ➡️ Renders `soul.php?id=:id`
+- `/profile/:username` ➡️ Renders `profile.php?username=:username`
+- `/api/*` ➡️ Internal & Public REST JSON Endpoints
+
+## 📦 Client-Side Zip Extraction
+
+To offload server CPU usage, SoulMD Hub uses **JSZip** to parse uploaded `.zip` files directly within the user's browser, converting them into a structured JSON payload before sending them to the `/api/souls` endpoint.
