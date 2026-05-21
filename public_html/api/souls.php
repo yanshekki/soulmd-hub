@@ -1,10 +1,4 @@
 <?php
-/**
- * SoulMD Hub Public API
- * GET  /api/souls          - List public souls (Optimized Search & Sorting)
- * POST /api/souls          - Create soul (Auth: Session or API Key)
- */
-
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -22,9 +16,6 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ==========================================
-// 權限助手函數
-// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -48,9 +39,14 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
-// ==========================================
-// 路由處理
-// ==========================================
+// 🚨 SEO URL 友善化助手
+function makeSlug($str) {
+    if (empty($str)) return 'unassigned';
+    $str = mb_strtolower($str, 'UTF-8');
+    $str = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str);
+    return rawurlencode(trim($str, '-'));
+}
+
 if ($method === 'GET') {
     $limit = min((int)($_GET['limit'] ?? 20), 100);
     $offset = (int)($_GET['offset'] ?? 0);
@@ -59,13 +55,16 @@ if ($method === 'GET') {
     $fileType = $_GET['file_type'] ?? '';
     $sort = $_GET['sort'] ?? 'newest';
 
-    $sql = "SELECT id, title, description, role, domain, compatibility, file_type, like_count, fork_count, created_at 
-            FROM souls WHERE is_public = 1";
+    // 🚨 完美修復：JOIN users 表，獲取 username 供前端組合 SEO URL
+    $sql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username 
+            FROM souls s 
+            LEFT JOIN users u ON s.user_id = u.id 
+            WHERE s.is_public = 1";
             
     $binds = [];
 
     if ($q) {
-        $sql .= " AND (title LIKE ? OR role LIKE ? OR domain LIKE ? OR compatibility LIKE ?)";
+        $sql .= " AND (s.title LIKE ? OR s.role LIKE ? OR s.domain LIKE ? OR s.compatibility LIKE ?)";
         $binds[] = ["%$q%", PDO::PARAM_STR];
         $binds[] = ["%$q%", PDO::PARAM_STR];
         $binds[] = ["%$q%", PDO::PARAM_STR];
@@ -73,21 +72,21 @@ if ($method === 'GET') {
     }
     
     if ($role) {
-        $sql .= " AND role = ?";
+        $sql .= " AND s.role = ?";
         $binds[] = [$role, PDO::PARAM_STR];
     }
     
     if ($fileType) {
-        $sql .= " AND file_type = ?";
+        $sql .= " AND s.file_type = ?";
         $binds[] = [$fileType, PDO::PARAM_STR];
     }
 
     if ($sort === 'popular') {
-        $sql .= " ORDER BY like_count DESC, created_at DESC";
+        $sql .= " ORDER BY s.like_count DESC, s.created_at DESC";
     } elseif ($sort === 'forks') {
-        $sql .= " ORDER BY fork_count DESC, created_at DESC";
+        $sql .= " ORDER BY s.fork_count DESC, s.created_at DESC";
     } else {
-        $sql .= " ORDER BY created_at DESC";
+        $sql .= " ORDER BY s.created_at DESC";
     }
 
     $sql .= " LIMIT ? OFFSET ?";
@@ -139,12 +138,10 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 🚨 完美資料完整性修復：驗證 Role 是否合法，否則強制轉為 'Other'
     if (!empty($role) && $role !== 'Other') {
         $roleCheckStmt = $pdo->prepare("SELECT slug FROM categories WHERE slug = ?");
         $roleCheckStmt->execute([$role]);
         if (!$roleCheckStmt->fetch()) {
-            // 找不到對應的 Role，退回或預設為 Other
             $role = 'Other'; 
         }
     }
@@ -176,12 +173,19 @@ if ($method === 'GET') {
 
         $pdo->commit();
 
+        // 🚨 取得目前使用者名稱以拼湊 SEO 網址
+        $uStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+        $uStmt->execute([$userId]);
+        $username = $uStmt->fetchColumn() ?: 'anonymous';
+        
+        $seoUrl = "https://" . $_SERVER['HTTP_HOST'] . "/soul/" . rawurlencode($username) . "/" . $newId . "/" . makeSlug($role) . "/" . makeSlug($title);
+
         http_response_code(201);
         echo json_encode([
             'success' => true,
             'message' => 'Soul created successfully',
             'id' => $newId,
-            'url' => "https://" . $_SERVER['HTTP_HOST'] . "/soul/" . $newId
+            'url' => $seoUrl
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {

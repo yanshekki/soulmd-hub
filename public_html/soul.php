@@ -31,6 +31,27 @@ if (!$soul) {
     exit;
 }
 
+// 🚨 PHP 端 SEO 友善助手
+function makeSlug($str) {
+    if (empty($str)) return 'unassigned';
+    $str = mb_strtolower($str, 'UTF-8');
+    $str = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str);
+    return rawurlencode(trim($str, '-'));
+}
+
+$encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
+$slugRole = makeSlug($soul['role']);
+$slugTitle = makeSlug($soul['title']);
+
+// 🚨 完美 SEO 301 跳轉機制：若果 URL 係舊版短網址，自動跳轉去完整 SEO Path
+$canonicalUrl = "/soul/{$encodedUsername}/{$id}/{$slugRole}/{$slugTitle}";
+$currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+if ($currentUri !== $canonicalUrl && strpos($currentUri, '/api/') === false) {
+    header("Location: " . $canonicalUrl, true, 301);
+    exit;
+}
+
 $hasLiked = false;
 if (isset($_SESSION['user_id'])) {
     $likeCheck = $pdo->prepare("SELECT 1 FROM soul_likes WHERE soul_id = ? AND user_id = ?");
@@ -59,13 +80,6 @@ $versionCount = $vStmt->fetchColumn() + 1;
 
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
-
-$safeTitle = preg_replace('/[\/\\\:\*\?\"\<\>\|]/', '_', $soul['title']);
-$urlSlug = preg_replace('/[\s_]+/', '-', $safeTitle);
-$urlSlug = preg_replace('/[()\[\]\{\}]/', '', $urlSlug);
-
-$encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
-$encodedTitle = rawurlencode($urlSlug);
 
 function getFileStyle($filename) {
     $name = strtoupper($filename);
@@ -207,7 +221,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             <div class="flex items-center gap-2 my-2 ml-4 shrink-0">
                 <?php if ($isFolder): ?>
-                    <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $encodedTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
+                    <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-file-archive text-amber-400"></i> Download .zip
                     </a>
                     <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
@@ -223,13 +237,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             foreach ($files as $filename => $fileContent): 
                 $i++; 
                 $encodedFilename = implode('/', array_map('rawurlencode', explode('/', $filename)));
-                // 🚨 完美安全修復：強制轉換成字串，防止 htmlspecialchars 崩潰
                 $safeContent = is_string($fileContent) ? $fileContent : json_encode($fileContent, JSON_UNESCAPED_UNICODE);
             ?>
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
                         
-                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $encodedTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
                             <i class="fas fa-external-link-alt"></i> Raw
                         </a>
                         
@@ -394,7 +407,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/fork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
             const data = await res.json();
-            if (data.success && data.new_soul_id) window.location.href = `/soul/${data.new_soul_id}`;
+            if (data.success && data.new_soul_id) window.location.href = data.url;
             else {
                 if(data.error === 'Login required') window.location.href = '/login'; else alert(data.error || 'Fork failed');
                 btn.innerHTML = originalHtml;

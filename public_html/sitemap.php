@@ -13,8 +13,14 @@ require_once __DIR__ . '/../private/src/Database.php';
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
-// 自動讀取 config.php 內定義的 BASE_URL，若未定義則使用預設值作為安全後備
 $baseUrl = defined('BASE_URL') ? BASE_URL : 'https://soulmd-hub.ysk.hk';
+
+function makeSlug($str) {
+    if (empty($str)) return 'unassigned';
+    $str = mb_strtolower($str, 'UTF-8');
+    $str = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str);
+    return rawurlencode(trim($str, '-'));
+}
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
@@ -35,18 +41,21 @@ echo '    <changefreq>daily</changefreq>' . "\n";
 echo '    <priority>0.9</priority>' . "\n";
 echo '  </url>' . "\n";
 
-// Recent 50,000 public souls (達到 Google Sitemap 單一檔案最大上限)
+// 🚨 完美修復：JOIN users 表以獲取 username，並生成完整的 SEO 網址
 $stmt = $pdo->query("
-    SELECT id, 
-           COALESCE((SELECT MAX(edited_at) FROM soul_versions v WHERE v.soul_id = souls.id), created_at) as last_modified
-    FROM souls 
-    WHERE is_public = 1 
+    SELECT s.id, s.title, s.role, u.username,
+           COALESCE((SELECT MAX(edited_at) FROM soul_versions v WHERE v.soul_id = s.id), s.created_at) as last_modified
+    FROM souls s 
+    JOIN users u ON s.user_id = u.id
+    WHERE s.is_public = 1 
     ORDER BY last_modified DESC
     LIMIT 50000
 ");
 
 while ($soul = $stmt->fetch()) {
-    $url = $baseUrl . '/soul/' . $soul['id'];
+    $seoPath = "/soul/" . rawurlencode($soul['username']) . "/" . $soul['id'] . "/" . makeSlug($soul['role']) . "/" . makeSlug($soul['title']);
+    $url = $baseUrl . $seoPath;
+    
     $lastmod = date('Y-m-d', strtotime($soul['last_modified']));
     echo '  <url>' . "\n";
     echo '    <loc>' . htmlspecialchars($url) . '</loc>' . "\n";

@@ -16,7 +16,12 @@ if (!$soulId) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND (is_public = 1 OR user_id = ?)");
+$stmt = $pdo->prepare("
+    SELECT s.*, u.username 
+    FROM souls s 
+    LEFT JOIN users u ON s.user_id = u.id 
+    WHERE s.id = ? AND (s.is_public = 1 OR s.user_id = ?)
+");
 $stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
 
@@ -31,6 +36,19 @@ $isOwner = ($soul['user_id'] === $userId);
 $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
 $versionsStmt->execute([$soulId]);
 $versions = $versionsStmt->fetchAll();
+
+// 🚨 PHP 端 SEO 友善助手
+function makeSlug($str) {
+    if (empty($str)) return 'unassigned';
+    $str = mb_strtolower($str, 'UTF-8');
+    $str = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str);
+    return rawurlencode(trim($str, '-'));
+}
+
+$encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
+$slugRole = makeSlug($soul['role']);
+$slugTitle = makeSlug($soul['title']);
+$canonicalUrl = "/soul/{$encodedUsername}/{$soulId}/{$slugRole}/{$slugTitle}";
 
 function getFileStyle($filename) {
     $name = strtoupper($filename);
@@ -62,7 +80,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             </p>
         </div>
         <div>
-            <a href="/soul/<?= $soulId ?>" class="px-5 py-2.5 bg-white text-zinc-950 rounded-xl font-bold hover:bg-zinc-200 transition shadow-lg flex items-center gap-2">
+            <a href="<?= $canonicalUrl ?>" class="px-5 py-2.5 bg-white text-zinc-950 rounded-xl font-bold hover:bg-zinc-200 transition shadow-lg flex items-center gap-2">
                 View Current <i class="fas fa-external-link-alt text-xs"></i>
             </a>
         </div>
@@ -162,7 +180,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 $fIdx = 0; 
                                 foreach($files as $fname => $fcontent): 
                                     $fIdx++; 
-                                    // 🚨 完美安全修復：強制轉換為字串
                                     $safeContent = is_string($fcontent) ? $fcontent : json_encode($fcontent, JSON_UNESCAPED_UNICODE);
                                 ?>
                                     <div id="file-v<?= $version['id'] ?>-<?= $fIdx ?>" class="file-tab-v<?= $version['id'] ?> <?= $fIdx === 1 ? 'block' : 'hidden' ?>">
@@ -193,9 +210,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         breaks: true,
         gfm: true,
         highlight: function(code, lang) {
-            if (lang && hljs.getLanguage(lang)) {
-                try { return hljs.highlight(code, { language: lang }).value; } catch (e) {}
-            }
+            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
             return hljs.highlightAuto(code).value;
         }
     });
@@ -214,8 +229,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) {
                 window.location.href = '/my-souls'; 
             } else {
-                if (data.error && data.error.includes('Login')) { window.location.href = '/login'; } 
-                else { alert(data.error || 'Restore failed'); }
+                alert(data.error || 'Restore failed');
             }
         } catch(e) {
             alert('Network error while restoring.');

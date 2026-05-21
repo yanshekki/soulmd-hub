@@ -95,10 +95,17 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // 🚨 完美安全修復：防禦 DOM-based XSS 攻擊
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+    
+    function makeSlug(str) {
+        if (!str) return 'unassigned';
+        let slug = str.toLowerCase();
+        slug = slug.replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-');
+        slug = slug.replace(/^-+|-+$/g, '');
+        return encodeURIComponent(slug);
     }
 
     async function fetchProfile() {
@@ -108,7 +115,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const profileContent = document.getElementById('profile-content');
 
         try {
-            // 呼叫我們剛剛起好的純 JSON Profile API
             const res = await fetch(`/api/profile?username=${encodeURIComponent(username)}`);
             const data = await res.json();
 
@@ -118,26 +124,22 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
-            // 1. 綁定基礎資料 (innerText 內建安全過濾)
             document.getElementById('profile-username').innerText = data.user.username;
             document.getElementById('avatar-char').innerText = data.user.username.substr(0, 1).toUpperCase();
             
             const joinedDate = new Date(data.user.joined_at);
             document.getElementById('profile-joined').innerText = joinedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-            // 檢查 Session 是否為本人，顯示專屬辨識標誌
             const currentSessionUser = "<?= $_SESSION['username'] ?? '' ?>";
             if (currentSessionUser && currentSessionUser.toLowerCase() === data.user.username.toLowerCase()) {
                 document.getElementById('owner-badge').classList.remove('hidden');
             }
 
-            // 2. 刷新大數據看板
             document.getElementById('stat-souls').innerText = data.stats.total_souls;
             document.getElementById('stat-likes').innerText = data.stats.total_likes;
             document.getElementById('stat-forks').innerText = data.stats.total_forks;
             document.getElementById('souls-count-badge').innerText = data.stats.total_souls;
 
-            // 3. 渲染公開大腦卡片列表
             const soulsGrid = document.getElementById('souls-grid');
             const emptySouls = document.getElementById('empty-souls');
             
@@ -154,9 +156,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                         });
                     }
 
-                    // 🚨 套用 escapeHTML() 安全過濾字串
+                    // 🚨 完美構建 SEO Link
+                    const seoUrl = `/soul/${encodeURIComponent(data.user.username)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+
                     html += `
-                        <a href="/soul/${soul.id}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
+                        <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-4">
                                     <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
@@ -182,7 +186,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 soulsGrid.innerHTML = html;
             }
 
-            // 關閉 Loading 並淡入主體內容
             loadingView.classList.add('hidden');
             profileContent.classList.remove('hidden');
 

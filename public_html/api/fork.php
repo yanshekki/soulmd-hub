@@ -13,16 +13,23 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 $userId = null;
+$username = 'anonymous';
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 $apiKey = trim(str_replace('Bearer', '', $authHeader));
 
 if ($apiKey) {
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
+    $stmt = $pdo->prepare("SELECT id, username FROM users WHERE api_key = ?");
     $stmt->execute([$apiKey]);
-    if ($user = $stmt->fetch()) $userId = $user['id'];
+    if ($user = $stmt->fetch()) {
+        $userId = $user['id'];
+        $username = $user['username'];
+    }
 } else {
     if (session_status() === PHP_SESSION_NONE) session_start();
-    if (isset($_SESSION['user_id'])) $userId = $_SESSION['user_id'];
+    if (isset($_SESSION['user_id'])) {
+        $userId = $_SESSION['user_id'];
+        $username = $_SESSION['username'];
+    }
 }
 
 if (!$userId) {
@@ -31,7 +38,7 @@ if (!$userId) {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if (empty($input['soul_id'])) {
     http_response_code(400);
@@ -51,7 +58,6 @@ if (!$original) {
     exit;
 }
 
-// 🚨 完美修復 1：加入標籤統計增長函數，確保 Fork 出來的文章也能被首頁 Trending Tags 計算
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));
     foreach ($tags as $tag) {
@@ -61,13 +67,23 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
+// 🚨 SEO 友善化助手
+function makeSlug($str) {
+    if (empty($str)) return 'unassigned';
+    $str = mb_strtolower($str, 'UTF-8');
+    $str = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str);
+    return rawurlencode(trim($str, '-'));
+}
+
 try {
     $pdo->beginTransaction();
+
+    $newTitle = $original['title'] . ' (Forked)';
 
     $stmt = $pdo->prepare("INSERT INTO souls (user_id, title, description, content, file_type, role, domain, compatibility, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
     $stmt->execute([
         $userId,
-        $original['title'] . ' (Forked)',
+        $newTitle,
         $original['description'],
         $original['content'],
         $original['file_type'],
@@ -78,19 +94,20 @@ try {
 
     $newId = $pdo->lastInsertId();
     
-    // 更新原作品的 Fork 數量
     $pdo->prepare("UPDATE souls SET fork_count = fork_count + 1 WHERE id = ?")->execute([$soulId]);
 
-    // 🚨 完美修復 2：執行標籤數據庫同步
     incrementTags($pdo, 'tags_domain', $original['domain']);
     incrementTags($pdo, 'tags_compatibility', $original['compatibility']);
 
     $pdo->commit();
 
+    // 🚨 構建完美 SEO 網址回傳
+    $seoUrl = "https://" . $_SERVER['HTTP_HOST'] . "/soul/" . rawurlencode($username) . "/" . $newId . "/" . makeSlug($original['role']) . "/" . makeSlug($newTitle);
+
     echo json_encode([
         'success' => true,
         'new_soul_id' => $newId,
-        'url' => "https://" . $_SERVER['HTTP_HOST'] . "/soul/" . $newId,
+        'url' => $seoUrl,
         'message' => 'Soul forked successfully!'
     ], JSON_UNESCAPED_UNICODE);
 

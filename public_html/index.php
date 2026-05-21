@@ -78,10 +78,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // 🚨 完美安全修復：防禦 DOM-based XSS 攻擊
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+    
+    // 🚨 JS 端 SEO 友善助手
+    function makeSlug(str) {
+        if (!str) return 'unassigned';
+        let slug = str.toLowerCase();
+        slug = slug.replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-');
+        slug = slug.replace(/^-+|-+$/g, '');
+        return encodeURIComponent(slug);
     }
 
     async function loadTrending() {
@@ -89,16 +97,17 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
         try {
-            // Call the same optimized /api/souls endpoint
-            const res = await fetch('/api/souls?limit=3&sort=popular');
+            const res = await fetch('/api/souls?limit=30&sort=popular');
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
                 let html = '';
                 data.data.forEach(soul => {
-                    // 🚨 套用 escapeHTML() 安全過濾字串
+                    // 🚨 完美構建 SEO Link
+                    const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    
                     html += `
-                        <a href="/soul/${soul.id}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
+                        <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-4">
                                     <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
