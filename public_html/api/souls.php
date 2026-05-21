@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/souls          - List public souls
+ * GET  /api/souls          - List public souls (Optimized Search & Sorting)
  * POST /api/souls          - Create soul (Requires API Key)
  */
 
@@ -10,7 +10,6 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -26,45 +25,65 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     // ==========================================
-    // GET: List public souls
+    // GET: List public souls (Optimized Search)
     // ==========================================
     $limit = min((int)($_GET['limit'] ?? 20), 100);
     $offset = (int)($_GET['offset'] ?? 0);
     $q = trim($_GET['q'] ?? '');
     $role = $_GET['role'] ?? '';
     $fileType = $_GET['file_type'] ?? '';
+    $sort = $_GET['sort'] ?? 'newest';
 
     $sql = "SELECT id, title, description, role, domain, compatibility, file_type, like_count, fork_count, created_at 
             FROM souls WHERE is_public = 1";
     $params = [];
 
+    // Performance Optimization: Excluded 'description' from LIKE search to prevent heavy full table scans.
+    // Now searching only in Title, Role, Domain, and Compatibility.
     if ($q) {
-        $sql .= " AND (title LIKE ? OR description LIKE ?)";
+        $sql .= " AND (title LIKE ? OR role LIKE ? OR domain LIKE ? OR compatibility LIKE ?)";
+        $params[] = "%$q%";
+        $params[] = "%$q%";
         $params[] = "%$q%";
         $params[] = "%$q%";
     }
+    
     if ($role) {
         $sql .= " AND role = ?";
         $params[] = $role;
     }
+    
     if ($fileType) {
         $sql .= " AND file_type = ?";
         $params[] = $fileType;
     }
 
-    $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+    if ($sort === 'popular') {
+        $sql .= " ORDER BY like_count DESC, created_at DESC";
+    } elseif ($sort === 'forks') {
+        $sql .= " ORDER BY fork_count DESC, created_at DESC";
+    } else {
+        $sql .= " ORDER BY created_at DESC";
+    }
+
+    $sql .= " LIMIT ? OFFSET ?";
     $params[] = $limit;
     $params[] = $offset;
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $souls = $stmt->fetchAll();
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $souls = $stmt->fetchAll();
 
-    echo json_encode([
-        'success' => true,
-        'count' => count($souls),
-        'data' => $souls
-    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        echo json_encode([
+            'success' => true,
+            'count' => count($souls),
+            'data' => $souls
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Database query failed']);
+    }
 
 } elseif ($method === 'POST') {
     // ==========================================
@@ -72,7 +91,6 @@ if ($method === 'GET') {
     // ==========================================
     $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
-    // Extract API Key from Bearer token
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
 
@@ -82,7 +100,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 嚴格校驗 API Key 並獲取真實的 User ID
     $keyStmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
     $keyStmt->execute([$apiKey]);
     $user = $keyStmt->fetch();
@@ -93,9 +110,8 @@ if ($method === 'GET') {
         exit;
     }
 
-    $userId = $user['id']; // 動態綁定 API 擁有者的 ID！
+    $userId = $user['id'];
 
-    // 必填欄位檢查
     if (empty($input['title']) || empty($input['content'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Fields "title" and "content" are required']);
