@@ -25,7 +25,6 @@ $stmt = $pdo->prepare("
 $stmt->execute([$id]);
 $soul = $stmt->fetch();
 
-// 🚨 完美對接 404 頁面機制：不再使用死板的 die()，改為加載動態 404 畫面
 if (!$soul) {
     http_response_code(404);
     include __DIR__ . '/404.php';
@@ -251,14 +250,26 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    marked.setOptions({ breaks: true, gfm: true, highlight: function(code, lang) { return hljs.highlightAuto(code).value; } });
+    // 🚨 完美安全修復：加入安全的 Highlight 解析，避免 crash
+    marked.setOptions({ 
+        breaks: true, 
+        gfm: true, 
+        highlight: function(code, lang) { 
+            if (lang && hljs.getLanguage(lang)) {
+                try { return hljs.highlight(code, { language: lang }).value; } catch (e) {}
+            }
+            return hljs.highlightAuto(code).value; 
+        } 
+    });
 
     window.addEventListener('DOMContentLoaded', () => {
         const tabs = document.querySelectorAll('.file-tab');
         tabs.forEach((tab, idx) => {
             const i = idx + 1;
             const rawContent = document.getElementById(`raw-${i}`).value;
-            document.getElementById(`render-${i}`).innerHTML = marked.parse(rawContent);
+            // 🚨 完美安全修復：使用 DOMPurify 攔截所有 XSS 攻擊字串
+            const parsedHTML = marked.parse(rawContent);
+            document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
         });
     });
 

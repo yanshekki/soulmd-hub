@@ -5,32 +5,31 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
-
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 $soulId = (int)($_GET['id'] ?? 0);
-$userId = $_SESSION['user_id'];
+$userId = $_SESSION['user_id'] ?? 0;
 
 if (!$soulId) {
-    header('Location: /my-souls');
+    header('Location: /browse');
     exit;
 }
 
-// 權限檢查與取得基本資訊
-$stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND user_id = ?");
+// 🚨 完美權限修復：允許查看 Public 靈魂的歷史紀錄，不再強制擋駕
+$stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND (is_public = 1 OR user_id = ?)");
 $stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
 
 if (!$soul) {
-    die('Soul not found or access denied');
+    http_response_code(404);
+    include __DIR__ . '/404.php';
+    exit;
 }
 
-// 取得歷史版本列表以供渲染 (此處保留 PHP 渲染以維持頁面載入速度，但操作已全面 API 化)
+// 判斷是否為作者本人
+$isOwner = ($soul['user_id'] === $userId);
+
 $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
 $versionsStmt->execute([$soulId]);
 $versions = $versionsStmt->fetchAll();
@@ -49,15 +48,15 @@ function getFileStyle($filename) {
 }
 
 $pageTitle = 'Version History - ' . $soul['title'];
-$pageDesc = 'View and restore previous versions of your soul.';
+$pageDesc = 'View and explore previous versions of this AI soul.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <div class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10 border-b border-white/10 pb-6">
         <div>
-            <a href="/my-souls" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
-                <i class="fas fa-arrow-left"></i> Back to My Souls
+            <a href="javascript:history.back()" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
+                <i class="fas fa-arrow-left"></i> Back
             </a>
             <h1 class="text-4xl font-bold tracking-tighter">Version History</h1>
             <p class="text-zinc-400 mt-2 flex items-center gap-2">
@@ -77,7 +76,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-history text-3xl"></i>
             </div>
             <h2 class="text-2xl font-semibold mb-2">No versions yet</h2>
-            <p class="text-zinc-400 text-sm max-w-sm mx-auto">Every time you edit and save this soul, the previous version will be automatically backed up here.</p>
+            <p class="text-zinc-400 text-sm max-w-sm mx-auto">Every time this soul is edited and saved, the previous version will be automatically backed up here.</p>
         </div>
     <?php else: ?>
         <div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
@@ -93,8 +92,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <?php foreach ($versions as $index => $version): 
                 $versionNumber = count($versions) - $index;
-                $isFolder = strpos(trim($version['content']), '{') === 0;
-                $files = $isFolder ? (json_decode($version['content'], true) ?: []) : ['SOUL.md' => $version['content']];
+                $isVersionFolder = strpos(trim($version['content']), '{') === 0;
+                $files = $isVersionFolder ? (json_decode($version['content'], true) ?: []) : ['SOUL.md' => $version['content']];
                 if (empty($files)) $files = ['SOUL.md' => $version['content']];
             ?>
                 <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
@@ -111,7 +110,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <i class="far fa-clock"></i> <?= date('M j, Y • H:i', strtotime($version['edited_at'])) ?>
                                 </div>
                             </div>
-                            <?php if ($isFolder): ?>
+                            <?php if ($isVersionFolder): ?>
                                 <span class="text-[10px] px-2 py-0.5 rounded font-medium border bg-purple-500/10 text-purple-400 border-purple-500/20 shrink-0">Modular</span>
                             <?php endif; ?>
                         </div>
@@ -120,9 +119,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <button onclick="toggleContent(<?= $version['id'] ?>)" id="btn-toggle-<?= $version['id'] ?>" class="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl hover:bg-zinc-700 transition flex items-center justify-center gap-2 border border-white/5 shadow-sm">
                                 <i class="fas fa-eye" id="icon-<?= $version['id'] ?>"></i> <span>View Content</span>
                             </button>
+                            
+                            <?php if ($isOwner): ?>
                             <button onclick="restoreVersion(<?= $version['id'] ?>, <?= $soulId ?>)" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
                                 <i class="fas fa-undo"></i> Restore
                             </button>
+                            <?php endif; ?>
                         </div>
 
                         <div id="content-<?= $version['id'] ?>" class="hidden mt-4 pt-4 border-t border-white/5">
@@ -187,12 +189,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         breaks: true,
         gfm: true,
         highlight: function(code, lang) {
-            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            if (lang && hljs.getLanguage(lang)) {
+                try { return hljs.highlight(code, { language: lang }).value; } catch (e) {}
+            }
             return hljs.highlightAuto(code).value;
         }
     });
 
-    // 完全使用純 JSON API 呼叫還原版本
     async function restoreVersion(versionId, soulId) {
         if (!confirm('Are you sure you want to restore this version?\n\nThe currently active version will be automatically backed up as a new history record.')) return;
 
@@ -207,7 +210,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) {
                 window.location.href = '/my-souls'; 
             } else {
-                alert(data.error || 'Restore failed');
+                if (data.error && data.error.includes('Login')) { window.location.href = '/login'; } 
+                else { alert(data.error || 'Restore failed'); }
             }
         } catch(e) {
             alert('Network error while restoring.');
@@ -230,7 +234,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const idx = ta.dataset.idx;
                 const renderDiv = document.getElementById(`render-v${versionId}-${idx}`);
                 if (renderDiv.innerHTML.includes('Rendering Markdown...')) {
-                    renderDiv.innerHTML = marked.parse(ta.value);
+                    // 🚨 完美安全修復：使用 DOMPurify 攔截所有 XSS 攻擊字串
+                    const parsedHTML = marked.parse(ta.value);
+                    renderDiv.innerHTML = DOMPurify.sanitize(parsedHTML);
                 }
             });
         } else {

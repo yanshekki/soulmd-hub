@@ -95,6 +95,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // 🚨 完美安全修復：防禦 DOM-based XSS 攻擊
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
     async function fetchProfile() {
         const username = "<?= addslashes($username) ?>";
         const loadingView = document.getElementById('loading-view');
@@ -112,7 +118,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
-            // 1. 綁定基礎資料
+            // 1. 綁定基礎資料 (innerText 內建安全過濾)
             document.getElementById('profile-username').innerText = data.user.username;
             document.getElementById('avatar-char').innerText = data.user.username.substr(0, 1).toUpperCase();
             
@@ -131,7 +137,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById('stat-forks').innerText = data.stats.total_forks;
             document.getElementById('souls-count-badge').innerText = data.stats.total_souls;
 
-            // 3. 渲染公開大腦卡片列表 (保持全站 UI 視覺設計高度統一)
+            // 3. 渲染公開大腦卡片列表
             const soulsGrid = document.getElementById('souls-grid');
             const emptySouls = document.getElementById('empty-souls');
             
@@ -144,26 +150,27 @@ require_once __DIR__ . '/../private/includes/header.php';
                     if (soul.domain) {
                         const tags = soul.domain.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3);
                         tags.forEach(t => {
-                            tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded">#${t}</span>`;
+                            tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded">#${escapeHTML(t)}</span>`;
                         });
                     }
 
+                    // 🚨 套用 escapeHTML() 安全過濾字串
                     html += `
                         <a href="/soul/${soul.id}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-4">
-                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${soul.title}</div>
+                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
                                     <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
                                         ${soul.file_type === 'full_soul_folder' ? 'Modular' : '.md'}
                                     </div>
                                 </div>
-                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-4 leading-relaxed">${soul.description}</p>` : ''}
+                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                                 <div class="flex flex-wrap gap-1.5 mb-6">
                                     ${tagsHtml}
                                 </div>
                             </div>
                             <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
-                                <div class="truncate max-w-[120px]">${soul.role || 'Unassigned'}</div>
+                                <div class="truncate max-w-[120px]">${escapeHTML(soul.role || 'Unassigned')}</div>
                                 <div class="flex items-center gap-3 shrink-0">
                                     <span><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
                                     <span><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>

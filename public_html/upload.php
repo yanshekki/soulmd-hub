@@ -163,7 +163,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
             <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
@@ -216,7 +216,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         const hiddenInput = document.getElementById(inputId);
         const visibleInput = document.getElementById(inputId + '-input');
         const tagsContainer = document.getElementById(inputId + '-tags');
-        let tags = hiddenInput.value ? hiddenInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+        // 🚨 完美修復：初始化讀取時，過濾已存在的髒資料 (去掉前綴 #)
+        let tags = hiddenInput.value ? hiddenInput.value.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean) : [];
 
         const renderTags = () => {
             tagsContainer.innerHTML = '';
@@ -231,7 +232,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
 
         const addTag = (val) => {
-            const newTags = val.split(',').map(t => t.trim()).filter(Boolean);
+            // 🚨 完美修復：利用正則表達式自動去走用家手殘打入的 '#'，確保 DB 純淨
+            const newTags = val.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean);
             newTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
             visibleInput.value = '';
             renderTags();
@@ -247,7 +249,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     window.removeTag = function(inputId, index) {
         const hiddenInput = document.getElementById(inputId);
-        let tags = hiddenInput.value.split(',').map(t => t.trim()).filter(Boolean);
+        let tags = hiddenInput.value.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean);
         tags.splice(index, 1);
         hiddenInput.value = tags.join(', ');
         document.getElementById(inputId + '-input').focus();
@@ -417,14 +419,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>`;
 
         if (ext === 'md' || ext === 'txt' || ext === 'json') {
-            // 讀取單一文字檔
             const reader = new FileReader();
             reader.onload = function(evt) {
                 uploadedContentStr = evt.target.result;
             };
             reader.readAsText(file);
         } else if (ext === 'zip') {
-            // 利用 JSZip 喺前端直接解壓為 JSON 物件
             const reader = new FileReader();
             reader.onload = function(evt) {
                 JSZip.loadAsync(evt.target.result).then(async function(zip) {

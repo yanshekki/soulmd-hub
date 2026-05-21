@@ -78,6 +78,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // 🚨 完美安全修復：防禦 DOM-based XSS 攻擊
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
     async function loadTrending() {
         const container = document.getElementById('trending-souls');
         container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
@@ -90,19 +96,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success && data.data.length > 0) {
                 let html = '';
                 data.data.forEach(soul => {
+                    // 🚨 套用 escapeHTML() 安全過濾字串
                     html += `
                         <a href="/soul/${soul.id}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-4">
-                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${soul.title}</div>
+                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
                                     <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
                                         ${soul.file_type === 'full_soul_folder' ? 'Modular' : '.md'}
                                     </div>
                                 </div>
-                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-6 leading-relaxed">${soul.description}</p>` : ''}
+                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-6 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                             </div>
                             <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
-                                <div class="truncate max-w-[120px]">${soul.role || 'Unassigned'}</div>
+                                <div class="truncate max-w-[120px]">${escapeHTML(soul.role || 'Unassigned')}</div>
                                 <div class="flex items-center gap-3 shrink-0">
                                     <span><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
                                     <span><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>

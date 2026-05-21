@@ -14,10 +14,10 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $user_id = $_SESSION['user_id'];
 
-// 獲取分類與熱門標籤，供 Edit Modal 的下拉選單使用
+// 🚨 完美修復：刪除 AI 幻覺捏造出來的 PDO::COLUMN_OR_EXCEPTIONS，還原為標準的 FETCH_COLUMN
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
-$topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::COLUMN_OR_EXCEPTIONS ? PDO::FETCH_COLUMN : PDO::FETCH_COLUMN);
-$topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::COLUMN_OR_EXCEPTIONS ? PDO::FETCH_COLUMN : PDO::FETCH_COLUMN);
+$topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
+$topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
 // 初次載入時透過 PHP 渲染列表（保持後台載入速度與 SEO）
 $stmt = $pdo->prepare("
@@ -283,7 +283,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
         
         const addTag = (val) => {
-            const newTags = val.split(',').map(t => t.trim()).filter(Boolean);
+            const newTags = val.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean);
             newTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
             visibleInput.value = '';
             renderTags();
@@ -296,7 +296,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
         
         modalTagInputs[inputId] = {
-            setTags: (str) => { tags = str ? str.split(',').map(t => t.trim()).filter(Boolean) : []; renderTags(); },
+            setTags: (str) => { tags = str ? str.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean) : []; renderTags(); },
             getTags: () => tags
         };
     }

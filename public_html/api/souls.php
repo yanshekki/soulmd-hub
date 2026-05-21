@@ -65,24 +65,25 @@ if ($method === 'GET') {
 
     $sql = "SELECT id, title, description, role, domain, compatibility, file_type, like_count, fork_count, created_at 
             FROM souls WHERE is_public = 1";
-    $params = [];
+            
+    $binds = [];
 
     if ($q) {
         $sql .= " AND (title LIKE ? OR role LIKE ? OR domain LIKE ? OR compatibility LIKE ?)";
-        $params[] = "%$q%";
-        $params[] = "%$q%";
-        $params[] = "%$q%";
-        $params[] = "%$q%";
+        $binds[] = ["%$q%", PDO::PARAM_STR];
+        $binds[] = ["%$q%", PDO::PARAM_STR];
+        $binds[] = ["%$q%", PDO::PARAM_STR];
+        $binds[] = ["%$q%", PDO::PARAM_STR];
     }
     
     if ($role) {
         $sql .= " AND role = ?";
-        $params[] = $role;
+        $binds[] = [$role, PDO::PARAM_STR];
     }
     
     if ($fileType) {
         $sql .= " AND file_type = ?";
-        $params[] = $fileType;
+        $binds[] = [$fileType, PDO::PARAM_STR];
     }
 
     if ($sort === 'popular') {
@@ -94,12 +95,20 @@ if ($method === 'GET') {
     }
 
     $sql .= " LIMIT ? OFFSET ?";
-    $params[] = $limit;
-    $params[] = $offset;
-
+    
+    // 🚨 完美安全修復：使用顯式綁定 (Explicit Binding) 來取代 execute([])
+    // 確保 LIMIT 和 OFFSET 被當作 Integer 傳遞，避免 MySQL 1064 Syntax Error
     try {
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        
+        $paramIndex = 1;
+        foreach ($binds as $bind) {
+            $stmt->bindValue($paramIndex++, $bind[0], $bind[1]);
+        }
+        $stmt->bindValue($paramIndex++, $limit, PDO::PARAM_INT);
+        $stmt->bindValue($paramIndex++, $offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
         $souls = $stmt->fetchAll();
 
         echo json_encode([
@@ -130,7 +139,6 @@ if ($method === 'GET') {
     $domain = trim($input['domain'] ?? '');
     $compatibility = trim($input['compatibility'] ?? '');
     
-    // 🚨 完美修復：允許透過 API 建立 Private 大腦 (預設為 1 公開)
     $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 1;
 
     if (empty($title) || empty($content)) {
@@ -156,7 +164,7 @@ if ($method === 'GET') {
             $role,
             $domain,
             $compatibility,
-            $is_public // 🚨 動態傳入
+            $is_public
         ]);
 
         $newId = $pdo->lastInsertId();
