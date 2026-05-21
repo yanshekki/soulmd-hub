@@ -22,6 +22,9 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
+// ==========================================
+// 權限助手函數
+// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -45,6 +48,9 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
+// ==========================================
+// 路由處理
+// ==========================================
 if ($method === 'GET') {
     $limit = min((int)($_GET['limit'] ?? 20), 100);
     $offset = (int)($_GET['offset'] ?? 0);
@@ -117,7 +123,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 🚨 完美安全修復：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
     $title = trim($input['title'] ?? '');
@@ -126,13 +131,22 @@ if ($method === 'GET') {
     $role = $input['role'] ?? '';
     $domain = trim($input['domain'] ?? '');
     $compatibility = trim($input['compatibility'] ?? '');
-    
     $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 1;
 
     if (empty($title) || empty($content)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Fields "title" and "content" are required']);
         exit;
+    }
+
+    // 🚨 完美資料完整性修復：驗證 Role 是否合法，否則強制轉為 'Other'
+    if (!empty($role) && $role !== 'Other') {
+        $roleCheckStmt = $pdo->prepare("SELECT slug FROM categories WHERE slug = ?");
+        $roleCheckStmt->execute([$role]);
+        if (!$roleCheckStmt->fetch()) {
+            // 找不到對應的 Role，退回或預設為 Other
+            $role = 'Other'; 
+        }
     }
 
     $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';

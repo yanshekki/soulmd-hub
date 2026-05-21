@@ -163,6 +163,24 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                 <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-12"><i class="fas fa-brain mr-2"></i> Core Souls Hub</h3>
 
+                <div class="mb-10 border-l-2 border-purple-500 pl-6 space-y-2">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
+                        <code class="text-base font-bold text-white">/api/categories</code>
+                    </div>
+                    <p class="text-sm text-zinc-400">Fetch the complete white-list of roles/categories including their corresponding slug names and emoji icons.</p>
+                    <details class="text-xs group"><summary class="text-emerald-500 cursor-pointer select-none font-medium hover:underline">View Response Sample</summary>
+                        <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "count": 2,
+  "data": [
+    { "id": 1, "name": "Developer", "slug": "Developer", "icon": "💻" },
+    { "id": 2, "name": "Writer", "slug": "Writer", "icon": "✍️" }
+  ]
+}</pre>
+                    </details>
+                </div>
+
                 <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-2">
                     <div class="flex items-center gap-3">
                         <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
@@ -249,13 +267,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Publish a brand new AI agent. Automatically detects single .md prompt or full Modular configuration folders.</p>
+                    <p class="text-xs text-red-400 font-semibold bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl"><i class="fas fa-exclamation-triangle"></i> CRITICAL CONSTRAINT: The <code>role</code> field inside the request body MUST strictly use one of the <code>slug</code> values provided by the <code>/api/categories</code> API. Invalid roles will be forcefully fallbacked to 'Other'.</p>
+                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
   "title": "Expert Translator",
   "description": "Translates documents contextually",
   "content": "## Identity\nYou are an expert translator...",
-  "role": "Translator",
+  "role": "Developer", 
   "domain": "Education",
   "compatibility": "Claude 3.5 Sonnet"
 }</pre>
@@ -284,7 +304,7 @@ require_once __DIR__ . '/../private/includes/header.php';
   "title": "Expert Translator v2",
   "description": "Updated translation engine",
   "content": "## Identity\nYou are...",
-  "role": "Translator",
+  "role": "Developer",
   "domain": "Education",
   "compatibility": "Claude 3.5 Sonnet",
   "is_public": 1
@@ -554,7 +574,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 完美細節：去除無效的內部路由，優化 Postman URL Path Variable
+    // 🚨 終極修復：100% 完整無刪減嘅 Postman JSON，補齊 Categories 甚至所有 Response Samples！
     function downloadPostmanCollection() {
         const currentApiKey = document.getElementById('key-display').innerText;
         
@@ -579,7 +599,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"username": "developer101", "password": "securepassword123", "email": "dev@example.com"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/register", "host": ["{{baseUrl}}"], "path": ["api", "register"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Registration Success",
+                                "status": "Created",
+                                "code": 201,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Account created successfully", "api_key": "7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c..."}, null, 2)
+                            }]
                         },
                         {
                             "name": "Login User",
@@ -591,7 +619,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"username": "developer101", "password": "securepassword123", "remember": true}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/login", "host": ["{{baseUrl}}"], "path": ["api", "login"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Login Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Login successful", "api_key": "7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c..."}, null, 2)
+                            }]
                         },
                         {
                             "name": "Change Password",
@@ -606,13 +642,37 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"current_password": "securepassword123", "new_password": "brandnewpassword999", "confirm_password": "brandnewpassword999"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/change-password", "host": ["{{baseUrl}}"], "path": ["api", "change-password"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Password Update Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Password successfully updated!"}, null, 2)
+                            }]
                         }
                     ]
                 },
                 {
                     "name": "Core Souls",
                     "item": [
+                        {
+                            "name": "List Available Categories/Roles",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+                            },
+                            "response": [{
+                                "name": "Categories Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "count": 2, "data": [{"id": 1, "name": "Developer", "slug": "Developer", "icon": "💻"}, {"id": 2, "name": "Writer", "slug": "Writer", "icon": "✍️"}]}, null, 2)
+                            }]
+                        },
                         {
                             "name": "List Public Souls",
                             "request": {
@@ -631,7 +691,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         {"key": "file_type", "value": "full_soul_folder", "disabled": true}
                                     ]
                                 }
-                            }
+                            },
+                            "response": [{
+                                "name": "List Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"id": 1, "title": "Expert Translator", "description": "Translates documents contextually", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "file_type": "single_md", "like_count": 12, "fork_count": 3, "created_at": "2026-05-21 12:00:00"}]}, null, 2)
+                            }]
                         },
                         {
                             "name": "Get Single Soul Details",
@@ -644,7 +712,25 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "soul", ":id"],
                                     "variable": [{ "key": "id", "value": "1" }]
                                 }
-                            }
+                            },
+                            "response": [
+                                {
+                                    "name": "Single MD Response Sample",
+                                    "status": "OK",
+                                    "code": 200,
+                                    "_postman_previewlanguage": "json",
+                                    "header": [{"key": "Content-Type", "value": "application/json"}],
+                                    "body": JSON.stringify({"success": true, "data": {"id": 1, "user_id": 5, "title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert translator...", "file_type": "single_md", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1, "like_count": 12, "fork_count": 3, "created_at": "2026-05-21 12:00:00"}}, null, 2)
+                                },
+                                {
+                                    "name": "Modular Folder Response Sample",
+                                    "status": "OK",
+                                    "code": 200,
+                                    "_postman_previewlanguage": "json",
+                                    "header": [{"key": "Content-Type", "value": "application/json"}],
+                                    "body": JSON.stringify({"success": true, "data": {"id": 2, "user_id": 5, "title": "Advanced Dev Architecture", "description": "Full-stack code assistant package layout", "content": "{\n  \"SOUL.md\": \"## Identity\\nYou are a senior developer...\",\n  \"STYLE.md\": \"## Voice\\nConcise, code-heavy...\",\n  \"RULES.md\": \"## Hard Rules\\nNever write legacy code...\"\n}", "file_type": "full_soul_folder", "role": "Developer", "domain": "Coding & Dev", "compatibility": "GPT-4o", "is_public": 1, "like_count": 88, "fork_count": 15, "created_at": "2026-05-21 14:22:10"}}, null, 2)
+                                }
+                            ]
                         },
                         {
                             "name": "Publish New Soul",
@@ -656,10 +742,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": JSON.stringify({"title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet"}, null, 2)
+                                    "raw": JSON.stringify({"title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert...", "role": "Developer", "domain": "Education", "compatibility": "Claude 3.5 Sonnet"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/souls", "host": ["{{baseUrl}}"], "path": ["api", "souls"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Creation Success",
+                                "status": "Created",
+                                "code": 201,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Soul created successfully", "id": 42, "url": "<?= $baseUrl ?>/soul/42"}, null, 2)
+                            }]
                         },
                         {
                             "name": "Update Existing Soul",
@@ -671,7 +765,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": JSON.stringify({"title": "Expert Translator v2", "description": "Updated translation engine", "content": "## Identity\nYou are...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1}, null, 2)
+                                    "raw": JSON.stringify({"title": "Expert Translator v2", "description": "Updated translation engine", "content": "## Identity\nYou are...", "role": "Developer", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1}, null, 2)
                                 },
                                 "url": { 
                                     "raw": "{{baseUrl}}/api/soul/:id", 
@@ -679,7 +773,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "soul", ":id"],
                                     "variable": [{ "key": "id", "value": "1" }]
                                 }
-                            }
+                            },
+                            "response": [{
+                                "name": "Update Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Soul updated successfully"}, null, 2)
+                            }]
                         },
                         {
                             "name": "Delete Soul",
@@ -692,7 +794,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "soul", ":id"],
                                     "variable": [{ "key": "id", "value": "1" }]
                                 }
-                            }
+                            },
+                            "response": [{
+                                "name": "Deletion Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Soul deleted successfully"}, null, 2)
+                            }]
                         }
                     ]
                 },
@@ -710,7 +820,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "profile"],
                                     "query": [{"key": "username", "value": "developer101"}]
                                 }
-                            }
+                            },
+                            "response": [{
+                                "name": "Profile Data Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "user": {"username": "developer101", "joined_at": "2026-05-20 10:00:00"}, "stats": {"total_souls": 5, "total_likes": 24, "total_forks": 8}, "souls": [{"id": 1, "title": "Expert Translator", "description": "Translates documents...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "file_type": "single_md", "like_count": 12, "fork_count": 3, "created_at": "2026-05-21 12:00:00"}]}, null, 2)
+                            }]
                         },
                         {
                             "name": "Get Soul History Versions",
@@ -723,7 +841,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "versions"],
                                     "query": [{"key": "soul_id", "value": "1"}]
                                 }
-                            }
+                            },
+                            "response": [{
+                                "name": "Timeline Versions Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"id": 12, "soul_id": 1, "title": "Expert Translator v1", "content": "## Identity\nYou are...", "edited_at": "2026-05-21 15:30:00"}]}, null, 2)
+                            }]
                         },
                         {
                             "name": "Restore Historical Version",
@@ -738,7 +864,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1, "version_id": 5}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/versions", "host": ["{{baseUrl}}"], "path": ["api", "versions"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Rollback Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Version restored successfully"}, null, 2)
+                            }]
                         },
                         {
                             "name": "Fork Public Soul",
@@ -753,7 +887,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/fork", "host": ["{{baseUrl}}"], "path": ["api", "fork"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Fork Clone Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "new_soul_id": 43, "url": "<?= $baseUrl ?>/soul/43", "message": "Soul forked successfully!"}, null, 2)
+                            }]
                         },
                         {
                             "name": "Toggle Like Status",
@@ -768,7 +910,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/like", "host": ["{{baseUrl}}"], "path": ["api", "like"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Like Toggled Successfully",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "liked": true, "message": "Soul liked successfully"}, null, 2)
+                            }]
                         },
                         {
                             "name": "Rate Soul (1-5 Stars)",
@@ -783,7 +933,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1, "rating": 5}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/rate", "host": ["{{baseUrl}}"], "path": ["api", "rate"] }
-                            }
+                            },
+                            "response": [{
+                                "name": "Rating Saved Successfully",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Rating submitted successfully", "avg_rating": 4.5, "total_ratings": 18}, null, 2)
+                            }]
                         }
                     ]
                 }
