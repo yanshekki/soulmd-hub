@@ -1,14 +1,20 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/souls.php          - List public souls
- * POST /api/souls.php          - Create soul (with API Key)
+ * GET  /api/souls          - List public souls
+ * POST /api/souls          - Create soul (Requires API Key)
  */
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
@@ -19,7 +25,9 @@ $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    // List public souls
+    // ==========================================
+    // GET: List public souls
+    // ==========================================
     $limit = min((int)($_GET['limit'] ?? 20), 100);
     $offset = (int)($_GET['offset'] ?? 0);
     $q = trim($_GET['q'] ?? '');
@@ -59,56 +67,73 @@ if ($method === 'GET') {
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } elseif ($method === 'POST') {
-    // Create soul
+    // ==========================================
+    // POST: Create a new soul (API Key Required)
+    // ==========================================
     $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
-    // Optional API Key check
+    // Extract API Key from Bearer token
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = str_replace('Bearer ', '', $authHeader);
+    $apiKey = trim(str_replace('Bearer', '', $authHeader));
 
-    if ($apiKey) {
-        $keyStmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
-        $keyStmt->execute([$apiKey]);
-        if (!$keyStmt->fetch()) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Invalid API Key']);
-            exit;
-        }
-    }
-
-    if (empty($input['title']) || empty($input['content'])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'title and content are required']);
+    if (empty($apiKey)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'API Key is required in Authorization header']);
         exit;
     }
 
-    $userId = 1; // Default for API (or use from key)
+    // 嚴格校驗 API Key 並獲取真實的 User ID
+    $keyStmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
+    $keyStmt->execute([$apiKey]);
+    $user = $keyStmt->fetch();
 
-    $fileType = strpos($input['content'], '{') === 0 ? 'full_soul_folder' : 'single_md';
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Invalid API Key']);
+        exit;
+    }
 
-    $stmt = $pdo->prepare("INSERT INTO souls 
-        (user_id, title, description, content, file_type, role, domain, compatibility, is_public) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
-    $stmt->execute([
-        $userId,
-        $input['title'],
-        $input['description'] ?? '',
-        $input['content'],
-        $fileType,
-        $input['role'] ?? '',
-        $input['domain'] ?? '',
-        $input['compatibility'] ?? ''
-    ]);
+    $userId = $user['id']; // 動態綁定 API 擁有者的 ID！
 
-    $newId = $pdo->lastInsertId();
+    // 必填欄位檢查
+    if (empty($input['title']) || empty($input['content'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Fields "title" and "content" are required']);
+        exit;
+    }
 
-    echo json_encode([
-        'success' => true,
-        'message' => 'Soul created successfully',
-        'id' => $newId
-    ], JSON_UNESCAPED_UNICODE);
+    $fileType = strpos(trim($input['content']), '{') === 0 ? 'full_soul_folder' : 'single_md';
+
+    try {
+        $stmt = $pdo->prepare("INSERT INTO souls 
+            (user_id, title, description, content, file_type, role, domain, compatibility, is_public) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+        $stmt->execute([
+            $userId,
+            $input['title'],
+            $input['description'] ?? '',
+            $input['content'],
+            $fileType,
+            $input['role'] ?? '',
+            $input['domain'] ?? '',
+            $input['compatibility'] ?? ''
+        ]);
+
+        $newId = $pdo->lastInsertId();
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Soul created successfully via API',
+            'id' => $newId,
+            'url' => "https://" . $_SERVER['HTTP_HOST'] . "/soul/" . $newId
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to save soul via API']);
+    }
 
 } else {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
 }

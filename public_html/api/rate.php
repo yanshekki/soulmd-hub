@@ -1,23 +1,33 @@
 <?php
-/**
- * API: Rate a soul (1-5 stars)
- * POST /api/rate.php
- * Body: { "soul_id": 123, "rating": 5 }
- */
-
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-session_start();
+$db = Database::getInstance();
+$pdo = $db->getConnection();
 
-if (!isset($_SESSION['user_id'])) {
+$userId = null;
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$apiKey = trim(str_replace('Bearer', '', $authHeader));
+
+if ($apiKey) {
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
+    $stmt->execute([$apiKey]);
+    if ($user = $stmt->fetch()) $userId = $user['id'];
+} else {
+    session_start();
+    if (isset($_SESSION['user_id'])) $userId = $_SESSION['user_id'];
+}
+
+if (!$userId) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Login required']);
+    echo json_encode(['success' => false, 'error' => 'Login or valid API Key required']);
     exit;
 }
 
@@ -31,7 +41,6 @@ if (empty($input['soul_id']) || empty($input['rating'])) {
 
 $soulId = (int)$input['soul_id'];
 $rating = (int)$input['rating'];
-$userId = $_SESSION['user_id'];
 
 if ($rating < 1 || $rating > 5) {
     http_response_code(400);
@@ -39,15 +48,6 @@ if ($rating < 1 || $rating > 5) {
     exit;
 }
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
-// Insert or update rating
-$stmt = $pdo->prepare("
-    INSERT INTO soul_ratings (soul_id, user_id, rating) 
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE rating = VALUES(rating)
-");
+$stmt = $pdo->prepare("INSERT INTO soul_ratings (soul_id, user_id, rating) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE rating = VALUES(rating)");
 $stmt->execute([$soulId, $userId, $rating]);
-
 echo json_encode(['success' => true]);
