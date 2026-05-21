@@ -45,13 +45,35 @@ $ratingData = $avgStmt->fetch();
 $avgRating = $ratingData['avg_rating'] ?? 0;
 $totalRatings = $ratingData['total_ratings'] ?? 0;
 
+// 取得版本數量
+$vStmt = $pdo->prepare("SELECT COUNT(*) FROM soul_versions WHERE soul_id = ?");
+$vStmt->execute([$id]);
+$versionCount = $vStmt->fetchColumn() + 1; // +1 for the current version
+
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
+
+// 智慧圖示與顏色系統
+function getFileStyle($filename) {
+    $name = strtoupper($filename);
+    if (str_contains($name, 'SOUL')) return ['icon' => 'fa-brain', 'color' => 'text-emerald-400', 'border' => 'border-emerald-400'];
+    if (str_contains($name, 'STYLE')) return ['icon' => 'fa-palette', 'color' => 'text-purple-400', 'border' => 'border-purple-400'];
+    if (str_contains($name, 'RULE')) return ['icon' => 'fa-shield-alt', 'color' => 'text-red-400', 'border' => 'border-red-400'];
+    if (str_contains($name, 'SKILL')) return ['icon' => 'fa-tools', 'color' => 'text-amber-400', 'border' => 'border-amber-400'];
+    if (str_contains($name, 'MEMORY')) return ['icon' => 'fa-memory', 'color' => 'text-blue-400', 'border' => 'border-blue-400'];
+    if (str_contains($name, 'CONTEXT')) return ['icon' => 'fa-globe', 'color' => 'text-cyan-400', 'border' => 'border-cyan-400'];
+    if (str_contains($name, 'PROMPT')) return ['icon' => 'fa-terminal', 'color' => 'text-green-400', 'border' => 'border-green-400'];
+    if (str_ends_with($name, '.JSON')) return ['icon' => 'fa-code', 'color' => 'text-yellow-400', 'border' => 'border-yellow-400'];
+    return ['icon' => 'fa-file-alt', 'color' => 'text-zinc-400', 'border' => 'border-zinc-400'];
+}
 
 $pageTitle = $soul['title'];
 $pageDesc = $soul['description'] ?: 'View this AI soul on SoulMD Hub.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -77,7 +99,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </a>
             <?php endif; ?>
             <span class="px-3 py-1 text-xs font-medium rounded-full <?= $isFolder ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' ?>">
-                <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>"></i> <?= $isFolder ? 'Full Folder' : 'Single .md' ?>
+                <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>"></i> <?= $isFolder ? 'Modular Folder' : 'Single .md' ?>
             </span>
         </div>
 
@@ -103,6 +125,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="flex items-center gap-2">
                     <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> forks
                 </div>
+                <a href="/soul-versions/<?= $id ?>" class="flex items-center gap-2 hover:text-emerald-400 transition">
+                    <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> versions
+                </a>
                 
                 <div class="flex items-center gap-2 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-white/5">
                     <div class="flex text-lg" id="rating-stars">
@@ -137,18 +162,28 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div class="bg-zinc-900/40 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
         <div class="flex items-center justify-between border-b border-white/10 bg-zinc-950/50 px-2 overflow-x-auto">
             <div class="flex">
-                <?php $i = 0; foreach ($files as $filename => $fileContent): $i++; ?>
-                    <button onclick="showFile(<?= $i ?>)" id="tab-btn-<?= $i ?>" class="tab-btn px-6 py-4 text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-zinc-400 hover:text-white' ?>">
-                        <i class="fas <?= str_ends_with($filename, '.md') ? 'fa-file-markdown' : 'fa-file-code' ?> mr-2"></i><?= htmlspecialchars($filename) ?>
+                <?php 
+                $i = 0; 
+                foreach ($files as $filename => $fileContent): 
+                    $i++; 
+                    $fStyle = getFileStyle($filename);
+                ?>
+                    <button onclick="showFile(<?= $i ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-<?= $i ?>" class="tab-btn px-6 py-4 text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white' ?>" data-border="<?= $fStyle['border'] ?>" data-color="<?= $fStyle['color'] ?>">
+                        <i class="fas <?= $fStyle['icon'] ?> mr-2"></i><?= htmlspecialchars($filename) ?>
                     </button>
                 <?php endforeach; ?>
             </div>
             
-            <?php if ($isFolder): ?>
-                <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition my-2 mr-4 whitespace-nowrap shrink-0">
-                    <i class="fas fa-copy"></i> Copy JSON
-                </button>
-            <?php endif; ?>
+            <div class="flex items-center gap-2 my-2 mr-4 shrink-0">
+                <?php if ($isFolder): ?>
+                    <button onclick="downloadZip()" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2">
+                        <i class="fas fa-file-archive text-amber-400"></i> Download .zip
+                    </button>
+                    <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2">
+                        <i class="fas fa-copy"></i> Copy JSON
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <div class="p-0">
@@ -172,14 +207,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    marked.setOptions({
-        breaks: true,
-        gfm: true,
-        highlight: function(code, lang) {
-            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-            return hljs.highlight(code, { language }).value;
-        }
-    });
+    marked.setOptions({ breaks: true, gfm: true, highlight: function(code, lang) { return hljs.highlightAuto(code).value; } });
 
     window.addEventListener('DOMContentLoaded', () => {
         const tabs = document.querySelectorAll('.file-tab');
@@ -190,21 +218,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     });
 
-    function showFile(n) {
-        document.querySelectorAll('.file-tab').forEach(el => {
-            el.classList.remove('block');
-            el.classList.add('hidden');
-        });
+    function showFile(n, activeBorder, activeColor) {
+        document.querySelectorAll('.file-tab').forEach(el => { el.classList.remove('block'); el.classList.add('hidden'); });
         document.getElementById('file-' + n).classList.remove('hidden');
         document.getElementById('file-' + n).classList.add('block');
         
         document.querySelectorAll('.tab-btn').forEach((btn) => {
-            btn.classList.remove('border-emerald-400', 'text-emerald-400');
+            // Remove all possible dynamic colors
+            btn.className = btn.className.replace(/border-[a-z]+-400/g, 'border-transparent');
+            btn.className = btn.className.replace(/text-[a-z]+-400/g, 'text-zinc-400');
             btn.classList.add('border-transparent', 'text-zinc-400');
         });
+        
         const activeBtn = document.getElementById('tab-btn-' + n);
         activeBtn.classList.remove('border-transparent', 'text-zinc-400');
-        activeBtn.classList.add('border-emerald-400', 'text-emerald-400');
+        activeBtn.classList.add(activeBorder, activeColor);
     }
 
     function copyRaw(id, btn) {
@@ -213,77 +241,60 @@ require_once __DIR__ . '/../private/includes/header.php';
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> Copied!';
             btn.classList.add('border-emerald-400/50', 'text-white');
-            setTimeout(() => {
-                btn.innerHTML = originalHtml;
-                btn.classList.remove('border-emerald-400/50', 'text-white');
-            }, 2000);
+            setTimeout(() => { btn.innerHTML = originalHtml; btn.classList.remove('border-emerald-400/50', 'text-white'); }, 2000);
         });
     }
 
     function copyFullFolder() {
         <?php if($isFolder): ?>
             const jsonStr = <?= json_encode($contentData) ?>;
-            navigator.clipboard.writeText(jsonStr).then(() => {
-                alert('✅ Copied as Full Folder JSON!\n\nYou can share this JSON or paste it into the Upload page.');
+            navigator.clipboard.writeText(jsonStr).then(() => { alert('✅ Copied as Full Folder JSON!'); });
+        <?php endif; ?>
+    }
+
+    function downloadZip() {
+        <?php if($isFolder): ?>
+            const zip = new JSZip();
+            const folderData = <?= json_encode($files) ?>;
+            for (const [filename, content] of Object.entries(folderData)) {
+                zip.file(filename, content);
+            }
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                saveAs(content, "<?= addslashes($soul['title']) ?>.zip");
             });
         <?php endif; ?>
     }
 
+    // Rate, Like, Fork functions remain unchanged (omitted for brevity in explanation, but fully functional in code)
     async function rateSoul(stars) {
         const btns = document.querySelectorAll('#rating-stars i');
         btns.forEach(btn => btn.style.pointerEvents = 'none');
-
         try {
-            const res = await fetch('/api/rate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars })
-            });
+            const res = await fetch('/api/rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars }) });
             const data = await res.json();
-
-            if (data.success) {
-                location.reload(); 
-            } else {
-                if(data.error === 'Login required') window.location.href = '/login';
-                else alert(data.error || 'Rating failed');
-            }
-        } catch (e) {
-            alert('Network error');
-        } finally {
-            btns.forEach(btn => btn.style.pointerEvents = 'auto');
-        }
+            if (data.success) location.reload(); 
+            else if(data.error === 'Login required') window.location.href = '/login';
+            else alert(data.error || 'Rating failed');
+        } catch (e) { alert('Network error'); } finally { btns.forEach(btn => btn.style.pointerEvents = 'auto'); }
     }
 
     async function likeSoul() {
         const btn = document.getElementById('like-btn');
         const icon = btn.querySelector('i');
         const countSpan = document.getElementById('like-count');
-        
         btn.style.pointerEvents = 'none';
         icon.className = 'fas fa-spinner fa-spin text-zinc-400';
-
         try {
-            const res = await fetch('/api/like', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ soul_id: <?= $id ?> })
-            });
+            const res = await fetch('/api/like', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
             const data = await res.json();
-
             if (data.success) {
-                let currentCount = parseInt(countSpan.innerText);
-                countSpan.innerText = currentCount + 1;
+                countSpan.innerText = parseInt(countSpan.innerText) + 1;
                 icon.className = 'fas fa-heart text-red-400 animate-bounce';
                 setTimeout(() => icon.classList.remove('animate-bounce'), 1000);
             } else {
-                if(data.error === 'Login required') window.location.href = '/login';
-                else alert(data.error || 'Like failed');
+                if(data.error === 'Login required') window.location.href = '/login'; else alert(data.error || 'Like failed');
             }
-        } catch (e) {
-            alert('Network error');
-        } finally {
-            btn.style.pointerEvents = 'auto';
-        }
+        } catch (e) { alert('Network error'); } finally { btn.style.pointerEvents = 'auto'; }
     }
 
     async function forkSoul() {
@@ -291,28 +302,15 @@ require_once __DIR__ . '/../private/includes/header.php';
         const originalHtml = btn.innerHTML;
         btn.style.pointerEvents = 'none';
         btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Forking...`;
-
         try {
-            const res = await fetch('/api/fork', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ soul_id: <?= $id ?> })
-            });
+            const res = await fetch('/api/fork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
             const data = await res.json();
-
-            if (data.success && data.new_soul_id) {
-                window.location.href = `/soul/${data.new_soul_id}`;
-            } else {
-                if(data.error === 'Login required') window.location.href = '/login';
-                else alert(data.error || 'Fork failed');
+            if (data.success && data.new_soul_id) window.location.href = `/soul/${data.new_soul_id}`;
+            else {
+                if(data.error === 'Login required') window.location.href = '/login'; else alert(data.error || 'Fork failed');
                 btn.innerHTML = originalHtml;
             }
-        } catch (e) {
-            alert('Network error');
-            btn.innerHTML = originalHtml;
-        } finally {
-            btn.style.pointerEvents = 'auto';
-        }
+        } catch (e) { alert('Network error'); btn.innerHTML = originalHtml; } finally { btn.style.pointerEvents = 'auto'; }
     }
 </script>
 
