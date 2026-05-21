@@ -1,10 +1,18 @@
 <?php
+/**
+ * SoulMD Hub Public API
+ * POST /api/login - Authenticate a user and create a session / return API key
+ */
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
@@ -15,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// 🚨 完美修復：嚴格限定 JSON，杜絕 CSRF Form 提交，並防止 null 警告
+// 🚨 完美安全修復：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $username = trim($input['username'] ?? '');
@@ -37,6 +45,7 @@ $user = $stmt->fetch();
 
 if ($user && password_verify($password, $user['password'])) {
     
+    // 防禦 Session Fixation 攻擊
     session_start();
     session_regenerate_id(true);
     
@@ -51,7 +60,12 @@ if ($user && password_verify($password, $user['password'])) {
         } catch(PDOException $e) {}
     }
 
-    echo json_encode(['success' => true, 'message' => 'Login successful', 'api_key' => $user['api_key']], JSON_UNESCAPED_UNICODE);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Login successful',
+        'api_key' => $user['api_key']
+    ], JSON_UNESCAPED_UNICODE);
+
 } else {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Incorrect username or password. Please try again.']);

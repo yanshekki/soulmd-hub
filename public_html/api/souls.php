@@ -22,9 +22,6 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ==========================================
-// 權限助手函數 (支援 Session 或 API Key)
-// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -39,9 +36,6 @@ function getAuthUserId($pdo) {
     return null;
 }
 
-// ==========================================
-// 標籤統計函數
-// ==========================================
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));
     foreach ($tags as $tag) {
@@ -51,11 +45,7 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
-// ==========================================
-// 路由處理
-// ==========================================
 if ($method === 'GET') {
-    // 列表與搜尋
     $limit = min((int)($_GET['limit'] ?? 20), 100);
     $offset = (int)($_GET['offset'] ?? 0);
     $q = trim($_GET['q'] ?? '');
@@ -96,8 +86,6 @@ if ($method === 'GET') {
 
     $sql .= " LIMIT ? OFFSET ?";
     
-    // 🚨 完美安全修復：使用顯式綁定 (Explicit Binding) 來取代 execute([])
-    // 確保 LIMIT 和 OFFSET 被當作 Integer 傳遞，避免 MySQL 1064 Syntax Error
     try {
         $stmt = $pdo->prepare($sql);
         
@@ -122,14 +110,14 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
-    // 建立 Soul$userId = getAuthUserId($pdo);
+    $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
         exit;
     }
 
-    // 🚨 完美修復：嚴格限定 JSON，杜絕 CSRF Form 創建垃圾大腦
+    // 🚨 完美安全修復：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
     $title = trim($input['title'] ?? '');
@@ -169,7 +157,6 @@ if ($method === 'GET') {
 
         $newId = $pdo->lastInsertId();
 
-        // 更新標籤統計
         incrementTags($pdo, 'tags_domain', $domain);
         incrementTags($pdo, 'tags_compatibility', $compatibility);
 
