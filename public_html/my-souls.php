@@ -14,12 +14,10 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $user_id = $_SESSION['user_id'];
 
-// 🚨 完美修復：刪除 AI 幻覺捏造出來的 PDO::COLUMN_OR_EXCEPTIONS，還原為標準的 FETCH_COLUMN
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
-// 初次載入時透過 PHP 渲染列表（保持後台載入速度與 SEO）
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
     FROM souls s 
@@ -224,33 +222,15 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div>
                 <label class="block text-sm font-medium mb-3 text-zinc-400">Suggested Modules</label>
                 <div class="grid grid-cols-2 gap-3">
-                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/
-                    </button>
+                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md</button>
+                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md</button>
+                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md</button>
+                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md</button>
+                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md</button>
+                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/</button>
                 </div>
             </div>
-            
-            <div class="relative flex items-center py-2">
-                <div class="flex-grow border-t border-white/10"></div>
-                <span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span>
-                <div class="flex-grow border-t border-white/10"></div>
-            </div>
-
+            <div class="relative flex items-center py-2"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span><div class="flex-grow border-t border-white/10"></div></div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
                 <div class="flex gap-2">
@@ -263,9 +243,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // --- 標籤核心驅動系統 (Tags System) ---
-    const modalTagInputs = {};
-    function setupModalTagInput(inputId) {
+    // 🚨 完美安全修復：加入 escapeHTML 防止自訂檔名 XSS 攻擊
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
+    function setupTagInput(inputId) {
         const hiddenInput = document.getElementById('edit-' + inputId);
         const visibleInput = document.getElementById(inputId + '-input');
         const tagsContainer = document.getElementById(inputId + '-tags');
@@ -276,7 +260,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             tags.forEach((tag, idx) => {
                 const tagEl = document.createElement('span');
                 tagEl.className = 'inline-flex items-center gap-1 bg-emerald-900 text-emerald-400 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-500/10';
-                tagEl.innerHTML = `${tag} <button type="button" class="hover:text-white" onclick="removeModalTag('${inputId}', ${idx})"><i class="fas fa-times text-[10px]"></i></button>`;
+                tagEl.innerHTML = `${escapeHTML(tag)} <button type="button" class="hover:text-white" onclick="removeModalTag('${inputId}', ${idx})"><i class="fas fa-times text-[10px]"></i></button>`;
                 tagsContainer.appendChild(tagEl);
             });
             hiddenInput.value = tags.join(', ');
@@ -312,7 +296,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     setupModalTagInput('domain');
     setupModalTagInput('compatibility');
 
-    // --- 虛擬多文件整合編輯器 (Visual Builder for Edit Modal) ---
     class MultiFileEditor {
         constructor() {
             this.files = {};
@@ -329,11 +312,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadData(rawContent) {
             this.files = {};
             try {
-                if (rawContent.trim().startsWith('{')) {
-                    this.files = JSON.parse(rawContent);
-                } else {
-                    this.files['SOUL.md'] = rawContent;
-                }
+                if (rawContent.trim().startsWith('{')) { this.files = JSON.parse(rawContent); } 
+                else { this.files['SOUL.md'] = rawContent; }
             } catch(e) { this.files['SOUL.md'] = rawContent; }
             if (Object.keys(this.files).length === 0) this.files['SOUL.md'] = '';
             this.renderFileList();
@@ -358,14 +338,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
+                // 🚨 完美安全修復：確保檔名輸出 HTML 時經過轉譯，防範 DOM XSS
                 let displayHtml = '';
+                const safeFilename = escapeHTML(filename);
                 if (filename.includes('/')) {
                     const parts = filename.split('/');
-                    const name = parts.pop();
-                    const path = parts.join('/');
+                    const name = escapeHTML(parts.pop());
+                    const path = escapeHTML(parts.join('/'));
                     displayHtml = `<div class="flex flex-col overflow-hidden"><span class="text-[9px] text-zinc-500 truncate leading-none mb-0.5">${path}/</span><span class="truncate leading-tight">${name}</span></div>`;
                 } else {
-                    displayHtml = `<span class="truncate mt-0.5">${filename}</span>`;
+                    displayHtml = `<span class="truncate mt-0.5">${safeFilename}</span>`;
                 }
 
                 btn.innerHTML = `<i class="fas ${icon} w-3 text-center shrink-0 mt-1"></i> ${displayHtml}`;
@@ -394,7 +376,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
     const editModalFileEditor = new MultiFileEditor();
 
-    // --- 子視窗控制彈出邏輯 (Add File Popup) ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
         const content = document.getElementById('add-file-content');
@@ -424,9 +405,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     function addSpecificFile(name) { processNewFileName(name); }
     function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
-    // ==========================================
-    // 全站 100% 異步 AJAX API 調用控制核心
-    // ==========================================
     let currentEditId = null;
 
     async function editSoul(id) {

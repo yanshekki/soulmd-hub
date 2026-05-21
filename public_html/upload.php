@@ -172,33 +172,15 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div>
                 <label class="block text-sm font-medium mb-3 text-zinc-400">Suggested Modules</label>
                 <div class="grid grid-cols-2 gap-3">
-                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md
-                    </button>
-                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm">
-                        <i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/
-                    </button>
+                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md</button>
+                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md</button>
+                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md</button>
+                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md</button>
+                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md</button>
+                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/</button>
                 </div>
             </div>
-            
-            <div class="relative flex items-center py-2">
-                <div class="flex-grow border-t border-white/10"></div>
-                <span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span>
-                <div class="flex-grow border-t border-white/10"></div>
-            </div>
-
+            <div class="relative flex items-center py-2"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span><div class="flex-grow border-t border-white/10"></div></div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
                 <div class="flex gap-2">
@@ -211,12 +193,16 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // --- Tags Input System ---
+    // 🚨 完美安全修復：加入 escapeHTML 防止自訂檔名 XSS 攻擊
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
     function setupTagInput(inputId) {
         const hiddenInput = document.getElementById(inputId);
         const visibleInput = document.getElementById(inputId + '-input');
         const tagsContainer = document.getElementById(inputId + '-tags');
-        // 🚨 完美修復：初始化讀取時，過濾已存在的髒資料 (去掉前綴 #)
         let tags = hiddenInput.value ? hiddenInput.value.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean) : [];
 
         const renderTags = () => {
@@ -224,7 +210,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             tags.forEach((tag, index) => {
                 const tagEl = document.createElement('span');
                 tagEl.className = 'inline-flex items-center gap-1.5 bg-emerald-900/40 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium border border-emerald-500/20';
-                tagEl.innerHTML = `${tag} <button type="button" class="hover:text-white focus:outline-none" onclick="removeTag('${inputId}', ${index})"><i class="fas fa-times"></i></button>`;
+                tagEl.innerHTML = `${escapeHTML(tag)} <button type="button" class="hover:text-white focus:outline-none" onclick="removeTag('${inputId}', ${index})"><i class="fas fa-times"></i></button>`;
                 tagsContainer.appendChild(tagEl);
             });
             hiddenInput.value = tags.join(', ');
@@ -232,7 +218,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
 
         const addTag = (val) => {
-            // 🚨 完美修復：利用正則表達式自動去走用家手殘打入的 '#'，確保 DB 純淨
             const newTags = val.split(',').map(t => t.trim().replace(/^#+/g, '')).filter(Boolean);
             newTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
             visibleInput.value = '';
@@ -259,7 +244,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     setupTagInput('domain');
     setupTagInput('compatibility');
 
-    // --- Tab Switcher ---
     let activeMainTab = 0;
     function switchUploadTab(n) {
         activeMainTab = n;
@@ -273,7 +257,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
-    // --- Multi-File Visual Builder Logic ---
     class MultiFileEditor {
         constructor() {
             this.files = {};
@@ -285,16 +268,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             const rawVal = document.getElementById('content-raw').value;
             try {
-                if(rawVal.trim().startsWith('{')) {
-                    this.files = JSON.parse(rawVal);
-                } else if(rawVal.trim() !== '') {
-                    this.files['SOUL.md'] = rawVal;
-                }
+                if(rawVal.trim().startsWith('{')) { this.files = JSON.parse(rawVal); } 
+                else if(rawVal.trim() !== '') { this.files['SOUL.md'] = rawVal; }
             } catch(e) {}
 
-            if (Object.keys(this.files).length === 0) {
-                this.files['SOUL.md'] = '';
-            }
+            if (Object.keys(this.files).length === 0) { this.files['SOUL.md'] = ''; }
 
             this.editorEl.addEventListener('input', (e) => {
                 if (this.activeFile) this.files[this.activeFile] = e.target.value;
@@ -323,14 +301,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
+                // 🚨 完美安全修復：確保檔名輸出 HTML 時經過轉譯，防範 DOM XSS
                 let displayHtml = '';
+                const safeFilename = escapeHTML(filename);
                 if (filename.includes('/')) {
                     const parts = filename.split('/');
-                    const name = parts.pop();
-                    const path = parts.join('/');
+                    const name = escapeHTML(parts.pop());
+                    const path = escapeHTML(parts.join('/'));
                     displayHtml = `<div class="flex flex-col overflow-hidden"><span class="text-[9px] text-zinc-500 truncate leading-none mb-0.5">${path}/</span><span class="truncate leading-tight">${name}</span></div>`;
                 } else {
-                    displayHtml = `<span class="truncate mt-0.5">${filename}</span>`;
+                    displayHtml = `<span class="truncate mt-0.5">${safeFilename}</span>`;
                 }
 
                 btn.innerHTML = `<i class="fas ${icon} w-4 text-center shrink-0 mt-1"></i> ${displayHtml}`;
@@ -363,36 +343,25 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     const fileEditor = new MultiFileEditor();
 
-    // --- Add File Modal (Popup Control) ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            modal.firstElementChild.classList.remove('scale-95');
-            modal.firstElementChild.classList.add('scale-100');
-        }, 10);
+        setTimeout(() => { modal.classList.remove('opacity-0'); modal.firstElementChild.classList.remove('scale-95'); modal.firstElementChild.classList.add('scale-100'); }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
-        modal.classList.add('opacity-0');
-        modal.firstElementChild.classList.remove('scale-100');
-        modal.firstElementChild.classList.add('scale-95');
+        modal.classList.add('opacity-0'); modal.firstElementChild.classList.remove('scale-100'); modal.firstElementChild.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
     function processNewFileName(name) {
         if (!name) return;
-        name = name.trim().replace(/\\/g, '/');
-        name = name.replace(/^\/+|\/+$/g, ''); 
+        name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
+        if (fileEditor.files[name] !== undefined) return alert("File already exists!");
         
-        if (fileEditor.files[name] !== undefined) {
-            alert("File already exists!");
-            return;
-        }
         fileEditor.files[name] = '';
         fileEditor.switchFile(name);
         closeAddFileModal();
@@ -401,28 +370,23 @@ require_once __DIR__ . '/../private/includes/header.php';
     function addSpecificFile(name) { processNewFileName(name); }
     function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
-    // --- Browser File Reading & JSZip Extraction Logic ---
     let uploadedContentStr = '';
-
     document.getElementById('file-input').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const ext = file.name.split('.').pop().toLowerCase();
         
-        // UI 更新顯示已選取檔案
         document.getElementById('tab-zip').innerHTML = `
             <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-3xl border-2 border-emerald-400/30">
                 <i class="fas fa-check-circle text-3xl"></i>
-                <span class="font-medium">${file.name}</span>
+                <span class="font-medium">${escapeHTML(file.name)}</span>
                 <span class="text-xs text-zinc-500">Ready to upload</span>
             </div>`;
 
         if (ext === 'md' || ext === 'txt' || ext === 'json') {
             const reader = new FileReader();
-            reader.onload = function(evt) {
-                uploadedContentStr = evt.target.result;
-            };
+            reader.onload = function(evt) { uploadedContentStr = evt.target.result; };
             reader.readAsText(file);
         } else if (ext === 'zip') {
             const reader = new FileReader();
@@ -430,21 +394,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                 JSZip.loadAsync(evt.target.result).then(async function(zip) {
                     const extractedFiles = {};
                     const promises = [];
-
                     zip.forEach(function (relativePath, zipEntry) {
                         if (!zipEntry.dir && (relativePath.endsWith('.md') || relativePath.endsWith('.txt') || relativePath.endsWith('.json'))) {
-                            const promise = zipEntry.async("string").then(function (content) {
-                                extractedFiles[relativePath] = content;
-                            });
-                            promises.push(promise);
+                            promises.push(zipEntry.async("string").then(function (content) { extractedFiles[relativePath] = content; }));
                         }
                     });
-
                     await Promise.all(promises);
                     uploadedContentStr = JSON.stringify(extractedFiles, null, 2);
-                }).catch(function(err) {
-                    alert("Failed to parse zip file structure on client side.");
-                });
+                }).catch(function(err) { alert("Failed to parse zip file structure on client side."); });
             };
             reader.readAsArrayBuffer(file);
         } else {
@@ -453,7 +410,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    // --- AJAX Form Submission to API Endpoint ---
     const form = document.getElementById('upload-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -468,15 +424,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         errorBox.classList.add('hidden');
         successBox.classList.add('hidden');
 
-        // 根據目前切換的 Tab 決定提取哪種 Payload
         let finalContent = '';
-        if (activeMainTab === 0) {
-            finalContent = fileEditor.getPayload();
-        } else if (activeMainTab === 1) {
-            finalContent = document.getElementById('content-raw').value;
-        } else {
-            finalContent = uploadedContentStr;
-        }
+        if (activeMainTab === 0) finalContent = fileEditor.getPayload();
+        else if (activeMainTab === 1) finalContent = document.getElementById('content-raw').value;
+        else finalContent = uploadedContentStr;
 
         if (!finalContent || finalContent.trim() === '') {
             errorMsg.innerText = "Soul Content is empty or hasn't loaded yet.";
@@ -488,7 +439,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        // 建構純 JSON 格式 Payload
         const payload = {
             title: document.getElementById('title').value,
             description: document.getElementById('description').value,
@@ -499,7 +449,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
 
         try {
-            // 呼叫純 JSON API 端點
             const res = await fetch('/api/souls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -508,21 +457,16 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                successBox.innerHTML = `✅ Soul uploaded successfully! <a href="${data.url}" class="underline text-emerald-400 font-bold">View it now</a>`;
-                successBox.classList.remove('hidden');
-                form.reset();
-                // 還原虛擬檔案編輯器
-                setTimeout(() => { window.location.reload(); }, 1500);
+                // 🚨 完美流暢 UX：上傳成功後直接跳轉去專屬頁面
+                window.location.href = data.url;
             } else {
                 errorMsg.innerText = data.error || "Failed to save soul.";
                 errorBox.classList.remove('hidden');
-                text.classList.remove('hidden');
-                loading.classList.add('hidden');
-                btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch(err) {
             errorMsg.innerText = "Network Error. Please try again.";
             errorBox.classList.remove('hidden');
+        } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
