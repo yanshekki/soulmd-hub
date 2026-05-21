@@ -93,3 +93,14 @@ INSERT IGNORE INTO tags_compatibility (name, usage_count) VALUES
 ('Claude 3.5 Sonnet', 0), ('GPT-4o', 0), ('GPT-4', 0), 
 ('Gemini 1.5 Pro', 0), ('DeepSeek-V3', 0), ('Llama 3', 0), 
 ('Qwen 2.5', 0), ('General LLM', 0);
+
+-- Soul Likes Table (per-user like tracking to prevent duplicate spamming)
+CREATE TABLE IF NOT EXISTS soul_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    soul_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_like (soul_id, user_id),
+    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

@@ -202,10 +202,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="mb-10 border-l-2 border-zinc-800 pl-6">
                     <div class="flex items-center gap-3 mb-2">
                         <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
-                        <code class="text-base font-bold text-white">/api/like</code>  /  <code class="text-base font-bold text-white">/api/rate</code>
+                        <code class="text-base font-bold text-white">/api/like</code>
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
-                    <p class="text-sm text-zinc-400 mb-2">Like or rate (1-5 stars) a specific soul.</p>
+                    <p class="text-sm text-zinc-400 mb-2">Like a public soul. Enforces per-user validation (Cannot be liked multiple times).</p>
+                    <p class="text-xs text-zinc-500 font-mono">Body: {"soul_id": 1}</p>
+                </div>
+
+                <div class="mb-10 border-l-2 border-zinc-800 pl-6">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                        <code class="text-base font-bold text-white">/api/rate</code>
+                        <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
+                    </div>
+                    <p class="text-sm text-zinc-400 mb-2">Rate a soul between 1 to 5 stars. Submitting again overwrites your previous rating.</p>
                     <p class="text-xs text-zinc-500 font-mono">Body: {"soul_id": 1, "rating": 5}</p>
                 </div>
 

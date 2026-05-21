@@ -30,6 +30,14 @@ if (!$soul) {
     die('Soul not found or is private.');
 }
 
+// 🚨 配合新機制：檢查當前登入用戶是否已經點讚過此項目
+$hasLiked = false;
+if (isset($_SESSION['user_id'])) {
+    $likeCheck = $pdo->prepare("SELECT 1 FROM soul_likes WHERE soul_id = ? AND user_id = ?");
+    $likeCheck->execute([$id, $_SESSION['user_id']]);
+    $hasLiked = (bool)$likeCheck->fetch();
+}
+
 $isFolder = $soul['file_type'] === 'full_soul_folder';
 $contentData = $soul['content'];
 
@@ -52,12 +60,8 @@ $versionCount = $vStmt->fetchColumn() + 1;
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
 
-// ==========================================
 // 完美解決 URL 403 錯誤的 URL Slug 化邏輯
-// ==========================================
 $safeTitle = preg_replace('/[\/\\\:\*\?\"\<\>\|]/', '_', $soul['title']);
-
-// 將空格替換成橫線 (-)，並移除括號，讓網址變得乾淨且絕對安全
 $urlSlug = preg_replace('/[\s_]+/', '-', $safeTitle);
 $urlSlug = preg_replace('/[()\[\]\{\}]/', '', $urlSlug);
 
@@ -89,7 +93,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </a>
         <div class="flex items-center gap-3">
             <button onclick="likeSoul()" id="like-btn" class="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl hover:border-red-500/50 hover:text-red-400 transition shadow-sm">
-                <i class="fas fa-heart <?= $soul['like_count'] > 0 ? 'text-red-400' : 'text-zinc-500' ?>"></i>
+                <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>"></i>
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
             <button onclick="forkSoul()" id="fork-btn" class="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-xl font-bold hover:bg-emerald-400 transition shadow-lg hover:shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
@@ -214,7 +218,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             $i = 0; 
             foreach ($files as $filename => $fileContent): 
                 $i++; 
-                // 將資料夾路徑中的每個部分獨立 encode，保留斜線 / 讓 .htaccess 能正確解析
                 $encodedFilename = implode('/', array_map('rawurlencode', explode('/', $filename)));
             ?>
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
@@ -311,7 +314,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                 icon.className = 'fas fa-heart text-red-400 animate-bounce';
                 setTimeout(() => icon.classList.remove('animate-bounce'), 1000);
             } else {
-                if(data.error === 'Login required') window.location.href = '/login'; else alert(data.error || 'Like failed');
+                if (data.error.includes('Login')) {
+                    window.location.href = '/login';
+                } else {
+                    // 如果已經 Like 過，會有優雅的提示
+                    alert(data.error || 'Like failed');
+                    icon.className = 'fas fa-heart text-red-400';
+                }
             }
         } catch (e) { alert('Network error'); } finally { btn.style.pointerEvents = 'auto'; }
     }
