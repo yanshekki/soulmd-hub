@@ -14,6 +14,27 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $user_id = $_SESSION['user_id'];
 
+// Tag 同步共用函數
+function syncTags($pdo, $table, $oldStr, $newStr) {
+    $oldTags = array_filter(array_map('trim', explode(',', $oldStr)));
+    $newTags = array_filter(array_map('trim', explode(',', $newStr)));
+
+    $added = array_diff($newTags, $oldTags);
+    $removed = array_diff($oldTags, $newTags);
+
+    foreach ($added as $tag) {
+        if(empty($tag)) continue;
+        $stmt = $pdo->prepare("INSERT INTO {$table} (name, usage_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1");
+        $stmt->execute([$tag]);
+    }
+
+    foreach ($removed as $tag) {
+        if(empty($tag)) continue;
+        $stmt = $pdo->prepare("UPDATE {$table} SET usage_count = GREATEST(usage_count - 1, 0) WHERE name = ?");
+        $stmt->execute([$tag]);
+    }
+}
+
 if (isset($_POST['ajax_get'])) {
     $id = (int)$_POST['id'];
     $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND user_id = ?");
@@ -26,10 +47,24 @@ if (isset($_POST['ajax_get'])) {
 
 if (isset($_POST['ajax_delete'])) {
     $id = (int)$_POST['id'];
+    
+    // 先取出標籤以便扣減 usage_count
+    $stmt = $pdo->prepare("SELECT domain, compatibility FROM souls WHERE id = ? AND user_id = ?");
+    $stmt->execute([$id, $user_id]);
+    $soul = $stmt->fetch();
+
     $stmt = $pdo->prepare("DELETE FROM souls WHERE id = ? AND user_id = ?");
     $stmt->execute([$id, $user_id]);
-    if ($stmt->rowCount() > 0) echo json_encode(['success' => true]);
-    else echo json_encode(['success' => false, 'error' => 'Unauthorized to delete.']);
+    
+    if ($stmt->rowCount() > 0) {
+        if ($soul) {
+            syncTags($pdo, 'tags_domain', $soul['domain'], '');
+            syncTags($pdo, 'tags_compatibility', $soul['compatibility'], '');
+        }
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Unauthorized to delete.']);
+    }
     exit;
 }
 
@@ -43,7 +78,7 @@ if (isset($_POST['ajax_edit'])) {
     $compatibility = trim($_POST['compatibility']);
     $is_public = isset($_POST['is_public']) ? (int)$_POST['is_public'] : 0;
 
-    $oldStmt = $pdo->prepare("SELECT title, content FROM souls WHERE id = ? AND user_id = ?");
+    $oldStmt = $pdo->prepare("SELECT title, content, domain, compatibility FROM souls WHERE id = ? AND user_id = ?");
     $oldStmt->execute([$id, $user_id]);
     $old = $oldStmt->fetch();
 
@@ -56,6 +91,10 @@ if (isset($_POST['ajax_edit'])) {
         $updStmt = $pdo->prepare("UPDATE souls SET title = ?, description = ?, content = ?, role = ?, domain = ?, compatibility = ?, is_public = ?, file_type = ? WHERE id = ? AND user_id = ?");
         $updStmt->execute([$title, $description, $content, $role, $domain, $compatibility, $is_public, $fileType, $id, $user_id]);
 
+        // 更新標籤統計
+        syncTags($pdo, 'tags_domain', $old['domain'], $domain);
+        syncTags($pdo, 'tags_compatibility', $old['compatibility'], $compatibility);
+
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Unauthorized.']);
@@ -64,6 +103,8 @@ if (isset($_POST['ajax_edit'])) {
 }
 
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
+$topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
+$topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
@@ -117,7 +158,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <i class="fas <?= $soul['is_public'] ? 'fa-globe' : 'fa-lock' ?> mr-1"></i><?= $soul['is_public'] ? 'Public' : 'Private' ?>
                                 </span>
                                 <span class="text-[10px] px-2 py-0.5 rounded font-medium border <?= $soul['file_type'] === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20' ?>">
-                                    <?= $soul['file_type'] === 'full_soul_folder' ? 'Folder' : '.md' ?>
+                                    <?= $soul['file_type'] === 'full_soul_folder' ? 'Modular' : '.md' ?>
                                 </span>
                             </div>
                         </div>
@@ -168,11 +209,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-medium mb-1.5 text-zinc-400">Title</label>
-                        <input id="edit-title" type="text" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm">
+                        <input id="edit-title" type="text" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner">
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5 text-zinc-400">Visibility</label>
-                        <select id="edit-public" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm">
+                        <select id="edit-public" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner">
                             <option value="1">🌐 Public (Hub)</option>
                             <option value="0">🔒 Private</option>
                         </select>
@@ -181,13 +222,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                 <div>
                     <label class="block text-xs font-medium mb-1.5 text-zinc-400">Short Description</label>
-                    <textarea id="edit-description" rows="2" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm"></textarea>
+                    <textarea id="edit-description" rows="2" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner"></textarea>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-medium mb-1.5 text-zinc-400">Role</label>
-                        <select id="edit-role" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-400 text-sm">
+                        <select id="edit-role" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner">
                             <option value="">Select role</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= htmlspecialchars($cat['slug']) ?>"><?= htmlspecialchars($cat['icon'] ?? '✨') ?> <?= htmlspecialchars($cat['name']) ?></option>
@@ -197,19 +238,29 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5 text-zinc-400">Domain Tags</label>
-                        <div class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 min-h-[42px] flex flex-wrap items-center gap-1.5 focus-within:border-emerald-400 transition cursor-text" onclick="document.getElementById('domain-input').focus()">
+                        <div class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 min-h-[42px] flex flex-wrap items-center gap-1.5 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
                             <div id="domain-tags" class="flex flex-wrap gap-1.5 empty:hidden"></div>
                             <input type="text" id="domain-input" list="domain-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[60px] text-xs p-0 m-0 text-white">
                             <input type="hidden" id="edit-domain">
                         </div>
+                        <datalist id="domain-options">
+                            <?php foreach ($topDomains as $tag): ?>
+                                <option value="<?= htmlspecialchars($tag) ?>">
+                            <?php endforeach; ?>
+                        </datalist>
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5 text-zinc-400">Compatibility</label>
-                        <div class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 min-h-[42px] flex flex-wrap items-center gap-1.5 focus-within:border-emerald-400 transition cursor-text" onclick="document.getElementById('compatibility-input').focus()">
+                        <div class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 min-h-[42px] flex flex-wrap items-center gap-1.5 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
                             <div id="compatibility-tags" class="flex flex-wrap gap-1.5 empty:hidden"></div>
                             <input type="text" id="compatibility-input" list="compatibility-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[60px] text-xs p-0 m-0 text-white">
                             <input type="hidden" id="edit-compatibility">
                         </div>
+                        <datalist id="compatibility-options">
+                            <?php foreach ($topCompatibilities as $tag): ?>
+                                <option value="<?= htmlspecialchars($tag) ?>">
+                            <?php endforeach; ?>
+                        </datalist>
                     </div>
                 </div>
 
@@ -247,7 +298,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
             <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
@@ -293,9 +344,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 </div>
-
-<datalist id="domain-options"><option value="Tech"><option value="Content Creation"><option value="Finance & Business"><option value="Coding & Dev"><option value="Gaming"><option value="Education"></datalist>
-<datalist id="compatibility-options"><option value="Claude 3.5 Sonnet"><option value="GPT-4o"><option value="GPT-4"><option value="Gemini 1.5 Pro"><option value="DeepSeek-V3"><option value="General LLM"></datalist>
 
 <script>
     // --- Tags System ---
@@ -387,7 +435,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
-                // Display Folder Path Structure Support
                 let displayHtml = '';
                 if (filename.includes('/')) {
                     const parts = filename.split('/');

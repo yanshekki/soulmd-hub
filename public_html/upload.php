@@ -15,6 +15,10 @@ $pdo = $db->getConnection();
 
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 
+// 動態獲取最多人使用的 Top 30 標籤
+$topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
+$topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
+
 $presetTitle = $_SESSION['preset_title'] ?? '';
 $presetContent = $_SESSION['preset_content'] ?? '';
 $presetRole = $_SESSION['preset_role'] ?? '';
@@ -29,24 +33,27 @@ if (!empty($presetRole)) {
         }
     }
     if (!$matched) {
-        if (stripos($presetRole, 'Engineer') !== false || stripos($presetRole, 'Coder') !== false || stripos($presetRole, 'Developer') !== false) {
-            $presetRole = 'Developer';
-        } elseif (stripos($presetRole, 'Writer') !== false || stripos($presetRole, 'Copywriter') !== false) {
-            $presetRole = 'Writer';
-        } elseif (stripos($presetRole, 'Assistant') !== false) {
-            $presetRole = 'Personal Assistant';
-        } else {
-            $presetRole = 'Other';
-        }
+        if (stripos($presetRole, 'Engineer') !== false || stripos($presetRole, 'Coder') !== false || stripos($presetRole, 'Developer') !== false) { $presetRole = 'Developer'; }
+        elseif (stripos($presetRole, 'Writer') !== false || stripos($presetRole, 'Copywriter') !== false) { $presetRole = 'Writer'; }
+        elseif (stripos($presetRole, 'Assistant') !== false) { $presetRole = 'Personal Assistant'; }
+        else { $presetRole = 'Other'; }
     }
 }
 
-unset($_SESSION['preset_title']);
-unset($_SESSION['preset_content']);
-unset($_SESSION['preset_role']);
+unset($_SESSION['preset_title'], $_SESSION['preset_content'], $_SESSION['preset_role']);
 
 $message = '';
 $error = '';
+
+// Tag 同步函數：用於新增 Tag 時增加使用次數
+function incrementTags($pdo, $table, $tagsString) {
+    $tags = array_filter(array_map('trim', explode(',', $tagsString)));
+    foreach ($tags as $tag) {
+        if (empty($tag)) continue;
+        $stmt = $pdo->prepare("INSERT INTO {$table} (name, usage_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1");
+        $stmt->execute([$tag]);
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
@@ -97,6 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO souls (user_id, title, description, content, file_type, role, domain, compatibility, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
             $stmt->execute([$_SESSION['user_id'], $title, $description, $content, $fileType, $role, $domain, $compatibility]);
             $newId = $pdo->lastInsertId();
+            
+            // 成功上傳後，更新標籤統計
+            incrementTags($pdo, 'tags_domain', $domain);
+            incrementTags($pdo, 'tags_compatibility', $compatibility);
+
             $message = "✅ Soul uploaded successfully! <a href='/soul/$newId' class='underline text-emerald-400'>View it now</a>";
         } catch (Exception $e) {
             $error = 'Failed to save soul';
@@ -161,7 +173,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <input type="text" id="domain-input" list="domain-options" placeholder="Tech, Content..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[100px] text-sm p-0 m-0 text-white">
                     <input type="hidden" id="domain" name="domain" value="<?= htmlspecialchars($_POST['domain'] ?? '') ?>">
                 </div>
-                <datalist id="domain-options"><option value="Tech"><option value="Content Creation"><option value="Finance & Business"><option value="Coding & Dev"><option value="Gaming"><option value="Education"><option value="Marketing"><option value="Productivity"><option value="Healthcare"></datalist>
+                <datalist id="domain-options">
+                    <?php foreach ($topDomains as $tag): ?>
+                        <option value="<?= htmlspecialchars($tag) ?>">
+                    <?php endforeach; ?>
+                </datalist>
             </div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Compatibility</label>
@@ -170,7 +186,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <input type="text" id="compatibility-input" list="compatibility-options" placeholder="Claude, GPT-4o..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[100px] text-sm p-0 m-0 text-white">
                     <input type="hidden" id="compatibility" name="compatibility" value="<?= htmlspecialchars($_POST['compatibility'] ?? '') ?>">
                 </div>
-                <datalist id="compatibility-options"><option value="Claude 3.5 Sonnet"><option value="GPT-4o"><option value="GPT-4"><option value="Gemini 1.5 Pro"><option value="DeepSeek-V3"><option value="Llama 3"><option value="Qwen 2.5"><option value="General LLM"></datalist>
+                <datalist id="compatibility-options">
+                    <?php foreach ($topCompatibilities as $tag): ?>
+                        <option value="<?= htmlspecialchars($tag) ?>">
+                    <?php endforeach; ?>
+                </datalist>
             </div>
         </div>
 
@@ -225,7 +245,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
             <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
@@ -273,7 +293,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // --- Tags System ---
     function setupTagInput(inputId) {
         const hiddenInput = document.getElementById(inputId);
         const visibleInput = document.getElementById(inputId + '-input');
@@ -320,7 +339,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     setupTagInput('domain');
     setupTagInput('compatibility');
 
-    // --- Tab Switcher ---
     let activeMainTab = 0;
     function switchUploadTab(n) {
         activeMainTab = n;
@@ -334,7 +352,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
-    // --- Multi-File Visual Builder Logic ---
     class MultiFileEditor {
         constructor() {
             this.files = {};
@@ -384,7 +401,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
-                // Display Folder Path Structure Support
                 let displayHtml = '';
                 if (filename.includes('/')) {
                     const parts = filename.split('/');
@@ -425,29 +441,29 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     const fileEditor = new MultiFileEditor();
 
-    // --- Add File Modal Logic ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
+        const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
         setTimeout(() => {
             modal.classList.remove('opacity-0');
-            modal.firstElementChild.classList.remove('scale-95');
-            modal.firstElementChild.classList.add('scale-100');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
         }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
+        const content = document.getElementById('add-file-content');
         modal.classList.add('opacity-0');
-        modal.firstElementChild.classList.remove('scale-100');
-        modal.firstElementChild.classList.add('scale-95');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
     function processNewFileName(name) {
         if (!name) return;
-        // 處理目錄分隔符，確保正確儲存為 json key
         name = name.trim().replace(/\\/g, '/');
         name = name.replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
@@ -464,7 +480,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     function addSpecificFile(name) { processNewFileName(name); }
     function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
-    // --- Form Submit Interceptor ---
     const form = document.getElementById('upload-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();

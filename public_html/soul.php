@@ -52,6 +52,13 @@ $versionCount = $vStmt->fetchColumn() + 1;
 $domains = array_filter(array_map('trim', explode(',', $soul['domain'])));
 $compatibilities = array_filter(array_map('trim', explode(',', $soul['compatibility'])));
 
+// 【修復】支援多語言：只過濾系統不允許的非法路徑字元
+$safeTitle = preg_replace('/[\/\\\:\*\?\"\<\>\|]/', '_', $soul['title']);
+
+// 針對網址各部分進行標準化編碼，確保中文不亂碼
+$encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
+$encodedTitle = rawurlencode($safeTitle);
+
 function getFileStyle($filename) {
     $name = strtoupper($filename);
     if (str_contains($name, 'SOUL')) return ['icon' => 'fa-brain', 'color' => 'text-emerald-400', 'border' => 'border-emerald-400'];
@@ -69,9 +76,6 @@ $pageTitle = $soul['title'];
 $pageDesc = $soul['description'] ?: 'View this AI soul on SoulMD Hub.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -166,7 +170,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     $i++; 
                     $fStyle = getFileStyle($filename);
                     
-                    // Folder structure display logic
                     $displayName = htmlspecialchars($filename);
                     $pathPrefix = '';
                     if (strpos($filename, '/') !== false) {
@@ -191,9 +194,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             <div class="flex items-center gap-2 my-2 ml-4 shrink-0">
                 <?php if ($isFolder): ?>
-                    <button onclick="downloadZip()" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
+                    <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $encodedTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-file-archive text-amber-400"></i> Download .zip
-                    </button>
+                    </a>
                     <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-copy"></i> Copy JSON
                     </button>
@@ -202,11 +205,22 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
 
         <div class="p-0">
-            <?php $i = 0; foreach ($files as $filename => $fileContent): $i++; ?>
+            <?php 
+            $i = 0; 
+            foreach ($files as $filename => $fileContent): 
+                $i++; 
+                // 將資料夾路徑中的每個部分獨立 encode，保留斜線 / 讓 .htaccess 能正確解析
+                $encodedFilename = implode('/', array_map('rawurlencode', explode('/', $filename)));
+            ?>
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
-                    <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none">
+                    <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
+                        
+                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $encodedTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                            <i class="fas fa-external-link-alt"></i> Raw
+                        </a>
+                        
                         <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="far fa-copy"></i> Copy Raw
+                            <i class="far fa-copy"></i> Copy
                         </button>
                     </div>
                     
@@ -263,20 +277,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php if($isFolder): ?>
             const jsonStr = <?= json_encode($contentData) ?>;
             navigator.clipboard.writeText(jsonStr).then(() => { alert('✅ Copied as Full Folder JSON!'); });
-        <?php endif; ?>
-    }
-
-    function downloadZip() {
-        <?php if($isFolder): ?>
-            const zip = new JSZip();
-            const folderData = <?= json_encode($files) ?>;
-            for (const [filename, content] of Object.entries(folderData)) {
-                // JSZip handles creating folders automatically if the filename contains "/"
-                zip.file(filename, content);
-            }
-            zip.generateAsync({type:"blob"}).then(function(content) {
-                saveAs(content, "<?= addslashes($soul['title']) ?>.zip");
-            });
         <?php endif; ?>
     }
 

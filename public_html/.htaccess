@@ -5,7 +5,6 @@
 
     # ==========================================
     # 1. 外部重定向 (External Redirects - 301)
-    # 僅針對使用者在瀏覽器 "真實發出" 的請求進行轉址，完全防止無限迴圈
     # ==========================================
 
     # 將 /soul.php?id=123 自動轉址到 /soul/123
@@ -20,15 +19,24 @@
     RewriteCond %{THE_REQUEST} \s/+api/soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^api/soul\.php$ /api/soul/%1? [R=301,L]
 
-    # 將其他所有直接訪問 .php 的請求，轉址到不帶 .php 的網址 (例如 /browse.php -> /browse)
+    # 將其他所有直接訪問 .php 的請求，轉址到不帶 .php 的網址
     RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
     RewriteRule ^(.*)\.php$ /$1 [R=301,L]
 
 
     # ==========================================
     # 2. 內部重寫 (Internal Rewrites)
-    # 將乾淨的靜態網址對應回實際的 PHP 檔案和參數
     # ==========================================
+
+    # --- 新增：Download & Raw Files 路由 ---
+    # 1. ZIP 下載: /download/soul/[username]/[id]/[title].zip
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)\.zip$ download.php?username=$1&id=$2&title=$3&format=zip [L,QSA]
+
+    # 2. 單一檔案下載: /download/soul/[username]/[id]/[title]/[filepath...]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/(.*)$ download.php?username=$1&id=$2&title=$3&file=$4 [L,QSA]
+    # ---------------------------------------
 
     # 處理 Soul 詳情頁 (/soul/123)
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -50,8 +58,7 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/souls/?$ api/souls.php [L,QSA]
 
-    # 通用規則：自動隱藏所有 .php 副檔名 
-    # (如果請求的不是真實目錄，且對應的 .php 檔案存在，則內部讀取該 .php 檔案)
+    # 通用規則：自動隱藏所有 .php 副檔名
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}.php -f
     RewriteRule ^(.*?)/?$ $1.php [L,QSA]
@@ -60,8 +67,6 @@
     # ==========================================
     # 3. 安全性設定
     # ==========================================
-    
-    # 禁止直接存取敏感配置檔
     RewriteRule ^(config\.php|\.env) - [F,L]
 </IfModule>
 
@@ -70,12 +75,14 @@
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-XSS-Protection "1; mode=block"
+    # 允許跨域請求讀取 Raw Files (方便其他開發者調用)
+    Header set Access-Control-Allow-Origin "*" env=HTTP_ORIGIN
 </IfModule>
 
 # 防止目錄列表泄露
 Options -Indexes
 
-# 緩存靜態資源 (優化載入速度)
+# 緩存靜態資源
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/jpg "access plus 1 month"

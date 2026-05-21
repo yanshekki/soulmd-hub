@@ -78,3 +78,24 @@ CREATE TABLE IF NOT EXISTS soul_tags (
     tag VARCHAR(100),
     PRIMARY KEY (soul_id, tag)
 );
+
+CREATE TABLE IF NOT EXISTS tags_domain (
+    name VARCHAR(100) PRIMARY KEY,
+    usage_count INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS tags_compatibility (
+    name VARCHAR(100) PRIMARY KEY,
+    usage_count INT DEFAULT 0
+);
+
+-- 預設插入初始的 Tags
+INSERT IGNORE INTO tags_domain (name, usage_count) VALUES 
+('Tech', 0), ('Content Creation', 0), ('Finance & Business', 0), 
+('Coding & Dev', 0), ('Gaming', 0), ('Education', 0), 
+('Marketing', 0), ('Productivity', 0), ('Healthcare', 0);
+
+INSERT IGNORE INTO tags_compatibility (name, usage_count) VALUES 
+('Claude 3.5 Sonnet', 0), ('GPT-4o', 0), ('GPT-4', 0), 
+('Gemini 1.5 Pro', 0), ('DeepSeek-V3', 0), ('Llama 3', 0), 
+('Qwen 2.5', 0), ('General LLM', 0);
