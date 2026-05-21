@@ -1,41 +1,13 @@
 <?php
 require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
+
+// Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
     header('Location: /my-souls');
     exit;
-}
-
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    $db = Database::getInstance();
-    $pdo = $db->getConnection();
-
-    if (strlen($username) < 3) {
-        $error = 'Username must be at least 3 characters';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters';
-    } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        try {
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-            $stmt->execute([$username, $email, $hash]);
-            $_SESSION['user_id'] = $pdo->lastInsertId();
-            $_SESSION['username'] = $username;
-            header('Location: /my-souls');
-            exit;
-        } catch (Exception $e) {
-            $error = 'Username already taken';
-        }
-    }
 }
 
 $pageTitle = 'Sign up';
@@ -51,11 +23,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-zinc-400">Start sharing AI souls today</p>
         </div>
 
-        <?php if ($error): ?>
-            <div class="bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-center">
-                <?= $error ?>
-            </div>
-        <?php endif; ?>
+        <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-center text-red-200 shadow-lg transition-all">
+            <i class="fas fa-exclamation-circle mr-1"></i> <span id="error-msg"></span>
+        </div>
 
         <form id="register-form" class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 space-y-6 backdrop-blur-sm shadow-2xl">
             <div>
@@ -166,23 +136,45 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('submit-btn');
         const text = document.getElementById('submit-text');
         const loading = document.getElementById('submit-loading');
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
 
+        // Reset UI States
+        errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        const formData = new FormData(form);
-        try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
-            const html = await res.text();
+        // Construct JSON Payload
+        const payload = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        };
 
-            if (html.includes('Location: /my-souls')) {
+        try {
+            // Hit the newly created registration API endpoint
+            const res = await fetch('/api/register', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Redirect on success (Session is already set by the API)
                 window.location.href = '/my-souls';
             } else {
-                document.body.innerHTML = html;
+                // Display API error message dynamically
+                errorMsg.innerText = data.error || 'Registration failed.';
+                errorBox.classList.remove('hidden');
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch(e) {
-            alert('Network Error. Please try again.');
+            errorMsg.innerText = 'Network Error. Please try again.';
+            errorBox.classList.remove('hidden');
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

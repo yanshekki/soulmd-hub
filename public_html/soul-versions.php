@@ -21,6 +21,7 @@ if (!$soulId) {
     exit;
 }
 
+// 權限檢查與取得基本資訊
 $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND user_id = ?");
 $stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
@@ -29,28 +30,7 @@ if (!$soul) {
     die('Soul not found or access denied');
 }
 
-if (isset($_POST['ajax_restore'])) {
-    $versionId = (int)$_POST['version_id'];
-    $vStmt = $pdo->prepare("SELECT title, content FROM soul_versions WHERE id = ? AND soul_id = ?");
-    $vStmt->execute([$versionId, $soulId]);
-    $version = $vStmt->fetch();
-
-    if ($version) {
-        $pdo->prepare("INSERT INTO soul_versions (soul_id, title, content) VALUES (?, ?, ?)")
-            ->execute([$soulId, $soul['title'], $soul['content']]);
-
-        $fileType = strpos(trim($version['content']), '{') === 0 ? 'full_soul_folder' : 'single_md';
-
-        $pdo->prepare("UPDATE souls SET title = ?, content = ?, file_type = ? WHERE id = ? AND user_id = ?")
-            ->execute([$version['title'], $version['content'], $fileType, $soulId, $userId]);
-
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Version not found']);
-    }
-    exit;
-}
-
+// 取得歷史版本列表以供渲染 (此處保留 PHP 渲染以維持頁面載入速度，但操作已全面 API 化)
 $versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
 $versionsStmt->execute([$soulId]);
 $versions = $versionsStmt->fetchAll();
@@ -140,7 +120,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <button onclick="toggleContent(<?= $version['id'] ?>)" id="btn-toggle-<?= $version['id'] ?>" class="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl hover:bg-zinc-700 transition flex items-center justify-center gap-2 border border-white/5 shadow-sm">
                                 <i class="fas fa-eye" id="icon-<?= $version['id'] ?>"></i> <span>View Content</span>
                             </button>
-                            <button onclick="restoreVersion(<?= $version['id'] ?>)" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
+                            <button onclick="restoreVersion(<?= $version['id'] ?>, <?= $soulId ?>)" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
                                 <i class="fas fa-undo"></i> Restore
                             </button>
                         </div>
@@ -212,16 +192,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    async function restoreVersion(versionId) {
+    // 完全使用純 JSON API 呼叫還原版本
+    async function restoreVersion(versionId, soulId) {
         if (!confirm('Are you sure you want to restore this version?\n\nThe currently active version will be automatically backed up as a new history record.')) return;
 
-        const formData = new FormData();
-        formData.append('ajax_restore', '1');
-        formData.append('version_id', versionId);
-
         try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
+            const res = await fetch('/api/versions', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ version_id: versionId, soul_id: soulId })
+            });
             const data = await res.json();
+            
             if (data.success) {
                 window.location.href = '/my-souls'; 
             } else {

@@ -13,9 +13,8 @@ if (!isset($_SESSION['user_id'])) {
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
+// 前端渲染需要的基礎數據 (維持現有功能)
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
-
-// 動態獲取最多人使用的 Top 30 標籤
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
@@ -42,86 +41,12 @@ if (!empty($presetRole)) {
 
 unset($_SESSION['preset_title'], $_SESSION['preset_content'], $_SESSION['preset_role']);
 
-$message = '';
-$error = '';
-
-// Tag 同步函數：用於新增 Tag 時增加使用次數
-function incrementTags($pdo, $table, $tagsString) {
-    $tags = array_filter(array_map('trim', explode(',', $tagsString)));
-    foreach ($tags as $tag) {
-        if (empty($tag)) continue;
-        $stmt = $pdo->prepare("INSERT INTO {$table} (name, usage_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1");
-        $stmt->execute([$tag]);
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $role = $_POST['role'] ?? '';
-    $domain = trim($_POST['domain'] ?? '');
-    $compatibility = trim($_POST['compatibility'] ?? '');
-    $content = '';
-
-    $validSlugs = array_column($categories, 'slug');
-    if (!empty($role) && !in_array($role, $validSlugs) && $role !== 'Other') {
-        $error = 'Invalid category/role selected.';
-    }
-
-    if (empty($error)) {
-        if (!empty($_POST['content'])) {
-            $content = $_POST['content'];
-        } elseif (!empty($_FILES['soul_file']['tmp_name'])) {
-            $file = $_FILES['soul_file'];
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-            if ($ext === 'md') {
-                $content = file_get_contents($file['tmp_name']);
-            } elseif ($ext === 'zip') {
-                $zip = new ZipArchive();
-                if ($zip->open($file['tmp_name']) === TRUE) {
-                    $files = [];
-                    for ($i = 0; $i < $zip->numFiles; $i++) {
-                        $filename = $zip->getNameIndex($i);
-                        if (str_ends_with(strtolower($filename), '.md') || str_ends_with(strtolower($filename), '.txt') || str_ends_with(strtolower($filename), '.json')) {
-                            $files[$filename] = $zip->getFromIndex($i);
-                        }
-                    }
-                    $zip->close();
-                    $content = json_encode($files, JSON_UNESCAPED_UNICODE);
-                } else {
-                    $error = 'Could not open zip file';
-                }
-            } else {
-                $error = 'Only .md or .zip files are supported';
-            }
-        }
-    }
-
-    if (empty($error) && !empty($title) && !empty($content)) {
-        try {
-            $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';
-            $stmt = $pdo->prepare("INSERT INTO souls (user_id, title, description, content, file_type, role, domain, compatibility, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
-            $stmt->execute([$_SESSION['user_id'], $title, $description, $content, $fileType, $role, $domain, $compatibility]);
-            $newId = $pdo->lastInsertId();
-            
-            // 成功上傳後，更新標籤統計
-            incrementTags($pdo, 'tags_domain', $domain);
-            incrementTags($pdo, 'tags_compatibility', $compatibility);
-
-            $message = "✅ Soul uploaded successfully! <a href='/soul/$newId' class='underline text-emerald-400'>View it now</a>";
-        } catch (Exception $e) {
-            $error = 'Failed to save soul';
-        }
-    } elseif (empty($error)) {
-        $error = 'Title and content are required';
-    }
-}
-
 $pageTitle = 'Upload Soul';
 $pageDesc = 'Upload your AI personality as .md or full modular folder.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
     <div class="flex justify-between items-center mb-10">
@@ -134,36 +59,31 @@ require_once __DIR__ . '/../private/includes/header.php';
         </a>
     </div>
 
-    <?php if ($message): ?>
-        <div class="bg-emerald-900/50 border border-emerald-500 p-6 rounded-3xl mb-8 text-lg shadow-lg"><?= $message ?></div>
-    <?php endif; ?>
-    <?php if ($error): ?>
-        <div class="bg-red-900/50 border border-red-500 p-6 rounded-3xl mb-8 shadow-lg"><i class="fas fa-exclamation-circle mr-2"></i><?= $error ?></div>
-    <?php endif; ?>
+    <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-6 rounded-3xl mb-8 text-lg shadow-lg"></div>
+    <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-6 rounded-3xl mb-8 shadow-lg"><i class="fas fa-exclamation-circle mr-2"></i><span id="error-msg"></span></div>
 
-    <form id="upload-form" enctype="multipart/form-data" class="space-y-8">
+    <form id="upload-form" class="space-y-8">
         <div>
             <label class="block text-sm font-medium mb-2 text-zinc-300">Soul Title <span class="text-red-400">*</span></label>
-            <input type="text" id="title" name="title" required value="<?= htmlspecialchars($_POST['title'] ?? $presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-400 shadow-inner">
+            <input type="text" id="title" name="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-400 shadow-inner">
         </div>
 
         <div>
             <label class="block text-sm font-medium mb-2 text-zinc-300">Short Description</label>
-            <textarea id="description" name="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400 shadow-inner"><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
+            <textarea id="description" name="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400 shadow-inner"></textarea>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Role</label>
                 <select id="role" name="role" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-5 py-4 focus:outline-none focus:border-emerald-400 shadow-inner">
-                    <?php $selectedRole = $_POST['role'] ?? $presetRole; ?>
                     <option value="">Select role</option>
                     <?php foreach ($categories as $cat): ?>
-                        <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $selectedRole === $cat['slug'] ? 'selected' : '' ?>>
+                        <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $presetRole === $cat['slug'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($cat['icon'] ?? '✨') ?> <?= htmlspecialchars($cat['name']) ?>
                         </option>
                     <?php endforeach; ?>
-                    <option value="Other" <?= $selectedRole === 'Other' ? 'selected' : '' ?>>Other</option>
+                    <option value="Other" <?= $presetRole === 'Other' ? 'selected' : '' ?>>Other</option>
                 </select>
             </div>
             <div>
@@ -171,7 +91,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-4 py-3 min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
                     <div id="domain-tags" class="flex flex-wrap gap-2 empty:hidden"></div>
                     <input type="text" id="domain-input" list="domain-options" placeholder="Tech, Content..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[100px] text-sm p-0 m-0 text-white">
-                    <input type="hidden" id="domain" name="domain" value="<?= htmlspecialchars($_POST['domain'] ?? '') ?>">
+                    <input type="hidden" id="domain" name="domain" value="">
                 </div>
                 <datalist id="domain-options">
                     <?php foreach ($topDomains as $tag): ?>
@@ -184,7 +104,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-4 py-3 min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
                     <div id="compatibility-tags" class="flex flex-wrap gap-2 empty:hidden"></div>
                     <input type="text" id="compatibility-input" list="compatibility-options" placeholder="Claude, GPT-4o..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[100px] text-sm p-0 m-0 text-white">
-                    <input type="hidden" id="compatibility" name="compatibility" value="<?= htmlspecialchars($_POST['compatibility'] ?? '') ?>">
+                    <input type="hidden" id="compatibility" name="compatibility" value="">
                 </div>
                 <datalist id="compatibility-options">
                     <?php foreach ($topCompatibilities as $tag): ?>
@@ -200,7 +120,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="flex border-b border-white/20 mb-6 overflow-x-auto">
                 <button type="button" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 py-4 text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-2"></i> Visual Editor</button>
                 <button type="button" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 py-4 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-2"></i> Raw JSON / Paste</button>
-                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 py-4 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-2"></i> Upload .ZIP</button>
+                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 py-4 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-2"></i> Upload File (.md/.zip)</button>
             </div>
 
             <div id="tab-visual" class="upload-tab-content">
@@ -222,19 +142,17 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
 
             <div id="tab-raw" class="upload-tab-content hidden">
-                <textarea id="content-raw" rows="14" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-5 font-mono text-sm focus:outline-none focus:border-emerald-400 shadow-inner" placeholder="Paste single markdown text OR full JSON folder object here..."><?= htmlspecialchars($_POST['content'] ?? $presetContent) ?></textarea>
+                <textarea id="content-raw" rows="14" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-5 font-mono text-sm focus:outline-none focus:border-emerald-400 shadow-inner" placeholder="Paste single markdown text OR full JSON folder object here..."><?= htmlspecialchars($presetContent) ?></textarea>
             </div>
 
             <div id="tab-zip" class="upload-tab-content hidden">
                 <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-3xl p-12 text-center hover:border-emerald-400 transition cursor-pointer bg-zinc-900/50">
-                    <input type="file" id="file-input" name="soul_file" accept=".md,.txt,.zip,.json" class="hidden">
+                    <input type="file" id="file-input" accept=".md,.txt,.zip,.json" class="hidden">
                     <i class="fas fa-cloud-upload-alt text-5xl mb-4 text-zinc-400"></i>
                     <div class="font-medium text-lg">Drag & drop or click to upload</div>
-                    <div class="text-xs text-zinc-400 mt-2">.md or .zip (full modular folder)</div>
+                    <div class="text-xs text-zinc-400 mt-2">Supports single .md file or a full configuration .zip bundle</div>
                 </div>
             </div>
-            
-            <input type="hidden" name="content" id="final-payload">
         </div>
 
         <button type="submit" id="submit-btn" class="w-full py-6 bg-emerald-500 text-zinc-950 font-bold text-xl rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200">
@@ -245,7 +163,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
             <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
@@ -293,6 +211,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // --- Tags Input System ---
     function setupTagInput(inputId) {
         const hiddenInput = document.getElementById(inputId);
         const visibleInput = document.getElementById(inputId + '-input');
@@ -323,7 +242,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (e.key === ',' || e.key === 'Enter') { e.preventDefault(); addTag(this.value); } 
             else if (e.key === 'Backspace' && this.value === '' && tags.length > 0) { tags.pop(); renderTags(); }
         });
-        visibleInput.closest('form').addEventListener('submit', function() { if (visibleInput.value.trim()) addTag(visibleInput.value); });
         renderTags();
     }
 
@@ -339,6 +257,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     setupTagInput('domain');
     setupTagInput('compatibility');
 
+    // --- Tab Switcher ---
     let activeMainTab = 0;
     function switchUploadTab(n) {
         activeMainTab = n;
@@ -352,6 +271,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
+    // --- Multi-File Visual Builder Logic ---
     class MultiFileEditor {
         constructor() {
             this.files = {};
@@ -441,24 +361,23 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     const fileEditor = new MultiFileEditor();
 
+    // --- Add File Modal (Popup Control) ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
-        const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
         setTimeout(() => {
             modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
+            modal.firstElementChild.classList.remove('scale-95');
+            modal.firstElementChild.classList.add('scale-100');
         }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
-        const content = document.getElementById('add-file-content');
         modal.classList.add('opacity-0');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
+        modal.firstElementChild.classList.remove('scale-100');
+        modal.firstElementChild.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
@@ -480,40 +399,133 @@ require_once __DIR__ . '/../private/includes/header.php';
     function addSpecificFile(name) { processNewFileName(name); }
     function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
+    // --- Browser File Reading & JSZip Extraction Logic ---
+    let uploadedContentStr = '';
+
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        
+        // UI 更新顯示已選取檔案
+        document.getElementById('tab-zip').innerHTML = `
+            <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-3xl border-2 border-emerald-400/30">
+                <i class="fas fa-check-circle text-3xl"></i>
+                <span class="font-medium">${file.name}</span>
+                <span class="text-xs text-zinc-500">Ready to upload</span>
+            </div>`;
+
+        if (ext === 'md' || ext === 'txt' || ext === 'json') {
+            // 讀取單一文字檔
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                uploadedContentStr = evt.target.result;
+            };
+            reader.readAsText(file);
+        } else if (ext === 'zip') {
+            // 利用 JSZip 喺前端直接解壓為 JSON 物件
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                JSZip.loadAsync(evt.target.result).then(async function(zip) {
+                    const extractedFiles = {};
+                    const promises = [];
+
+                    zip.forEach(function (relativePath, zipEntry) {
+                        if (!zipEntry.dir && (relativePath.endsWith('.md') || relativePath.endsWith('.txt') || relativePath.endsWith('.json'))) {
+                            const promise = zipEntry.async("string").then(function (content) {
+                                extractedFiles[relativePath] = content;
+                            });
+                            promises.push(promise);
+                        }
+                    });
+
+                    await Promise.all(promises);
+                    uploadedContentStr = JSON.stringify(extractedFiles, null, 2);
+                }).catch(function(err) {
+                    alert("Failed to parse zip file structure on client side.");
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            alert("Unsupported file extension.");
+            uploadedContentStr = '';
+        }
+    });
+
+    // --- AJAX Form Submission to API Endpoint ---
     const form = document.getElementById('upload-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const finalPayloadInput = document.getElementById('final-payload');
+        const btn = document.getElementById('submit-btn');
+        const text = document.getElementById('submit-text');
+        const loading = document.getElementById('submit-loading');
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+        const successBox = document.getElementById('success-box');
+
+        errorBox.classList.add('hidden');
+        successBox.classList.add('hidden');
+
+        // 根據目前切換的 Tab 決定提取哪種 Payload
+        let finalContent = '';
         if (activeMainTab === 0) {
-            finalPayloadInput.value = fileEditor.getPayload();
+            finalContent = fileEditor.getPayload();
         } else if (activeMainTab === 1) {
-            finalPayloadInput.value = document.getElementById('content-raw').value;
+            finalContent = document.getElementById('content-raw').value;
         } else {
-            finalPayloadInput.value = '';
+            finalContent = uploadedContentStr;
         }
 
-        const btn = document.getElementById('submit-btn');
-        document.getElementById('submit-text').classList.add('hidden');
-        document.getElementById('submit-loading').classList.remove('hidden');
+        if (!finalContent || finalContent.trim() === '') {
+            errorMsg.innerText = "Soul Content is empty or hasn't loaded yet.";
+            errorBox.classList.remove('hidden');
+            return;
+        }
+
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        const formData = new FormData(form);
-        try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
-            const html = await res.text();
-            document.body.innerHTML = html;
-        } catch(e) {
-            alert("Network Error. Please try again.");
-            document.getElementById('submit-text').classList.remove('hidden');
-            document.getElementById('submit-loading').classList.add('hidden');
-            btn.classList.remove('opacity-80', 'cursor-not-allowed');
-        }
-    });
+        // 建構純 JSON 格式 Payload
+        const payload = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            role: document.getElementById('role').value,
+            domain: document.getElementById('domain').value,
+            compatibility: document.getElementById('compatibility').value,
+            content: finalContent
+        };
 
-    document.getElementById('file-input').addEventListener('change', function() {
-        if (this.files.length) {
-            document.getElementById('tab-zip').innerHTML = `<div class="text-emerald-400 flex items-center justify-center gap-3 py-8 bg-zinc-900/50 rounded-3xl border-2 border-emerald-400/30"><i class="fas fa-check-circle text-3xl"></i><span class="font-medium">${this.files[0].name}</span></div>`;
+        try {
+            // 呼叫純 JSON API 端點
+            const res = await fetch('/api/souls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                successBox.innerHTML = `✅ Soul uploaded successfully! <a href="${data.url}" class="underline text-emerald-400 font-bold">View it now</a>`;
+                successBox.classList.remove('hidden');
+                form.reset();
+                // 還原虛擬檔案編輯器
+                setTimeout(() => { window.location.reload(); }, 1500);
+            } else {
+                errorMsg.innerText = data.error || "Failed to save soul.";
+                errorBox.classList.remove('hidden');
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+        } catch(err) {
+            errorMsg.innerText = "Network Error. Please try again.";
+            errorBox.classList.remove('hidden');
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     });
 </script>

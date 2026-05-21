@@ -58,7 +58,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </h2>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <?php foreach ($categories as $cat): ?>
-                <a href="browse?role=<?= urlencode($cat['slug']) ?>" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center">
+                <a href="browse?role=<?= urlencode($cat['slug']) ?>" class="bg-zinc-900 hover:bg-zinc-800 transition p-6 rounded-3xl text-center shadow-lg border border-white/5">
                     <div class="text-4xl mb-3"><?= htmlspecialchars($cat['icon'] ?? '✨') ?></div>
                     <div class="font-medium"><?= htmlspecialchars($cat['name']) ?></div>
                 </a>
@@ -69,7 +69,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div>
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-semibold">Trending Souls</h2>
-            <a href="browse" class="flex items-center gap-1 text-emerald-400 text-sm hover:underline">
+            <a href="browse" class="flex items-center gap-1 text-emerald-400 text-sm hover:underline font-medium">
                 View all <span class="text-xl">→</span>
             </a>
         </div>
@@ -83,26 +83,29 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
         try {
-            const res = await fetch('/api/souls?limit=3');
+            // Call the same optimized /api/souls endpoint
+            const res = await fetch('/api/souls?limit=3&sort=popular');
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
                 let html = '';
                 data.data.forEach(soul => {
                     html += `
-                        <a href="/soul/${soul.id}" class="group bg-zinc-900 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all">
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="font-semibold text-xl group-hover:text-emerald-400 transition">${soul.title}</div>
-                                <div class="text-xs px-3 py-1 rounded-full ${soul.file_type === 'full_soul_folder' ? 'bg-purple-900 text-purple-400' : 'bg-emerald-900 text-emerald-400'}">
-                                    ${soul.file_type === 'full_soul_folder' ? 'Folder' : '.md'}
+                        <a href="/soul/${soul.id}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
+                            <div>
+                                <div class="flex justify-between items-start gap-3 mb-4">
+                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${soul.title}</div>
+                                    <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
+                                        ${soul.file_type === 'full_soul_folder' ? 'Modular' : '.md'}
+                                    </div>
                                 </div>
+                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-6 leading-relaxed">${soul.description}</p>` : ''}
                             </div>
-                            ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-6">${soul.description}</p>` : ''}
-                            <div class="flex items-center justify-between text-xs text-zinc-500">
-                                <div>${soul.role || '—'}</div>
-                                <div class="flex items-center gap-3">
-                                    <span>${soul.fork_count} forks</span>
-                                    <span>${soul.like_count} likes</span>
+                            <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
+                                <div class="truncate max-w-[120px]">${soul.role || 'Unassigned'}</div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <span><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
+                                    <span><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>
                                 </div>
                             </div>
                         </a>

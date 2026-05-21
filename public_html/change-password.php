@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
@@ -8,38 +7,6 @@ session_start();
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
     exit;
-}
-
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $current_password = $_POST['current_password'] ?? '';
-    $new_password = $_POST['new_password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $user_id = $_SESSION['user_id'];
-
-    $db = Database::getInstance();
-    $pdo = $db->getConnection();
-
-    // 取得當前使用者嘅資料
-    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-
-    if (!$user || !password_verify($current_password, $user['password'])) {
-        $error = 'Incorrect current password.';
-    } elseif (strlen($new_password) < 6) {
-        $error = 'New password must be at least 6 characters.';
-    } elseif ($new_password !== $confirm_password) {
-        $error = 'New passwords do not match.';
-    } else {
-        // 更新為新密碼
-        $hash = password_hash($new_password, PASSWORD_DEFAULT);
-        $updateStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-        $updateStmt->execute([$hash, $user_id]);
-        $success = '✅ Password successfully updated!';
-    }
 }
 
 $pageTitle = 'Change Password';
@@ -55,19 +22,15 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-zinc-400">Keep your account secure</p>
         </div>
 
-        <?php if ($error): ?>
-            <div class="bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-center">
-                <i class="fas fa-exclamation-circle mr-1"></i> <?= $error ?>
-            </div>
-        <?php endif; ?>
+        <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-center text-red-200 shadow-lg transition-all">
+            <i class="fas fa-exclamation-circle mr-1"></i> <span id="error-msg"></span>
+        </div>
 
-        <?php if ($success): ?>
-            <div class="bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-center text-emerald-100">
-                <?= $success ?>
-            </div>
-        <?php endif; ?>
+        <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-center text-emerald-100 shadow-lg transition-all">
+            <i class="fas fa-check-circle mr-1"></i> <span id="success-msg"></span>
+        </div>
 
-        <form id="password-form" method="POST" class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 space-y-6 backdrop-blur-sm shadow-2xl">
+        <form id="password-form" class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 space-y-6 backdrop-blur-sm shadow-2xl">
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400">Current Password</label>
                 <input type="password" id="current_password" name="current_password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
@@ -104,18 +67,47 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('submit-btn');
         const text = document.getElementById('submit-text');
         const loading = document.getElementById('submit-loading');
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+        const successBox = document.getElementById('success-box');
+        const successMsg = document.getElementById('success-msg');
 
+        // Reset UI States
+        errorBox.classList.add('hidden');
+        successBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        const formData = new FormData(form);
+        // Construct JSON Payload
+        const payload = {
+            current_password: document.getElementById('current_password').value,
+            new_password: document.getElementById('new_password').value,
+            confirm_password: document.getElementById('confirm_password').value
+        };
+
         try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
-            const html = await res.text();
-            document.body.innerHTML = html; // 直接將畫面替換為包含成功/失敗提示的畫面
+            const res = await fetch('/api/change-password', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Success: Show message and clear form
+                successMsg.innerText = data.message;
+                successBox.classList.remove('hidden');
+                form.reset();
+            } else {
+                // Error: Display API error
+                errorMsg.innerText = data.error || 'Update failed.';
+                errorBox.classList.remove('hidden');
+            }
         } catch (e) {
-            alert('Network Error. Please try again.');
+            errorMsg.innerText = 'Network Error. Please try again.';
+            errorBox.classList.remove('hidden');
+        } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

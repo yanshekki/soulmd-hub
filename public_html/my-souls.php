@@ -14,98 +14,12 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $user_id = $_SESSION['user_id'];
 
-// Tag 同步共用函數
-function syncTags($pdo, $table, $oldStr, $newStr) {
-    $oldTags = array_filter(array_map('trim', explode(',', $oldStr)));
-    $newTags = array_filter(array_map('trim', explode(',', $newStr)));
-
-    $added = array_diff($newTags, $oldTags);
-    $removed = array_diff($oldTags, $newTags);
-
-    foreach ($added as $tag) {
-        if(empty($tag)) continue;
-        $stmt = $pdo->prepare("INSERT INTO {$table} (name, usage_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1");
-        $stmt->execute([$tag]);
-    }
-
-    foreach ($removed as $tag) {
-        if(empty($tag)) continue;
-        $stmt = $pdo->prepare("UPDATE {$table} SET usage_count = GREATEST(usage_count - 1, 0) WHERE name = ?");
-        $stmt->execute([$tag]);
-    }
-}
-
-if (isset($_POST['ajax_get'])) {
-    $id = (int)$_POST['id'];
-    $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND user_id = ?");
-    $stmt->execute([$id, $user_id]);
-    $soul = $stmt->fetch();
-    if ($soul) echo json_encode(['success' => true, 'data' => $soul]);
-    else echo json_encode(['success' => false, 'error' => 'Soul not found or unauthorized']);
-    exit;
-}
-
-if (isset($_POST['ajax_delete'])) {
-    $id = (int)$_POST['id'];
-    
-    // 先取出標籤以便扣減 usage_count
-    $stmt = $pdo->prepare("SELECT domain, compatibility FROM souls WHERE id = ? AND user_id = ?");
-    $stmt->execute([$id, $user_id]);
-    $soul = $stmt->fetch();
-
-    $stmt = $pdo->prepare("DELETE FROM souls WHERE id = ? AND user_id = ?");
-    $stmt->execute([$id, $user_id]);
-    
-    if ($stmt->rowCount() > 0) {
-        if ($soul) {
-            syncTags($pdo, 'tags_domain', $soul['domain'], '');
-            syncTags($pdo, 'tags_compatibility', $soul['compatibility'], '');
-        }
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Unauthorized to delete.']);
-    }
-    exit;
-}
-
-if (isset($_POST['ajax_edit'])) {
-    $id = (int)$_POST['id'];
-    $title = trim($_POST['title']);
-    $description = trim($_POST['description']);
-    $content = $_POST['content'];
-    $role = $_POST['role'];
-    $domain = trim($_POST['domain']);
-    $compatibility = trim($_POST['compatibility']);
-    $is_public = isset($_POST['is_public']) ? (int)$_POST['is_public'] : 0;
-
-    $oldStmt = $pdo->prepare("SELECT title, content, domain, compatibility FROM souls WHERE id = ? AND user_id = ?");
-    $oldStmt->execute([$id, $user_id]);
-    $old = $oldStmt->fetch();
-
-    if ($old) {
-        $pdo->prepare("INSERT INTO soul_versions (soul_id, title, content) VALUES (?, ?, ?)")
-            ->execute([$id, $old['title'], $old['content']]);
-
-        $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';
-        
-        $updStmt = $pdo->prepare("UPDATE souls SET title = ?, description = ?, content = ?, role = ?, domain = ?, compatibility = ?, is_public = ?, file_type = ? WHERE id = ? AND user_id = ?");
-        $updStmt->execute([$title, $description, $content, $role, $domain, $compatibility, $is_public, $fileType, $id, $user_id]);
-
-        // 更新標籤統計
-        syncTags($pdo, 'tags_domain', $old['domain'], $domain);
-        syncTags($pdo, 'tags_compatibility', $old['compatibility'], $compatibility);
-
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Unauthorized.']);
-    }
-    exit;
-}
-
+// 獲取分類與熱門標籤，供 Edit Modal 的下拉選單使用
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
+// 初次載入時透過 PHP 渲染列表（保持後台載入速度與 SEO）
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
     FROM souls s 
@@ -144,7 +58,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php else: ?>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="souls-list">
             <?php foreach ($mySouls as $soul): ?>
-                <div class="soul-card bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/40 transition-all flex flex-col justify-between backdrop-blur-sm" data-id="<?= $soul['id'] ?>">
+                <div class="soul-card bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/40 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg" data-id="<?= $soul['id'] ?>">
                     <div>
                         <div class="flex justify-between items-start gap-4 mb-3">
                             <div>
@@ -178,8 +92,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     <div class="pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="flex items-center gap-4 text-xs text-zinc-500">
-                            <span><i class="fas fa-code-branch mr-1 text-emerald-500"></i><b><?= $soul['fork_count'] ?></b> forks</span>
-                            <span><i class="fas fa-heart mr-1 text-red-500"></i><b><?= $soul['like_count'] ?></b> likes</span>
+                            <span><i class="fas fa-code-branch mr-1 text-emerald-500"></i><b class="text-zinc-300"><?= $soul['fork_count'] ?></b> forks</span>
+                            <span><i class="fas fa-heart mr-1 text-red-500"></i><b class="text-zinc-300"><?= $soul['like_count'] ?></b> likes</span>
                         </div>
                         
                         <div class="flex items-center gap-2">
@@ -474,20 +388,22 @@ require_once __DIR__ . '/../private/includes/header.php';
     // --- Add File Modal Logic ---
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
+        const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
         setTimeout(() => {
             modal.classList.remove('opacity-0');
-            modal.firstElementChild.classList.remove('scale-95');
-            modal.firstElementChild.classList.add('scale-100');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
         }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
+        const content = document.getElementById('add-file-content');
         modal.classList.add('opacity-0');
-        modal.firstElementChild.classList.remove('scale-100');
-        modal.firstElementChild.classList.add('scale-95');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
@@ -509,7 +425,9 @@ require_once __DIR__ . '/../private/includes/header.php';
     function addSpecificFile(name) { processNewFileName(name); }
     function addCustomFile() { processNewFileName(document.getElementById('custom-filename-input').value); }
 
-    // --- Main Edit Modal Logic ---
+    // ==========================================
+    // 透過 API 呼叫的 CRUD 操作 (純 AJAX)
+    // ==========================================
     let currentEditId = null;
 
     async function editSoul(id) {
@@ -518,13 +436,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('edit-title').value = 'Loading...';
         document.getElementById('edit-modal').classList.remove('hidden');
 
-        const formData = new FormData();
-        formData.append('ajax_get', '1');
-        formData.append('id', id);
-
         try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
+            // 呼叫 GET API 取得資料
+            const res = await fetch(`/api/soul/${id}`);
             const result = await res.json();
+            
             if (result.success) {
                 const soul = result.data;
                 document.getElementById('edit-title').value = soul.title;
@@ -536,7 +452,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 
                 editModalFileEditor.loadData(soul.content);
             } else {
-                alert(result.error); closeModal();
+                alert(result.error || 'Failed to fetch soul details'); 
+                closeModal();
             }
         } catch(e) { alert('Network error.'); closeModal(); }
     }
@@ -551,34 +468,45 @@ require_once __DIR__ . '/../private/includes/header.php';
         const spinner = btn.querySelector('#loading-spinner');
         text.classList.add('hidden'); spinner.classList.remove('hidden');
 
-        const formData = new FormData();
-        formData.append('ajax_edit', '1');
-        formData.append('id', currentEditId);
-        formData.append('title', document.getElementById('edit-title').value);
-        formData.append('description', document.getElementById('edit-description').value);
-        formData.append('content', document.getElementById('edit-final-payload').value);
-        formData.append('role', document.getElementById('edit-role').value);
-        formData.append('domain', document.getElementById('edit-domain').value);
-        formData.append('compatibility', document.getElementById('edit-compatibility').value);
-        formData.append('is_public', document.getElementById('edit-public').value);
+        // 建構 JSON Payload 發送到 PUT API
+        const payload = {
+            title: document.getElementById('edit-title').value,
+            description: document.getElementById('edit-description').value,
+            content: document.getElementById('edit-final-payload').value,
+            role: document.getElementById('edit-role').value,
+            domain: document.getElementById('edit-domain').value,
+            compatibility: document.getElementById('edit-compatibility').value,
+            is_public: parseInt(document.getElementById('edit-public').value)
+        };
 
         try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
+            const res = await fetch(`/api/soul/${currentEditId}`, { 
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const data = await res.json();
-            if (data.success) { closeModal(); location.reload(); } 
-            else { alert(data.error); text.classList.remove('hidden'); spinner.classList.add('hidden'); }
-        } catch(e) { alert('Network error.'); text.classList.remove('hidden'); spinner.classList.add('hidden'); }
+            
+            if (data.success) { 
+                closeModal(); location.reload(); 
+            } else { 
+                alert(data.error); text.classList.remove('hidden'); spinner.classList.add('hidden'); 
+            }
+        } catch(e) { 
+            alert('Network error.'); text.classList.remove('hidden'); spinner.classList.add('hidden'); 
+        }
     }
 
     function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); currentEditId = null; }
 
     async function deleteSoul(id) {
         if (!confirm('Are you sure you want to permanently delete this AI soul?')) return;
-        const formData = new FormData(); formData.append('ajax_delete', '1'); formData.append('id', id);
+        
         try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
+            // 呼叫 DELETE API
+            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
-            if (data.success) { location.reload(); } else { alert(data.error); }
+            if (data.success) { location.reload(); } else { alert(data.error || 'Failed to delete'); }
         } catch(e) { alert('Network error.'); }
     }
 </script>

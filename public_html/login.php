@@ -1,73 +1,15 @@
 <?php
 require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
+require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-$db = Database::getInstance();
-$pdo = $db->getConnection();
 
-// ==========================================
-// 1. Remember Me 自動登入攔截 (處理從保護頁面跳轉過來的情況)
-// ==========================================
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
-    $tokenParts = explode(':', $_COOKIE['remember_token']);
-    if (count($tokenParts) === 2) {
-        try {
-            $stmt = $pdo->prepare("SELECT id, username FROM users WHERE id = ? AND remember_token = ?");
-            $stmt->execute([$tokenParts[0], $tokenParts[1]]);
-            $user = $stmt->fetch();
-            if ($user) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                header('Location: /my-souls');
-                exit;
-            }
-        } catch (PDOException $e) {
-            // 忽略欄位未建立的錯誤
-        }
-    }
-}
-
-// 如果已經登入，直接跳轉到管理後台
+// 如果已經登入（或者 header.php 自動登入成功），直接跳轉到管理後台
 if (isset($_SESSION['user_id'])) {
     header('Location: /my-souls');
     exit;
 }
 
-// ==========================================
-// 2. AJAX 登入處理 (回傳 JSON 以完美顯示 Error)
-// ==========================================
-if (isset($_POST['ajax_login'])) {
-    header('Content-Type: application/json');
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $remember = isset($_POST['remember']);
-
-    $stmt = $pdo->prepare("SELECT id, username, password FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
-
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-
-        // 如果有勾選 Remember me，產生 Token 並存入 Cookie (30日)
-        if ($remember) {
-            $token = bin2hex(random_bytes(32));
-            try {
-                $pdo->prepare("UPDATE users SET remember_token = ? WHERE id = ?")->execute([$token, $user['id']]);
-                setcookie('remember_token', $user['id'] . ':' . $token, time() + 86400 * 30, '/');
-            } catch(PDOException $e) {}
-        }
-
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Incorrect username or password. Please try again.']);
-    }
-    exit;
-}
-
-require_once __DIR__ . '/../private/includes/seo.php';
 $pageTitle = 'Log in';
 $pageDesc = 'Sign in to your SoulMD Hub account.';
 $hideNavLinks = true; // 隱藏多餘導覽列連結保持畫面簡潔
@@ -124,27 +66,35 @@ require_once __DIR__ . '/../private/includes/header.php';
         const errorBox = document.getElementById('error-box');
         const errorMsg = document.getElementById('error-msg');
 
-        // 隱藏舊的錯誤訊息，切換按鈕狀態
+        // Reset UI States
         errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        const formData = new FormData(form);
-        formData.append('ajax_login', '1');
+        // Construct JSON Payload
+        const payload = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            remember: document.getElementById('remember').checked
+        };
 
         try {
-            const res = await fetch(window.location.href, { method: 'POST', body: formData });
+            // Hit the newly created login API endpoint
+            const res = await fetch('/api/login', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const data = await res.json();
 
             if (data.success) {
+                // Redirect on success
                 window.location.href = '/my-souls';
             } else {
-                // 完美顯示錯誤
-                errorMsg.innerText = data.error;
+                // Display Error gracefully
+                errorMsg.innerText = data.error || 'Login failed.';
                 errorBox.classList.remove('hidden');
-                
-                // 還原按鈕狀態
                 text.classList.remove('hidden');
                 loading.classList.add('hidden');
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');

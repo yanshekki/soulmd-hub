@@ -10,7 +10,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'soulmd_hub');
 define('DB_USER', 'root');
-define('DB_PASS', '');           // Change this!
+define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
-
+define('BASE_URL', 'https://soulmd-hub.ysk.hk');
 define('SITE_NAME', 'SoulMD Hub');
