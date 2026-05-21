@@ -77,14 +77,21 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 <a href="/change-password" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2" title="Change Password">
                     <i class="fas fa-key text-emerald-400"></i>
                 </a>
-                <a href="/logout" class="text-sm px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition flex items-center gap-2" title="Log out">
+                <button onclick="handleLogout()" class="text-sm px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition flex items-center gap-2" title="Log out">
                     <i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Log out</span>
-                </a>
+                </button>
             <?php else: ?>
                 <a href="/login" class="text-sm px-5 py-2 border border-white/30 rounded-2xl hover:bg-white/5 transition">Log in</a>
                 <a href="/register" class="text-sm px-5 py-2 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition shadow-lg">Sign up</a>
             <?php endif; ?>
         </div>
     </nav>
+
+    <script>
+    async function handleLogout() {
+        try { await fetch('/api/logout', {method: 'POST'}); } catch(e) {}
+        window.location.href = '/login';
+    }
+    </script>
 
     <main class="flex-grow flex flex-col relative z-10">

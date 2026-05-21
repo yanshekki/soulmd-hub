@@ -6,7 +6,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 設置 404 狀態碼，方便搜尋引擎正確識別
 http_response_code(404);
 
 $pageTitle = '404 - Soul Not Found';

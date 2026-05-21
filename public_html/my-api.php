@@ -13,7 +13,7 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $userId = $_SESSION['user_id'];
 
-// Get current API Key (防禦性編程)
+// Get current API Key (不再依賴 PHP POST)
 $stmt = $pdo->prepare("SELECT api_key FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $userRow = $stmt->fetch();
@@ -24,7 +24,6 @@ if (!$apiKey) {
     $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$apiKey, $userId]);
 }
 
-// 自動讀取 config.php 的 BASE_URL，保持全站變數統一
 $baseUrl = defined('BASE_URL') ? BASE_URL : ("https://" . $_SERVER['HTTP_HOST']);
 
 $pageTitle = 'Developer API';
@@ -88,7 +87,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-sm shadow-xl">
                 <h2 class="text-2xl font-bold mb-8 border-b border-white/10 pb-4">API Reference</h2>
 
-                <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-10"><i class="fas fa-user-shield mr-2"></i> Authentication</h3>
+                <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-10"><i class="fas fa-user-shield mr-2"></i> Authentication & Account</h3>
                 
                 <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
                     <div class="flex items-center gap-3">
@@ -96,7 +95,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <code class="text-base font-bold text-white">/api/register</code>
                     </div>
                     <p class="text-sm text-zinc-400">Register a new user and generate an API key. Enforces secure alpha-numeric URL constraints.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -121,7 +119,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <code class="text-base font-bold text-white">/api/login</code>
                     </div>
                     <p class="text-sm text-zinc-400">Authenticate user. Returns API Key and sets a secure 30-day web session if requested.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -147,7 +144,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Change the current logged-in user's password securely.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -160,6 +156,41 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
   "message": "Password successfully updated!"
+}</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                        <code class="text-base font-bold text-white">/api/logout</code>
+                        <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
+                    </div>
+                    <p class="text-sm text-zinc-400">Clear session and remember me tokens for the current user.</p>
+                    <div class="pt-1 flex flex-col gap-2">
+                        <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Response Sample</summary>
+                            <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "message": "Logged out successfully"
+}</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                        <code class="text-base font-bold text-white">/api/regenerate-key</code>
+                        <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
+                    </div>
+                    <p class="text-sm text-zinc-400">Invalidate the current API key and issue a new 32-byte hex key securely.</p>
+                    <div class="pt-1 flex flex-col gap-2">
+                        <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Response Sample</summary>
+                            <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "new_api_key": "8a9b2c3d4e...",
+  "message": "API Key regenerated successfully!"
 }</pre>
                         </details>
                     </div>
@@ -202,7 +233,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <code class="text-base font-bold text-white">/api/soul/{id}</code>
                     </div>
                     <p class="text-sm text-zinc-400">Retrieve raw architecture files, tags, and stats of a single public or owned soul.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-emerald-500 cursor-pointer select-none font-medium hover:underline">View Response Sample (file_type: single_md)</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
@@ -224,7 +254,6 @@ require_once __DIR__ . '/../private/includes/header.php';
   }
 }</pre>
                         </details>
-
                         <details class="text-xs group"><summary class="text-purple-400 cursor-pointer select-none font-medium hover:underline">View Response Sample (file_type: full_soul_folder)</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
@@ -255,7 +284,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Publish a brand new AI agent. Automatically detects single .md prompt or full Modular configuration folders.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -285,7 +313,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Update an existing soul module layout. Automatically creates an incremental version timeline backup record.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -392,7 +419,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Instantly restore active state content layout to a historical milestone setup version identifier point.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -416,7 +442,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Clone a public agent model directly into your workspace account as an independent project fork tree line node.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -441,7 +466,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Toggle like/unlike state. Enforces atomic uniqueness index mapping constraints. Returns boolean state indicating if currently liked.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -465,7 +489,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20">Auth Required</span>
                     </div>
                     <p class="text-sm text-zinc-400">Rate between 1 to 5 stars. Submitting again overrides previous row entry record. Returns updated global live averages for instant interface refresh.</p>
-                    
                     <div class="pt-1 flex flex-col gap-2">
                         <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
@@ -479,6 +502,30 @@ require_once __DIR__ . '/../private/includes/header.php';
   "message": "Rating submitted successfully",
   "avg_rating": 4.5,
   "total_ratings": 18
+}</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-12"><i class="fas fa-tools mr-2"></i> Internal Utilities</h3>
+
+                <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                        <code class="text-base font-bold text-white">/api/save-preset</code>
+                    </div>
+                    <p class="text-sm text-zinc-400">Internal endpoint to temporarily save generated AI layouts into current user's session cache memory.</p>
+                    <div class="pt-1 flex flex-col gap-2">
+                        <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
+                            <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
+  "title": "Senior Engineer",
+  "role": "Senior Engineer",
+  "content": "{\n  \"SOUL.md\": \"...\"\n}"
+}</pre>
+                        </details>
+                        <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Response Sample</summary>
+                            <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true
 }</pre>
                         </details>
                     </div>
@@ -538,7 +585,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 完美細節：下載 Postman 時，動態實時抓取畫面上最新的 API Key
+    // 🚨 完美細節：下載 Postman 時，動態實時抓取畫面上最新的 API Key (含所有 17 個端點)
     function downloadPostmanCollection() {
         const currentApiKey = document.getElementById('key-display').innerText;
         
@@ -551,7 +598,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             },
             "item": [
                 {
-                    "name": "Authentication",
+                    "name": "Authentication & Account",
                     "item": [
                         {
                             "name": "Register User",
@@ -563,15 +610,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"username": "developer101", "password": "securepassword123", "email": "dev@example.com"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/register", "host": ["{{baseUrl}}"], "path": ["api", "register"] }
-                            },
-                            "response": [{
-                                "name": "Registration Success",
-                                "status": "Created",
-                                "code": 201,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Account created successfully", "api_key": "7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c..."}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Login User",
@@ -583,15 +622,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"username": "developer101", "password": "securepassword123", "remember": true}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/login", "host": ["{{baseUrl}}"], "path": ["api", "login"] }
-                            },
-                            "response": [{
-                                "name": "Login Success",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Login successful", "api_key": "7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c..."}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Change Password",
@@ -606,15 +637,23 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"current_password": "securepassword123", "new_password": "brandnewpassword999", "confirm_password": "brandnewpassword999"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/change-password", "host": ["{{baseUrl}}"], "path": ["api", "change-password"] }
-                            },
-                            "response": [{
-                                "name": "Password Update Success",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Password successfully updated!"}, null, 2)
-                            }]
+                            }
+                        },
+                        {
+                            "name": "Logout Session",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{apiKey}}"}],
+                                "url": { "raw": "{{baseUrl}}/api/logout", "host": ["{{baseUrl}}"], "path": ["api", "logout"] }
+                            }
+                        },
+                        {
+                            "name": "Regenerate API Key",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{apiKey}}"}],
+                                "url": { "raw": "{{baseUrl}}/api/regenerate-key", "host": ["{{baseUrl}}"], "path": ["api", "regenerate-key"] }
+                            }
                         }
                     ]
                 },
@@ -636,15 +675,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         {"key": "sort", "value": "popular"}
                                     ]
                                 }
-                            },
-                            "response": [{
-                                "name": "List Returned",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"id": 1, "title": "Expert Translator", "description": "Translates documents contextually", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "file_type": "single_md", "like_count": 12, "fork_count": 3, "created_at": "2026-05-21 12:00:00"}]}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Get Single Soul Details",
@@ -652,25 +683,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 "method": "GET",
                                 "header": [{"key": "Authorization", "value": "Bearer {{apiKey}}"}],
                                 "url": { "raw": "{{baseUrl}}/api/soul/1", "host": ["{{baseUrl}}"], "path": ["api", "soul", "1"] }
-                            },
-                            "response": [
-                                {
-                                    "name": "Single MD Response Sample",
-                                    "status": "OK",
-                                    "code": 200,
-                                    "_postman_previewlanguage": "json",
-                                    "header": [{"key": "Content-Type", "value": "application/json"}],
-                                    "body": JSON.stringify({"success": true, "data": {"id": 1, "user_id": 5, "title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert translator...", "file_type": "single_md", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1, "like_count": 12, "fork_count": 3, "created_at": "2026-05-21 12:00:00"}}, null, 2)
-                                },
-                                {
-                                    "name": "Modular Folder Response Sample",
-                                    "status": "OK",
-                                    "code": 200,
-                                    "_postman_previewlanguage": "json",
-                                    "header": [{"key": "Content-Type", "value": "application/json"}],
-                                    "body": JSON.stringify({"success": true, "data": {"id": 2, "user_id": 5, "title": "Advanced Dev Architecture", "description": "Full-stack code assistant package layout", "content": "{\n  \"SOUL.md\": \"## Identity\\nYou are a senior developer...\",\n  \"STYLE.md\": \"## Voice\\nConcise, code-heavy...\",\n  \"RULES.md\": \"## Hard Rules\\nNever write legacy code...\"\n}", "file_type": "full_soul_folder", "role": "Developer", "domain": "Coding & Dev", "compatibility": "GPT-4o", "is_public": 1, "like_count": 88, "fork_count": 15, "created_at": "2026-05-21 14:22:10"}}, null, 2)
-                                }
-                            ]
+                            }
                         },
                         {
                             "name": "Publish New Soul",
@@ -685,15 +698,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/souls", "host": ["{{baseUrl}}"], "path": ["api", "souls"] }
-                            },
-                            "response": [{
-                                "name": "Creation Success",
-                                "status": "Created",
-                                "code": 201,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Soul created successfully", "id": 42, "url": "https://soulmd-hub.ysk.hk/soul/42"}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Update Existing Soul",
@@ -705,18 +710,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": JSON.stringify({"title": "Expert Translator v2", "description": "Updated translation engine", "content": "## Identity\nYou are...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1}, null, 2)
+                                    "raw": JSON.stringify({"title": "Expert Translator v2", "description": "Updated version", "content": "## Identity\nYou are...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/soul/1", "host": ["{{baseUrl}}"], "path": ["api", "soul", "1"] }
-                            },
-                            "response": [{
-                                "name": "Update Success",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Soul updated successfully"}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Delete Soul",
@@ -724,15 +721,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 "method": "DELETE",
                                 "header": [{"key": "Authorization", "value": "Bearer {{apiKey}}"}],
                                 "url": { "raw": "{{baseUrl}}/api/soul/1", "host": ["{{baseUrl}}"], "path": ["api", "soul", "1"] }
-                            },
-                            "response": [{
-                                "name": "Deletion Success",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Soul deleted successfully"}, null, 2)
-                            }]
+                            }
                         }
                     ]
                 },
@@ -750,15 +739,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "profile"],
                                     "query": [{"key": "username", "value": "developer101"}]
                                 }
-                            },
-                            "response": [{
-                                "name": "Profile Data Returned",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "user": {"username": "developer101", "joined_at": "2026-05-20 10:00:00"}, "stats": {"total_souls": 5, "total_likes": 24, "total_forks": 8}, "souls": [{"id": 1, "title": "Expert Translator", "description": "Translates documents...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "file_type": "single_md", "like_count": 12, "fork_count": 3, "created_at": "2026-05-21 12:00:00"}]}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Get Soul History Versions",
@@ -771,15 +752,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "path": ["api", "versions"],
                                     "query": [{"key": "soul_id", "value": "1"}]
                                 }
-                            },
-                            "response": [{
-                                "name": "Timeline Versions Returned",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"id": 12, "soul_id": 1, "title": "Expert Translator v1", "content": "## Identity\nYou are...", "edited_at": "2026-05-21 15:30:00"}]}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Restore Historical Version",
@@ -794,15 +767,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1, "version_id": 5}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/versions", "host": ["{{baseUrl}}"], "path": ["api", "versions"] }
-                            },
-                            "response": [{
-                                "name": "Rollback Success",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Version restored successfully"}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Fork Public Soul",
@@ -817,15 +782,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/fork", "host": ["{{baseUrl}}"], "path": ["api", "fork"] }
-                            },
-                            "response": [{
-                                "name": "Fork Clone Success",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "new_soul_id": 43, "url": "https://soulmd-hub.ysk.hk/soul/43", "message": "Soul forked successfully!"}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Toggle Like Status",
@@ -840,15 +797,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/like", "host": ["{{baseUrl}}"], "path": ["api", "like"] }
-                            },
-                            "response": [{
-                                "name": "Like Toggled Successfully",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
-                                "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "liked": true, "message": "Soul liked successfully"}, null, 2)
-                            }]
+                            }
                         },
                         {
                             "name": "Rate Soul (1-5 Stars)",
@@ -863,15 +812,24 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     "raw": JSON.stringify({"soul_id": 1, "rating": 5}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/rate", "host": ["{{baseUrl}}"], "path": ["api", "rate"] }
-                            },
-                            "response": [{
-                                "name": "Rating Saved Successfully",
-                                "status": "OK",
-                                "code": 200,
-                                "_postman_previewlanguage": "json",
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Internal Utilities",
+                    "item": [
+                        {
+                            "name": "Save Preset to Session",
+                            "request": {
+                                "method": "POST",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Rating submitted successfully", "avg_rating": 4.5, "total_ratings": 18}, null, 2)
-                            }]
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": JSON.stringify({"title": "Expert Translator", "role": "Translator", "content": "{\n  \"SOUL.md\": \"...\"\n}"}, null, 2)
+                                },
+                                "url": { "raw": "{{baseUrl}}/api/save-preset", "host": ["{{baseUrl}}"], "path": ["api", "save-preset"] }
+                            }
                         }
                     ]
                 }

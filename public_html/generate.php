@@ -129,7 +129,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        // 1. 純前端生成大腦文字
         const role = document.getElementById('input-role').value.trim();
         const personality = document.getElementById('input-personality').value.trim();
         const expertise = document.getElementById('input-expertise').value.trim();
@@ -147,7 +146,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
         const folderJson = JSON.stringify(filesObj, null, 2);
 
-        // 2. 透過 API 將結果存入 Session
         try {
             await fetch('/api/save-preset', {
                 method: 'POST',
@@ -155,10 +153,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify({ title: role, role: role, content: folderJson })
             });
             
-            // 3. 無縫切換 UI
             document.getElementById('form-section').classList.add('hidden');
             document.getElementById('result-section').classList.remove('hidden');
-            document.getElementById('folder-content').textContent = folderJson; // 使用 textContent 防範 HTML 解析
+            document.getElementById('folder-content').textContent = folderJson; 
         } catch(err) {
             alert('Error generating preset. Please check connection.');
         } finally {
