@@ -16,6 +16,7 @@ if (!$soulId) {
     exit;
 }
 
+// 🚨 權限檢查：允許查看 Public 靈魂的歷史紀錄
 $stmt = $pdo->prepare("
     SELECT s.*, u.username 
     FROM souls s 
@@ -59,7 +60,7 @@ function getFileStyle($filename) {
     if (str_contains($name, 'MEMORY')) return ['icon' => 'fa-memory', 'color' => 'text-blue-400', 'border' => 'border-blue-400'];
     if (str_contains($name, 'CONTEXT')) return ['icon' => 'fa-globe', 'color' => 'text-cyan-400', 'border' => 'border-cyan-400'];
     if (str_contains($name, 'PROMPT')) return ['icon' => 'fa-terminal', 'color' => 'text-green-400', 'border' => 'border-green-400'];
-    if (str_ends_with($name, '.JSON')) return ['icon' => 'fa-code', 'color' => 'text-yellow-400', 'border' => 'border-yellow-400'];
+    if (str_ends_with($name, '.JSON') || str_contains($name, 'ERROR')) return ['icon' => 'fa-code', 'color' => 'text-yellow-400', 'border' => 'border-yellow-400'];
     return ['icon' => 'fa-file-alt', 'color' => 'text-zinc-400', 'border' => 'border-zinc-400'];
 }
 
@@ -109,8 +110,21 @@ require_once __DIR__ . '/../private/includes/header.php';
             <?php foreach ($versions as $index => $version): 
                 $versionNumber = count($versions) - $index;
                 $isVersionFolder = strpos(trim($version['content']), '{') === 0;
-                $files = $isVersionFolder ? (json_decode($version['content'], true) ?: []) : ['SOUL.md' => $version['content']];
-                if (empty($files)) $files = ['SOUL.md' => $version['content']];
+                
+                // 🚨 完美 JSON 容錯修復機制
+                if ($isVersionFolder) {
+                    $cleanedContent = str_replace("\\'", "'", $version['content']);
+                    $files = json_decode($cleanedContent, true);
+                    
+                    if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
+                        $errorMsg = json_last_error_msg();
+                        $files = [
+                            'ERROR.md' => "## ⚠️ Parse Error\nFailed to parse JSON folder structure in this version.\n\n**Error:** `{$errorMsg}`\n\n---\n\n### Raw Content:\n```json\n" . $version['content'] . "\n```"
+                        ];
+                    }
+                } else {
+                    $files = ['SOUL.md' => $version['content']];
+                }
             ?>
                 <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                     <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-zinc-950 bg-zinc-800 text-zinc-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
@@ -210,7 +224,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         breaks: true,
         gfm: true,
         highlight: function(code, lang) {
-            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            if (lang && hljs.getLanguage(lang)) {
+                try { return hljs.highlight(code, { language: lang }).value; } catch (e) {}
+            }
             return hljs.highlightAuto(code).value;
         }
     });
@@ -229,7 +245,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) {
                 window.location.href = '/my-souls'; 
             } else {
-                alert(data.error || 'Restore failed');
+                if (data.error && data.error.includes('Login')) { window.location.href = '/login'; } 
+                else { alert(data.error || 'Restore failed'); }
             }
         } catch(e) {
             alert('Network error while restoring.');

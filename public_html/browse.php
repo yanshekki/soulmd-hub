@@ -78,7 +78,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     let timeout = null;
-    // 從網址獲取當前頁碼
+    
+    // 🚨 讀取網址列的 page 參數，預設為 1
     let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
     function escapeHTML(str) {
@@ -96,22 +97,23 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     function applyQuickTag(tag) {
         document.getElementById('search-input').value = tag;
-        currentPage = 1; // 重置頁碼
+        currentPage = 1; // 重置為第一頁
         loadSouls();
     }
 
     function resetAndLoad() {
-        currentPage = 1; // 篩選條件改變時，回到第一頁
+        currentPage = 1; // 改變過濾條件時，必須回到第一頁
         loadSouls();
     }
 
     function changePage(page) {
         currentPage = page;
         loadSouls();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // 換頁後自動平滑捲動到頂部結果區
+        window.scrollTo({ top: 350, behavior: 'smooth' });
     }
 
-    // 渲染分頁器 UI
+    // 🚨 動態渲染分頁器 UI
     function renderPagination(current, totalPages) {
         const container = document.getElementById('pagination-container');
         if (totalPages <= 1) {
@@ -121,28 +123,27 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         let html = '';
         
-        // Prev Button
+        // 上一頁按鈕
         if (current > 1) {
-            html += `<button onclick="changePage(${current - 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300"><i class="fas fa-chevron-left"></i></button>`;
+            html += `<button onclick="changePage(${current - 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow"><i class="fas fa-chevron-left"></i></button>`;
         }
 
-        // Page Numbers
+        // 頁碼邏輯：只顯示首尾，以及當前頁前後 2 頁，其他用省略號
         for (let i = 1; i <= totalPages; i++) {
-            // 只顯示首尾及當前頁前後 2 頁
             if (i === 1 || i === totalPages || (i >= current - 2 && i <= current + 2)) {
                 if (i === current) {
-                    html += `<button class="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-xl text-sm shadow">${i}</button>`;
+                    html += `<button class="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-xl text-sm shadow-lg transform scale-105 transition">${i}</button>`;
                 } else {
-                    html += `<button onclick="changePage(${i})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300">${i}</button>`;
+                    html += `<button onclick="changePage(${i})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow">${i}</button>`;
                 }
             } else if (i === current - 3 || i === current + 3) {
-                html += `<span class="px-2 text-zinc-500 tracking-widest">...</span>`;
+                html += `<span class="px-2 text-zinc-500 tracking-widest text-sm">...</span>`;
             }
         }
 
-        // Next Button
+        // 下一頁按鈕
         if (current < totalPages) {
-            html += `<button onclick="changePage(${current + 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300"><i class="fas fa-chevron-right"></i></button>`;
+            html += `<button onclick="changePage(${current + 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow"><i class="fas fa-chevron-right"></i></button>`;
         }
 
         container.innerHTML = html;
@@ -151,6 +152,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function loadSouls() {
         const container = document.getElementById('results-container');
         const pagination = document.getElementById('pagination-container');
+        
+        // 顯示 Loading
         container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
         pagination.innerHTML = '';
 
@@ -159,15 +162,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         const role = document.getElementById('role-filter').value;
         const type = document.getElementById('type-filter').value;
 
+        // 組合 API 查詢參數
         const params = new URLSearchParams();
         if (q) params.append('q', q);
         if (sort && sort !== 'newest') params.append('sort', sort);
         if (role) params.append('role', role);
         if (type) params.append('file_type', type);
         params.append('page', currentPage);
-        params.append('limit', 24);
+        params.append('limit', 12); // 每頁顯示 12 筆 (剛好排滿 3 欄 x 4 行)
 
-        // 乾淨地更新 URL 網址列，保留參數但唔 Refresh
+        // 🚨 完美細節：靜默更新網址列，方便用戶分享當前條件及頁數的連結
         const newUrl = window.location.pathname + '?' + params.toString();
         window.history.replaceState({}, '', newUrl);
 
@@ -187,7 +191,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         });
                     }
 
-                    // 🚨 完美構建 SEO Link
+                    // 🚨 完美構建全新 4 層 SEO Link
                     const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
                     html += `
@@ -206,7 +210,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 </div>
                             </div>
                             <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
-                                <div class="truncate max-w-[120px]">${escapeHTML(soul.role || 'Unassigned')}</div>
+                                <div class="truncate max-w-[120px]">
+                                    <span class="text-white font-medium">@${escapeHTML(soul.username || 'anonymous')}</span>
+                                    <span class="opacity-50 ml-1">• ${escapeHTML(soul.role || 'Unassigned')}</span>
+                                </div>
                                 <div class="flex items-center gap-3 shrink-0">
                                     <span><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
                                     <span><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>
@@ -218,8 +225,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 html += `</div>`;
                 container.innerHTML = html;
                 
-                // 渲染分頁器
+                // 渲染分頁器 UI
                 renderPagination(data.current_page, data.total_pages);
+
             } else {
                 container.innerHTML = `
                     <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
@@ -240,10 +248,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('sort-filter').value = 'newest';
         document.getElementById('role-filter').value = '';
         document.getElementById('type-filter').value = '';
-        currentPage = 1;
+        currentPage = 1; // 清除條件必定回到第一頁
         loadSouls();
     }
 
+    // 綁定 Event Listeners
     document.getElementById('search-input').addEventListener('input', () => { 
         clearTimeout(timeout); 
         timeout = setTimeout(resetAndLoad, 400); 
@@ -253,6 +262,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     document.getElementById('role-filter').addEventListener('change', resetAndLoad);
     document.getElementById('type-filter').addEventListener('change', resetAndLoad);
 
+    // 初始載入
     window.onload = loadSouls;
 </script>
 

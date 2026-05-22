@@ -43,7 +43,7 @@ $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
 $slugRole = makeSlug($soul['role']);
 $slugTitle = makeSlug($soul['title']);
 
-// 🚨 完美 SEO 301 跳轉機制：若果 URL 係舊版短網址，自動跳轉去完整 SEO Path
+// 🚨 完美 SEO 301 跳轉機制：若果 URL 是舊版短網址，自動跳轉去完整 SEO Path
 $canonicalUrl = "/soul/{$encodedUsername}/{$id}/{$slugRole}/{$slugTitle}";
 $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -62,8 +62,21 @@ if (isset($_SESSION['user_id'])) {
 $isFolder = $soul['file_type'] === 'full_soul_folder';
 $contentData = $soul['content'];
 
+// 🚨 完美 JSON 容錯修復機制
 if ($isFolder) {
-    $files = json_decode($contentData, true) ?: [];
+    // 1. 強制清除 AI 幻覺產生的非法單引號 Escaping (\')
+    $cleanedContent = str_replace("\\'", "'", $contentData);
+    
+    // 2. 嘗試解析 JSON
+    $files = json_decode($cleanedContent, true);
+    
+    // 3. 如果依然解析失敗，顯示安全報錯畫面而非白屏
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
+        $errorMsg = json_last_error_msg();
+        $files = [
+            'ERROR.md' => "## ⚠️ Parse Error\nFailed to parse JSON folder structure. The AI generated a malformed JSON.\n\n**Error Details:** `{$errorMsg}`\n\n---\n\n### Raw Output:\n```json\n" . $contentData . "\n```"
+        ];
+    }
 } else {
     $files = ['SOUL.md' => $contentData];
 }
@@ -90,7 +103,7 @@ function getFileStyle($filename) {
     if (str_contains($name, 'MEMORY')) return ['icon' => 'fa-memory', 'color' => 'text-blue-400', 'border' => 'border-blue-400'];
     if (str_contains($name, 'CONTEXT')) return ['icon' => 'fa-globe', 'color' => 'text-cyan-400', 'border' => 'border-cyan-400'];
     if (str_contains($name, 'PROMPT')) return ['icon' => 'fa-terminal', 'color' => 'text-green-400', 'border' => 'border-green-400'];
-    if (str_ends_with($name, '.JSON')) return ['icon' => 'fa-code', 'color' => 'text-yellow-400', 'border' => 'border-yellow-400'];
+    if (str_ends_with($name, '.JSON') || str_contains($name, 'ERROR')) return ['icon' => 'fa-code', 'color' => 'text-yellow-400', 'border' => 'border-yellow-400'];
     return ['icon' => 'fa-file-alt', 'color' => 'text-zinc-400', 'border' => 'border-zinc-400'];
 }
 
@@ -263,6 +276,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // 安全過濾與 Markdown 渲染
     marked.setOptions({ 
         breaks: true, 
         gfm: true, 
@@ -312,7 +326,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     function copyFullFolder() {
         <?php if($isFolder): ?>
-            const jsonStr = <?= json_encode($contentData) ?>;
+            // 🚨 複製清洗過後的有效 JSON 字串
+            const jsonStr = <?= json_encode($cleanedContent ?? $contentData) ?>;
             navigator.clipboard.writeText(jsonStr).then(() => { alert('✅ Copied as Full Folder JSON!'); });
         <?php endif; ?>
     }

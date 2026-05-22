@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub Public API
  * GET    /api/soul/{id} - Get single soul details
- * PUT    /api/soul/{id} - Update a soul (Requires Auth: Session or API Key)
+ * PUT    /api/soul/{id} - Update a soul (Requires Auth: Session or API Key, with JSON Auto-Fix)
  * DELETE /api/soul/{id} - Delete a soul (Requires Auth: Session or API Key)
  */
 
@@ -121,7 +121,7 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 🚨 完美修復：實現真正的 Partial Update (局部更新)，沒傳入的欄位自動沿用資料庫舊值
+    // 局部更新 (Partial Update) 沿用資料庫舊值
     $title = isset($input['title']) ? trim($input['title']) : $old['title'];
     $description = isset($input['description']) ? trim($input['description']) : ($old['description'] ?? '');
     $content = isset($input['content']) ? $input['content'] : $old['content'];
@@ -137,6 +137,19 @@ if ($method === 'GET') {
     }
 
     $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';
+
+    // 🚨 完美 JSON 容錯修復：更新大腦時，同樣清洗 AI 生成的非法單引號，並重新編碼為標準 JSON
+    if ($fileType === 'full_soul_folder') {
+        $cleanedContent = str_replace("\\'", "'", $content);
+        $parsed = json_decode($cleanedContent, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($parsed)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid Modular JSON structure inside content field: ' . json_last_error_msg()]);
+            exit;
+        }
+        $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    }
 
     try {
         $pdo->beginTransaction();

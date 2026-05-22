@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Download & Raw File Handler
- * 支援單一檔案輸出、ZIP 打包、Cloudflare Edge Caching 以及多國語言檔名
+ * 支援單一檔案輸出、ZIP 打包、Cloudflare Edge Caching 以及 JSON 自動容錯
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -63,12 +63,22 @@ if (
 $isFolder = $soul['file_type'] === 'full_soul_folder';
 $filesData = [];
 
+// 🚨 完美 JSON 容錯修復機制：清洗 AI 生成的非法 \' (Single Quote Escape)
 if ($isFolder) {
-    $filesData = json_decode($soul['content'], true) ?: [];
+    $cleanedContent = str_replace("\\'", "'", $soul['content']);
+    $filesData = json_decode($cleanedContent, true);
+    
+    // 如果爛到連修復完都解讀唔到，就輸出為 ERROR.md
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($filesData)) {
+        $filesData = ['ERROR.md' => "Invalid JSON structure. The AI generated a malformed JSON.\n\nRaw content:\n" . $soul['content']];
+    }
 } else {
     $filesData = ['SOUL.md' => $soul['content']];
 }
 
+// ==========================================
+// 輸出模式 1：打包為 ZIP 下載
+// ==========================================
 if ($format === 'zip') {
     $tmpFile = tempnam(sys_get_temp_dir(), 'soul_zip_');
     $zip = new ZipArchive();
@@ -83,7 +93,7 @@ if ($format === 'zip') {
         $safeFileName = preg_replace('/\.+[\/\\\]+/', '', $filename);
         $safeFileName = ltrim($safeFileName, '/\\');
         
-        $strContent = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
+        $strContent = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         
         $zip->addFromString($safeFileName, $strContent);
     }
@@ -100,14 +110,19 @@ if ($format === 'zip') {
     exit;
 }
 
+// ==========================================
+// 輸出模式 2：單一檔案 Raw 輸出
+// ==========================================
 if (!isset($filesData[$requestedFile])) {
     http_response_code(404);
     die('File not found inside this soul.');
 }
 
-$fileContent = is_string($filesData[$requestedFile]) ? $filesData[$requestedFile] : json_encode($filesData[$requestedFile], JSON_UNESCAPED_UNICODE);
+// 強制轉為字串
+$fileContent = is_string($filesData[$requestedFile]) ? $filesData[$requestedFile] : json_encode($filesData[$requestedFile], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 $ext = strtolower(pathinfo($requestedFile, PATHINFO_EXTENSION));
 
+// 🚨 完美安全修復 2：拔除 text/html，強制所有不明檔案及前端代碼渲染為 text/plain，徹底封殺 Inline XSS 攻擊
 if ($ext === 'md') {
     $mimeType = 'text/markdown';
 } elseif ($ext === 'json') {

@@ -1,4 +1,10 @@
 <?php
+/**
+ * SoulMD Hub Public API
+ * GET  /api/souls          - List public souls (Optimized Search, Sorting & Pagination)
+ * POST /api/souls          - Create soul (Auth: Session or API Key, with JSON Auto-Fix)
+ */
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -16,6 +22,9 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
+// ==========================================
+// 權限助手函數 (支援 Session 或 API Key)
+// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -30,6 +39,9 @@ function getAuthUserId($pdo) {
     return null;
 }
 
+// ==========================================
+// 標籤統計函數
+// ==========================================
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));
     foreach ($tags as $tag) {
@@ -39,6 +51,9 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
+// ==========================================
+// SEO URL 友善化助手
+// ==========================================
 function makeSlug($str) {
     if (empty($str)) return 'unassigned';
     $str = mb_strtolower($str, 'UTF-8');
@@ -46,10 +61,13 @@ function makeSlug($str) {
     return rawurlencode(trim($str, '-'));
 }
 
+// ==========================================
+// 路由處理
+// ==========================================
 if ($method === 'GET') {
-    // 🚨 支援分頁邏輯
+    // 🚨 支援分頁邏輯 (Pagination)
     $page = max(1, (int)($_GET['page'] ?? 1));
-    $limit = min((int)($_GET['limit'] ?? 12), 100); // 預設 12 個，適合 3 行排版
+    $limit = min((int)($_GET['limit'] ?? 12), 100); // 預設 12 個，適合前端 3 行排版
     $offset = ($page - 1) * $limit;
     
     $q = trim($_GET['q'] ?? '');
@@ -88,7 +106,7 @@ if ($method === 'GET') {
         $totalCount = (int)$countStmt->fetchColumn();
         $totalPages = ceil($totalCount / $limit);
 
-        // 2. 獲取當頁資料
+        // 2. 獲取當頁資料 (JOIN users 表以獲取 username 供前端組合 SEO URL)
         $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username 
                     FROM souls s 
                     LEFT JOIN users u ON s.user_id = u.id" . $whereSql;
@@ -129,7 +147,7 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
-    // POST 建立 Soul 的邏輯維持不變
+    // 建立 Soul
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -163,6 +181,20 @@ if ($method === 'GET') {
 
     $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';
 
+    // 🚨 完美 JSON 容錯修復：寫入資料庫前，清洗 AI 生成的非法單引號，並重新編碼為乾淨 JSON
+    if ($fileType === 'full_soul_folder') {
+        $cleanedContent = str_replace("\\'", "'", $content);
+        $parsed = json_decode($cleanedContent, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($parsed)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid Modular JSON structure. AI might have generated malformed formatting. Please check the JSON payload.']);
+            exit;
+        }
+        // 重新編碼以確保格式 100% 標準乾淨
+        $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    }
+
     try {
         $pdo->beginTransaction();
 
@@ -188,6 +220,7 @@ if ($method === 'GET') {
 
         $pdo->commit();
 
+        // 🚨 取得目前使用者名稱以拼湊完美 SEO 網址回傳
         $uStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
         $uStmt->execute([$userId]);
         $username = $uStmt->fetchColumn() ?: 'anonymous';
