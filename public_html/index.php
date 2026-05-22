@@ -97,7 +97,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
         try {
-            const res = await fetch('/api/souls?limit=30&sort=popular');
+            const res = await fetch('/api/souls?limit=12&sort=popular');
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {

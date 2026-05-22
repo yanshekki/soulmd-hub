@@ -165,7 +165,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (role) params.append('role', role);
         if (type) params.append('file_type', type);
         params.append('page', currentPage);
-        params.append('limit', 12); // 設定每頁顯示 12 個，完美適應 3 行網格
+        params.append('limit', 24);
 
         // 乾淨地更新 URL 網址列，保留參數但唔 Refresh
         const newUrl = window.location.pathname + '?' + params.toString();
