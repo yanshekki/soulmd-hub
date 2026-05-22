@@ -25,6 +25,8 @@ ErrorDocument 404 /404.php
     # 2. 內部重寫 (Internal Rewrites)
     # ==========================================
 
+    RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]
+
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
 
     RewriteCond %{REQUEST_FILENAME} !-f
