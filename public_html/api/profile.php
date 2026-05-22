@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET /api/profile?username={username} - Get public profile data & public souls
+ * GET /api/profile?username={username}&sort={sort} - Get public profile data & public souls
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 $username = trim($_GET['username'] ?? '');
+$sort = $_GET['sort'] ?? 'newest';
 
 if (empty($username)) {
     http_response_code(400);
@@ -47,7 +48,7 @@ if (!$user) {
 
 $userId = $user['id'];
 
-// 2. 彙整並統計該用戶的社交數據 (總公開數、總點讚數、總 Fork 數)
+// 2. 彙整並統計該用戶的社交數據
 $statsStmt = $pdo->prepare("
     SELECT COUNT(*) as total_souls, 
            COALESCE(SUM(like_count), 0) as total_likes, 
@@ -58,12 +59,26 @@ $statsStmt = $pdo->prepare("
 $statsStmt->execute([$userId]);
 $stats = $statsStmt->fetch();
 
-// 3. 獲取該用戶所有的公開 Souls 列表
+// 🚨 完美升級：支援外部傳入 Sort 參數
+$orderSql = "ORDER BY created_at DESC";
+if ($sort === 'popular') {
+    $orderSql = "ORDER BY like_count DESC, created_at DESC";
+} elseif ($sort === 'forks') {
+    $orderSql = "ORDER BY fork_count DESC, created_at DESC";
+} elseif ($sort === 'oldest') {
+    $orderSql = "ORDER BY created_at ASC";
+} elseif ($sort === 'az') {
+    $orderSql = "ORDER BY title ASC, created_at DESC";
+} elseif ($sort === 'za') {
+    $orderSql = "ORDER BY title DESC, created_at DESC";
+}
+
+// 3. 獲取該用戶所有的公開 Souls 列表 (套用排序)
 $soulsStmt = $pdo->prepare("
     SELECT id, title, description, role, domain, compatibility, file_type, like_count, fork_count, created_at 
     FROM souls 
     WHERE user_id = ? AND is_public = 1 
-    ORDER BY created_at DESC
+    $orderSql
 ");
 $soulsStmt->execute([$userId]);
 $publicSouls = $soulsStmt->fetchAll();

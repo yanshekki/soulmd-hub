@@ -33,9 +33,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <div class="flex flex-wrap gap-3">
                 <select id="sort-filter" class="bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300">
-                    <option value="newest" <?= ($_GET['sort'] ?? '') === 'newest' ? 'selected' : '' ?>>✨ Newest</option>
-                    <option value="popular" <?= ($_GET['sort'] ?? '') === 'popular' ? 'selected' : '' ?>>❤️ Most Liked</option>
-                    <option value="forks" <?= ($_GET['sort'] ?? '') === 'forks' ? 'selected' : '' ?>>🌿 Most Forked</option>
+                    <option value="newest" <?= ($_GET['sort'] ?? 'newest') === 'newest' ? 'selected' : '' ?>>✨ Newest First</option>
+                    <option value="oldest" <?= ($_GET['sort'] ?? '') === 'oldest' ? 'selected' : '' ?>>⏳ Oldest First</option>
+                    <option value="popular" <?= ($_GET['sort'] ?? '') === 'popular' ? 'selected' : '' ?>>❤️ Like Count</option>
+                    <option value="forks" <?= ($_GET['sort'] ?? '') === 'forks' ? 'selected' : '' ?>>🌿 Fork Count</option>
+                    <option value="az" <?= ($_GET['sort'] ?? '') === 'az' ? 'selected' : '' ?>>🔤 Title (A-Z)</option>
+                    <option value="za" <?= ($_GET['sort'] ?? '') === 'za' ? 'selected' : '' ?>>🔡 Title (Z-A)</option>
                 </select>
 
                 <select id="role-filter" class="bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300">
@@ -79,14 +82,16 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     let timeout = null;
     
-    // 🚨 讀取網址列的 page 參數，預設為 1
+    // 讀取網址列的 page 參數，預設為 1
     let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
+    // 完美防禦 DOM XSS
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
     
+    // SEO URL 轉換
     function makeSlug(str) {
         if (!str) return 'unassigned';
         let slug = str.toLowerCase();
@@ -97,7 +102,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     function applyQuickTag(tag) {
         document.getElementById('search-input').value = tag;
-        currentPage = 1; // 重置為第一頁
+        currentPage = 1; // 點擊 Tag 時重置為第一頁
         loadSouls();
     }
 
@@ -109,11 +114,11 @@ require_once __DIR__ . '/../private/includes/header.php';
     function changePage(page) {
         currentPage = page;
         loadSouls();
-        // 換頁後自動平滑捲動到頂部結果區
+        // 換頁後自動平滑捲動到結果區頂部
         window.scrollTo({ top: 350, behavior: 'smooth' });
     }
 
-    // 🚨 動態渲染分頁器 UI
+    // 動態渲染分頁器 UI
     function renderPagination(current, totalPages) {
         const container = document.getElementById('pagination-container');
         if (totalPages <= 1) {
@@ -128,7 +133,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             html += `<button onclick="changePage(${current - 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow"><i class="fas fa-chevron-left"></i></button>`;
         }
 
-        // 頁碼邏輯：只顯示首尾，以及當前頁前後 2 頁，其他用省略號
+        // 頁碼邏輯：只顯示首尾，以及當前頁前後 2 頁，其他用省略號代替
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= current - 2 && i <= current + 2)) {
                 if (i === current) {
@@ -171,7 +176,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         params.append('page', currentPage);
         params.append('limit', 12); // 每頁顯示 12 筆 (剛好排滿 3 欄 x 4 行)
 
-        // 🚨 完美細節：靜默更新網址列，方便用戶分享當前條件及頁數的連結
+        // 靜默更新網址列，方便用戶分享當前條件及頁數的連結
         const newUrl = window.location.pathname + '?' + params.toString();
         window.history.replaceState({}, '', newUrl);
 
@@ -191,7 +196,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         });
                     }
 
-                    // 🚨 完美構建全新 4 層 SEO Link
+                    // 🚨 完美構建 4 層 SEO Link
                     const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
                     html += `

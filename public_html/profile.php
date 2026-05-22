@@ -78,12 +78,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
 
         <div>
-            <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-                Published Souls <span id="souls-count-badge" class="text-xs bg-white/10 px-2.5 py-0.5 rounded-full text-zinc-400">0</span>
-            </h2>
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-white/5 pb-4 gap-4">
+                <h2 class="text-2xl font-bold flex items-center gap-2 w-full sm:w-auto">
+                    Published Souls <span id="souls-count-badge" class="text-xs bg-white/10 px-2.5 py-0.5 rounded-full text-zinc-400">0</span>
+                </h2>
+                <select id="profile-sort" onchange="fetchProfile()" class="w-full sm:w-auto bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400 text-zinc-300 cursor-pointer shadow-inner">
+                    <option value="newest">✨ Newest First</option>
+                    <option value="oldest">⏳ Oldest First</option>
+                    <option value="popular">❤️ Like Count</option>
+                    <option value="forks">🌿 Fork Count</option>
+                    <option value="az">🔤 Title (A-Z)</option>
+                    <option value="za">🔡 Title (Z-A)</option>
+                </select>
+            </div>
             
-            <div id="souls-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                </div>
+            <div id="souls-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 min-h-[200px]"></div>
             
             <div id="empty-souls" class="hidden text-center py-20 bg-zinc-900/20 border border-dashed border-white/10 rounded-3xl">
                 <div class="text-4xl mb-3">📁</div>
@@ -110,12 +119,21 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function fetchProfile() {
         const username = "<?= addslashes($username) ?>";
+        const sort = document.getElementById('profile-sort').value;
         const loadingView = document.getElementById('loading-view');
         const errorView = document.getElementById('error-view');
         const profileContent = document.getElementById('profile-content');
+        const soulsGrid = document.getElementById('souls-grid');
+        const emptySouls = document.getElementById('empty-souls');
+
+        // 🚨 體驗優化：如果主內容已顯示，轉換排序時只在卡片區顯示 Loading，避免整個畫面閃爍
+        if (!profileContent.classList.contains('hidden')) {
+            soulsGrid.innerHTML = `<div class="col-span-1 md:col-span-2 xl:col-span-3 flex justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+            emptySouls.classList.add('hidden');
+        }
 
         try {
-            const res = await fetch(`/api/profile?username=${encodeURIComponent(username)}`);
+            const res = await fetch(`/api/profile?username=${encodeURIComponent(username)}&sort=${sort}`);
             const data = await res.json();
 
             if (!data.success) {
@@ -140,11 +158,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById('stat-forks').innerText = data.stats.total_forks;
             document.getElementById('souls-count-badge').innerText = data.stats.total_souls;
 
-            const soulsGrid = document.getElementById('souls-grid');
-            const emptySouls = document.getElementById('empty-souls');
-            
             if (data.souls.length === 0) {
                 emptySouls.classList.remove('hidden');
+                soulsGrid.innerHTML = '';
             } else {
                 let html = '';
                 data.souls.forEach(soul => {

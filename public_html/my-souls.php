@@ -18,12 +18,21 @@ $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id A
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
+// 🚨 完美升級：支援 PHP 伺服器端渲染排序 (Like Count / Fork Count)
+$sort = $_GET['sort'] ?? 'newest';
+$orderSql = "ORDER BY s.created_at DESC";
+if ($sort === 'popular') {
+    $orderSql = "ORDER BY s.like_count DESC, s.created_at DESC";
+} elseif ($sort === 'forks') {
+    $orderSql = "ORDER BY s.fork_count DESC, s.created_at DESC";
+}
+
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
     FROM souls s 
     LEFT JOIN categories c ON s.role = c.slug 
     WHERE s.user_id = ? 
-    ORDER BY s.created_at DESC
+    $orderSql
 ");
 $stmt->execute([$user_id]);
 $mySouls = $stmt->fetchAll();
@@ -48,6 +57,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-zinc-400 mt-1">Manage and edit your uploaded AI personalities</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
+            <select onchange="window.location.href='?sort=' + this.value" class="px-4 py-2.5 text-sm bg-zinc-900 border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition focus:outline-none focus:border-emerald-400 shadow-inner cursor-pointer">
+                <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>✨ Newest</option>
+                <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>>❤️ Like Count</option>
+                <option value="forks" <?= $sort === 'forks' ? 'selected' : '' ?>>🌿 Fork Count</option>
+            </select>
+            
             <a href="/profile/<?= rawurlencode($_SESSION['username'] ?? '') ?>" target="_blank" class="px-5 py-2.5 text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center gap-2">
                 <i class="fas fa-external-link-alt text-[10px] text-zinc-500"></i> View Profile
             </a>
@@ -321,10 +336,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadData(rawContent) {
             this.files = {};
             try {
-                if (rawContent.trim().startsWith('{')) {
-                    this.files = JSON.parse(rawContent);
-                } else {
-                    this.files['SOUL.md'] = rawContent;
+                let cleaned = rawContent.replace(/\\'/g, "'");
+                if (cleaned.trim().startsWith('{')) { 
+                    this.files = JSON.parse(cleaned); 
+                } else { 
+                    this.files['SOUL.md'] = rawContent; 
                 }
             } catch(e) { this.files['SOUL.md'] = rawContent; }
             if (Object.keys(this.files).length === 0) this.files['SOUL.md'] = '';
