@@ -39,7 +39,6 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
-// 🚨 SEO URL 友善化助手
 function makeSlug($str) {
     if (empty($str)) return 'unassigned';
     $str = mb_strtolower($str, 'UTF-8');
@@ -48,52 +47,63 @@ function makeSlug($str) {
 }
 
 if ($method === 'GET') {
-    $limit = min((int)($_GET['limit'] ?? 20), 100);
-    $offset = (int)($_GET['offset'] ?? 0);
+    // 🚨 支援分頁邏輯
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $limit = min((int)($_GET['limit'] ?? 12), 100); // 預設 12 個，適合 3 行排版
+    $offset = ($page - 1) * $limit;
+    
     $q = trim($_GET['q'] ?? '');
     $role = $_GET['role'] ?? '';
     $fileType = $_GET['file_type'] ?? '';
     $sort = $_GET['sort'] ?? 'newest';
 
-    // 🚨 完美修復：JOIN users 表，獲取 username 供前端組合 SEO URL
-    $sql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username 
-            FROM souls s 
-            LEFT JOIN users u ON s.user_id = u.id 
-            WHERE s.is_public = 1";
-            
+    $whereSql = " WHERE s.is_public = 1";
     $binds = [];
 
     if ($q) {
-        $sql .= " AND (s.title LIKE ? OR s.role LIKE ? OR s.domain LIKE ? OR s.compatibility LIKE ?)";
+        $whereSql .= " AND (s.title LIKE ? OR s.role LIKE ? OR s.domain LIKE ? OR s.compatibility LIKE ?)";
         $binds[] = ["%$q%", PDO::PARAM_STR];
         $binds[] = ["%$q%", PDO::PARAM_STR];
         $binds[] = ["%$q%", PDO::PARAM_STR];
         $binds[] = ["%$q%", PDO::PARAM_STR];
     }
-    
     if ($role) {
-        $sql .= " AND s.role = ?";
+        $whereSql .= " AND s.role = ?";
         $binds[] = [$role, PDO::PARAM_STR];
     }
-    
     if ($fileType) {
-        $sql .= " AND s.file_type = ?";
+        $whereSql .= " AND s.file_type = ?";
         $binds[] = [$fileType, PDO::PARAM_STR];
     }
 
-    if ($sort === 'popular') {
-        $sql .= " ORDER BY s.like_count DESC, s.created_at DESC";
-    } elseif ($sort === 'forks') {
-        $sql .= " ORDER BY s.fork_count DESC, s.created_at DESC";
-    } else {
-        $sql .= " ORDER BY s.created_at DESC";
-    }
-
-    $sql .= " LIMIT ? OFFSET ?";
-    
     try {
-        $stmt = $pdo->prepare($sql);
+        // 1. 獲取符合條件的總筆數 (計算總頁數用)
+        $countSql = "SELECT COUNT(*) FROM souls s" . $whereSql;
+        $countStmt = $pdo->prepare($countSql);
+        $paramIndex = 1;
+        foreach ($binds as $bind) {
+            $countStmt->bindValue($paramIndex++, $bind[0], $bind[1]);
+        }
+        $countStmt->execute();
+        $totalCount = (int)$countStmt->fetchColumn();
+        $totalPages = ceil($totalCount / $limit);
+
+        // 2. 獲取當頁資料
+        $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username 
+                    FROM souls s 
+                    LEFT JOIN users u ON s.user_id = u.id" . $whereSql;
+
+        if ($sort === 'popular') {
+            $dataSql .= " ORDER BY s.like_count DESC, s.created_at DESC";
+        } elseif ($sort === 'forks') {
+            $dataSql .= " ORDER BY s.fork_count DESC, s.created_at DESC";
+        } else {
+            $dataSql .= " ORDER BY s.created_at DESC";
+        }
+
+        $dataSql .= " LIMIT ? OFFSET ?";
         
+        $stmt = $pdo->prepare($dataSql);
         $paramIndex = 1;
         foreach ($binds as $bind) {
             $stmt->bindValue($paramIndex++, $bind[0], $bind[1]);
@@ -107,14 +117,19 @@ if ($method === 'GET') {
         echo json_encode([
             'success' => true,
             'count' => count($souls),
+            'total_count' => $totalCount,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
             'data' => $souls
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        
     } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'Database query failed']);
     }
 
 } elseif ($method === 'POST') {
+    // POST 建立 Soul 的邏輯維持不變
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -173,7 +188,6 @@ if ($method === 'GET') {
 
         $pdo->commit();
 
-        // 🚨 取得目前使用者名稱以拼湊 SEO 網址
         $uStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
         $uStmt->execute([$userId]);
         $username = $uStmt->fetchColumn() ?: 'anonymous';

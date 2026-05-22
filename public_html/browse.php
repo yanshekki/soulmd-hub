@@ -72,10 +72,14 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 
     <div id="results-container" class="min-h-[400px]"></div>
+    
+    <div id="pagination-container" class="mt-12 flex justify-center items-center gap-2"></div>
 </div>
 
 <script>
     let timeout = null;
+    // 從網址獲取當前頁碼
+    let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
     function escapeHTML(str) {
         if (!str) return '';
@@ -91,14 +95,64 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     function applyQuickTag(tag) {
-        const searchInput = document.getElementById('search-input');
-        searchInput.value = tag;
+        document.getElementById('search-input').value = tag;
+        currentPage = 1; // 重置頁碼
         loadSouls();
+    }
+
+    function resetAndLoad() {
+        currentPage = 1; // 篩選條件改變時，回到第一頁
+        loadSouls();
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        loadSouls();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 渲染分頁器 UI
+    function renderPagination(current, totalPages) {
+        const container = document.getElementById('pagination-container');
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        
+        // Prev Button
+        if (current > 1) {
+            html += `<button onclick="changePage(${current - 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300"><i class="fas fa-chevron-left"></i></button>`;
+        }
+
+        // Page Numbers
+        for (let i = 1; i <= totalPages; i++) {
+            // 只顯示首尾及當前頁前後 2 頁
+            if (i === 1 || i === totalPages || (i >= current - 2 && i <= current + 2)) {
+                if (i === current) {
+                    html += `<button class="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-xl text-sm shadow">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage(${i})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300">${i}</button>`;
+                }
+            } else if (i === current - 3 || i === current + 3) {
+                html += `<span class="px-2 text-zinc-500 tracking-widest">...</span>`;
+            }
+        }
+
+        // Next Button
+        if (current < totalPages) {
+            html += `<button onclick="changePage(${current + 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300"><i class="fas fa-chevron-right"></i></button>`;
+        }
+
+        container.innerHTML = html;
     }
 
     async function loadSouls() {
         const container = document.getElementById('results-container');
+        const pagination = document.getElementById('pagination-container');
         container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        pagination.innerHTML = '';
 
         const q = document.getElementById('search-input').value.trim();
         const sort = document.getElementById('sort-filter').value;
@@ -110,8 +164,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (sort && sort !== 'newest') params.append('sort', sort);
         if (role) params.append('role', role);
         if (type) params.append('file_type', type);
+        params.append('page', currentPage);
+        params.append('limit', 12); // 設定每頁顯示 12 個，完美適應 3 行網格
 
-        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        // 乾淨地更新 URL 網址列，保留參數但唔 Refresh
+        const newUrl = window.location.pathname + '?' + params.toString();
         window.history.replaceState({}, '', newUrl);
 
         try {
@@ -160,6 +217,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 });
                 html += `</div>`;
                 container.innerHTML = html;
+                
+                // 渲染分頁器
+                renderPagination(data.current_page, data.total_pages);
             } else {
                 container.innerHTML = `
                     <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
@@ -180,17 +240,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('sort-filter').value = 'newest';
         document.getElementById('role-filter').value = '';
         document.getElementById('type-filter').value = '';
+        currentPage = 1;
         loadSouls();
     }
 
     document.getElementById('search-input').addEventListener('input', () => { 
         clearTimeout(timeout); 
-        timeout = setTimeout(loadSouls, 400); 
+        timeout = setTimeout(resetAndLoad, 400); 
     });
     
-    document.getElementById('sort-filter').addEventListener('change', loadSouls);
-    document.getElementById('role-filter').addEventListener('change', loadSouls);
-    document.getElementById('type-filter').addEventListener('change', loadSouls);
+    document.getElementById('sort-filter').addEventListener('change', resetAndLoad);
+    document.getElementById('role-filter').addEventListener('change', resetAndLoad);
+    document.getElementById('type-filter').addEventListener('change', resetAndLoad);
 
     window.onload = loadSouls;
 </script>
