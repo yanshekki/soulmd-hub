@@ -8,7 +8,7 @@ $pdo = $db->getConnection();
 
 $statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1")->fetchColumn();
 $statsUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-$statsForks = $pdo->query("SELECT SUM(fork_count) FROM souls")->fetchColumn() ?: 0;
+$statsTags = $pdo->query("SELECT COUNT(*) FROM tags_domain")->fetchColumn() ?: 0;
 $categories = $pdo->query("SELECT name, slug, icon FROM categories LIMIT 6")->fetchAll();
 
 $pageTitle = 'SoulMD Hub - Share AI Souls';
@@ -47,8 +47,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="text-zinc-400 text-sm">Active users</div>
         </div>
         <div>
-            <div class="text-4xl font-bold text-emerald-400"><?= number_format($statsForks) ?></div>
-            <div class="text-zinc-400 text-sm">Forks total</div>
+            <div class="text-4xl font-bold text-emerald-400"><?= number_format($statsTags) ?></div>
+            <div class="text-zinc-400 text-sm">Domain tags</div>
         </div>
     </div>
 
