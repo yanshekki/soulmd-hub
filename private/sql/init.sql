@@ -1,4 +1,4 @@
--- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking + Default Users)
+-- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking + Default Users + SEO Indexes)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
@@ -41,7 +41,15 @@ CREATE TABLE IF NOT EXISTS souls (
     like_count INT DEFAULT 0,
     fork_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    
+    INDEX idx_souls_is_public (is_public),
+    INDEX idx_souls_file_type (file_type),
+    INDEX idx_souls_role (role),
+    INDEX idx_souls_title (title),
+    INDEX idx_souls_like_count (like_count),
+    INDEX idx_souls_fork_count (fork_count),
+    INDEX idx_souls_created_at (created_at)
 );
 
 -- ==========================================
@@ -53,7 +61,8 @@ CREATE TABLE IF NOT EXISTS soul_versions (
     content LONGTEXT NOT NULL,
     title VARCHAR(255),
     edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE
+    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
+    INDEX idx_versions_soul_id_date (soul_id, edited_at)
 );
 
 -- ==========================================
@@ -95,12 +104,14 @@ INSERT IGNORE INTO categories (name, slug, icon) VALUES
 -- ==========================================
 CREATE TABLE IF NOT EXISTS tags_domain (
     name VARCHAR(100) PRIMARY KEY,
-    usage_count INT DEFAULT 0
+    usage_count INT DEFAULT 0,
+    INDEX idx_tags_domain_usage (usage_count)
 );
 
 CREATE TABLE IF NOT EXISTS tags_compatibility (
     name VARCHAR(100) PRIMARY KEY,
-    usage_count INT DEFAULT 0
+    usage_count INT DEFAULT 0,
+    INDEX idx_tags_compat_usage (usage_count)
 );
 
 -- Insert Default Tags
