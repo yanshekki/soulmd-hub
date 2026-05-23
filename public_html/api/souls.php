@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/souls          - List public souls (Optimized Search, Sorting & Pagination)
+ * GET  /api/souls          - List public souls (Optimized Search, Multi-Keyword, Sorting & Pagination)
  * POST /api/souls          - Create soul (Auth: Session or API Key, with JSON Auto-Fix)
  */
 
@@ -65,9 +65,9 @@ function makeSlug($str) {
 // 路由處理
 // ==========================================
 if ($method === 'GET') {
-    // 🚨 支援分頁邏輯 (Pagination)
+    // 支援分頁邏輯 (Pagination)
     $page = max(1, (int)($_GET['page'] ?? 1));
-    $limit = min((int)($_GET['limit'] ?? 12), 100); // 預設 12 個，適合前端 3 行排版
+    $limit = min((int)($_GET['limit'] ?? 12), 100); 
     $offset = ($page - 1) * $limit;
     
     $q = trim($_GET['q'] ?? '');
@@ -78,13 +78,25 @@ if ($method === 'GET') {
     $whereSql = " WHERE s.is_public = 1";
     $binds = [];
 
+    // 🚨 完美升級：支援多重關鍵字智能拆分搜尋
     if ($q) {
-        $whereSql .= " AND (s.title LIKE ? OR s.role LIKE ? OR s.domain LIKE ? OR s.compatibility LIKE ?)";
-        $binds[] = ["%$q%", PDO::PARAM_STR];
-        $binds[] = ["%$q%", PDO::PARAM_STR];
-        $binds[] = ["%$q%", PDO::PARAM_STR];
-        $binds[] = ["%$q%", PDO::PARAM_STR];
+        // 利用 Regex 拆分: 匹配空格包圍的 and/or, 或任何逗號, 直線, 空格
+        $keywords = preg_split('/\s+(and|or)\s+|[,|\s]+/i', $q, -1, PREG_SPLIT_NO_EMPTY);
+        $keywords = array_unique($keywords); // 移除重複詞彙
+        $keywords = array_slice($keywords, 0, 5); // 限制最多 5 個關鍵字以保護資料庫效能
+
+        if (!empty($keywords)) {
+            foreach ($keywords as $kw) {
+                // 每一個關鍵字都必須符合 (AND 邏輯)，但可以出現在任何一個欄位 (OR 邏輯)
+                $whereSql .= " AND (s.title LIKE ? OR s.role LIKE ? OR s.domain LIKE ? OR s.compatibility LIKE ?)";
+                $binds[] = ["%$kw%", PDO::PARAM_STR];
+                $binds[] = ["%$kw%", PDO::PARAM_STR];
+                $binds[] = ["%$kw%", PDO::PARAM_STR];
+                $binds[] = ["%$kw%", PDO::PARAM_STR];
+            }
+        }
     }
+    
     if ($role) {
         $whereSql .= " AND s.role = ?";
         $binds[] = [$role, PDO::PARAM_STR];
@@ -115,6 +127,12 @@ if ($method === 'GET') {
             $dataSql .= " ORDER BY s.like_count DESC, s.created_at DESC";
         } elseif ($sort === 'forks') {
             $dataSql .= " ORDER BY s.fork_count DESC, s.created_at DESC";
+        } elseif ($sort === 'oldest') {
+            $dataSql .= " ORDER BY s.created_at ASC";
+        } elseif ($sort === 'az') {
+            $dataSql .= " ORDER BY s.title ASC, s.created_at DESC";
+        } elseif ($sort === 'za') {
+            $dataSql .= " ORDER BY s.title DESC, s.created_at DESC";
         } else {
             $dataSql .= " ORDER BY s.created_at DESC";
         }
@@ -191,7 +209,6 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'error' => 'Invalid Modular JSON structure. AI might have generated malformed formatting. Please check the JSON payload.']);
             exit;
         }
-        // 重新編碼以確保格式 100% 標準乾淨
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
@@ -220,7 +237,6 @@ if ($method === 'GET') {
 
         $pdo->commit();
 
-        // 🚨 取得目前使用者名稱以拼湊完美 SEO 網址回傳
         $uStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
         $uStmt->execute([$userId]);
         $username = $uStmt->fetchColumn() ?: 'anonymous';
