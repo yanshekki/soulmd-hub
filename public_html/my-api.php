@@ -1,32 +1,40 @@
 <?php
+// 如果沒有宣告 $isPublicApiPage，則預設為 false (私人管理模式)
+$isPublicApiPage = $isPublicApiPage ?? false;
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
+$apiKey = 'YOUR_API_KEY';
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+// 如果是私人模式，才進行登入驗證及撈取/生成 API Key
+if (!$isPublicApiPage) {
+    session_start();
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: /login');
+        exit;
+    }
 
-// Get current API Key
-$stmt = $pdo->prepare("SELECT api_key FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$userRow = $stmt->fetch();
-$apiKey = $userRow ? $userRow['api_key'] : null;
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+    $userId = $_SESSION['user_id'];
 
-if (!$apiKey) {
-    $apiKey = bin2hex(random_bytes(32));
-    $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$apiKey, $userId]);
+    // Get current API Key
+    $stmt = $pdo->prepare("SELECT api_key FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $userRow = $stmt->fetch();
+    $apiKey = $userRow ? $userRow['api_key'] : null;
+
+    if (!$apiKey) {
+        $apiKey = bin2hex(random_bytes(32));
+        $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$apiKey, $userId]);
+    }
 }
 
 $baseUrl = defined('BASE_URL') ? BASE_URL : ("https://" . $_SERVER['HTTP_HOST']);
 
-$pageTitle = 'Developer API';
+$pageTitle = $isPublicApiPage ? 'Public API Reference' : 'Developer API';
 $pageDesc = 'Manage your API key and read integration docs for SoulMD Hub.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
@@ -34,23 +42,33 @@ require_once __DIR__ . '/../private/includes/header.php';
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
         <div>
-            <a href="/my-souls" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
-                <i class="fas fa-arrow-left"></i> Back to My Souls
-            </a>
-            <h1 class="text-4xl font-bold tracking-tighter">Developer API</h1>
+            <?php if ($isPublicApiPage): ?>
+                <a href="/browse" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
+                    <i class="fas fa-arrow-left"></i> Back to Hub
+                </a>
+            <?php else: ?>
+                <a href="/my-souls" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
+                    <i class="fas fa-arrow-left"></i> Back to My Souls
+                </a>
+            <?php endif; ?>
+            
+            <h1 class="text-4xl font-bold tracking-tighter"><?= $isPublicApiPage ? 'Public API Reference' : 'Developer API' ?></h1>
             <p class="text-zinc-400 mt-2">Integrate SoulMD Hub programmatically. 100% API-Driven Architecture.</p>
         </div>
     </div>
 
+    <?php if (!$isPublicApiPage): ?>
     <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-emerald-100 shadow-lg flex items-center gap-2 transition-all">
         <i class="fas fa-check-circle"></i> <span id="success-msg"></span>
     </div>
     <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-red-200 shadow-lg flex items-center gap-2 transition-all">
         <i class="fas fa-exclamation-circle"></i> <span id="error-msg"></span>
     </div>
+    <?php endif; ?>
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
         
+        <?php if (!$isPublicApiPage): ?>
         <div class="xl:col-span-4 space-y-6">
             <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-sm shadow-xl relative overflow-hidden sticky top-6">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
@@ -82,10 +100,21 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
-        <div class="xl:col-span-8 space-y-8">
+        <div class="<?= $isPublicApiPage ? 'xl:col-span-12 max-w-5xl mx-auto w-full' : 'xl:col-span-8' ?> space-y-8">
             <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-sm shadow-xl">
-                <h2 class="text-2xl font-bold mb-8 border-b border-white/10 pb-4">API Reference</h2>
+                
+                <?php if ($isPublicApiPage): ?>
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8 border-b border-white/10 pb-4">
+                        <h2 class="text-2xl font-bold">API Reference</h2>
+                        <button onclick="downloadPostmanCollection()" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10">
+                            <i class="fas fa-file-download"></i> Download Postman Collection
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <h2 class="text-2xl font-bold mb-8 border-b border-white/10 pb-4">API Reference</h2>
+                <?php endif; ?>
 
                 <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-10"><i class="fas fa-user-shield mr-2"></i> Authentication & Account</h3>
                 
@@ -275,7 +304,7 @@ require_once __DIR__ . '/../private/includes/header.php';
   "title": "Expert Translator",
   "description": "Translates documents contextually",
   "content": "## Identity\nYou are an expert translator...",
-  "role": "Developer", 
+  "role": "Translator",
   "domain": "Education",
   "compatibility": "Claude 3.5 Sonnet"
 }</pre>
@@ -304,7 +333,7 @@ require_once __DIR__ . '/../private/includes/header.php';
   "title": "Expert Translator v2",
   "description": "Updated translation engine",
   "content": "## Identity\nYou are...",
-  "role": "Developer",
+  "role": "Translator",
   "domain": "Education",
   "compatibility": "Claude 3.5 Sonnet",
   "is_public": 1
@@ -492,6 +521,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
 
+                <?php if (!$isPublicApiPage): ?>
                 <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-12"><i class="fas fa-tools mr-2"></i> Internal Web Utilities</h3>
                 <p class="text-sm text-zinc-500 mb-6 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-amber-200"><i class="fas fa-exclamation-triangle"></i> Note: The following endpoints rely on browser Session Cookies and cannot be authenticated via API Keys. They are excluded from the Postman Collection.</p>
 
@@ -521,6 +551,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                     <p class="text-sm text-zinc-400">Internal endpoint to temporarily save generated AI layouts into current user's session cache memory.</p>
                 </div>
+                <?php endif; ?>
 
             </div>
         </div>
@@ -528,6 +559,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    <?php if (!$isPublicApiPage): ?>
     function copyKey(btn) {
         const key = document.getElementById('key-display').innerText;
         navigator.clipboard.writeText(key).then(() => {
@@ -573,10 +605,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
+    <?php endif; ?>
 
-    // 🚨 終極修復：100% 完整無刪減嘅 Postman JSON，補齊 Categories 甚至所有 Response Samples！
     function downloadPostmanCollection() {
-        const currentApiKey = document.getElementById('key-display').innerText;
+        const keyDisplay = document.getElementById('key-display');
+        const currentApiKey = keyDisplay ? keyDisplay.innerText : 'YOUR_API_KEY';
         
         const collection = {
             "info": {
@@ -742,7 +775,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": JSON.stringify({"title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert...", "role": "Developer", "domain": "Education", "compatibility": "Claude 3.5 Sonnet"}, null, 2)
+                                    "raw": JSON.stringify({"title": "Expert Translator", "description": "Translates documents contextually", "content": "## Identity\nYou are an expert...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet"}, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/souls", "host": ["{{baseUrl}}"], "path": ["api", "souls"] }
                             },
@@ -765,7 +798,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": JSON.stringify({"title": "Expert Translator v2", "description": "Updated translation engine", "content": "## Identity\nYou are...", "role": "Developer", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1}, null, 2)
+                                    "raw": JSON.stringify({"title": "Expert Translator v2", "description": "Updated translation engine", "content": "## Identity\nYou are...", "role": "Translator", "domain": "Education", "compatibility": "Claude 3.5 Sonnet", "is_public": 1}, null, 2)
                                 },
                                 "url": { 
                                     "raw": "{{baseUrl}}/api/soul/:id", 
