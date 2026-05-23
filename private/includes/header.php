@@ -28,7 +28,8 @@ $isLoggedIn = isset($_SESSION['user_id']);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <?php 
     if (isset($pageTitle)) {
         setSEO($pageTitle, $pageDesc ?? '');
@@ -36,6 +37,15 @@ $isLoggedIn = isset($_SESSION['user_id']);
         setSEO('SoulMD Hub', '');
     }
     ?>
+
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SoulMD Hub">
+    <link rel="apple-touch-icon" href="/images/icon-192x192.png">
+    <link rel="icon" href="/images/icon-192x192.png" sizes="192x192" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
@@ -53,6 +63,18 @@ $isLoggedIn = isset($_SESSION['user_id']);
         .tag-input-field:focus { outline: none !important; box-shadow: none !important; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    console.log('PWA Service Worker registered successfully.');
+                }).catch(err => {
+                    console.log('PWA Service Worker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen flex flex-col relative">
 

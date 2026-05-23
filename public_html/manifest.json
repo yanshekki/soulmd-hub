@@ -1,0 +1,21 @@
+{
+  "name": "SoulMD Hub",
+  "short_name": "SoulMD",
+  "description": "The open-source platform to share, discover, and fork AI agent souls as .md files.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "/images/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
