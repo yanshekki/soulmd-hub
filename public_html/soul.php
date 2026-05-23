@@ -64,13 +64,9 @@ $contentData = $soul['content'];
 
 // 🚨 完美 JSON 容錯修復機制
 if ($isFolder) {
-    // 1. 強制清除 AI 幻覺產生的非法單引號 Escaping (\')
     $cleanedContent = str_replace("\\'", "'", $contentData);
-    
-    // 2. 嘗試解析 JSON
     $files = json_decode($cleanedContent, true);
     
-    // 3. 如果依然解析失敗，顯示安全報錯畫面而非白屏
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
         $errorMsg = json_last_error_msg();
         $files = [
@@ -122,8 +118,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>"></i>
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
-            <button onclick="forkSoul()" id="fork-btn" class="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-xl font-bold hover:bg-emerald-400 transition shadow-lg hover:shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
-                <i class="fas fa-code-branch"></i> Fork Soul
+            <button onclick="forkSoul()" id="fork-btn" class="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
+                <i class="fas fa-code-branch text-emerald-400"></i> Fork
+            </button>
+            
+            <button onclick="copyMegaPrompt(this)" class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
+                <i class="fas fa-magic"></i> Copy Full Prompt
             </button>
         </div>
     </div>
@@ -235,10 +235,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="flex items-center gap-2 my-2 ml-4 shrink-0">
                 <?php if ($isFolder): ?>
                     <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-file-archive text-amber-400"></i> Download .zip
+                        <i class="fas fa-file-archive text-amber-400"></i> .zip
                     </a>
-                    <button onclick="copyFullFolder()" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-copy"></i> Copy JSON
+                    <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
+                        <i class="fas fa-copy"></i> JSON
                     </button>
                 <?php endif; ?>
             </div>
@@ -276,6 +276,52 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // 🚨 注入 PHP 資料供前端使用
+    const soulDataFiles = <?= json_encode($files, JSON_UNESCAPED_UNICODE) ?>;
+    const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
+
+    // 🚨 魔法一鍵編譯功能
+    function copyMegaPrompt(btn) {
+        let megaPrompt = '';
+        
+        if (isFolder) {
+            megaPrompt += "Please adopt the following modular AI persona. The persona is defined across several modules below. Read and internalize all rules, styles, and context before interacting with me.\n\n";
+            
+            for (const [filename, content] of Object.entries(soulDataFiles)) {
+                if (filename.includes('ERROR.md')) continue;
+                
+                megaPrompt += `=========================================\n`;
+                megaPrompt += `MODULE: ${filename}\n`;
+                megaPrompt += `=========================================\n\n`;
+                
+                // 確保文字內容安全讀取
+                let fileStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+                megaPrompt += fileStr + `\n\n`;
+            }
+            
+            megaPrompt += "If you understand these instructions and have fully adopted the persona, acknowledge briefly and await my first prompt.";
+        } else {
+            // 如果只係單一檔案，直接 Copy
+            megaPrompt = Object.values(soulDataFiles)[0];
+        }
+        
+        navigator.clipboard.writeText(megaPrompt).then(() => {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied to Clipboard!';
+            btn.classList.add('bg-white', 'text-black');
+            btn.classList.remove('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
+            
+            // 彈出提示，話畀用家知可以直接貼落 ChatGPT
+            alert('✨ Mega-Prompt compiled and copied!\n\nYou can now paste it directly into ChatGPT, Claude, or any LLM interface.');
+            
+            setTimeout(() => { 
+                btn.innerHTML = originalHtml; 
+                btn.classList.remove('bg-white', 'text-black');
+                btn.classList.add('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
+            }, 3000);
+        });
+    }
+
     // 安全過濾與 Markdown 渲染
     marked.setOptions({ 
         breaks: true, 
@@ -324,11 +370,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
-    function copyFullFolder() {
+    function copyFullFolder(btn) {
         <?php if($isFolder): ?>
-            // 🚨 複製清洗過後的有效 JSON 字串
             const jsonStr = <?= json_encode($cleanedContent ?? $contentData) ?>;
-            navigator.clipboard.writeText(jsonStr).then(() => { alert('✅ Copied as Full Folder JSON!'); });
+            navigator.clipboard.writeText(jsonStr).then(() => { 
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-emerald-600"></i> Copied!';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            });
         <?php endif; ?>
     }
 
