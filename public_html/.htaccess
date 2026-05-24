@@ -22,7 +22,7 @@ ErrorDocument 404 /404.php
     RewriteCond %{THE_REQUEST} \s/+api/soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^api/soul\.php$ /api/soul/%1? [R=301,L]
 
-    # 🚨 新增：防止直接訪問 api-docs.php，強制轉為乾淨網址
+    # 防止直接訪問 api-docs.php，強制轉為乾淨網址
     RewriteCond %{THE_REQUEST} \s/+api-docs\.php[\s?] [NC]
     RewriteRule ^api-docs\.php$ /api-docs [R=301,L]
 
@@ -38,13 +38,24 @@ ErrorDocument 404 /404.php
     RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
 
-    # --- 🚨 新增：明確指定 API 文件頁面路由，防止與 api/ 資料夾衝突 ---
+    # 明確指定 API 文件頁面路由，防止與 api/ 資料夾衝突 
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
 
     # --- SEO 2: 用戶個人主頁路由 ---
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^profile/([^/]+)/?$ profile.php?username=$1 [L,QSA]
+    
+    # --- 🚨 新增：Chat 聊天室路由 ---
+    # 帶有 Session Token 的完整路徑
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^chat/([0-9]+)/([a-zA-Z0-9_-]+)/?$ chat.php?soul_id=$1&session_token=$2 [L,QSA]
+    
+    # 首次進入 (無 Session Token)，由 PHP 負責生成並跳轉
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^chat/([0-9]+)/?$ chat.php?soul_id=$1 [L,QSA]
 
     # --- 下載模組修復：加入 [B] 標記安全轉譯空格與特殊符號 ---
     # 1. 打包 ZIP 下載 (全新 4層 參數)

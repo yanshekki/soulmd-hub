@@ -1,4 +1,4 @@
--- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking + Default Users + SEO Indexes)
+-- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking + Default Users + SEO Indexes + Chat History)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
@@ -136,4 +136,18 @@ CREATE TABLE IF NOT EXISTS soul_likes (
     UNIQUE KEY unique_like (soul_id, user_id),
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ==========================================
+-- 8. Chat Messages Table (One-Click Persona Chats)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    soul_id INT NOT NULL,
+    session_token VARCHAR(64) NOT NULL,
+    role ENUM('user', 'assistant') NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
+    INDEX idx_chat_session (soul_id, session_token, created_at)
 );

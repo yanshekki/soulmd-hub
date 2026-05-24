@@ -143,10 +143,25 @@ require_once __DIR__ . '/../private/includes/header.php';
         <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4"><?= htmlspecialchars($soul['title']) ?></h1>
         
         <?php if ($soul['description']): ?>
-            <p class="text-lg text-zinc-400 leading-relaxed mb-8 max-w-3xl">
+            <p class="text-lg text-zinc-400 leading-relaxed mb-6 max-w-3xl">
                 <?= nl2br(htmlspecialchars($soul['description'])) ?>
             </p>
         <?php endif; ?>
+
+        <div class="bg-blue-900/10 border border-blue-500/20 rounded-3xl p-6 mb-8 max-w-3xl shadow-inner">
+            <h3 class="text-blue-400 text-xl font-bold mb-3 flex items-center gap-2">
+                <i class="fas fa-bolt text-blue-500"></i> One-Click Interaction
+            </h3>
+            <p class="text-sm text-zinc-300 mb-6 leading-relaxed">
+                Instantly interact with this AI soul directly in your browser. Start a live conversation based on the modular instructions provided in this repository. No complex API integrations required.
+            </p>
+            <a href="/chat/<?= $id ?>" target="_blank" class="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition shadow-lg shadow-blue-500/20 hover:scale-[1.02] transform duration-200">
+                <i class="fas fa-paper-plane"></i> Start Conversation
+            </a>
+            <div class="mt-5 text-xs text-zinc-400 bg-black/30 p-4 rounded-xl border border-white/5 leading-relaxed">
+                <i class="fas fa-shield-alt text-amber-500 mr-1.5"></i> <strong>Privacy Notice:</strong> Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.
+            </div>
+        </div>
 
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-6 border-t border-white/10">
             <div class="flex flex-wrap items-center gap-6 text-sm text-zinc-400">
@@ -276,11 +291,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // 🚨 注入 PHP 資料供前端使用
     const soulDataFiles = <?= json_encode($files, JSON_UNESCAPED_UNICODE) ?>;
     const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
 
-    // 🚨 魔法一鍵編譯功能
     function copyMegaPrompt(btn) {
         let megaPrompt = '';
         
@@ -294,14 +307,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                 megaPrompt += `MODULE: ${filename}\n`;
                 megaPrompt += `=========================================\n\n`;
                 
-                // 確保文字內容安全讀取
                 let fileStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
                 megaPrompt += fileStr + `\n\n`;
             }
             
             megaPrompt += "If you understand these instructions and have fully adopted the persona, acknowledge briefly and await my first prompt.";
         } else {
-            // 如果只係單一檔案，直接 Copy
             megaPrompt = Object.values(soulDataFiles)[0];
         }
         
@@ -311,7 +322,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.classList.add('bg-white', 'text-black');
             btn.classList.remove('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
             
-            // 彈出提示，話畀用家知可以直接貼落 ChatGPT
             alert('✨ Mega-Prompt compiled and copied!\n\nYou can now paste it directly into ChatGPT, Claude, or any LLM interface.');
             
             setTimeout(() => { 
@@ -322,7 +332,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
-    // 安全過濾與 Markdown 渲染
     marked.setOptions({ 
         breaks: true, 
         gfm: true, 
