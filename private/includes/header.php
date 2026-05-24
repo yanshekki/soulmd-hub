@@ -63,19 +63,12 @@ $isLoggedIn = isset($_SESSION['user_id']);
         .tag-input-field:focus { outline: none !important; box-shadow: none !important; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17602184951"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?= GOOGLE_ANALYTICS_ID; ?>"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'AW-17602184951');
-    </script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0HXBBQEZYH"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-0HXBBQEZYH');
+    gtag('config', '<?= GOOGLE_ANALYTICS_ID; ?>');
     </script>
     <script>
         if ('serviceWorker' in navigator) {

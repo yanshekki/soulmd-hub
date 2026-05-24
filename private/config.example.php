@@ -14,6 +14,8 @@ define('DB_CHARSET', 'utf8mb4');
 define('BASE_URL', 'https://soulmd-hub.ysk.hk');
 define('SITE_NAME', 'SoulMD Hub');
 
+define('GOOGLE_ANALYTICS_ID', 'YOUR_GOOGLE_ANALYTICS_ID_HERE');
+
 // ==========================================
 // DeepSeek API Configuration
 // ==========================================
