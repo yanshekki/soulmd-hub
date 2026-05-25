@@ -8,6 +8,10 @@ ErrorDocument 404 /404.php
     # ==========================================
     # 1. 外部重定向 (External Redirects - 301)
     # ==========================================
+    # 🚨 新增：舊版 Invoice 網址自動強製轉換為 RESTful 乾淨路徑
+    RewriteCond %{THE_REQUEST} \s/+invoice\.php\?id=([0-9]+) [NC]
+    RewriteRule ^invoice\.php$ /invoice/%1? [R=301,L]
+
     RewriteCond %{THE_REQUEST} \s/+soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^soul\.php$ /soul/%1? [R=301,L]
 
@@ -30,12 +34,17 @@ ErrorDocument 404 /404.php
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
     
-    # 🚨 新增核心商業、個人紀錄、帳單與 Invoice 路由
+    # 核心商業、個人紀錄、帳單路由
     RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
     RewriteRule ^my-chats/?$ my-chats.php [L,QSA]
     RewriteRule ^billing/?$ billing.php [L,QSA]
-    RewriteRule ^invoice/?$ invoice.php [L,QSA]
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
+
+    # 🚨 核心亮點：新版 Invoice 乾淨路由規則 (/invoice/123 -> invoice.php?id=123)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^invoice/([0-9]+)/?$ invoice.php?id=$1 [L,QSA]
+    RewriteRule ^invoice/?$ invoice.php [L,QSA]
 
     # 用戶主頁
     RewriteCond %{REQUEST_FILENAME} !-f

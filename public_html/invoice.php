@@ -1,17 +1,20 @@
 <?php
 /**
- * SoulMD Hub - Printable Invoice Generator
+ * SoulMD Hub - Printable Invoice Generator (White-label & Dark Theme Print Edition)
  */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 
-session_start();
-
-// 強制登入
+// 🛡️ 權限安全檢查層 1：強制驗證登入狀態
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    die("Unauthorized access.");
+    echo "<div style='color:#ef4444; font-family:sans-serif; text-align:center; margin-top:50px; font-weight:bold;'>Unauthorized access. Please log in first.</div>";
+    exit;
 }
 
 $paymentId = (int)($_GET['id'] ?? 0);
@@ -22,25 +25,33 @@ if (!$paymentId) {
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+$userId = (int)$_SESSION['user_id'];
 
-// 嚴格權限檢查：JOIN users 表，確保只撈取屬於當前用戶的單據
-$stmt = $pdo->prepare("
-    SELECT p.*, u.username, u.email 
-    FROM payments p 
-    JOIN users u ON p.user_id = u.id 
-    WHERE p.id = ? AND p.user_id = ?
-");
-$stmt->execute([$paymentId, $userId]);
-$invoice = $stmt->fetch();
+try {
+    // 🛡️ 權限安全檢查層 2：嚴格多租戶隔離 (Multi-Tenant Isolation)
+    $stmt = $pdo->prepare("
+        SELECT p.*, u.username, u.email 
+        FROM payments p 
+        JOIN users u ON p.user_id = u.id 
+        WHERE p.id = ? AND p.user_id = ?
+    ");
+    $stmt->execute([$paymentId, $userId]);
+    $invoice = $stmt->fetch();
 
-if (!$invoice) {
-    http_response_code(404);
-    die("Invoice not found or access denied.");
+    // 🛡️ 權限安全檢查層 3：強類型防禦校驗 (Bulletproof Defense)
+    if (!$invoice || (int)$invoice['user_id'] !== $userId) {
+        http_response_code(403);
+        echo "<div style='color:#ef4444; font-family:sans-serif; text-align:center; margin-top:50px; font-weight:bold;'>🔒 Access Denied: You do not have permission to view this invoice.</div>";
+        exit;
+    }
+
+    $orderDate = date('F j, Y', strtotime($invoice['created_at']));
+    $invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    die("Internal server error while processing billing statement.");
 }
-
-$orderDate = date('F j, Y', strtotime($invoice['created_at']));
-$invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,75 +62,96 @@ $invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        /* 🚨 終極列印優化配置：確保列印或儲存 PDF 時與 HTML 視覺效果完全 100% 一致 */
         @media print {
-            body { background-color: white !important; color: black !important; }
-            .no-print { display: none !important; }
-            .print-border { border-color: #e5e7eb !important; }
-            .print-bg { background-color: #f9fafb !important; }
-            .print-text { color: #111827 !important; }
-            .print-text-muted { color: #6b7280 !important; }
+            @page {
+                size: auto;
+                margin: 0mm; /* 徹底抹除瀏覽器自帶的頁首網址、頁尾日期等雜音 */
+            }
+            /* 🚨 修正：打破 min-h-screen 死鎖，並優化 padding 防止爆頁 */
+            html, body {
+                height: auto !important;
+                min-height: auto !important;
+                background-color: #09090b !important; /* 強制保持螢幕看到的 zinc-950 背景色 */
+                color: #ffffff !important;
+                margin: 0 !important;
+                padding: 20mm 15mm !important; /* 重新定義列印時乾淨的內邊距，防版面過度貼邊 */
+                -webkit-print-color-adjust: exact !important; /* 關鍵：強制 Chrome / Safari 渲染深色背景 */
+                print-color-adjust: exact !important;         /* 關鍵：強制 Firefox / Edge 渲染深色背景 */
+            }
+            .no-print { 
+                display: none !important; /* 隱藏控制按鈕 */
+            }
+            .invoice-card {
+                border: none !important;
+                box-shadow: none !important;
+                margin: 0 !important; /* 徹底清除外部 Margin 防止頂爆分頁 */
+                background-color: #18181b !important; /* 強制保持 zinc-900 區塊色 */
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
-<body class="bg-zinc-950 text-white min-h-screen p-4 sm:p-8 font-sans">
+<body class="bg-zinc-950 text-white min-h-screen p-4 sm:p-8 font-sans transition-colors duration-300">
 
     <div class="max-w-3xl mx-auto mb-8 flex justify-between items-center no-print">
-        <button onclick="window.close()" class="text-zinc-400 hover:text-white flex items-center gap-2 transition">
-            <i class="fas fa-arrow-left"></i> Close
-        </button>
-        <button onclick="window.print()" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 font-bold rounded-xl shadow-lg hover:bg-emerald-400 transition flex items-center gap-2">
+        <a href="/billing" class="text-zinc-400 hover:text-white flex items-center gap-2 transition text-sm font-medium">
+            <i class="fas fa-arrow-left"></i> Back to Billing
+        </a>
+        <button onclick="window.print()" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 font-bold rounded-xl shadow-lg hover:bg-emerald-400 transition flex items-center gap-2 text-sm transform hover:scale-105 duration-200">
             <i class="fas fa-print"></i> Print / Save as PDF
         </button>
     </div>
 
-    <div class="max-w-3xl mx-auto bg-zinc-900 border border-white/10 rounded-2xl p-8 sm:p-12 shadow-2xl print-border print-bg">
+    <div class="invoice-card max-w-3xl mx-auto bg-zinc-900 border border-white/10 rounded-2xl p-8 sm:p-12 shadow-2xl transition-all">
         
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-8 mb-8 print-border">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-8 mb-8">
             <div>
-                <div class="text-3xl font-black tracking-tighter print-text">
+                <div class="text-3xl font-black tracking-tighter text-white">
                     SoulMD <span class="text-emerald-400">HUB</span>
                 </div>
-                <div class="text-xs text-zinc-500 mt-1 print-text-muted">Powered by YSK Limited</div>
+                <div class="text-xs text-zinc-500 mt-1">Powered by YSK Limited</div>
             </div>
             <div class="mt-4 sm:mt-0 text-left sm:text-right">
-                <h1 class="text-2xl font-bold text-zinc-300 print-text tracking-widest uppercase">INVOICE</h1>
-                <p class="text-sm font-mono text-zinc-400 print-text-muted mt-1">#<?= $invoiceNumber ?></p>
+                <h1 class="text-2xl font-bold text-zinc-300 tracking-widest uppercase">INVOICE</h1>
+                <p class="text-sm font-mono text-zinc-400 mt-1"># Rhine-<?= $invoiceNumber ?></p>
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row justify-between gap-8 mb-12">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12">
             <div>
-                <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 print-text-muted">Billed To</h3>
-                <div class="font-bold text-lg print-text">@<?= htmlspecialchars($invoice['username']) ?></div>
+                <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Billed To</h3>
+                <div class="font-bold text-lg text-white">@<?= htmlspecialchars($invoice['username']) ?></div>
                 <?php if ($invoice['email']): ?>
-                    <div class="text-sm text-zinc-400 print-text-muted mt-1"><?= htmlspecialchars($invoice['email']) ?></div>
+                    <div class="text-sm text-zinc-400 mt-1"><?= htmlspecialchars($invoice['email']) ?></div>
                 <?php endif; ?>
             </div>
             <div class="text-left sm:text-right">
-                <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 print-text-muted">Payment Details</h3>
-                <div class="text-sm text-zinc-300 print-text mb-1"><span class="text-zinc-500 print-text-muted">Date:</span> <?= $orderDate ?></div>
-                <div class="text-sm text-zinc-300 print-text mb-1"><span class="text-zinc-500 print-text-muted">Method:</span> PayPal</div>
-                <div class="text-sm text-zinc-300 print-text"><span class="text-zinc-500 print-text-muted">Transaction ID:</span> <span class="font-mono"><?= htmlspecialchars($invoice['paypal_order_id']) ?></span></div>
+                <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Payment Details</h3>
+                <div class="text-sm text-zinc-300 mb-1"><span class="text-zinc-500">Date:</span> <?= $orderDate ?></div>
+                <div class="text-sm text-zinc-300 mb-1"><span class="text-zinc-500">Method:</span> PayPal Gateway</div>
+                <div class="text-sm text-zinc-300"><span class="text-zinc-500">Transaction ID:</span> <span class="font-mono text-xs text-zinc-400"><?= htmlspecialchars($invoice['paypal_order_id']) ?></span></div>
             </div>
         </div>
 
         <div class="mb-12">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b-2 border-white/10 print-border text-zinc-400 print-text-muted text-xs uppercase tracking-widest">
+                    <tr class="border-b-2 border-white/10 text-zinc-400 text-xs uppercase tracking-widest">
                         <th class="py-3 font-semibold">Description</th>
                         <th class="py-3 font-semibold text-center">Period</th>
                         <th class="py-3 font-semibold text-right">Amount</th>
                     </tr>
                 </thead>
-                <tbody class="text-sm">
-                    <tr class="border-b border-white/5 print-border">
-                        <td class="py-4 print-text">
-                            <div class="font-bold text-base mb-1">SoulMD Hub - <?= strtoupper($invoice['tier_purchased']) ?> Pass</div>
-                            <div class="text-zinc-400 print-text-muted text-xs">Unlock premium AI limits, vision capabilities and reasoning engine.</div>
+                <tbody class="text-sm divide-y divide-white/5">
+                    <tr>
+                        <td class="py-5">
+                            <div class="font-bold text-base text-white mb-1">SoulMD Hub - <?= strtoupper($invoice['tier_purchased']) ?> Pass</div>
+                            <div class="text-zinc-400 text-xs leading-relaxed">Immediate unlock of advanced architecture cluster tokens, dedicated multi-modal asset understanding capabilities, and isolated system execution window.</div>
                         </td>
-                        <td class="py-4 text-center text-zinc-300 print-text">30 Days</td>
-                        <td class="py-4 text-right font-bold text-white print-text"><?= htmlspecialchars($invoice['currency']) ?> $<?= number_format($invoice['amount'], 2) ?></td>
+                        <td class="py-5 text-center text-zinc-300 font-medium">30 Days</td>
+                        <td class="py-5 text-right font-bold text-white"><?= htmlspecialchars($invoice['currency']) ?> $<?= number_format($invoice['amount'], 2) ?></td>
                     </tr>
                 </tbody>
             </table>
@@ -127,31 +159,31 @@ $invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
 
         <div class="flex justify-end mb-16">
             <div class="w-full sm:w-1/2">
-                <div class="flex justify-between items-center py-3 border-b border-white/5 print-border text-sm">
-                    <span class="text-zinc-400 print-text-muted">Subtotal</span>
-                    <span class="text-zinc-300 print-text">$<?= number_format($invoice['amount'], 2) ?></span>
+                <div class="flex justify-between items-center py-3 border-b border-white/5 text-sm">
+                    <span class="text-zinc-400">Subtotal</span>
+                    <span class="text-zinc-300">$<?= number_format($invoice['amount'], 2) ?></span>
                 </div>
-                <div class="flex justify-between items-center py-3 border-b border-white/5 print-border text-sm">
-                    <span class="text-zinc-400 print-text-muted">Tax (0%)</span>
-                    <span class="text-zinc-300 print-text">$0.00</span>
+                <div class="flex justify-between items-center py-3 border-b border-white/5 text-sm">
+                    <span class="text-zinc-400">Tax / VAT (0%)</span>
+                    <span class="text-zinc-300">$0.00</span>
                 </div>
                 <div class="flex justify-between items-center py-4 text-xl font-bold">
-                    <span class="text-white print-text">Total Paid</span>
-                    <span class="text-emerald-400 print-text"><?= htmlspecialchars($invoice['currency']) ?> $<?= number_format($invoice['amount'], 2) ?></span>
+                    <span class="text-white">Total Paid</span>
+                    <span class="text-emerald-400"><?= htmlspecialchars($invoice['currency']) ?> $<?= number_format($invoice['amount'], 2) ?></span>
                 </div>
             </div>
         </div>
 
-        <div class="border-t border-white/10 print-border pt-6 text-[10px] text-zinc-500 print-text-muted leading-relaxed">
-            <p class="mb-2"><strong class="text-zinc-300 print-text">TERMS & CONDITIONS - NON-REFUNDABLE TRANSACTION</strong></p>
+        <div class="border-t border-white/10 pt-6 text-[10px] text-zinc-500 leading-relaxed">
+            <p class="mb-2"><strong class="text-zinc-300 font-semibold uppercase tracking-wider">Terms & Conditions - Non-Refundable Transaction</strong></p>
             <p class="mb-2">
-                This invoice serves as a permanent record of your transaction. By completing this purchase, you acquired immediate digital access to SoulMD Hub's premium server resources, APIs, and proprietary AI processing architectures. 
+                This document serves as an official cryptographic and legal certificate of your purchase. By authorizing this financial transaction, you acknowledge that immediate digital token activation and architectural capabilities have been rendered onto your container profile.
             </p>
-            <p class="uppercase font-semibold text-zinc-400 print-text border border-zinc-700 print-border p-2 inline-block rounded">
-                All transactions are final. No refunds, partial credits, or chargebacks will be provided under any circumstances, including lack of usage or account termination.
+            <p class="uppercase font-bold text-zinc-400 border border-zinc-800 p-3 rounded-xl bg-zinc-950/40 text-center my-3">
+                ⚠️ All transactions executed within this node framework are final. No refunds, partial credits, or automated chargebacks shall be facilitated under any scenario.
             </p>
-            <p class="mt-4 text-center pt-4 border-t border-white/5 print-border">
-                Thank you for your business. For support, please contact <?= htmlspecialchars(SITE_BILLING_EMAIL) ?>.
+            <p class="mt-4 text-center pt-4 border-t border-white/5 font-medium">
+                Thank you for supporting the infrastructure ecosystem. For corporate inquiries, contact billing@ysk.hk.
             </p>
         </div>
 

@@ -120,7 +120,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     </td>
                                     <td class="p-4 font-bold text-white whitespace-nowrap"><?= htmlspecialchars($pay['currency']) ?> $<?= number_format($pay['amount'], 2) ?></td>
                                     <td class="p-4 text-right whitespace-nowrap">
-                                        <a href="/invoice?id=<?= $pay['id'] ?>" target="_blank" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg border border-white/10 transition shadow-sm">
+                                        <a href="/invoice/<?= $pay['id'] ?>" target="_blank" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg border border-white/10 transition shadow-sm">
                                             <i class="fas fa-download"></i> PDF
                                         </a>
                                     </td>
