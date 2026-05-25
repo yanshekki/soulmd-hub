@@ -74,7 +74,7 @@ if ($chatSession = $sessStmt->fetch()) {
     $isSessionOwner = isset($_SESSION['user_id']);
 }
 
-// 🚨 動態載入 Config 限制 (嚴格控制前端狀態)
+// 動態載入 Config 限制 (嚴格控制前端狀態)
 $tierPrefix = strtoupper($userTier);
 $maxTurns = constant("{$tierPrefix}_MAX_TURNS");
 $maxInputChars = constant("{$tierPrefix}_MAX_INPUT_CHARS");
@@ -220,7 +220,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
     const sendBtn = document.getElementById('send-btn');
     const chatForm = document.getElementById('chat-form');
     
-    // 參數注入
     let userMessageCount = 0;
     const MAX_TURNS = <?= $maxTurns ?>;
     const MAX_INPUT_CHARS = <?= $maxInputChars ?>;
@@ -243,7 +242,29 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         window.location.href = '/browse';
     }
 
-    // 🚨 圖片 Lightbox 邏輯
+    // 🚨 智慧型置底捲動器 (加強型防走位)
+    function scrollToBottom() {
+        if (chatBox) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+
+    // 🚨 完美相容新舊版 marked.js，阻絕 CDN 函數未定義錯誤
+    if (typeof marked.use === 'function') {
+        marked.use({ breaks: true, gfm: true });
+    } else if (typeof marked.setOptions === 'function') {
+        try { marked.setOptions({ breaks: true, gfm: true }); } catch(e) {}
+    }
+
+    // 安全解析 Markdown
+    function parseMarkdown(text) {
+        try {
+            return marked.parse(text);
+        } catch (e) {
+            return escapeHTML(text).replace(/\n/g, '<br>');
+        }
+    }
+
     function openImageModal(src) {
         const modal = document.getElementById('image-viewer-modal');
         const img = document.getElementById('image-viewer-img');
@@ -265,7 +286,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         setTimeout(() => { modal.classList.add('hidden'); img.src = ''; }, 300);
     }
 
-    // 🚨 隱私鎖狀態 UI 更新
     function updatePrivacyUI() {
         const toggle = document.getElementById('privacy-toggle');
         if(!toggle) return;
@@ -288,7 +308,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         }
     }
 
-    // 🚨 圖片上傳權限檢查 (攔截免費用戶)
     function triggerImageUpload() {
         if (!ALLOW_IMAGE) {
             showPaywall();
@@ -304,7 +323,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         document.getElementById('image-preview').src = '';
     }
 
-    // 🚨 Canvas 圖片壓縮處理
     function handleImageSelection(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -334,7 +352,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                 ctx.drawImage(img, 0, 0, width, height);
 
                 currentImageBase64 = canvas.toDataURL('image/jpeg', IMG_QUALITY);
-                
                 document.getElementById('image-preview').src = currentImageBase64;
                 document.getElementById('image-preview-container').classList.remove('hidden');
             };
@@ -343,7 +360,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         reader.readAsDataURL(file);
     }
 
-    // 🚨 Paywall 彈窗控制
     function showPaywall() {
         const modal = document.getElementById('paywall-modal');
         modal.classList.remove('hidden');
@@ -355,33 +371,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         modal.classList.add('opacity-0'); modal.firstElementChild.classList.remove('scale-100'); modal.firstElementChild.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
-
-    // 🚨 Markdown 渲染器設定
-    marked.setOptions({
-        breaks: true,
-        gfm: true,
-        highlight: function(code, lang) {
-            if (lang && hljs.getLanguage(lang)) {
-                try { return hljs.highlight(code, { language: lang }).value; } catch (e) {}
-            }
-            return hljs.highlightAuto(code).value;
-        }
-    });
-
-    // 文字框自動適應高度
-    chatInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-        if (this.value.trim() === '') this.style.height = '48px';
-    });
-
-    // 監聽 Enter 鍵發送
-    chatInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatForm.dispatchEvent(new Event('submit'));
-        }
-    });
 
     function updateCharCount(el) {
         const len = el.value.length;
@@ -400,7 +389,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         });
     }
 
-    // 🚨 將對話寫入 UI 並 Scroll To Bottom
+    // 🚨 完美渲染多模態內容 (附加 <img> 智慧型置底機制)
     function appendMessage(role, content) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
@@ -424,64 +413,76 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         if (Array.isArray(parsedContent)) {
             parsedContent.forEach(part => {
                 if (part.type === 'text') {
-                    innerHTML += DOMPurify.sanitize(marked.parse(part.text));
+                    innerHTML += DOMPurify.sanitize(parseMarkdown(part.text || ''));
                 } else if (part.type === 'image_url' && part.image_url && part.image_url.url) {
-                    innerHTML += `<div class="mt-3 mb-1"><img src="${part.image_url.url}" class="max-w-full max-h-60 rounded-lg cursor-pointer hover:opacity-80 transition shadow-md border border-white/10" onclick="openImageModal(this.src)" alt="Uploaded Image"></div>`;
+                    // 🚨 注入 onload="scrollToBottom()" 保障 Base64 圖片載入完成後不會被吃掉高度
+                    innerHTML += `<div class="mt-3 mb-1"><img src="${part.image_url.url}" class="max-w-full max-h-60 rounded-lg cursor-pointer hover:opacity-80 transition shadow-md border border-white/10" onclick="openImageModal(this.src)" onload="scrollToBottom()" alt="Uploaded Image"></div>`;
                 }
             });
         } else {
             if (content === '...') {
                 innerHTML = '<div class="flex gap-1 items-center h-4"><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></span></div>';
             } else {
-                innerHTML = DOMPurify.sanitize(marked.parse(content));
+                innerHTML = DOMPurify.sanitize(parseMarkdown(content || ''));
             }
         }
 
         bubble.innerHTML = innerHTML;
         msgDiv.appendChild(bubble);
+        chatBox.appendChild(msgDiv);
         
-        // 即時 Scroll (保障小訊息)
-        chatBox.scrollTop = chatBox.scrollHeight;
+        scrollToBottom();
         return bubble;
     }
 
-    // 🚨 載入歷史紀錄 (完美 Scroll 修正)
+    // 🚨 智慧安全型歷史記錄讀取
     async function loadChatHistory() {
+        const loading = document.getElementById('loading-history');
         try {
             const res = await fetch(`/api/chat?soul_id=${soulId}&session_token=${sessionToken}`);
             const data = await res.json();
             
-            const loading = document.getElementById('loading-history');
             if (loading) loading.remove();
 
-            if (data.success && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    appendMessage(msg.role, msg.content);
-                    if (msg.role === 'user') userMessageCount++;
-                });
-                
-                // 確保所有歷史圖文渲染後，強制順滑置底
-                setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+            if (data.success) {
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        appendMessage(msg.role, msg.content);
+                        if (msg.role === 'user') userMessageCount++;
+                    });
+                    
+                    // 多階段強制置底排程，杜絕非同步渲染高度誤差
+                    scrollToBottom();
+                    setTimeout(scrollToBottom, 50);
+                    setTimeout(scrollToBottom, 250);
 
-                if (userMessageCount >= MAX_TURNS) {
-                    showPaywall();
+                    if (userMessageCount >= MAX_TURNS) {
+                        showPaywall();
+                    }
+                } else {
+                    appendMessage('assistant', "Hello! I am initialized and ready. What would you like to discuss?");
                 }
-            } else if (!data.success && data.error.includes('Access Denied')) {
-                appendMessage('assistant', "⚠️ **Private Session**\nYou do not have permission to view this chat history.");
-                chatInput.disabled = true; sendBtn.disabled = true;
             } else {
-                appendMessage('assistant', "Hello! I am initialized and ready. What would you like to discuss?");
+                const errMsg = data.error || 'Access Denied';
+                if (errMsg.includes('Access Denied')) {
+                    appendMessage('assistant', "⚠️ **Private Session**\nYou do not have permission to view this chat history.");
+                    chatInput.disabled = true; sendBtn.disabled = true;
+                } else {
+                    appendMessage('assistant', `⚠️ Error: ${escapeHTML(errMsg)}`);
+                }
             }
         } catch (e) {
-            document.getElementById('loading-history').innerHTML = '<span class="text-red-400">Failed to load conversation history.</span>';
+            if (loading) {
+                loading.innerHTML = '<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> Failed to load conversation history.</span>';
+            } else {
+                appendMessage('assistant', "⚠️ Browser core exception while compiling logs frame.");
+            }
         }
     }
 
-    // 🚨 發送訊息攔截與 API 請求
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // 黃金攔截點：超限時彈窗，按鈕依然保持可用
         if (userMessageCount >= MAX_TURNS) {
             showPaywall();
             return;
@@ -495,7 +496,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
             return;
         }
 
-        // 發送中鎖定 (防止連點)
         chatInput.value = '';
         chatInput.style.height = '48px';
         updateCharCount(chatInput);
@@ -532,7 +532,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
             const data = await res.json();
 
             if (data.success) {
-                aiBubble.innerHTML = DOMPurify.sanitize(marked.parse(data.reply));
+                aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
             } else {
                 if (data.needs_upgrade) {
                     aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${data.error}</span>`;
@@ -544,7 +544,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         } catch (err) {
             aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> Network error. Connection failed.</span>`;
         } finally {
-            // 解鎖輸入，讓用戶可以隨時觸發彈窗
             chatInput.disabled = false;
             sendBtn.disabled = false;
             
@@ -554,8 +553,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                 chatInput.focus();
             }
             
-            // 確保回覆後置底
-            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+            setTimeout(scrollToBottom, 50);
         }
     });
 
