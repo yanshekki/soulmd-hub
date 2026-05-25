@@ -54,8 +54,9 @@ if (isset($_SESSION['user_id'])) {
     $uData = $userStmt->fetch();
     if ($uData) {
         $userTier = $uData['tier'];
+        // 自動過期降級保護
         if ($userTier !== 'free' && $uData['vip_expires_at'] && strtotime($uData['vip_expires_at']) < time()) {
-            $userTier = 'free'; // 已過期，降級處理
+            $userTier = 'free'; 
         }
     }
 }
@@ -73,7 +74,7 @@ if ($chatSession = $sessStmt->fetch()) {
     $isSessionOwner = isset($_SESSION['user_id']);
 }
 
-// 動態載入 Config 限制
+// 🚨 動態載入 Config 限制 (嚴格控制前端狀態)
 $tierPrefix = strtoupper($userTier);
 $maxTurns = constant("{$tierPrefix}_MAX_TURNS");
 $maxInputChars = constant("{$tierPrefix}_MAX_INPUT_CHARS");
@@ -83,6 +84,9 @@ $pageTitle = 'Chat Session - ' . htmlspecialchars($soul['title']);
 $pageDesc = 'Live interaction with this specialized AI persona architecture.';
 $hideNavLinks = true; 
 require_once __DIR__ . '/../private/includes/header.php';
+
+// 引入獨立的法律免責聲明彈窗
+require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
 ?>
 
 <div id="image-viewer-modal" class="hidden fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImageModal()">
@@ -107,7 +111,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <p class="text-sm text-zinc-400 mb-6 pb-6 border-b border-white/10">Perfect for daily tasks and unrestricted standard AI conversations.</p>
                 <ul class="space-y-3 mb-8 flex-grow text-sm text-zinc-300">
                     <li><i class="fas fa-check text-emerald-500 mr-2"></i> <b>Unlimited</b> standard messages</li>
-                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> Up to <b>1,000</b> characters per input</li>
+                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> Up to <b><?= number_format(VIP_MAX_INPUT_CHARS) ?></b> characters per input</li>
                     <li><i class="fas fa-check text-emerald-500 mr-2"></i> <b>Vision AI</b> (Upload JPG/PNG)</li>
                     <li><i class="fas fa-check text-emerald-500 mr-2"></i> Extended chat memory retention</li>
                     <li><i class="fas fa-check text-emerald-500 mr-2"></i> Private session toggle lock</li>
@@ -123,7 +127,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <ul class="space-y-3 mb-8 flex-grow text-sm text-zinc-200">
                     <li><i class="fas fa-check text-emerald-400 mr-2"></i> <b>Elite Reasoning Engine</b> Access</li>
                     <li><i class="fas fa-check text-emerald-400 mr-2"></i> <b>Unlimited</b> advanced messages</li>
-                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> Massive <b>3,000</b> characters per input</li>
+                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> Massive <b><?= number_format(PRO_MAX_INPUT_CHARS) ?></b> characters per input</li>
                     <li><i class="fas fa-check text-emerald-400 mr-2"></i> Deep thinking & long AI outputs</li>
                     <li><i class="fas fa-check text-emerald-400 mr-2"></i> Advanced Vision AI analysis</li>
                 </ul>
@@ -169,7 +173,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <div class="bg-amber-500/10 border-x border-b border-amber-500/20 p-3 text-xs text-amber-200/80 flex items-start gap-2 shrink-0">
         <i class="fas fa-shield-alt mt-0.5 text-amber-500"></i>
-        <p><strong>Privacy Warning:</strong> Public session URLs can be viewed by anyone. Do not share sensitive information. Text input is limited to <?= $maxInputChars ?> characters.</p>
+        <p><strong>Privacy Warning:</strong> Public session URLs can be viewed by anyone. Do not share sensitive information. Text input is limited to <?= number_format($maxInputChars) ?> characters.</p>
     </div>
 
     <div id="chat-box" class="flex-grow bg-zinc-950 border-x border-white/10 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar scroll-smooth">
@@ -193,13 +197,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </button>
                     <input type="file" id="image-upload-input" accept="image/jpeg, image/png, image/webp" class="hidden" onchange="handleImageSelection(event)">
                     
-                    <textarea id="chat-input" rows="1" maxlength="<?= $maxInputChars ?>" placeholder="Type your message here (max <?= $maxInputChars ?> characters)..." class="w-full bg-transparent px-2 py-3.5 pr-16 text-sm focus:outline-none resize-none custom-scrollbar text-white placeholder-zinc-500" style="min-height: 48px; max-height: 120px;" oninput="updateCharCount(this)"></textarea>
+                    <textarea id="chat-input" rows="1" maxlength="<?= $maxInputChars ?>" placeholder="Type your message here (max <?= number_format($maxInputChars) ?> characters)..." class="w-full bg-transparent px-2 py-3.5 pr-16 text-sm focus:outline-none resize-none custom-scrollbar text-white placeholder-zinc-500" style="min-height: 48px; max-height: 120px;" oninput="updateCharCount(this)"></textarea>
                     
                     <div id="char-count" class="absolute bottom-3 right-4 text-[10px] text-zinc-500 font-mono select-none">0/<?= $maxInputChars ?></div>
                 </div>
             </div>
 
-            <button type="submit" id="send-btn" class="h-12 px-6 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center shrink-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" id="send-btn" class="h-12 px-6 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center shrink-0 shadow-lg">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </form>
@@ -226,9 +230,20 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     let currentImageBase64 = null;
 
-    // ==========================================
-    // 🔍 圖片放大燈箱邏輯
-    // ==========================================
+    // 🚨 處理免責聲明 Modal 邏輯
+    const agreementKey = `soulmd_agreement_${soulId}_${sessionToken}`;
+    if (!localStorage.getItem(agreementKey)) {
+        document.getElementById('disclaimer-modal').classList.remove('hidden');
+    }
+    function acceptDisclaimer() {
+        localStorage.setItem(agreementKey, 'true');
+        document.getElementById('disclaimer-modal').classList.add('hidden');
+    }
+    function declineDisclaimer() {
+        window.location.href = '/browse';
+    }
+
+    // 🚨 圖片 Lightbox 邏輯
     function openImageModal(src) {
         const modal = document.getElementById('image-viewer-modal');
         const img = document.getElementById('image-viewer-img');
@@ -250,9 +265,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); img.src = ''; }, 300);
     }
 
-    // ==========================================
-    // 🔒 私隱開關 UI
-    // ==========================================
+    // 🚨 隱私鎖狀態 UI 更新
     function updatePrivacyUI() {
         const toggle = document.getElementById('privacy-toggle');
         if(!toggle) return;
@@ -275,9 +288,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // ==========================================
-    // 🖼️ 視覺多模態 (Canvas 壓縮引擎)
-    // ==========================================
+    // 🚨 圖片上傳權限檢查 (攔截免費用戶)
     function triggerImageUpload() {
         if (!ALLOW_IMAGE) {
             showPaywall();
@@ -293,6 +304,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('image-preview').src = '';
     }
 
+    // 🚨 Canvas 圖片壓縮處理
     function handleImageSelection(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -321,10 +333,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // 轉換成 Base64
                 currentImageBase64 = canvas.toDataURL('image/jpeg', IMG_QUALITY);
                 
-                // 顯示預覽
                 document.getElementById('image-preview').src = currentImageBase64;
                 document.getElementById('image-preview-container').classList.remove('hidden');
             };
@@ -333,9 +343,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         reader.readAsDataURL(file);
     }
 
-    // ==========================================
-    // 🚀 Paywall 與核心邏輯
-    // ==========================================
+    // 🚨 Paywall 彈窗控制
     function showPaywall() {
         const modal = document.getElementById('paywall-modal');
         modal.classList.remove('hidden');
@@ -348,18 +356,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    function enforceTrialLimit() {
-        if (userMessageCount >= MAX_TURNS) {
-            chatInput.disabled = true;
-            sendBtn.disabled = true;
-            chatInput.value = '';
-            chatInput.placeholder = "Limit reached. Please upgrade to unlock unlimited turns.";
-            showPaywall();
-            return true;
-        }
-        return false;
-    }
-
+    // 🚨 Markdown 渲染器設定
     marked.setOptions({
         breaks: true,
         gfm: true,
@@ -371,12 +368,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
+    // 文字框自動適應高度
     chatInput.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
         if (this.value.trim() === '') this.style.height = '48px';
     });
 
+    // 監聽 Enter 鍵發送
     chatInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -401,7 +400,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
-    // 🚨 完美渲染多模態內容 (文字與歷史 Base64 圖片)
+    // 🚨 將對話寫入 UI 並 Scroll To Bottom
     function appendMessage(role, content) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
@@ -423,17 +422,14 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         let innerHTML = '';
         if (Array.isArray(parsedContent)) {
-            // 處理多模態 JSON 陣列 (包含文字與圖片 URL)
             parsedContent.forEach(part => {
                 if (part.type === 'text') {
                     innerHTML += DOMPurify.sanitize(marked.parse(part.text));
                 } else if (part.type === 'image_url' && part.image_url && part.image_url.url) {
-                    // 安全注入 Base64 圖片，並綁定 onclick 開啟燈箱放大
                     innerHTML += `<div class="mt-3 mb-1"><img src="${part.image_url.url}" class="max-w-full max-h-60 rounded-lg cursor-pointer hover:opacity-80 transition shadow-md border border-white/10" onclick="openImageModal(this.src)" alt="Uploaded Image"></div>`;
                 }
             });
         } else {
-            // 處理純文字
             if (content === '...') {
                 innerHTML = '<div class="flex gap-1 items-center h-4"><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></span></div>';
             } else {
@@ -443,11 +439,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         bubble.innerHTML = innerHTML;
         msgDiv.appendChild(bubble);
-        chatBox.appendChild(msgDiv);
+        
+        // 即時 Scroll (保障小訊息)
         chatBox.scrollTop = chatBox.scrollHeight;
         return bubble;
     }
 
+    // 🚨 載入歷史紀錄 (完美 Scroll 修正)
     async function loadChatHistory() {
         try {
             const res = await fetch(`/api/chat?soul_id=${soulId}&session_token=${sessionToken}`);
@@ -461,7 +459,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                     appendMessage(msg.role, msg.content);
                     if (msg.role === 'user') userMessageCount++;
                 });
-                enforceTrialLimit();
+                
+                // 確保所有歷史圖文渲染後，強制順滑置底
+                setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+
+                if (userMessageCount >= MAX_TURNS) {
+                    showPaywall();
+                }
             } else if (!data.success && data.error.includes('Access Denied')) {
                 appendMessage('assistant', "⚠️ **Private Session**\nYou do not have permission to view this chat history.");
                 chatInput.disabled = true; sendBtn.disabled = true;
@@ -473,10 +477,15 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 發送訊息攔截與 API 請求
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        if (enforceTrialLimit()) return;
+        // 黃金攔截點：超限時彈窗，按鈕依然保持可用
+        if (userMessageCount >= MAX_TURNS) {
+            showPaywall();
+            return;
+        }
 
         const messageText = chatInput.value.trim();
         if (!messageText && !currentImageBase64) return;
@@ -486,25 +495,22 @@ require_once __DIR__ . '/../private/includes/header.php';
             return;
         }
 
-        // Disable input
+        // 發送中鎖定 (防止連點)
         chatInput.value = '';
         chatInput.style.height = '48px';
         updateCharCount(chatInput);
         chatInput.disabled = true;
         sendBtn.disabled = true;
 
-        // 🚨 構建顯示畀前端睇嘅 Payload 陣列 (包含文字與圖片)
         let displayPayload = [];
         if (messageText) displayPayload.push({ type: 'text', text: messageText });
         if (currentImageBase64) displayPayload.push({ type: 'image_url', image_url: { url: currentImageBase64 } });
         
-        // Append UI Message
         appendMessage('user', displayPayload.length > 1 ? displayPayload : messageText);
         userMessageCount++;
         
         const aiBubble = appendMessage('assistant', '...');
         
-        // 準備打畀 API 嘅 Payload
         const privacyToggle = document.getElementById('privacy-toggle');
         const payload = {
             soul_id: soulId,
@@ -514,7 +520,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             is_private: privacyToggle ? privacyToggle.checked : false
         };
 
-        // 發送前清空輸入區圖片
         removeImage();
 
         try {
@@ -539,12 +544,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch (err) {
             aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> Network error. Connection failed.</span>`;
         } finally {
-            if (!enforceTrialLimit()) {
-                chatInput.disabled = false;
-                sendBtn.disabled = false;
+            // 解鎖輸入，讓用戶可以隨時觸發彈窗
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            
+            if (userMessageCount >= MAX_TURNS) {
+                showPaywall();
+            } else {
                 chatInput.focus();
             }
-            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 確保回覆後置底
+            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
         }
     });
 
