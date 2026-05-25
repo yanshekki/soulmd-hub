@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub API
- * POST /api/paypal - Capture PayPal Order & Prorated Tier Upgrade
+ * POST /api/paypal - Capture PayPal Order & Automated Tier Entitlement Engine
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -71,7 +71,7 @@ $tokenData = json_decode($response, true);
 $accessToken = $tokenData['access_token'] ?? '';
 
 // ==========================================
-// 🛡️ 2. 扣款並驗證訂單 (Capture Order)
+// 🛡️ 2. 執行 PayPal 訂單捕獲扣款 (Capture Order)
 // ==========================================
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $paypalBaseUrl . "/v2/checkout/orders/{$orderId}/capture");
@@ -88,42 +88,46 @@ curl_close($ch);
 
 $captureData = json_decode($captureResponse, true);
 
-if ($captureHttpCode !== 201 || !isset($captureData['status']) || $captureData['status'] !== 'COMPLETED') {
+// 🚨 釋放寫死限制：不再卡死 COMPLETED，允許接收 PENDING 狀態
+$paypalStatus = $captureData['status'] ?? '';
+if ($captureHttpCode !== 200 && $captureHttpCode !== 201) {
     http_response_code(400);
-    $errMsg = $captureData['details'][0]['description'] ?? 'Payment capture failed or was not completed.';
-    echo json_encode(['success' => false, 'error' => $errMsg]);
+    echo json_encode(['success' => false, 'error' => 'PayPal Gateway communication failure.']);
     exit;
 }
 
 // ==========================================
-// 🛡️ 3. 安全驗證金額
+// 🛡️ 3. 安全驗證金額 (防止竄改 Frontend Payload)
 // ==========================================
 $paidAmount = $captureData['purchase_units'][0]['payments']['captures'][0]['amount']['value'] ?? '0.00';
 $expectedAmount = ($purchasedTier === 'pro') ? PRICE_PRO_MONTHLY : PRICE_VIP_MONTHLY;
 
-if ((float)$paidAmount < (float)$expectedAmount) {
+if ((float)$paidAmount < (float)$expectedAmount && $paypalStatus === 'COMPLETED') {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Payment amount mismatch. Possible tampering detected.']);
     exit;
 }
 
 // ==========================================
-// 🛡️ 4. 公平折算升級邏輯 (Prorated Upgrade) 與更新 DB
+// 🛡️ 4. 全自動狀態機與權限聯動引擎
 // ==========================================
 try {
     $pdo->beginTransaction();
 
-    // 檢查訂單是否已存在
-    $checkStmt = $pdo->prepare("SELECT id FROM payments WHERE paypal_order_id = ?");
+    // 檢查訂單防重入
+    $checkStmt = $pdo->prepare("SELECT id, status FROM payments WHERE paypal_order_id = ?");
     $checkStmt->execute([$orderId]);
-    if ($checkStmt->fetch()) {
+    $existingOrder = $checkStmt->fetch();
+
+    if ($existingOrder) {
         $pdo->rollBack();
-        echo json_encode(['success' => true, 'message' => 'Order already processed.']);
+        echo json_encode(['success' => true, 'message' => 'Order already logged inside cluster system.']);
         exit;
     }
 
+    // 將 PayPal 原生回傳狀態原封不動寫入資料庫
     $insStmt = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");
-    $insStmt->execute([$userId, $orderId, $paidAmount, 'USD', $purchasedTier, 'COMPLETED']);
+    $insStmt->execute([$userId, $orderId, $paidAmount, 'USD', $purchasedTier, $paypalStatus]);
 
     $uStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
     $uStmt->execute([$userId]);
@@ -133,43 +137,90 @@ try {
     $currentExpiry = $currentUser['vip_expires_at'] ? strtotime($currentUser['vip_expires_at']) : time();
     $now = time();
     
-    $purchasedSeconds = 30 * 24 * 60 * 60; // 買 30 日
-    $newExpiry = 0;
+    $purchasedSeconds = 30 * 24 * 60 * 60; // 標準 30 天 Pass
 
-    // 如果是用戶由 VIP 升級 PRO，計算剩餘價值的折算日數
-    if ($currentTier === 'vip' && $purchasedTier === 'pro' && $currentExpiry > $now) {
-        $remainingVipSeconds = $currentExpiry - $now;
-        
-        $vipDailyCost = PRICE_VIP_MONTHLY / 30;
-        $proDailyCost = PRICE_PRO_MONTHLY / 30;
-        $conversionRatio = $vipDailyCost / $proDailyCost; // 折算比例
-        
-        $convertedProSeconds = $remainingVipSeconds * $conversionRatio;
-        
-        $newExpiry = $now + $purchasedSeconds + $convertedProSeconds;
+    // 🚨 核心權益動作分流
+    if ($paypalStatus === 'COMPLETED') {
+        // 動作 A：只有付款成功才發放/延長會員階級
+        if ($currentTier === 'vip' && $purchasedTier === 'pro' && $currentExpiry > $now) {
+            $remainingVipSeconds = $currentExpiry - $now;
+            $vipDailyCost = PRICE_VIP_MONTHLY / 30;
+            $proDailyCost = PRICE_PRO_MONTHLY / 30;
+            $conversionRatio = $vipDailyCost / $proDailyCost;
+            $convertedProSeconds = $remainingVipSeconds * $conversionRatio;
+            
+            $newExpiry = $now + $purchasedSeconds + $convertedProSeconds;
+        } else {
+            $newExpiry = max($currentExpiry, $now) + $purchasedSeconds;
+        }
+
+        $newExpiryStr = date('Y-m-d H:i:s', $newExpiry);
+        $updStmt = $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?");
+        $updStmt->execute([$purchasedTier, $newExpiryStr, $userId]);
+
+        $pdo->commit();
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Payment successful! Your account architecture has been upgraded.',
+            'status' => 'COMPLETED',
+            'new_tier' => $purchasedTier,
+            'expires_at' => $newExpiryStr
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+
+    } elseif ($paypalStatus === 'PENDING') {
+        // 動作 B：處理 PayPal 審查掛起，寫入紀錄但不升級用戶
+        $pdo->commit();
+        echo json_encode([
+            'success' => true,
+            'message' => 'Payment captured but is currently PENDING review by PayPal. Your premium features will unlock automatically once cleared.',
+            'status' => 'PENDING',
+            'new_tier' => 'free'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     } else {
-        // 同級續費，或者 Free 升級 (直接累加 30 日)
-        $newExpiry = max($currentExpiry, $now) + $purchasedSeconds;
+        // 動作 C：交易失敗或遭拒絕
+        $pdo->commit();
+        echo json_encode([
+            'success' => false,
+            'error' => "Transaction status: {$paypalStatus}. Premium activation halted.",
+            'status' => $paypalStatus
+        ]);
+        exit;
     }
-
-    $newExpiryStr = date('Y-m-d H:i:s', $newExpiry);
-
-    $updStmt = $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?");
-    $updStmt->execute([$purchasedTier, $newExpiryStr, $userId]);
-
-    $pdo->commit();
-
-    echo json_encode([
-        'success' => true, 
-        'message' => 'Payment successful! Your account has been upgraded.',
-        'new_tier' => $purchasedTier,
-        'expires_at' => $newExpiryStr
-    ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database error while upgrading account. Please contact support with Order ID: ' . $orderId]);
+    echo json_encode(['success' => false, 'error' => 'Database exception during tier handshake signature sync.']);
+}
+
+// =========================================================================
+// 🚨 企業級非同步回收模組 (用於處理日後 PayPal Webhook 傳來的 REFUNDED / REVERSED)
+// =========================================================================
+function handleAsynchronousRevocation($pdo, $paypalOrderId, $targetStatus) {
+    try {
+        $pdo->beginTransaction();
+        
+        // 1. 先把該訂單改為退款或爭議拒付狀態
+        $updPay = $pdo->prepare("UPDATE payments SET status = ? WHERE paypal_order_id = ?");
+        $updPay->execute([$targetStatus, $paypalOrderId]);
+        
+        // 2. 撈出受害者用戶 ID
+        $getUserId = $pdo->prepare("SELECT user_id FROM payments WHERE paypal_order_id = ?");
+        $getUserId->execute([$paypalOrderId]);
+        $uid = $getUserId->fetchColumn();
+        
+        if ($uid) {
+            // 3. 🚨 實時對會員採取懲罰/回滾動作：立刻打回免費用戶原型，到期日清空！
+            $revocation = $pdo->prepare("UPDATE users SET tier = 'free', vip_expires_at = NULL WHERE id = ?");
+            $revocation->execute([$uid]);
+        }
+        
+        $pdo->commit();
+        return true;
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        return false;
+    }
 }

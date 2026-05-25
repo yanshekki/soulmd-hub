@@ -1,6 +1,6 @@
 <?php
 /**
- * SoulMD Hub - Printable Invoice Generator (White-label & Dark Theme Print Edition)
+ * SoulMD Hub - Printable Invoice Generator (White-label & Dark Theme Print Full-Status Edition)
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -29,6 +29,7 @@ $userId = (int)$_SESSION['user_id'];
 
 try {
     // 🛡️ 權限安全檢查層 2：嚴格多租戶隔離 (Multi-Tenant Isolation)
+    // 透過 SQL 直接限制只有當前登入用戶的 user_id 才能成功撈取對應的訂單 ID
     $stmt = $pdo->prepare("
         SELECT p.*, u.username, u.email 
         FROM payments p 
@@ -48,28 +49,37 @@ try {
     $orderDate = date('F j, Y', strtotime($invoice['created_at']));
     $invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
 
-    // 🚨 智慧型狀態防護分流
+    // 🚨 智慧型 PayPal 狀態防護分流與法律條文映射
     $currentStatus = strtolower($invoice['status']);
     $stampText = 'PAID';
     $stampColor = 'text-emerald-500/20 border-emerald-500/20';
     $legalStatusNotice = '';
 
-    if ($currentStatus === 'pending') {
-        $stampText = 'PENDING';
-        $stampColor = 'text-amber-500/20 border-amber-500/20';
-        $legalStatusNotice = '⚠️ TRANSACTION CURRENTLY IN SUSPENSE: Premium asset synchronization will execute immediately upon clearing.';
-    } elseif ($currentStatus === 'failed') {
-        $stampText = 'FAILED';
-        $stampColor = 'text-red-500/20 border-red-500/20';
-        $legalStatusNotice = '❌ TRANSACTION DECLINED / VOID: This statement is an authentication of a failed payment attempt. No licenses were provisioned.';
-    } elseif ($currentStatus === 'refunded') {
-        $stampText = 'REFUNDED';
-        $stampColor = 'text-purple-500/20 border-purple-500/20';
-        $legalStatusNotice = '↩️ REVERSED TRANSACTION: A manual merchant refund has been dispatched. Associated server allocation keys and PRO context frames are permanently revoked.';
-    } elseif ($currentStatus === 'reversed') {
-        $stampText = 'REVERSED';
-        $stampColor = 'text-orange-500/20 border-orange-500/20';
-        $legalStatusNotice = '🚫 DISPUTED / CHARGEBACK VOID: Payment forced back via gateway claim. Access terminated. Relational accounting log locked.';
+    switch($currentStatus) {
+        case 'completed':
+            $stampText = 'PAID';
+            $stampColor = 'text-emerald-500/20 border-emerald-500/20';
+            break;
+        case 'pending':
+            $stampText = 'PENDING';
+            $stampColor = 'text-amber-500/20 border-amber-500/20';
+            $legalStatusNotice = '⚠️ TRANSACTION CURRENTLY IN SUSPENSE: Premium cluster asset synchronization will execute immediately upon clearing from PayPal gateway.';
+            break;
+        case 'failed':
+            $stampText = 'FAILED';
+            $stampColor = 'text-red-500/20 border-red-500/20';
+            $legalStatusNotice = '❌ TRANSACTION DECLINED / VOID: This statement is an authentication of a failed payment attempt. No automated server capacity was provisioned.';
+            break;
+        case 'refunded':
+            $stampText = 'REFUNDED';
+            $stampColor = 'text-purple-500/20 border-purple-500/20';
+            $legalStatusNotice = '↩️ REVERSED TRANSACTION: A manual merchant refund has been dispatched. Associated server allocation keys and PRO context frames are permanently revoked.';
+            break;
+        case 'reversed':
+            $stampText = 'REVERSED';
+            $stampColor = 'text-orange-500/20 border-orange-500/20';
+            $legalStatusNotice = '🚫 DISPUTED / CHARGEBACK VOID: Payment forced back via gateway dispute claim. Access terminated. Relational accounting log locked.';
+            break;
     }
 
 } catch (Exception $e) {
@@ -86,27 +96,31 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        /* 🚨 終極列印優化配置：確保列印或儲存 PDF 時與 HTML 視覺效果完全 100% 一致 */
         @media print {
             @page {
                 size: auto;
-                margin: 0mm; 
+                margin: 0mm; /* 徹底抹除瀏覽器自帶的頁首網址、頁尾日期等雜音 */
             }
+            /* 打破 min-h-screen 死鎖，並優化 padding 防止爆出多餘空白頁 */
             html, body {
                 height: auto !important;
                 min-height: auto !important;
-                background-color: #09090b !important; 
+                background-color: #09090b !important; /* 強制保持螢幕看到的 zinc-950 背景色 */
                 color: #ffffff !important;
                 margin: 0 !important;
-                padding: 20mm 15mm !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important;         
+                padding: 20mm 15mm !important; /* 重新定義列印時乾淨的內邊距，防版面過度貼邊 */
+                -webkit-print-color-adjust: exact !important; /* 關鍵：強制 Chrome / Safari 渲染深色背景 */
+                print-color-adjust: exact !important;         /* 關鍵：強制 Firefox / Edge 渲染深色背景 */
             }
-            .no-print { display: none !important; }
+            .no-print { 
+                display: none !important; /* 隱藏控制按鈕 */
+            }
             .invoice-card {
                 border: none !important;
                 box-shadow: none !important;
-                margin: 0 !important; 
-                background-color: #18181b !important; 
+                margin: 0 !important; /* 徹底清除外部 Margin 防止頂爆分頁 */
+                background-color: #18181b !important; /* 強制保持 zinc-900 區塊色 */
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
