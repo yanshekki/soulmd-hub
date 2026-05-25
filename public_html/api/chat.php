@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API - Smart Dual-Engine Routing Edition
- * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect & Exponential Backoff Architecture)
+ * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect, Exponential Backoff & Guest Limit Architecture)
  */
 
 set_time_limit(180);
@@ -29,7 +29,20 @@ $pdo = $db->getConnection();
 
 function getCurrentUser($pdo) {
     $userId = $_SESSION['user_id'] ?? null;
-    if (!$userId) return ['id' => null, 'tier' => 'free', 'daily_count' => 0];
+    $today = date('Y-m-d');
+
+    // 🚨 終極修復 1：訪客 (Guest) 每日限額防禦機制
+    if (!$userId) {
+        if (($_SESSION['guest_last_chat_date'] ?? '') !== $today) {
+            $_SESSION['guest_daily_count'] = 0;
+            $_SESSION['guest_last_chat_date'] = $today;
+        }
+        return [
+            'id' => null, 
+            'tier' => 'free', 
+            'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0)
+        ];
+    }
 
     $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at FROM users WHERE id = ?");
     $stmt->execute([$userId]);
@@ -42,7 +55,6 @@ function getCurrentUser($pdo) {
         $user['tier'] = 'free';
     }
 
-    $today = date('Y-m-d');
     if ($user['last_chat_date'] !== $today) {
         $pdo->prepare("UPDATE users SET daily_chat_count = 0, last_chat_date = ? WHERE id = ?")->execute([$today, $userId]);
         $user['daily_chat_count'] = 0;
@@ -125,7 +137,6 @@ if ($method === 'POST') {
     
     $currentUser = getCurrentUser($pdo);
 
-    // 🚨 全新獨立接口：實時同步私隱狀態
     if ($action === 'update_privacy') {
         $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
         if (!$soulId || empty($sessionToken)) {
@@ -137,14 +148,14 @@ if ($method === 'POST') {
         $chatSession = $sessStmt->fetch();
 
         if ($chatSession) {
-            if ($chatSession['user_id'] === $currentUser['id']) {
+            // 🚨 終極修復 2：嚴格阻斷 null === null 的 Guest 越權漏洞
+            if ($currentUser['id'] !== null && $chatSession['user_id'] === $currentUser['id']) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
             } else {
                 http_response_code(403); echo json_encode(['success' => false, 'error' => 'Not the session owner.']);
             }
         } else {
-            // 如果連對話都未開始，預先建立對話 Session 並上鎖
             $actualPrivate = ($currentUser['tier'] !== 'free') ? (int)$isPrivate : 0;
             $pdo->prepare("INSERT INTO chat_sessions (session_token, soul_id, user_id, is_private) VALUES (?, ?, ?, ?)")
                 ->execute([$sessionToken, $soulId, $currentUser['id'], $actualPrivate]);
@@ -153,7 +164,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    // 防禦炸彈請求 (只對發送對話有效)
     $currentTime = time();
     if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
         http_response_code(429); 
@@ -207,7 +217,8 @@ if ($method === 'POST') {
                 echo json_encode(['success' => false, 'error' => 'Access Denied to this private session.']);
                 exit;
             }
-            if ($currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
+            // 同樣加上 !== null 檢查
+            if ($currentUser['id'] !== null && $currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
             }
         } else {
@@ -276,12 +287,15 @@ if ($method === 'POST') {
                 $sumPrompt .= strtoupper($m['role']) . ": " . $txt . "\n";
             }
 
+            // 🚨 終極修復 4：動態呼叫基礎模型，防硬編碼報錯
+            $compressModel = defined('FREE_MODEL') ? FREE_MODEL : 'deepseek-chat';
+            
             $chSum = curl_init();
             curl_setopt_array($chSum, [
                 CURLOPT_URL => DEEPSEEK_API_URL,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => json_encode(["model" => "deepseek-v4-flash", "messages" => [["role" => "system", "content" => $sumPrompt]], "max_tokens" => 300, "temperature" => 0.3], JSON_UNESCAPED_UNICODE),
+                CURLOPT_POSTFIELDS => json_encode(["model" => $compressModel, "messages" => [["role" => "system", "content" => $sumPrompt]], "max_tokens" => 300, "temperature" => 0.3], JSON_UNESCAPED_UNICODE),
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . DEEPSEEK_API_KEY],
                 CURLOPT_TIMEOUT => 15
             ]);
@@ -432,6 +446,11 @@ if ($method === 'POST') {
             
             if ($currentUser['id']) {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
+            } else {
+                // 🚨 終極修復 1：訪客 (Guest) 計數加一
+                session_start();
+                $_SESSION['guest_daily_count'] = ($_SESSION['guest_daily_count'] ?? 0) + 1;
+                session_write_close();
             }
 
             if ($updateMemory) {

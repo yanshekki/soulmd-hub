@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - My Chats Page
  * (Hybrid Edition: Displays owned DB sessions + visited guest sessions simultaneously)
+ * (Safari Date Parsing Bug Fixed)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tokens = array_slice($tokens, 0, 50); // 限制最多查詢 50 個
     $inQuery = implode(',', array_fill(0, count($tokens), '?'));
 
-    // 🚨 修正：加入 owner_username，讓前端知道這是誰的 Session
+    // 🚨 包含 owner_username，讓前端知道這是誰的 Session
     $stmt = $pdo->prepare("
         SELECT cs.session_token, cs.soul_id, cs.created_at, s.title, s.role, u.username as owner_username
         FROM chat_sessions cs
@@ -225,10 +226,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                 let html = '';
                 
                 result.data.forEach(chat => {
-                    const dateObj = new Date(chat.created_at);
-                    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    // 🚨 終極修復：解決 Safari 瀏覽器出現 Invalid Date / NaN 的問題
+                    // 將 "2024-05-20 12:00:00" 格式的 "-" 替換為 "/" 以兼容 iOS/macOS Safari 引擎
+                    const safeDateString = (chat.created_at || '').replace(/-/g, '/');
+                    const dateObj = new Date(safeDateString);
+                    const dateStr = isNaN(dateObj) ? 'Recent' : dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
-                    // 🚨 明確標示這對話是誰擁有的
+                    // 明確標示這對話是誰擁有的
                     const ownerText = chat.owner_username ? `@${escapeHTML(chat.owner_username)}` : 'Guest User';
                     
                     html += `
