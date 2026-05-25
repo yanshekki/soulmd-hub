@@ -2,11 +2,11 @@
 /**
  * SoulMD Hub Public API
  * GET  /api/chat - Fetch chat history for a session
- * POST /api/chat - Send a new message to the AI with Configured CSRF, Rate Limit, & Trial Limit protections
+ * POST /api/chat - Send a new message to the AI with Smart Memory Compression Layer
  */
 
-// 延長 PHP 腳本 execution 時間限制
-set_time_limit(120);
+// 延長 PHP 腳本時間限制，因為遇上壓縮閾值時需要 Call 兩次 API (一次壓縮，一次對答)
+set_time_limit(180);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -100,7 +100,7 @@ if ($method === 'POST') {
     }
 
     try {
-        // 🛡️ 安全防護 3：動態自 config.php 讀取 MAX_FREE_TURNS 後端攔截
+        // 🛡️ 安全防護 3：後端 Trial Limit 攔截
         $countStmt = $pdo->prepare("SELECT COUNT(*) FROM chat_messages WHERE soul_id = ? AND session_token = ? AND role = 'user'");
         $countStmt->execute([$soulId, $sessionToken]);
         $userMsgCount = (int)$countStmt->fetchColumn();
@@ -142,28 +142,104 @@ if ($method === 'POST') {
             $systemPrompt = $soul['content'];
         }
 
-        // 🚨 動態指令：根據 MAX_AI_TOKENS 計算字數限制 (安全系數 0.6)
         $maxWords = max(50, floor(MAX_AI_TOKENS * 0.6));
         $systemPrompt .= "\n\n[CRITICAL SYSTEM DIRECTIVE: You must keep your responses extremely concise. Do not exceed {$maxWords} words or Chinese characters per response.]";
 
-        // 2. Fetch the latest 10 messages for context
-        $histStmt = $pdo->prepare("SELECT role, content FROM chat_messages WHERE soul_id = ? AND session_token = ? ORDER BY id DESC LIMIT 10");
-        $histStmt->execute([$soulId, $sessionToken]);
-        $history = array_reverse($histStmt->fetchAll());
+        // =========================================================
+        // 🚨 智能記憶壓縮層 (動態讀取 config.php 設定)
+        // =========================================================
+        
+        $memStmt = $pdo->prepare("SELECT summary, last_message_id FROM chat_memory WHERE session_token = ?");
+        $memStmt->execute([$sessionToken]);
+        $memoryRow = $memStmt->fetch();
+        
+        $chatMemory = $memoryRow ? $memoryRow['summary'] : '';
+        $lastMessageId = $memoryRow ? (int)$memoryRow['last_message_id'] : 0;
 
-        // 3. Build API Payload
+        $msgStmt = $pdo->prepare("SELECT id, role, content FROM chat_messages WHERE soul_id = ? AND session_token = ? AND id > ? ORDER BY id ASC");
+        $msgStmt->execute([$soulId, $sessionToken, $lastMessageId]);
+        $unsummarized = $msgStmt->fetchAll();
+
+        // 🚨 使用 MEMORY_COMPRESSION_THRESHOLD 判斷是否需要壓縮
+        if (count($unsummarized) >= MEMORY_COMPRESSION_THRESHOLD) {
+            // 切割出最舊的紀錄去壓縮，永遠保留最近的 2 條 (1 User, 1 Assistant) 以維持語氣連貫性
+            $toSummarize = array_slice($unsummarized, 0, -2);
+            $keptMessages = array_slice($unsummarized, -2);
+
+            $sumPrompt = "You are an AI memory manager. Compress the following conversation log into a concise summary. Focus strictly on user facts, preferences, and key context. Do not include greetings. Keep it under 150 words.\n\n";
+            if (!empty($chatMemory)) {
+                $sumPrompt .= "[PREVIOUS MEMORY]\n" . $chatMemory . "\n\n";
+            }
+            $sumPrompt .= "[NEW LOGS TO COMPRESS]\n";
+            foreach ($toSummarize as $m) {
+                $sumPrompt .= strtoupper($m['role']) . ": " . $m['content'] . "\n";
+            }
+
+            // 呼叫 DeepSeek 進行壓縮
+            $chSum = curl_init();
+            $sumPayload = json_encode([
+                "model" => DEEPSEEK_MODEL,
+                "messages" => [["role" => "system", "content" => $sumPrompt]],
+                "max_tokens" => 300,
+                "temperature" => 0.3, 
+                "stream" => false
+            ], JSON_UNESCAPED_UNICODE);
+
+            curl_setopt_array($chSum, [
+                CURLOPT_URL => DEEPSEEK_API_URL,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => $sumPayload,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT => 25, 
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . DEEPSEEK_API_KEY
+                ]
+            ]);
+
+            $sumResponse = curl_exec($chSum);
+            $sumHttpCode = curl_getinfo($chSum, CURLINFO_HTTP_CODE);
+            curl_close($chSum);
+
+            if ($sumHttpCode === 200 && $sumResponse) {
+                $sumData = json_decode($sumResponse, true);
+                $newSummary = $sumData['choices'][0]['message']['content'] ?? '';
+                
+                if (!empty($newSummary)) {
+                    $chatMemory = $newSummary;
+                    $lastMessageId = end($toSummarize)['id'];
+                    
+                    $updMem = $pdo->prepare("INSERT INTO chat_memory (session_token, summary, last_message_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE summary = VALUES(summary), last_message_id = VALUES(last_message_id)");
+                    $updMem->execute([$sessionToken, $chatMemory, $lastMessageId]);
+
+                    $unsummarized = $keptMessages;
+                }
+            }
+        }
+
+        // =========================================================
+        // 構建最終打畀 AI 嘅 Payload
+        // =========================================================
+
+        if (!empty($chatMemory)) {
+            $systemPrompt .= "\n\n[CRITICAL CONTEXT: CHAT MEMORY]\nThe following is a compressed summary of the conversation so far. Use this to remember past facts:\n" . $chatMemory;
+        }
+
         $apiMessages = [];
         $apiMessages[] = [ "role" => "system", "content" => $systemPrompt ];
         
-        foreach ($history as $msg) {
+        foreach ($unsummarized as $msg) {
             $apiMessages[] = [ "role" => $msg['role'], "content" => $msg['content'] ];
         }
+        
         $apiMessages[] = [ "role" => "user", "content" => $userMessage ];
 
         // 4. Call AI API
         $ch = curl_init();
         
-        // 動態自 config.php 讀取 MAX_AI_TOKENS 參數
         $payload = json_encode([
             "model" => DEEPSEEK_MODEL,
             "messages" => $apiMessages,

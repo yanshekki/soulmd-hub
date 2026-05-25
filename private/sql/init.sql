@@ -1,4 +1,5 @@
--- SoulMD Hub Full Schema (with Ratings + API Keys + Categories + Remember Token + Tag Tracking + Default Users + SEO Indexes + Chat History)
+-- SoulMD Hub Full Schema 
+-- (Includes Ratings, API Keys, Categories, Tags, Default Users, SEO Indexes, Chat History, and Smart Chat Memory)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
@@ -16,8 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 🚨 預先插入 4 個預設使用者
--- 注意：所有預設帳號的登入密碼皆為 "password"
+-- 🚨 預先插入 4 個預設使用者 (密碼皆為 "password")
 INSERT IGNORE INTO users (username, email, password, api_key) VALUES 
 ('yanshekki', 'yanshekki@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b'),
 ('ysk', 'ysk@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c'),
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS categories (
     icon VARCHAR(20) DEFAULT '✨'
 );
 
--- Insert Default Categories
+-- 預設分類
 INSERT IGNORE INTO categories (name, slug, icon) VALUES 
 ('Developer', 'Developer', '💻'),
 ('Writer', 'Writer', '✍️'),
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS tags_compatibility (
     INDEX idx_tags_compat_usage (usage_count)
 );
 
--- Insert Default Tags
+-- 預設標籤
 INSERT IGNORE INTO tags_domain (name, usage_count) VALUES 
 ('Tech', 0), ('Content Creation', 0), ('Finance & Business', 0), 
 ('Coding & Dev', 0), ('Gaming', 0), ('Education', 0), 
@@ -150,4 +150,13 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
     INDEX idx_chat_session (soul_id, session_token, created_at)
+);
+
+-- ==========================================
+-- 9. Chat Memory Table (Smart Memory Compression Layer)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS chat_memory (
+    session_token VARCHAR(64) PRIMARY KEY,
+    summary TEXT,
+    last_message_id INT DEFAULT 0
 );
