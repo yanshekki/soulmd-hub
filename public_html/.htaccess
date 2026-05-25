@@ -30,9 +30,11 @@ ErrorDocument 404 /404.php
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
     
-    # 🚨 新增核心商業與個人紀錄路由
+    # 🚨 新增核心商業、個人紀錄、帳單與 Invoice 路由
     RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
     RewriteRule ^my-chats/?$ my-chats.php [L,QSA]
+    RewriteRule ^billing/?$ billing.php [L,QSA]
+    RewriteRule ^invoice/?$ invoice.php [L,QSA]
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
 
     # 用戶主頁

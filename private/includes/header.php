@@ -103,6 +103,11 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 <a href="/my-souls" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2" title="My Souls">
                     <i class="fas fa-user-circle text-emerald-400"></i> <span class="hidden sm:inline">My Souls</span>
                 </a>
+                
+                <a href="/billing" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2" title="Billing & Invoices">
+                    <i class="fas fa-file-invoice-dollar text-emerald-400"></i> <span class="hidden sm:inline">Billing</span>
+                </a>
+
                 <a href="/change-password" class="text-sm px-4 py-2 border border-white/10 rounded-2xl hover:bg-white/5 transition flex items-center gap-2" title="Change Password">
                     <i class="fas fa-key text-emerald-400"></i>
                 </a>

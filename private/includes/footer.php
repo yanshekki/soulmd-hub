@@ -11,6 +11,7 @@
                 <a href="/browse" class="hover:text-emerald-400 transition">Browse Souls</a>
                 <a href="/my-chats" class="hover:text-emerald-400 transition">My Chats</a>
                 <a href="/generate" class="hover:text-emerald-400 transition">AI Generator</a>
+                <a href="/billing" class="hover:text-emerald-400 transition">Billing</a>
                 <a href="/upgrade" class="text-amber-400 hover:text-amber-300 transition flex items-center gap-1"><i class="fas fa-crown"></i> Premium</a>
                 <a href="/api-docs" class="text-emerald-500 hover:text-emerald-400 transition flex items-center gap-1"><i class="fas fa-code"></i> API Docs</a>
                 <a href="https://github.com/yanshekki/soulmd-hub" target="_blank" rel="noopener noreferrer" class="hover:text-white transition flex items-center gap-1"><i class="fab fa-github"></i> GitHub</a>

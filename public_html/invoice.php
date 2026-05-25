@@ -151,7 +151,7 @@ $invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
                 All transactions are final. No refunds, partial credits, or chargebacks will be provided under any circumstances, including lack of usage or account termination.
             </p>
             <p class="mt-4 text-center pt-4 border-t border-white/5 print-border">
-                Thank you for your business. For support, please contact billing@ysk.hk.
+                Thank you for your business. For support, please contact <?= htmlspecialchars(SITE_BILLING_EMAIL) ?>.
             </p>
         </div>
 
