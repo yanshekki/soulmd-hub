@@ -1,4 +1,9 @@
 <?php
+/**
+ * SoulMD Hub - Core Intelligent Chat Interface
+ * (Includes Client-side Pre-compression, Ctrl+V Paste, Ctrl+Enter Send, Silent Privacy Sync, Auto-grow Input & Smart Expired Paywall)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
@@ -42,11 +47,12 @@ if (empty($sessionToken)) {
 }
 
 // ==========================================
-// 🛡️ 獲取當前用戶階級與權限設定
+// 🛡️ 獲取當前用戶階級與動態過期掃描 (Expiration Scan)
 // ==========================================
 $userTier = 'free';
 $isSessionOwner = false;
 $isPrivate = false;
+$isExpired = false; // 🚨 新增：判定該用戶是否已過期
 
 if (isset($_SESSION['user_id'])) {
     $userStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
@@ -54,9 +60,12 @@ if (isset($_SESSION['user_id'])) {
     $uData = $userStmt->fetch();
     if ($uData) {
         $userTier = $uData['tier'];
-        // 自動過期降級保護
-        if ($userTier !== 'free' && $uData['vip_expires_at'] && strtotime($uData['vip_expires_at']) < time()) {
-            $userTier = 'free'; 
+        $expiryTime = $uData['vip_expires_at'] ? strtotime($uData['vip_expires_at']) : 0;
+        
+        // 🚨 自動過期降級與標記保護
+        if ($expiryTime > 0 && $expiryTime < time()) {
+            $isExpired = true;
+            $userTier = 'free'; // 強制鎖回免費權限
         }
     }
 }
@@ -70,7 +79,6 @@ if ($chatSession = $sessStmt->fetch()) {
         $isSessionOwner = true;
     }
 } else {
-    // Session 尚未建立，第一個發言的人將會是 Owner
     $isSessionOwner = isset($_SESSION['user_id']);
 }
 
@@ -95,11 +103,15 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
 </div>
 
 <div id="paywall-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[200] p-4 backdrop-blur-md opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-emerald-500/30 rounded-3xl max-w-4xl w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+    <div class="bg-zinc-900 border <?= $isExpired ? 'border-red-500/40 shadow-red-500/5' : 'border-emerald-500/30 shadow-emerald-500/5' ?> rounded-3xl max-w-4xl w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
             <div>
-                <h3 class="text-2xl font-bold tracking-tight text-white">Unlock Full AI Power 🚀</h3>
-                <p class="text-sm text-zinc-400 mt-1">You've reached the free trial limit or tried to access a premium feature.</p>
+                <h3 class="text-2xl font-bold tracking-tight text-white">
+                    <?= $isExpired ? 'Your Premium Subscription has Expired! ⚠️' : 'Unlock Full AI Power 🚀' ?>
+                </h3>
+                <p class="text-sm text-zinc-400 mt-1">
+                    <?= $isExpired ? 'Your access window has closed. Please renew your plan to restore active token clusters.' : 'You\'ve reached the free trial limit or tried to access a premium feature.' ?>
+                </p>
             </div>
             <button type="button" onclick="closePaywall()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
         </div>
@@ -116,10 +128,12 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                     <li><i class="fas fa-check text-emerald-500 mr-2"></i> Extended chat memory retention</li>
                     <li><i class="fas fa-check text-emerald-500 mr-2"></i> Private session toggle lock</li>
                 </ul>
-                <a href="/upgrade" class="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl text-center transition">Upgrade to VIP</a>
+                <a href="/upgrade" class="w-full夹 py-3 <?= $isExpired ? 'bg-zinc-800 hover:bg-red-500 hover:text-zinc-950' : 'bg-zinc-800 hover:bg-zinc-700' ?> text-white font-bold rounded-xl text-center transition">
+                    <?= $isExpired ? '<i class="fas fa-sync-alt mr-1"></i> Renew VIP Pass' : 'Upgrade to VIP' ?>
+                </a>
             </div>
 
-            <div class="bg-gradient-to-b from-emerald-900/40 to-zinc-900 border border-emerald-500/50 rounded-3xl p-6 flex flex-col relative transform md:-translate-y-2 shadow-2xl shadow-emerald-500/10">
+            <div class="bg-gradient-to-b from-emerald-900/40 to-zinc-900 border border-emerald-500/50 rounded-3xl p-6 flex flex-col relative transform md:-translate-y-2 shadow-2xl">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-zinc-950 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-md">Most Powerful</div>
                 <div class="text-white text-sm font-bold tracking-widest uppercase mb-2 flex items-center gap-2"><i class="fas fa-fire text-amber-500"></i> PRO Member</div>
                 <div class="text-4xl font-extrabold text-white mb-2">$<?= PRICE_PRO_MONTHLY ?> <span class="text-lg text-emerald-500/50 font-normal">/mo</span></div>
@@ -131,7 +145,9 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                     <li><i class="fas fa-check text-emerald-400 mr-2"></i> Deep thinking & long AI outputs</li>
                     <li><i class="fas fa-check text-emerald-400 mr-2"></i> Advanced Vision AI analysis</li>
                 </ul>
-                <a href="/upgrade" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-center transition shadow-lg">Get PRO Access</a>
+                <a href="/upgrade" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-center transition shadow-lg">
+                    <?= $isExpired ? '<i class="fas fa-sync-alt mr-1"></i> Renew PRO Pass' : 'Get PRO Access' ?>
+                </a>
             </div>
         </div>
     </div>
@@ -282,7 +298,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         setTimeout(() => { modal.classList.add('hidden'); img.src = ''; }, 300);
     }
 
-    // 🚨 終極 UX 升級：私隱設定實時無聲同步 (Silent Privacy Sync)
     async function updatePrivacyUI() {
         const toggle = document.getElementById('privacy-toggle');
         if(!toggle) return;
@@ -297,17 +312,16 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
             dot.classList.add('translate-x-4');
             label.innerHTML = '<i class="fas fa-lock"></i> <span class="hidden sm:inline">Private</span>';
             label.classList.replace('text-zinc-500', 'text-emerald-400');
-            if(shareBtn) shareBtn.classList.add('hidden');
+            if(shareBtn) shareBtn.classList.add('hidden'); 
         } else {
             bg.classList.replace('bg-emerald-500', 'bg-zinc-800');
             bg.classList.replace('border-emerald-500', 'border-white/10');
             dot.classList.remove('translate-x-4');
             label.innerHTML = '<i class="fas fa-globe"></i> <span class="hidden sm:inline">Public</span>';
             label.classList.replace('text-emerald-400', 'text-zinc-500');
-            if(shareBtn) shareBtn.classList.remove('hidden');
+            if(shareBtn) shareBtn.classList.remove('hidden'); 
         }
 
-        // 背景發送 API，唔使撳 Send 都可以鎖定對話
         try {
             await fetch('/api/chat', {
                 method: 'POST',
@@ -413,14 +427,13 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 終極 UX 升級：輸入框自動優雅長高
+    // 🚨 核心 UX 擴展：輸入框自動變高
     function updateCharCount(el) {
         const len = el.value.length;
         charCount.innerText = `${len}/${MAX_INPUT_CHARS}`;
         if (len >= MAX_INPUT_CHARS) charCount.classList.add('text-red-400');
         else charCount.classList.remove('text-red-400');
 
-        // 先將高度重置，然後計算真實高度 (最高不超過 120px)
         el.style.height = '48px'; 
         const newHeight = Math.min(el.scrollHeight, 120); 
         el.style.height = newHeight + 'px';
@@ -604,7 +617,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
             chatInput.disabled = false;
             sendBtn.disabled = false;
             
-            // 🚨 發送完畢後，重置輸入框高度
             chatInput.style.height = '48px'; 
             
             if (userMessageCount >= MAX_TURNS) {

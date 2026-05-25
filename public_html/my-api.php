@@ -7,8 +7,11 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 $apiKey = 'YOUR_API_KEY';
+$isPremiumActive = false;
+$userTier = 'free';
+$isExpired = false;
 
-// 如果是私人模式，才進行登入驗證及撈取/生成 API Key
+// 如果是私人模式，才進行登入驗證及撈取/生成 API Key 與 訂閱狀態
 if (!$isPublicApiPage) {
     session_start();
     if (!isset($_SESSION['user_id'])) {
@@ -20,11 +23,24 @@ if (!$isPublicApiPage) {
     $pdo = $db->getConnection();
     $userId = $_SESSION['user_id'];
 
-    // Get current API Key
-    $stmt = $pdo->prepare("SELECT api_key FROM users WHERE id = ?");
+    // 獲取 API Key 與 訂閱狀態
+    $stmt = $pdo->prepare("SELECT api_key, tier, vip_expires_at FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $userRow = $stmt->fetch();
-    $apiKey = $userRow ? $userRow['api_key'] : null;
+    
+    if ($userRow) {
+        $apiKey = $userRow['api_key'];
+        $userTier = $userRow['tier'];
+        $expiry = $userRow['vip_expires_at'] ? strtotime($userRow['vip_expires_at']) : 0;
+        
+        if ($userTier !== 'free') {
+            if ($expiry > time()) {
+                $isPremiumActive = true;
+            } else {
+                $isExpired = true; // 曾經付費但已過期
+            }
+        }
+    }
 
     if (!$apiKey) {
         $apiKey = bin2hex(random_bytes(32));
@@ -58,12 +74,36 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 
     <?php if (!$isPublicApiPage): ?>
-    <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-emerald-100 shadow-lg flex items-center gap-2 transition-all">
-        <i class="fas fa-check-circle"></i> <span id="success-msg"></span>
-    </div>
-    <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-red-200 shadow-lg flex items-center gap-2 transition-all">
-        <i class="fas fa-exclamation-circle"></i> <span id="error-msg"></span>
-    </div>
+        <?php if (!$isPremiumActive): ?>
+            <div class="bg-gradient-to-r from-red-900/40 to-amber-900/40 border border-red-500/50 p-6 rounded-3xl mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                <div class="flex items-start gap-4 z-10">
+                    <div class="text-red-400 text-3xl mt-1"><i class="fas fa-lock"></i></div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-1">
+                            <?= $isExpired ? 'Your Premium Subscription has Expired!' : 'Headless Chat API is Locked (Free Tier)' ?>
+                        </h3>
+                        <p class="text-sm text-zinc-300 leading-relaxed">
+                            <?= $isExpired 
+                                ? "Your VIP/PRO access has lapsed. Direct headless access to the <code>/api/chat</code> endpoint has been restricted. Please renew your pass to restore full API integration capabilities." 
+                                : "Direct headless access to the core Chat Engine (<code>/api/chat</code>) is exclusively reserved for VIP and PRO members. Upgrade now to build automated agents." ?>
+                        </p>
+                    </div>
+                </div>
+                <div class="shrink-0 z-10 w-full md:w-auto">
+                    <a href="/upgrade" class="w-full md:w-auto px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
+                        <?= $isExpired ? '<i class="fas fa-sync-alt"></i> Renew Subscription' : '<i class="fas fa-crown"></i> Upgrade to Unlock' ?>
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-emerald-100 shadow-lg flex items-center gap-2 transition-all">
+            <i class="fas fa-check-circle"></i> <span id="success-msg"></span>
+        </div>
+        <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-red-200 shadow-lg flex items-center gap-2 transition-all">
+            <i class="fas fa-exclamation-circle"></i> <span id="error-msg"></span>
+        </div>
     <?php endif; ?>
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
@@ -185,6 +225,64 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
   "message": "Password successfully updated!"
+}</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-amber-400 mb-6 mt-12"><i class="fas fa-comments mr-2"></i> Interaction & Chat Engine</h3>
+
+                <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
+                    <div class="flex items-center flex-wrap gap-2">
+                        <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
+                        <code class="text-base font-bold text-white">/api/chat</code>
+                        <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20">Auth Required</span>
+                        <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20"><i class="fas fa-crown mr-1"></i>VIP / PRO Only</span>
+                    </div>
+                    <p class="text-sm text-zinc-400">Headless API access to retrieve conversation history. Strict permission controls prevent accessing private sessions.</p>
+                    <p class="text-xs text-zinc-500 font-mono">Query params: ?soul_id=1&session_token=random_token_here</p>
+                    <details class="text-xs group"><summary class="text-emerald-500 cursor-pointer select-none font-medium hover:underline">View Response Sample</summary>
+                        <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello! How can you help me today?"
+    },
+    {
+      "role": "assistant",
+      "content": "I am an expert assistant. I can help you with coding and reasoning tasks."
+    }
+  ]
+}</pre>
+                    </details>
+                </div>
+
+                <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
+                    <div class="flex items-center flex-wrap gap-2">
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                        <code class="text-base font-bold text-white">/api/chat</code>
+                        <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20">Auth Required</span>
+                        <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20"><i class="fas fa-crown mr-1"></i>VIP / PRO Only</span>
+                    </div>
+                    <p class="text-sm text-zinc-400">Headless API access to interact with the core routing engine. Send messages, optionally attach base64 images (Vision AI), and receive responses. Free tier requests to this endpoint will be strictly rejected with a 403 Forbidden status.</p>
+                    <p class="text-xs text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl"><i class="fas fa-exclamation-triangle"></i> <strong>Subscription Policy:</strong> Direct API integration requires an active VIP or PRO license. If your subscription period expires, your integration will be automatically disabled until a renewal is processed.</p>
+                    
+                    <div class="pt-1 flex flex-col gap-2">
+                        <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Request Body Sample</summary>
+                            <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
+  "action": "chat",
+  "soul_id": 1,
+  "session_token": "unique_session_id_123",
+  "content": "Can you analyze this architecture diagram?",
+  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...", // Optional Base64 Image
+  "is_private": false
+}</pre>
+                        </details>
+                        <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline">View Response Sample</summary>
+                            <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "reply": "Based on the provided architecture diagram, here is the technical breakdown..."
 }</pre>
                         </details>
                     </div>
@@ -683,6 +781,58 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": JSON.stringify({"success": true, "message": "Password successfully updated!"}, null, 2)
+                            }]
+                        }
+                    ]
+                },
+                {
+                    "name": "Interaction & Chat Engine",
+                    "item": [
+                        {
+                            "name": "Retrieve Chat History",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{apiKey}}"}],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/chat?soul_id=1&session_token=unique_session_id_123",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "chat"],
+                                    "query": [
+                                        {"key": "soul_id", "value": "1"},
+                                        {"key": "session_token", "value": "unique_session_id_123"}
+                                    ]
+                                }
+                            },
+                            "response": [{
+                                "name": "History Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "messages": [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there!"}]}, null, 2)
+                            }]
+                        },
+                        {
+                            "name": "Send Chat Message (Headless)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Content-Type", "value": "application/json"},
+                                    {"key": "Authorization", "value": "Bearer {{apiKey}}"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": JSON.stringify({"action": "chat", "soul_id": 1, "session_token": "unique_session_id_123", "content": "Analyze this architecture.", "is_private": false}, null, 2)
+                                },
+                                "url": { "raw": "{{baseUrl}}/api/chat", "host": ["{{baseUrl}}"], "path": ["api", "chat"] }
+                            },
+                            "response": [{
+                                "name": "AI Reply Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "reply": "Based on the provided architecture..."}, null, 2)
                             }]
                         }
                     ]

@@ -1,6 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Billing & Subscription Management
+ * (Enhanced Edition: Dynamic Expiration Detection & Renewal Prompt)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -18,16 +19,23 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 $userId = (int)$_SESSION['user_id'];
 
-// 1. 撈取訂閱狀態
+// =========================================================
+// 1. 撈取訂閱狀態與過期判定 (Expiration Logic)
+// =========================================================
 $stmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
 $currentTier = $user['tier'] ?? 'free';
 $expiresAt = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
-$isActivePremium = ($currentTier !== 'free' && $expiresAt > time());
 
-// 2. 分頁計算與查詢
+$isActivePremium = ($currentTier !== 'free' && $expiresAt > time());
+// 🚨 新增：精準判定用戶是否「已過期」 (曾經有期限，且時間早於現在)
+$isExpired = (!$isActivePremium && $expiresAt > 0 && $expiresAt <= time());
+
+// =========================================================
+// 2. 分頁計算與查詢帳單紀錄
+// =========================================================
 $countStmt = $pdo->prepare("SELECT COUNT(*) FROM payments WHERE user_id = ?");
 $countStmt->execute([$userId]);
 $totalPayments = (int)$countStmt->fetchColumn();
@@ -69,15 +77,15 @@ require_once __DIR__ . '/../private/includes/header.php';
             <h1 class="text-4xl font-bold tracking-tighter text-white">Billing & Subscriptions</h1>
             <p class="text-zinc-400 mt-2 text-sm">Manage your premium tier passes, context token allocations, and transaction receipts.</p>
         </div>
-        <a href="/upgrade" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-2xl transition flex items-center gap-2 shadow-lg shrink-0 transform hover:scale-[1.02] duration-200">
-            <i class="fas fa-arrow-up"></i> Upgrade Plan
+        <a href="/upgrade" class="px-6 py-3 <?= $isExpired ? 'bg-red-500 hover:bg-red-400 text-zinc-950' : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950' ?> font-bold rounded-2xl transition flex items-center gap-2 shadow-lg shrink-0 transform hover:scale-[1.02] duration-200">
+            <i class="fas <?= $isExpired ? 'fa-sync-alt' : 'fa-arrow-up' ?>"></i> <?= $isExpired ? 'Renew Subscription' : 'Upgrade Plan' ?>
         </a>
     </div>
 
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r <?= $isExpired ? 'from-red-500 to-amber-500' : 'from-emerald-400 to-cyan-400' ?>"></div>
         <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <i class="fas fa-shield-check text-emerald-400"></i> Current Subscription Status
+            <i class="fas <?= $isExpired ? 'fa-exclamation-triangle text-red-400' : 'fa-shield-check text-emerald-400' ?>"></i> Current Subscription Status
         </h2>
         
         <?php if ($isActivePremium): ?>
@@ -101,6 +109,24 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-info-circle mt-0.5 shrink-0"></i> 
                 <span><strong>Manual Lifecycle Management:</strong> To maintain strict data integrity, we enforce zero automatic recurring billings. Your tokens will automatically expire at the set date. Simply purchase a new license pass to continue.</span>
             </p>
+
+        <?php elseif ($isExpired): ?>
+            <div class="bg-red-950/20 p-6 rounded-2xl border border-red-500/30 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div class="absolute left-0 top-0 w-1 h-full bg-red-500"></div>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 text-xl shrink-0">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold text-red-400">Subscription Expired</span>
+                        <p class="text-sm text-zinc-400 mt-1">Your premium access ended on <b class="text-zinc-300"><?= date('F j, Y', $expiresAt) ?></b>. Please renew your plan to restore Headless API access, Vision AI, and unlimited chat capabilities.</p>
+                    </div>
+                </div>
+                <a href="/upgrade" class="px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-red-500/20 whitespace-nowrap flex items-center justify-center gap-2 shrink-0">
+                    <i class="fas fa-sync-alt"></i> Renew Plan
+                </a>
+            </div>
+
         <?php else: ?>
             <div class="bg-zinc-950/50 p-6 rounded-2xl border border-white/5 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>

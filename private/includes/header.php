@@ -3,6 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 處理 Remember Me 自動登入邏輯
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
     require_once __DIR__ . '/../src/Database.php';
     try {
@@ -22,6 +23,37 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
 }
 
 $isLoggedIn = isset($_SESSION['user_id']);
+
+// =========================================================
+// 🚨 終極商業邏輯：全域授權掃描與過期降級引擎 (Global Expiration Engine)
+// =========================================================
+$showExpiredBanner = false;
+if ($isLoggedIn) {
+    try {
+        if (!isset($pdo)) {
+            require_once __DIR__ . '/../src/Database.php';
+            $db = Database::getInstance();
+            $pdo = $db->getConnection();
+        }
+        $uStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
+        $uStmt->execute([$_SESSION['user_id']]);
+        $uData = $uStmt->fetch();
+        
+        if ($uData) {
+            $expiry = $uData['vip_expires_at'] ? strtotime($uData['vip_expires_at']) : 0;
+            
+            // 偵測：如果曾經付費，但時間已經超越了到期日
+            if ($expiry > 0 && $expiry < time()) {
+                $showExpiredBanner = true;
+                
+                // 如果 Database 仲未將佢降級，喺度實時降級，確保全站數據一致！
+                if ($uData['tier'] !== 'free') {
+                    $pdo->prepare("UPDATE users SET tier = 'free' WHERE id = ?")->execute([$_SESSION['user_id']]);
+                }
+            }
+        }
+    } catch(Exception $e) {}
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -129,3 +161,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
     </script>
 
     <main class="flex-grow flex flex-col relative z-10">
+        <?php if ($showExpiredBanner && !isset($hideGlobalBanner)): ?>
+            <div class="w-full bg-red-900/50 border-b border-red-500/30 px-4 py-2.5 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm text-red-200 z-40 backdrop-blur-md shadow-lg">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle text-red-400 animate-pulse text-lg"></i>
+                    <span class="font-medium">Your premium subscription has expired. API access and advanced features are currently locked.</span>
+                </div>
+                <a href="/upgrade" class="px-5 py-1.5 bg-red-500 hover:bg-red-400 text-zinc-950 font-bold rounded-lg transition shadow-lg text-xs whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fas fa-sync-alt"></i> Renew Now
+                </a>
+            </div>
+        <?php endif; ?>

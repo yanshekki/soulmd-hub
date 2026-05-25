@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API - Smart Dual-Engine Routing Edition
- * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect, Exponential Backoff & Guest Limit Architecture)
+ * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect, Exponential Backoff & API Gateway Architecture)
  */
 
 set_time_limit(180);
@@ -9,7 +9,7 @@ set_time_limit(180);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -27,11 +27,32 @@ $method = $_SERVER['REQUEST_METHOD'];
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
-function getCurrentUser($pdo) {
-    $userId = $_SESSION['user_id'] ?? null;
+// ==========================================
+// 🚨 終極修復 1：API Key 認證與無頭存取 (Headless Access) 判定
+// ==========================================
+$isApiCall = false;
+$apiUserId = null;
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$apiKey = trim(str_replace('Bearer', '', $authHeader));
+
+if (!empty($apiKey)) {
+    $isApiCall = true;
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
+    $stmt->execute([$apiKey]);
+    if ($user = $stmt->fetch()) {
+        $apiUserId = $user['id'];
+    } else {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Invalid API Key.']);
+        exit;
+    }
+}
+
+function getCurrentUser($pdo, $apiUserId = null) {
+    $userId = $apiUserId ?? ($_SESSION['user_id'] ?? null);
     $today = date('Y-m-d');
 
-    // 🚨 終極修復 1：訪客 (Guest) 每日限額防禦機制
+    // 訪客 (Guest) 每日限額防禦機制
     if (!$userId) {
         if (($_SESSION['guest_last_chat_date'] ?? '') !== $today) {
             $_SESSION['guest_daily_count'] = 0;
@@ -40,7 +61,8 @@ function getCurrentUser($pdo) {
         return [
             'id' => null, 
             'tier' => 'free', 
-            'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0)
+            'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0),
+            'is_expired' => false
         ];
     }
 
@@ -48,11 +70,14 @@ function getCurrentUser($pdo) {
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
 
-    if (!$user) return ['id' => null, 'tier' => 'free', 'daily_count' => 0];
+    if (!$user) return ['id' => null, 'tier' => 'free', 'daily_count' => 0, 'is_expired' => false];
 
+    // 🚨 檢查是否過期並動態降級
+    $isExpired = false;
     if ($user['tier'] !== 'free' && $user['vip_expires_at'] && strtotime($user['vip_expires_at']) < time()) {
         $pdo->prepare("UPDATE users SET tier = 'free' WHERE id = ?")->execute([$userId]);
         $user['tier'] = 'free';
+        $isExpired = true;
     }
 
     if ($user['last_chat_date'] !== $today) {
@@ -63,7 +88,8 @@ function getCurrentUser($pdo) {
     return [
         'id' => $user['id'],
         'tier' => $user['tier'],
-        'daily_count' => $user['daily_chat_count']
+        'daily_count' => $user['daily_chat_count'],
+        'is_expired' => $isExpired
     ];
 }
 
@@ -83,7 +109,17 @@ function getTierConfig($tier) {
 if ($method === 'GET') {
     $soulId = (int)($_GET['soul_id'] ?? 0);
     $sessionToken = $_GET['session_token'] ?? '';
-    $currentUser = getCurrentUser($pdo);
+    $currentUser = getCurrentUser($pdo, $apiUserId);
+
+    // 🚨 API 使用者權限檢查
+    if ($isApiCall && $currentUser['tier'] === 'free') {
+        http_response_code(403);
+        $msg = $currentUser['is_expired'] 
+            ? 'Your premium subscription has expired. Direct API access is restricted to active VIP or PRO members. Please renew your plan.' 
+            : 'Direct API access is restricted to VIP or PRO members. Free users must use the web interface.';
+        echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true]);
+        exit;
+    }
 
     if (!$soulId || empty($sessionToken)) {
         http_response_code(400);
@@ -117,25 +153,38 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (empty($userCsrfToken) && function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-    }
-    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+    $currentUser = getCurrentUser($pdo, $apiUserId);
 
-    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Security validation failed. Token mismatch.']);
-        exit;
+    // 🚨 終極修復 2：攔截免費/過期用戶的無頭 API 存取，並驗證前端的 CSRF
+    if ($isApiCall) {
+        if ($currentUser['tier'] === 'free') {
+            http_response_code(403);
+            $msg = $currentUser['is_expired'] 
+                ? 'Your premium subscription has expired. Direct API access to /api/chat is restricted to active VIP or PRO members. Please renew your plan.' 
+                : 'Direct API access to /api/chat is restricted to VIP or PRO members. Free users must use the web interface.';
+            echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true]);
+            exit;
+        }
+    } else {
+        // 如果是經由前端 (非 API Call)，則必須驗證 CSRF (未登入者必定會跌入此處)
+        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($userCsrfToken) && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+        }
+        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+
+        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Security validation failed. Direct access blocked, please use the web interface.']);
+            exit;
+        }
     }
 
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $action = $input['action'] ?? 'chat';
     $soulId = (int)($input['soul_id'] ?? 0);
     $sessionToken = trim($input['session_token'] ?? '');
-    
-    $currentUser = getCurrentUser($pdo);
 
     if ($action === 'update_privacy') {
         $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
@@ -148,7 +197,7 @@ if ($method === 'POST') {
         $chatSession = $sessStmt->fetch();
 
         if ($chatSession) {
-            // 🚨 終極修復 2：嚴格阻斷 null === null 的 Guest 越權漏洞
+            // 嚴格阻斷 null === null 的 Guest 越權漏洞
             if ($currentUser['id'] !== null && $chatSession['user_id'] === $currentUser['id']) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
@@ -164,11 +213,14 @@ if ($method === 'POST') {
         exit;
     }
 
-    $currentTime = time();
-    if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
-        http_response_code(429); 
-        echo json_encode(['success' => false, 'error' => 'Sending too fast. Please wait 3 seconds.']);
-        exit;
+    // 防禦炸彈請求 (API 呼叫跳過此防護，依賴外部 Gateway 或 DB Daily Limits)
+    if (!$isApiCall) {
+        $currentTime = time();
+        if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
+            http_response_code(429); 
+            echo json_encode(['success' => false, 'error' => 'Sending too fast. Please wait 3 seconds.']);
+            exit;
+        }
     }
 
     $userMessageText = trim($input['content'] ?? '');
@@ -217,7 +269,6 @@ if ($method === 'POST') {
                 echo json_encode(['success' => false, 'error' => 'Access Denied to this private session.']);
                 exit;
             }
-            // 同樣加上 !== null 檢查
             if ($currentUser['id'] !== null && $currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
             }
@@ -287,7 +338,6 @@ if ($method === 'POST') {
                 $sumPrompt .= strtoupper($m['role']) . ": " . $txt . "\n";
             }
 
-            // 🚨 終極修復 4：動態呼叫基礎模型，防硬編碼報錯
             $compressModel = defined('FREE_MODEL') ? FREE_MODEL : 'deepseek-chat';
             
             $chSum = curl_init();
@@ -371,7 +421,9 @@ if ($method === 'POST') {
             }
         }
 
-        $_SESSION['last_chat_time'] = $currentTime;
+        if (!$isApiCall) {
+            $_SESSION['last_chat_time'] = time();
+        }
         session_write_close(); 
 
         $pdo = null;
@@ -447,10 +499,11 @@ if ($method === 'POST') {
             if ($currentUser['id']) {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
             } else {
-                // 🚨 終極修復 1：訪客 (Guest) 計數加一
-                session_start();
-                $_SESSION['guest_daily_count'] = ($_SESSION['guest_daily_count'] ?? 0) + 1;
-                session_write_close();
+                if (!$isApiCall) {
+                    session_start();
+                    $_SESSION['guest_daily_count'] = ($_SESSION['guest_daily_count'] ?? 0) + 1;
+                    session_write_close();
+                }
             }
 
             if ($updateMemory) {
