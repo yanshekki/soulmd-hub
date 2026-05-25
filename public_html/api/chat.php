@@ -1,8 +1,7 @@
 <?php
 /**
- * SoulMD Hub Public API - Multimodal Edition
- * GET  /api/chat - Fetch complete chat history (Includes historical Base64 images)
- * POST /api/chat - Send message to deepseek-v4-flash / deepseek-v4-pro with Vision AI
+ * SoulMD Hub Public API - Smart Dual-Engine Routing Edition
+ * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect & Exponential Backoff Architecture)
  */
 
 set_time_limit(180);
@@ -70,7 +69,7 @@ function getTierConfig($tier) {
 }
 
 // ==========================================
-// Handle GET
+// 1. 處理對話歷史紀錄撈取 (GET)
 // ==========================================
 if ($method === 'GET') {
     $soulId = (int)($_GET['soul_id'] ?? 0);
@@ -109,7 +108,7 @@ if ($method === 'GET') {
 }
 
 // ==========================================
-// Handle POST
+// 2. 處理核心發言與智慧型雙軌路由 (POST)
 // ==========================================
 if ($method === 'POST') {
     $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -161,10 +160,14 @@ if ($method === 'POST') {
         exit;
     }
 
-    if ($imageBase64 && !$tierConfig['allow_image']) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Vision AI (Image Upload) is an exclusive feature for VIP & PRO members.', 'needs_upgrade' => true]);
-        exit;
+    $isVisionRequest = false;
+    if ($imageBase64) {
+        if (!$tierConfig['allow_image']) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Vision AI (Image Upload) is an exclusive feature for VIP & PRO members.', 'needs_upgrade' => true]);
+            exit;
+        }
+        $isVisionRequest = true;
     }
 
     try {
@@ -220,7 +223,7 @@ if ($method === 'POST') {
         $systemPrompt .= "\n\n[CRITICAL DIRECTIVE: Keep responses extremely concise and under {$maxWords} words.]";
 
         // =========================================================
-        // 🚨 智能記憶壓縮層 (延遲儲存機制防 Timeout)
+        // 智能記憶壓縮層
         // =========================================================
         $memStmt = $pdo->prepare("SELECT summary, last_message_id FROM chat_memory WHERE session_token = ?");
         $memStmt->execute([$sessionToken]);
@@ -232,7 +235,7 @@ if ($method === 'POST') {
         $msgStmt->execute([$soulId, $sessionToken, $lastMessageId]);
         $unsummarized = $msgStmt->fetchAll();
 
-        $updateMemory = false; // 標記是否需要更新 Memory
+        $updateMemory = false; 
 
         if (count($unsummarized) >= $tierConfig['memory_threshold']) {
             $toSummarize = array_slice($unsummarized, 0, -2);
@@ -265,7 +268,7 @@ if ($method === 'POST') {
                 if ($newSummary) {
                     $chatMemory = $newSummary;
                     $lastMessageId = end($toSummarize)['id'];
-                    $updateMemory = true; // 標記延遲寫入
+                    $updateMemory = true; 
                     $unsummarized = $keptMessages;
                 }
             }
@@ -273,7 +276,7 @@ if ($method === 'POST') {
         }
 
         // =========================================================
-        // 核心對話
+        // 核心對話 - 原始矩陣構建
         // =========================================================
         if ($chatMemory) $systemPrompt .= "\n\n[CONTEXT MEMORY]\n" . $chatMemory;
         
@@ -285,9 +288,9 @@ if ($method === 'POST') {
         }
         
         $dbContentToSave = $userMessageText;
-        if ($imageBase64 && $tierConfig['allow_image']) {
+        if ($isVisionRequest) {
             $visionPayload = [
-                ["type" => "text", "text" => $userMessageText],
+                ["type" => "text", "text" => $userMessageText ?: "Please analyze this attached asset template file."],
                 ["type" => "image_url", "image_url" => ["url" => $imageBase64]]
             ];
             $apiMessages[] = ["role" => "user", "content" => $visionPayload];
@@ -296,29 +299,105 @@ if ($method === 'POST') {
             $apiMessages[] = ["role" => "user", "content" => $userMessageText];
         }
 
-        $ch = curl_init();
-        $payload = json_encode([
-            "model" => $tierConfig['model'], 
-            "messages" => $apiMessages,
-            "max_tokens" => $tierConfig['max_tokens'], 
-            "temperature" => 0.7,
-            "stream" => false
-        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        // =========================================================
+        // 🚨 終極核心：雙軌智能商業路由引擎
+        // =========================================================
+        $targetApiUrl = DEEPSEEK_API_URL;
+        $targetApiKey = DEEPSEEK_API_KEY;
+        $targetModel = $tierConfig['model'];
+        $finalPayloadMessages = [];
 
-        curl_setopt_array($ch, [
-            CURLOPT_URL => DEEPSEEK_API_URL,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT => 65, 
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . DEEPSEEK_API_KEY]
-        ]);
+        if ($isVisionRequest && defined('VISION_API_URL') && defined('VISION_API_KEY')) {
+            $targetApiUrl = VISION_API_URL;
+            $targetApiKey = VISION_API_KEY;
+            
+            if ($currentUser['tier'] === 'pro' && defined('PRO_VISION_MODEL')) {
+                $targetModel = PRO_VISION_MODEL; 
+            } else {
+                $targetModel = defined('VIP_VISION_MODEL') ? VIP_VISION_MODEL : 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo';
+            }
+            $finalPayloadMessages = $apiMessages; 
+        } else {
+            foreach ($apiMessages as $msg) {
+                $role = $msg['role'];
+                $content = $msg['content'];
+                
+                if (is_array($content)) {
+                    $textPayloadStr = "";
+                    foreach ($content as $part) {
+                        if (isset($part['type'])) {
+                            if ($part['type'] === 'text') {
+                                $textPayloadStr .= $part['text'];
+                            } elseif ($part['type'] === 'image_url') {
+                                $textPayloadStr .= "\n[System Notice: The user has attached an image template file at this position.]\n";
+                            }
+                        }
+                    }
+                    $finalPayloadMessages[] = ["role" => $role, "content" => trim($textPayloadStr)];
+                } else {
+                    $finalPayloadMessages[] = ["role" => $role, "content" => $content];
+                }
+            }
+        }
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if (curl_errno($ch)) { curl_close($ch); http_response_code(504); echo json_encode(['success' => false, 'error' => 'AI Service processing timeout.']); exit; }
-        curl_close($ch);
+        // 提前寫入 Session 並釋放鎖 (防止瀏覽器掛起)
+        $_SESSION['last_chat_time'] = $currentTime;
+        session_write_close(); 
+
+        $pdo = null;
+        $db = null;
+
+        // =========================================================
+        // 🚀 企業級自動重試與退避機制 (Exponential Backoff for 429 Rate Limits)
+        // =========================================================
+        $maxRetries = 3;      // 遇到 429 時最多重試 3 次
+        $retryDelay = 2;      // 初始等待 2 秒
+
+        $response = '';
+        $httpCode = 0;
+        
+        for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+            $ch = curl_init();
+            $payload = json_encode([
+                "model" => $targetModel, 
+                "messages" => $finalPayloadMessages,
+                "max_tokens" => $tierConfig['max_tokens'], 
+                "temperature" => 0.7,
+                "stream" => false
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $targetApiUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => 120, // 確保大腦有足夠時間思考
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $targetApiKey]
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_errno($ch);
+            curl_close($ch);
+
+            if ($curlError) { 
+                http_response_code(504); 
+                echo json_encode(['success' => false, 'error' => 'AI Service processing timeout.']); 
+                exit; 
+            }
+
+            // 如果不是 429 Too Many Requests，直接跳出迴圈正常處理
+            if ($httpCode !== 429) {
+                break;
+            }
+
+            // 如果是 429，休眠並準備下一輪重試 (2秒 -> 4秒 -> 8秒)
+            if ($attempt < $maxRetries - 1) {
+                sleep($retryDelay);
+                $retryDelay *= 2; 
+            }
+        }
         
         $responseData = json_decode($response, true);
         if ($httpCode !== 200 || !empty($responseData['error'])) {
@@ -330,35 +409,42 @@ if ($method === 'POST') {
         $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 
         // ==========================================
-        // 🚨 終極安全存檔 (全新 PDO 事務，防斷線，包含 Memory)
+        // 重新連線與精準 Error 捕捉 (DB Reconnect)
         // ==========================================
-        $freshPdo = new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset='.DB_CHARSET, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
-        $freshPdo->beginTransaction();
-        
-        // 1. 儲存對話
-        $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, content) VALUES (?, ?, ?, ?)");
-        $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
-        $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
-        
-        // 2. 更新每日防破產次數
-        if ($currentUser['id']) {
-            $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
+        try {
+            $freshPdo = new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset='.DB_CHARSET, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_TIMEOUT => 15
+            ]);
+            
+            $freshPdo->beginTransaction();
+            
+            $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, content) VALUES (?, ?, ?, ?)");
+            $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
+            $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
+            
+            if ($currentUser['id']) {
+                $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
+            }
+
+            if ($updateMemory) {
+                $freshPdo->prepare("INSERT INTO chat_memory (session_token, summary, last_message_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE summary = VALUES(summary), last_message_id = VALUES(last_message_id)")
+                         ->execute([$sessionToken, $chatMemory, $lastMessageId]);
+            }
+
+            $freshPdo->commit();
+
+            echo json_encode(['success' => true, 'reply' => $aiReply], JSON_UNESCAPED_UNICODE);
+
+        } catch (Throwable $e) {
+            if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();
+            http_response_code(500); 
+            echo json_encode(['success' => false, 'error' => 'DB Sync Error: ' . $e->getMessage()]);
         }
-
-        // 3. 延遲儲存 Memory
-        if ($updateMemory) {
-            $freshPdo->prepare("INSERT INTO chat_memory (session_token, summary, last_message_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE summary = VALUES(summary), last_message_id = VALUES(last_message_id)")
-                     ->execute([$sessionToken, $chatMemory, $lastMessageId]);
-        }
-
-        $freshPdo->commit();
-
-        $_SESSION['last_chat_time'] = $currentTime;
-        echo json_encode(['success' => true, 'reply' => $aiReply], JSON_UNESCAPED_UNICODE);
-
     } catch (Throwable $e) {
-        if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();
-        http_response_code(500); echo json_encode(['success' => false, 'error' => 'Internal Server Error while synchronizing chat frames.']);
+        http_response_code(500); 
+        echo json_encode(['success' => false, 'error' => 'Fatal Server Exception: ' . $e->getMessage()]);
     }
 } else {
     http_response_code(405); echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);

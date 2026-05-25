@@ -165,7 +165,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                 </label>
             <?php endif; ?>
 
-            <button onclick="shareChat(this)" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <button id="share-btn" onclick="shareChat(this)" class="<?= $isPrivate ? 'hidden ' : '' ?>px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
                 <i class="fas fa-share-alt"></i> <span class="hidden sm:inline">Share URL</span>
             </button>
         </div>
@@ -197,7 +197,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                     </button>
                     <input type="file" id="image-upload-input" accept="image/jpeg, image/png, image/webp" class="hidden" onchange="handleImageSelection(event)">
                     
-                    <textarea id="chat-input" rows="1" maxlength="<?= $maxInputChars ?>" placeholder="Type your message here (max <?= number_format($maxInputChars) ?> characters)..." class="w-full bg-transparent px-2 py-3.5 pr-16 text-sm focus:outline-none resize-none custom-scrollbar text-white placeholder-zinc-500" style="min-height: 48px; max-height: 120px;" oninput="updateCharCount(this)"></textarea>
+                    <textarea id="chat-input" rows="1" maxlength="<?= $maxInputChars ?>" placeholder="Type your message, Ctrl+V to paste image, Ctrl+Enter to send..." class="w-full bg-transparent px-2 py-3.5 pr-16 text-sm focus:outline-none resize-none custom-scrollbar text-white placeholder-zinc-500" style="min-height: 48px; max-height: 120px;" oninput="updateCharCount(this)"></textarea>
                     
                     <div id="char-count" class="absolute bottom-3 right-4 text-[10px] text-zinc-500 font-mono select-none">0/<?= $maxInputChars ?></div>
                 </div>
@@ -224,12 +224,11 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
     const MAX_TURNS = <?= $maxTurns ?>;
     const MAX_INPUT_CHARS = <?= $maxInputChars ?>;
     const ALLOW_IMAGE = <?= $allowImage ?>;
-    const IMG_MAX_DIM = <?= IMAGE_MAX_DIMENSION ?>;
-    const IMG_QUALITY = <?= IMAGE_QUALITY ?>;
+    const IMG_MAX_DIM = <?= defined('IMAGE_MAX_DIMENSION') ? IMAGE_MAX_DIMENSION : 800 ?>; 
+    const IMG_QUALITY = <?= defined('IMAGE_QUALITY') ? IMAGE_QUALITY : 0.6 ?>;
 
     let currentImageBase64 = null;
 
-    // 🚨 處理免責聲明 Modal 邏輯
     const agreementKey = `soulmd_agreement_${soulId}_${sessionToken}`;
     if (!localStorage.getItem(agreementKey)) {
         document.getElementById('disclaimer-modal').classList.remove('hidden');
@@ -242,21 +241,18 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         window.location.href = '/browse';
     }
 
-    // 🚨 智慧型置底捲動器 (加強型防走位)
     function scrollToBottom() {
         if (chatBox) {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
     }
 
-    // 🚨 完美相容新舊版 marked.js，阻絕 CDN 函數未定義錯誤
     if (typeof marked.use === 'function') {
         marked.use({ breaks: true, gfm: true });
     } else if (typeof marked.setOptions === 'function') {
         try { marked.setOptions({ breaks: true, gfm: true }); } catch(e) {}
     }
 
-    // 安全解析 Markdown
     function parseMarkdown(text) {
         try {
             return marked.parse(text);
@@ -292,6 +288,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         const bg = document.getElementById('privacy-bg');
         const dot = document.getElementById('privacy-dot');
         const label = document.getElementById('privacy-label');
+        const shareBtn = document.getElementById('share-btn');
 
         if (toggle.checked) {
             bg.classList.replace('bg-zinc-800', 'bg-emerald-500');
@@ -299,12 +296,14 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
             dot.classList.add('translate-x-4');
             label.innerHTML = '<i class="fas fa-lock"></i> <span class="hidden sm:inline">Private</span>';
             label.classList.replace('text-zinc-500', 'text-emerald-400');
+            if(shareBtn) shareBtn.classList.add('hidden'); // 🚨 自動隱藏 Share 按鈕
         } else {
             bg.classList.replace('bg-emerald-500', 'bg-zinc-800');
             bg.classList.replace('border-emerald-500', 'border-white/10');
             dot.classList.remove('translate-x-4');
             label.innerHTML = '<i class="fas fa-globe"></i> <span class="hidden sm:inline">Public</span>';
             label.classList.replace('text-emerald-400', 'text-zinc-500');
+            if(shareBtn) shareBtn.classList.remove('hidden'); // 🚨 恢復顯示 Share 按鈕
         }
     }
 
@@ -323,10 +322,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         document.getElementById('image-preview').src = '';
     }
 
-    function handleImageSelection(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
+    function processImageFile(file) {
         if (!file.type.match('image.*')) {
             alert("Only JPG, PNG and WEBP images are supported.");
             return;
@@ -352,6 +348,7 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                 ctx.drawImage(img, 0, 0, width, height);
 
                 currentImageBase64 = canvas.toDataURL('image/jpeg', IMG_QUALITY);
+                
                 document.getElementById('image-preview').src = currentImageBase64;
                 document.getElementById('image-preview-container').classList.remove('hidden');
             };
@@ -359,6 +356,35 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         };
         reader.readAsDataURL(file);
     }
+
+    function handleImageSelection(event) {
+        const file = event.target.files[0];
+        if (file) processImageFile(file);
+    }
+
+    chatInput.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let item of items) {
+            if (item.type.indexOf('image') === 0) {
+                if (!ALLOW_IMAGE) {
+                    e.preventDefault();
+                    showPaywall();
+                    return;
+                }
+                e.preventDefault(); 
+                const file = item.getAsFile();
+                processImageFile(file); 
+                break; 
+            }
+        }
+    });
+
+    chatInput.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            sendBtn.click();
+        }
+    });
 
     function showPaywall() {
         const modal = document.getElementById('paywall-modal');
@@ -389,7 +415,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         });
     }
 
-    // 🚨 完美渲染多模態內容 (附加 <img> 智慧型置底機制)
     function appendMessage(role, content) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
@@ -415,7 +440,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                 if (part.type === 'text') {
                     innerHTML += DOMPurify.sanitize(parseMarkdown(part.text || ''));
                 } else if (part.type === 'image_url' && part.image_url && part.image_url.url) {
-                    // 🚨 注入 onload="scrollToBottom()" 保障 Base64 圖片載入完成後不會被吃掉高度
                     innerHTML += `<div class="mt-3 mb-1"><img src="${part.image_url.url}" class="max-w-full max-h-60 rounded-lg cursor-pointer hover:opacity-80 transition shadow-md border border-white/10" onclick="openImageModal(this.src)" onload="scrollToBottom()" alt="Uploaded Image"></div>`;
                 }
             });
@@ -435,7 +459,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         return bubble;
     }
 
-    // 🚨 智慧安全型歷史記錄讀取
     async function loadChatHistory() {
         const loading = document.getElementById('loading-history');
         try {
@@ -451,7 +474,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                         if (msg.role === 'user') userMessageCount++;
                     });
                     
-                    // 多階段強制置底排程，杜絕非同步渲染高度誤差
                     scrollToBottom();
                     setTimeout(scrollToBottom, 50);
                     setTimeout(scrollToBottom, 250);
@@ -506,9 +528,10 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         if (messageText) displayPayload.push({ type: 'text', text: messageText });
         if (currentImageBase64) displayPayload.push({ type: 'image_url', image_url: { url: currentImageBase64 } });
         
-        appendMessage('user', displayPayload.length > 1 ? displayPayload : messageText);
-        userMessageCount++;
+        let contentToAppend = currentImageBase64 ? displayPayload : messageText;
+        appendMessage('user', contentToAppend);
         
+        userMessageCount++;
         const aiBubble = appendMessage('assistant', '...');
         
         const privacyToggle = document.getElementById('privacy-toggle');
@@ -529,7 +552,20 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
                 body: JSON.stringify(payload)
             });
 
-            const data = await res.json();
+            const rawText = await res.text();
+            let data;
+            
+            try {
+                data = JSON.parse(rawText);
+            } catch (parseErr) {
+                console.error("Raw Server Response:", rawText);
+                if (rawText.includes('524') || rawText.includes('timeout') || rawText.includes('Cloudflare')) {
+                    aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-hourglass-end"></i> Cloudflare Timeout (100s). The AI model took too long to analyze the image. Please try again.</span>`;
+                } else {
+                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-bug"></i> Fatal Server Error. Please check browser console (F12) for details.</span>`;
+                }
+                return;
+            }
 
             if (data.success) {
                 aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
