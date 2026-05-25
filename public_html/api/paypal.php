@@ -46,6 +46,35 @@ $pdo = $db->getConnection();
 $userId = $_SESSION['user_id'];
 
 // ==========================================
+// 🛡️ 0. 終極安全防護：事前降級保護 (Pre-flight Downgrade Protection)
+// 必須在向 PayPal 扣錢前執行，防止用戶誤操作降級被扣冤枉錢！
+// ==========================================
+$uStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
+$uStmt->execute([$userId]);
+$currentUser = $uStmt->fetch();
+
+$currentTier = $currentUser['tier'];
+$currentExpiry = $currentUser['vip_expires_at'] ? strtotime($currentUser['vip_expires_at']) : 0;
+$now = time();
+$isActivePremium = ($currentTier !== 'free' && $currentExpiry > $now);
+
+if ($isActivePremium && $currentTier === 'pro' && $purchasedTier === 'vip') {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false, 
+        'error' => 'Downgrade Guard: You currently have an active PRO subscription. Please wait until it expires to switch to VIP. No charges were made.'
+    ]);
+    exit;
+}
+
+$checkStmt = $pdo->prepare("SELECT id, status FROM payments WHERE paypal_order_id = ?");
+$checkStmt->execute([$orderId]);
+if ($checkStmt->fetch()) {
+    echo json_encode(['success' => true, 'message' => 'Transaction already processed and logged.']);
+    exit;
+}
+
+// ==========================================
 // 🛡️ 1. Acquire PayPal Access Token
 // ==========================================
 $paypalBaseUrl = (PAYPAL_MODE === 'sandbox') ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
@@ -90,7 +119,6 @@ $captureData = json_decode($captureResponse, true);
 $paypalStatus = $captureData['status'] ?? '';
 
 if ($captureHttpCode !== 200 && $captureHttpCode !== 201) {
-    // PayPal 回傳 422 或是 INSTRUMENT_DECLINED 時的精準捕捉
     $errorDesc = $captureData['details'][0]['description'] ?? 'Payment authorization declined by issuer.';
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => "Gateway Error: " . $errorDesc]);
@@ -115,27 +143,11 @@ if ((float)$paidAmount < (float)$expectedAmount && $paypalStatus === 'COMPLETED'
 try {
     $pdo->beginTransaction();
 
-    $checkStmt = $pdo->prepare("SELECT id, status FROM payments WHERE paypal_order_id = ?");
-    $checkStmt->execute([$orderId]);
-    if ($checkStmt->fetch()) {
-        $pdo->rollBack();
-        echo json_encode(['success' => true, 'message' => 'Transaction already processed and logged.']);
-        exit;
-    }
-
     $insStmt = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");
     $insStmt->execute([$userId, $orderId, $paidAmount, 'USD', $purchasedTier, $paypalStatus]);
 
-    $uStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
-    $uStmt->execute([$userId]);
-    $currentUser = $uStmt->fetch();
-
-    $currentTier = $currentUser['tier'];
-    $currentExpiry = $currentUser['vip_expires_at'] ? strtotime($currentUser['vip_expires_at']) : time();
-    $now = time();
     $purchasedSeconds = 30 * 24 * 60 * 60; 
 
-    // 🚨 狀態分流機制
     if ($paypalStatus === 'COMPLETED') {
         if ($currentTier === 'vip' && $purchasedTier === 'pro' && $currentExpiry > $now) {
             $remainingVipSeconds = $currentExpiry - $now;
@@ -185,7 +197,7 @@ try {
     echo json_encode(['success' => false, 'error' => 'Internal cluster sync error during entitlement allocation.']);
 }
 
-// 預留給 Webhook 使用的非同步回收引擎 (Asynchronous Revocation Engine)
+// Webhook Revocation Engine
 function handleAsynchronousRevocation($pdo, $paypalOrderId, $targetStatus) {
     try {
         $pdo->beginTransaction();

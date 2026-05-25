@@ -282,7 +282,8 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         setTimeout(() => { modal.classList.add('hidden'); img.src = ''; }, 300);
     }
 
-    function updatePrivacyUI() {
+    // 🚨 終極 UX 升級：私隱設定實時無聲同步 (Silent Privacy Sync)
+    async function updatePrivacyUI() {
         const toggle = document.getElementById('privacy-toggle');
         if(!toggle) return;
         const bg = document.getElementById('privacy-bg');
@@ -296,15 +297,29 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
             dot.classList.add('translate-x-4');
             label.innerHTML = '<i class="fas fa-lock"></i> <span class="hidden sm:inline">Private</span>';
             label.classList.replace('text-zinc-500', 'text-emerald-400');
-            if(shareBtn) shareBtn.classList.add('hidden'); // 🚨 自動隱藏 Share 按鈕
+            if(shareBtn) shareBtn.classList.add('hidden');
         } else {
             bg.classList.replace('bg-emerald-500', 'bg-zinc-800');
             bg.classList.replace('border-emerald-500', 'border-white/10');
             dot.classList.remove('translate-x-4');
             label.innerHTML = '<i class="fas fa-globe"></i> <span class="hidden sm:inline">Public</span>';
             label.classList.replace('text-emerald-400', 'text-zinc-500');
-            if(shareBtn) shareBtn.classList.remove('hidden'); // 🚨 恢復顯示 Share 按鈕
+            if(shareBtn) shareBtn.classList.remove('hidden');
         }
+
+        // 背景發送 API，唔使撳 Send 都可以鎖定對話
+        try {
+            await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': serverCsrfToken },
+                body: JSON.stringify({ 
+                    action: 'update_privacy',
+                    soul_id: soulId, 
+                    session_token: sessionToken, 
+                    is_private: toggle.checked 
+                })
+            });
+        } catch(e) { console.error('Privacy sync failed'); }
     }
 
     function triggerImageUpload() {
@@ -398,11 +413,17 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
+    // 🚨 終極 UX 升級：輸入框自動優雅長高
     function updateCharCount(el) {
         const len = el.value.length;
         charCount.innerText = `${len}/${MAX_INPUT_CHARS}`;
         if (len >= MAX_INPUT_CHARS) charCount.classList.add('text-red-400');
         else charCount.classList.remove('text-red-400');
+
+        // 先將高度重置，然後計算真實高度 (最高不超過 120px)
+        el.style.height = '48px'; 
+        const newHeight = Math.min(el.scrollHeight, 120); 
+        el.style.height = newHeight + 'px';
     }
 
     function shareChat(btn) {
@@ -582,6 +603,9 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         } finally {
             chatInput.disabled = false;
             sendBtn.disabled = false;
+            
+            // 🚨 發送完畢後，重置輸入框高度
+            chatInput.style.height = '48px'; 
             
             if (userMessageCount >= MAX_TURNS) {
                 showPaywall();

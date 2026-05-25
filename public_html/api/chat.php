@@ -68,9 +68,6 @@ function getTierConfig($tier) {
     ];
 }
 
-// ==========================================
-// 1. 處理對話歷史紀錄撈取 (GET)
-// ==========================================
 if ($method === 'GET') {
     $soulId = (int)($_GET['soul_id'] ?? 0);
     $sessionToken = $_GET['session_token'] ?? '';
@@ -107,9 +104,6 @@ if ($method === 'GET') {
     exit;
 }
 
-// ==========================================
-// 2. 處理核心發言與智慧型雙軌路由 (POST)
-// ==========================================
 if ($method === 'POST') {
     $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
     if (empty($userCsrfToken) && function_exists('getallheaders')) {
@@ -124,6 +118,42 @@ if ($method === 'POST') {
         exit;
     }
 
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $action = $input['action'] ?? 'chat';
+    $soulId = (int)($input['soul_id'] ?? 0);
+    $sessionToken = trim($input['session_token'] ?? '');
+    
+    $currentUser = getCurrentUser($pdo);
+
+    // 🚨 全新獨立接口：實時同步私隱狀態
+    if ($action === 'update_privacy') {
+        $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
+        if (!$soulId || empty($sessionToken)) {
+            http_response_code(400); echo json_encode(['success' => false]); exit;
+        }
+        
+        $sessStmt = $pdo->prepare("SELECT user_id FROM chat_sessions WHERE session_token = ?");
+        $sessStmt->execute([$sessionToken]);
+        $chatSession = $sessStmt->fetch();
+
+        if ($chatSession) {
+            if ($chatSession['user_id'] === $currentUser['id']) {
+                $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
+                echo json_encode(['success' => true]);
+            } else {
+                http_response_code(403); echo json_encode(['success' => false, 'error' => 'Not the session owner.']);
+            }
+        } else {
+            // 如果連對話都未開始，預先建立對話 Session 並上鎖
+            $actualPrivate = ($currentUser['tier'] !== 'free') ? (int)$isPrivate : 0;
+            $pdo->prepare("INSERT INTO chat_sessions (session_token, soul_id, user_id, is_private) VALUES (?, ?, ?, ?)")
+                ->execute([$sessionToken, $soulId, $currentUser['id'], $actualPrivate]);
+            echo json_encode(['success' => true]);
+        }
+        exit;
+    }
+
+    // 防禦炸彈請求 (只對發送對話有效)
     $currentTime = time();
     if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
         http_response_code(429); 
@@ -131,9 +161,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $soulId = (int)($input['soul_id'] ?? 0);
-    $sessionToken = trim($input['session_token'] ?? '');
     $userMessageText = trim($input['content'] ?? '');
     $imageBase64 = $input['image'] ?? null;
     $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
@@ -144,7 +171,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    $currentUser = getCurrentUser($pdo);
     $tierConfig = getTierConfig($currentUser['tier']);
 
     if ($currentUser['daily_count'] >= $tierConfig['daily_limit']) {
@@ -222,9 +248,6 @@ if ($method === 'POST') {
         $maxWords = max(50, floor($tierConfig['max_tokens'] * 0.6));
         $systemPrompt .= "\n\n[CRITICAL DIRECTIVE: Keep responses extremely concise and under {$maxWords} words.]";
 
-        // =========================================================
-        // 智能記憶壓縮層
-        // =========================================================
         $memStmt = $pdo->prepare("SELECT summary, last_message_id FROM chat_memory WHERE session_token = ?");
         $memStmt->execute([$sessionToken]);
         $memoryRow = $memStmt->fetch();
@@ -275,9 +298,6 @@ if ($method === 'POST') {
             curl_close($chSum);
         }
 
-        // =========================================================
-        // 核心對話 - 原始矩陣構建
-        // =========================================================
         if ($chatMemory) $systemPrompt .= "\n\n[CONTEXT MEMORY]\n" . $chatMemory;
         
         $apiMessages = [["role" => "system", "content" => $systemPrompt]];
@@ -299,9 +319,6 @@ if ($method === 'POST') {
             $apiMessages[] = ["role" => "user", "content" => $userMessageText];
         }
 
-        // =========================================================
-        // 🚨 終極核心：雙軌智能商業路由引擎
-        // =========================================================
         $targetApiUrl = DEEPSEEK_API_URL;
         $targetApiKey = DEEPSEEK_API_KEY;
         $targetModel = $tierConfig['model'];
@@ -340,18 +357,14 @@ if ($method === 'POST') {
             }
         }
 
-        // 提前寫入 Session 並釋放鎖 (防止瀏覽器掛起)
         $_SESSION['last_chat_time'] = $currentTime;
         session_write_close(); 
 
         $pdo = null;
         $db = null;
 
-        // =========================================================
-        // 🚀 企業級自動重試與退避機制 (Exponential Backoff for 429 Rate Limits)
-        // =========================================================
-        $maxRetries = 3;      // 遇到 429 時最多重試 3 次
-        $retryDelay = 2;      // 初始等待 2 秒
+        $maxRetries = 3;      
+        $retryDelay = 2;      
 
         $response = '';
         $httpCode = 0;
@@ -372,7 +385,7 @@ if ($method === 'POST') {
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_TIMEOUT => 120, // 確保大腦有足夠時間思考
+                CURLOPT_TIMEOUT => 120,
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $targetApiKey]
             ]);
 
@@ -387,12 +400,8 @@ if ($method === 'POST') {
                 exit; 
             }
 
-            // 如果不是 429 Too Many Requests，直接跳出迴圈正常處理
-            if ($httpCode !== 429) {
-                break;
-            }
+            if ($httpCode !== 429) break;
 
-            // 如果是 429，休眠並準備下一輪重試 (2秒 -> 4秒 -> 8秒)
             if ($attempt < $maxRetries - 1) {
                 sleep($retryDelay);
                 $retryDelay *= 2; 
@@ -408,9 +417,6 @@ if ($method === 'POST') {
 
         $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 
-        // ==========================================
-        // 重新連線與精準 Error 捕捉 (DB Reconnect)
-        // ==========================================
         try {
             $freshPdo = new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset='.DB_CHARSET, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
