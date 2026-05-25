@@ -3,7 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 處理公開頁面 (如首頁/Browse) 的 Remember Me 自動登入
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
     require_once __DIR__ . '/../src/Database.php';
     try {
@@ -92,8 +91,10 @@ $isLoggedIn = isset($_SESSION['user_id']);
         <?php if (!isset($hideNavLinks) || !$hideNavLinks): ?>
         <div class="hidden md:flex items-center gap-8 text-sm font-medium">
             <a href="/browse" class="text-zinc-400 hover:text-emerald-400 transition">Browse</a>
+            <a href="/my-chats" class="text-zinc-400 hover:text-emerald-400 transition">My Chats</a>
             <a href="/generate" class="text-zinc-400 hover:text-emerald-400 transition">AI Generator</a>
             <a href="/upload" class="text-zinc-400 hover:text-emerald-400 transition">Upload</a>
+            <a href="/upgrade" class="text-amber-400 hover:text-amber-300 transition flex items-center gap-1.5 px-3 py-1 bg-amber-400/10 rounded-full border border-amber-400/20"><i class="fas fa-crown"></i> Premium</a>
         </div>
         <?php endif; ?>
 

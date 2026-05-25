@@ -1,23 +1,27 @@
 -- SoulMD Hub Full Schema 
--- (Includes Ratings, API Keys, Categories, Tags, Default Users, SEO Indexes, Chat History, and Smart Chat Memory)
+-- (Includes Ratings, API Keys, Categories, Tags, Default Users, SEO Indexes, Chat History, Smart Chat Memory, Subscriptions, Private Sessions & Multimodal Vision Support)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
 
 -- ==========================================
--- 1. Users Table
+-- 1. Users Table (升級：加入會員階級與防破產機制)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100),
     password VARCHAR(255) NOT NULL,
+    tier ENUM('free', 'vip', 'pro') DEFAULT 'free',
+    vip_expires_at TIMESTAMP NULL DEFAULT NULL,
+    daily_chat_count INT DEFAULT 0,
+    last_chat_date DATE DEFAULT NULL,
     remember_token VARCHAR(100) NULL,
     api_key VARCHAR(64) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 🚨 預先插入 4 個預設使用者 (密碼皆為 "password")
+-- 預先插入 4 個預設使用者 (密碼皆為 "password")
 INSERT IGNORE INTO users (username, email, password, api_key) VALUES 
 ('yanshekki', 'yanshekki@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b'),
 ('ysk', 'ysk@ysk.hk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c4d5e6f7g8h9i0j1a2b3c'),
@@ -66,7 +70,7 @@ CREATE TABLE IF NOT EXISTS soul_versions (
 );
 
 -- ==========================================
--- 4. Ratings Table (1-5 stars)
+-- 4. Ratings Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS soul_ratings (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -79,7 +83,7 @@ CREATE TABLE IF NOT EXISTS soul_ratings (
 );
 
 -- ==========================================
--- 5. Categories Table (With Emoji Icons)
+-- 5. Categories Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -88,7 +92,6 @@ CREATE TABLE IF NOT EXISTS categories (
     icon VARCHAR(20) DEFAULT '✨'
 );
 
--- 預設分類
 INSERT IGNORE INTO categories (name, slug, icon) VALUES 
 ('Developer', 'Developer', '💻'),
 ('Writer', 'Writer', '✍️'),
@@ -114,7 +117,6 @@ CREATE TABLE IF NOT EXISTS tags_compatibility (
     INDEX idx_tags_compat_usage (usage_count)
 );
 
--- 預設標籤
 INSERT IGNORE INTO tags_domain (name, usage_count) VALUES 
 ('Tech', 0), ('Content Creation', 0), ('Finance & Business', 0), 
 ('Coding & Dev', 0), ('Gaming', 0), ('Education', 0), 
@@ -126,7 +128,7 @@ INSERT IGNORE INTO tags_compatibility (name, usage_count) VALUES
 ('Qwen 2.5', 0), ('General LLM', 0);
 
 -- ==========================================
--- 7. Soul Likes Table (per-user like tracking)
+-- 7. Soul Likes Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS soul_likes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -139,24 +141,52 @@ CREATE TABLE IF NOT EXISTS soul_likes (
 );
 
 -- ==========================================
--- 8. Chat Messages Table (One-Click Persona Chats)
+-- 8. Chat Sessions Table (管理對話私隱與擁有權)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    session_token VARCHAR(64) PRIMARY KEY,
+    soul_id INT NOT NULL,
+    user_id INT NULL,
+    is_private BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ==========================================
+-- 9. Chat Messages Table (🚨 升級：MEDIUMTEXT 支援高達 16MB 的 Base64 圖片)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     soul_id INT NOT NULL,
     session_token VARCHAR(64) NOT NULL,
     role ENUM('user', 'assistant') NOT NULL,
-    content TEXT NOT NULL,
+    content MEDIUMTEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (soul_id) REFERENCES souls(id) ON DELETE CASCADE,
     INDEX idx_chat_session (soul_id, session_token, created_at)
 );
 
 -- ==========================================
--- 9. Chat Memory Table (Smart Memory Compression Layer)
+-- 10. Chat Memory Table (智能記憶壓縮層)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_memory (
     session_token VARCHAR(64) PRIMARY KEY,
     summary TEXT,
     last_message_id INT DEFAULT 0
+);
+
+-- ==========================================
+-- 11. Payments Table (PayPal 訂單紀錄)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    paypal_order_id VARCHAR(100) NOT NULL UNIQUE,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'USD',
+    tier_purchased ENUM('vip', 'pro') NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

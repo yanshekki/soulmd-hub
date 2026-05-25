@@ -1,6 +1,5 @@
 # SoulMD Hub - Apache 配置文件 (終極 SEO API-First 整合版)
 
-# 核心防禦：全局 404 錯誤頁面定向 (確保所有找不到的檔案都會交給 404.php 處理)
 ErrorDocument 404 /404.php
 
 <IfModule mod_rewrite.c>
@@ -9,98 +8,78 @@ ErrorDocument 404 /404.php
     # ==========================================
     # 1. 外部重定向 (External Redirects - 301)
     # ==========================================
-    
-    # 規整 Soul 詳情頁網址
     RewriteCond %{THE_REQUEST} \s/+soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^soul\.php$ /soul/%1? [R=301,L]
 
-    # 規整 版本歷史頁網址
     RewriteCond %{THE_REQUEST} \s/+soul-versions\.php\?id=([0-9]+) [NC]
     RewriteRule ^soul-versions\.php$ /soul-versions/%1? [R=301,L]
 
-    # 規整 API 單一 Soul 網址
     RewriteCond %{THE_REQUEST} \s/+api/soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^api/soul\.php$ /api/soul/%1? [R=301,L]
 
-    # 防止直接訪問 api-docs.php，強制轉為乾淨網址
     RewriteCond %{THE_REQUEST} \s/+api-docs\.php[\s?] [NC]
     RewriteRule ^api-docs\.php$ /api-docs [R=301,L]
 
-    # 強制將所有帶有 .php 結尾的請求 301 轉向到無副檔名的乾淨網址
     RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
     RewriteRule ^(.*)\.php$ /$1 [R=301,L]
 
     # ==========================================
     # 2. 內部重寫 (Internal Rewrites)
     # ==========================================
-
-    # --- SEO 1: 動態 Robots.txt 與 Sitemap ---
     RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
-
-    # 明確指定 API 文件頁面路由，防止與 api/ 資料夾衝突 
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
+    
+    # 🚨 新增核心商業與個人紀錄路由
+    RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
+    RewriteRule ^my-chats/?$ my-chats.php [L,QSA]
+    RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
 
-    # --- SEO 2: 用戶個人主頁路由 ---
+    # 用戶主頁
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^profile/([^/]+)/?$ profile.php?username=$1 [L,QSA]
     
-    # --- 🚨 新增：Chat 聊天室路由 ---
-    # 帶有 Session Token 的完整路徑
+    # 聊天室路由
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^chat/([0-9]+)/([a-zA-Z0-9_-]+)/?$ chat.php?soul_id=$1&session_token=$2 [L,QSA]
-    
-    # 首次進入 (無 Session Token)，由 PHP 負責生成並跳轉
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^chat/([0-9]+)/?$ chat.php?soul_id=$1 [L,QSA]
 
-    # --- 下載模組修復：加入 [B] 標記安全轉譯空格與特殊符號 ---
-    # 1. 打包 ZIP 下載 (全新 4層 參數)
+    # 下載模組
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/([^/]+)\.zip$ download.php?username=$1&id=$2&format=zip [B,L,QSA]
-
-    # 2. 打包 ZIP 下載 (舊版 2層 兼容)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)\.zip$ download.php?username=$1&id=$2&format=zip [B,L,QSA]
-
-    # 3. 單一 Raw 檔案下載 / 檢視 (全新 5層 參數)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/([^/]+)/(.*)$ download.php?username=$1&id=$2&file=$5 [B,L,QSA]
-
-    # 4. 單一 Raw 檔案下載 / 檢視 (舊版 3層 兼容)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/(.*)$ download.php?username=$1&id=$2&file=$4 [B,L,QSA]
-    # -------------------------------------------------------------
 
-    # 處理 Soul 詳情頁 (/soul/username/id/role/title)
+    # Soul 詳情頁
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^soul/([^/]+)/([0-9]+)/([^/]+)/([^/]+)/?$ soul.php?id=$2 [L,QSA]
-
-    # 向下兼容舊版短網址 (/soul/123)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^soul/([0-9]+)/?$ soul.php?id=$1 [L,QSA]
 
-    # 處理 Soul 版本歷史頁 (/soul-versions/123)
+    # 版本歷史
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^soul-versions/([0-9]+)/?$ soul-versions.php?id=$1 [L,QSA]
 
-    # 處理 API 單一 Soul (/api/soul/123)
+    # API 模組
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/soul/([0-9]+)/?$ api/soul.php?id=$1 [L,QSA]
-
-    # 處理 API 列表 (/api/souls)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/souls/?$ api/souls.php [L,QSA]
 
-    # 通用規則：自動隱藏並解析所有 .php 副檔名
+    # 通用自動隱藏 .php
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}.php -f
     RewriteRule ^(.*?)/?$ $1.php [L,QSA]
@@ -108,11 +87,9 @@ ErrorDocument 404 /404.php
     # ==========================================
     # 3. 安全性設定
     # ==========================================
-    # 嚴格禁止外部存取 config.php 或 .env 設定檔
     RewriteRule ^(config\.php|\.env) - [F,L]
 </IfModule>
 
-# 安全請求頭 (Security Headers 防禦防護)
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
@@ -120,10 +97,8 @@ ErrorDocument 404 /404.php
     Header set Access-Control-Allow-Origin "*" env=HTTP_ORIGIN
 </IfModule>
 
-# 禁用目錄瀏覽列表
 Options -Indexes
 
-# 靜態資源快取控制
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/jpg "access plus 1 month"

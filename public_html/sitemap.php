@@ -1,7 +1,6 @@
 <?php
 /**
  * SoulMD Hub - Dynamic Sitemap.xml
- * SEO friendly - auto includes up to 50,000 recent public souls with precise Last Modified dates
  */
 
 header('Content-Type: application/xml; charset=utf-8');
@@ -41,7 +40,15 @@ echo '    <changefreq>daily</changefreq>' . "\n";
 echo '    <priority>0.9</priority>' . "\n";
 echo '  </url>' . "\n";
 
-// 🚨 完美修復：JOIN users 表以獲取 username，並生成完整的 SEO 網址
+// Upgrade (Pricing) page
+echo '  <url>' . "\n";
+echo '    <loc>' . $baseUrl . '/upgrade</loc>' . "\n";
+echo '    <lastmod>' . date('Y-m-d') . '</lastmod>' . "\n";
+echo '    <changefreq>weekly</changefreq>' . "\n";
+echo '    <priority>0.9</priority>' . "\n";
+echo '  </url>' . "\n";
+
+// Souls Pages
 $stmt = $pdo->query("
     SELECT s.id, s.title, s.role, u.username,
            COALESCE((SELECT MAX(edited_at) FROM soul_versions v WHERE v.soul_id = s.id), s.created_at) as last_modified

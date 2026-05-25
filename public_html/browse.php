@@ -76,7 +76,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <div id="results-container" class="min-h-[400px]"></div>
     
-    <div id="pagination-container" class="mt-12 flex justify-center items-center gap-2"></div>
+    <div id="pagination-container" class="mt-12 flex justify-center items-center w-full"></div>
 </div>
 
 <script>
@@ -91,23 +91,25 @@ require_once __DIR__ . '/../private/includes/header.php';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
     
-    // SEO URL 轉換
+    // SEO URL 轉換 (安全支援中文及多國語言)
     function makeSlug(str) {
         if (!str) return 'unassigned';
         let slug = str.toLowerCase();
+        // 替換特殊符號為橫線，但保留中文字與英數字
         slug = slug.replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-');
         slug = slug.replace(/^-+|-+$/g, '');
+        // 使用 encodeURIComponent 確保中文能夠成為安全的 URL
         return encodeURIComponent(slug);
     }
 
     function applyQuickTag(tag) {
         document.getElementById('search-input').value = tag;
-        currentPage = 1; // 點擊 Tag 時重置為第一頁
+        currentPage = 1; 
         loadSouls();
     }
 
     function resetAndLoad() {
-        currentPage = 1; // 改變過濾條件時，必須回到第一頁
+        currentPage = 1; 
         loadSouls();
     }
 
@@ -115,10 +117,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         currentPage = page;
         loadSouls();
         // 換頁後自動平滑捲動到結果區頂部
-        window.scrollTo({ top: 350, behavior: 'smooth' });
+        window.scrollTo({ top: 250, behavior: 'smooth' });
     }
 
-    // 動態渲染分頁器 UI
+    // 🚨 全新雙軌響應式分頁器 UI (完美解決手機走位問題)
     function renderPagination(current, totalPages) {
         const container = document.getElementById('pagination-container');
         if (totalPages <= 1) {
@@ -128,28 +130,61 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         let html = '';
         
-        // 上一頁按鈕
+        // ==========================================
+        // 📱 1. 手機版極簡視圖 (sm:hidden)
+        // ==========================================
+        html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
+        
         if (current > 1) {
-            html += `<button onclick="changePage(${current - 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow"><i class="fas fa-chevron-left"></i></button>`;
+            html += `<button onclick="changePage(${current - 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left"></i></button>`;
+        } else {
+            html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
+        }
+        
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">Page <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        
+        if (current < totalPages) {
+            html += `<button onclick="changePage(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
+        } else {
+            html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>`;
+        }
+        
+        html += `</div>`;
+
+        // ==========================================
+        // 💻 2. 電腦版滑動視窗視圖 (hidden sm:flex)
+        // ==========================================
+        html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
+        
+        // Desktop Prev
+        if (current > 1) {
+            html += `<button onclick="changePage(${current - 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left text-xs"></i></button>`;
+        } else {
+            html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left text-xs"></i></button>`;
         }
 
-        // 頁碼邏輯：只顯示首尾，以及當前頁前後 2 頁，其他用省略號代替
+        const windowSize = 2; // 當前頁碼前後顯示幾頁
         for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || (i >= current - 2 && i <= current + 2)) {
+            if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
                 if (i === current) {
-                    html += `<button class="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-xl text-sm shadow-lg transform scale-105 transition">${i}</button>`;
+                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
                 } else {
-                    html += `<button onclick="changePage(${i})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow">${i}</button>`;
+                    html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
                 }
-            } else if (i === current - 3 || i === current + 3) {
-                html += `<span class="px-2 text-zinc-500 tracking-widest text-sm">...</span>`;
+            } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
+                // 省略號
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
             }
         }
 
-        // 下一頁按鈕
+        // Desktop Next
         if (current < totalPages) {
-            html += `<button onclick="changePage(${current + 1})" class="px-4 py-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/5 transition text-sm text-zinc-300 shadow"><i class="fas fa-chevron-right"></i></button>`;
+            html += `<button onclick="changePage(${current + 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right text-xs"></i></button>`;
+        } else {
+            html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right text-xs"></i></button>`;
         }
+        
+        html += `</div>`;
 
         container.innerHTML = html;
     }
@@ -174,9 +209,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (role) params.append('role', role);
         if (type) params.append('file_type', type);
         params.append('page', currentPage);
-        params.append('limit', 12); // 每頁顯示 12 筆 (剛好排滿 3 欄 x 4 行)
+        params.append('limit', 12); // 每頁顯示 12 筆
 
-        // 靜默更新網址列，方便用戶分享當前條件及頁數的連結
+        // 靜默更新網址列，方便用戶分享當前條件及頁數的連結 (安全處理中文字 URL)
         const newUrl = window.location.pathname + '?' + params.toString();
         window.history.replaceState({}, '', newUrl);
 
@@ -196,7 +231,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         });
                     }
 
-                    // 🚨 完美構建 4 層 SEO Link
+                    // 🚨 完美構建 4 層 SEO Link (安全編碼中文/日文/特殊字元)
                     const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
                     html += `
@@ -230,7 +265,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 html += `</div>`;
                 container.innerHTML = html;
                 
-                // 渲染分頁器 UI
+                // 渲染防爆版分頁器 UI
                 renderPagination(data.current_page, data.total_pages);
 
             } else {
@@ -253,7 +288,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         document.getElementById('sort-filter').value = 'newest';
         document.getElementById('role-filter').value = '';
         document.getElementById('type-filter').value = '';
-        currentPage = 1; // 清除條件必定回到第一頁
+        currentPage = 1; 
         loadSouls();
     }
 
