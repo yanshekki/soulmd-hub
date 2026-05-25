@@ -1,6 +1,6 @@
 <?php
 /**
- * SoulMD Hub - Billing & Subscription Management
+ * SoulMD Hub - Billing & Subscription Management (Enterprise Full-Status Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -66,9 +66,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </p>
                 </div>
                 <div class="text-right">
-                    <?php 
-                        $daysLeft = max(0, floor(($expiresAt - time()) / (60 * 60 * 24)));
-                    ?>
+                    <?php $daysLeft = max(0, floor(($expiresAt - time()) / (60 * 60 * 24))); ?>
                     <div class="text-3xl font-black text-emerald-400"><?= $daysLeft ?></div>
                     <div class="text-xs text-zinc-500 uppercase tracking-widest mt-1">Days Remaining</div>
                 </div>
@@ -104,18 +102,51 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <th class="p-4 font-medium whitespace-nowrap">Date</th>
                                 <th class="p-4 font-medium whitespace-nowrap">Order ID</th>
                                 <th class="p-4 font-medium whitespace-nowrap">Plan</th>
+                                <th class="p-4 font-medium whitespace-nowrap">Status</th>
                                 <th class="p-4 font-medium whitespace-nowrap">Amount</th>
                                 <th class="p-4 font-medium whitespace-nowrap text-right">Invoice</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm divide-y divide-white/5">
-                            <?php foreach ($payments as $pay): ?>
+                            <?php foreach ($payments as $pay): 
+                                // 🚨 智慧型狀態 Badge 分流引擎
+                                $statusClass = 'bg-zinc-800 text-zinc-400 border-white/5';
+                                $statusText = strtoupper($pay['status']);
+                                
+                                switch(strtolower($pay['status'])) {
+                                    case 'completed':
+                                        $statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                                        $statusText = 'Paid';
+                                        break;
+                                    case 'pending':
+                                        $statusClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse';
+                                        $statusText = 'Pending';
+                                        break;
+                                    case 'failed':
+                                        $statusClass = 'bg-red-500/10 text-red-400 border-red-500/20';
+                                        $statusText = 'Failed';
+                                        break;
+                                    case 'refunded':
+                                        $statusClass = 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+                                        $statusText = 'Refunded';
+                                        break;
+                                    case 'reversed':
+                                        $statusClass = 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+                                        $statusText = 'Reversed';
+                                        break;
+                                }
+                            ?>
                                 <tr class="hover:bg-white/5 transition-colors">
                                     <td class="p-4 text-zinc-300 whitespace-nowrap"><?= date('M j, Y', strtotime($pay['created_at'])) ?></td>
                                     <td class="p-4 font-mono text-xs text-zinc-400 whitespace-nowrap"><?= htmlspecialchars($pay['paypal_order_id']) ?></td>
                                     <td class="p-4 whitespace-nowrap">
-                                        <span class="px-2.5 py-1 rounded text-xs font-bold uppercase <?= $pay['tier_purchased'] === 'pro' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' ?>">
+                                        <span class="px-2.5 py-1 rounded text-xs font-bold uppercase <?= $pay['tier_purchased'] === 'pro' ? 'bg-amber-500/5 text-amber-400/80 border border-amber-500/10' : 'bg-blue-500/5 text-blue-400/80 border border-blue-500/10' ?>">
                                             <?= htmlspecialchars($pay['tier_purchased']) ?>
+                                        </span>
+                                    </td>
+                                    <td class="p-4 whitespace-nowrap">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border <?= $statusClass ?>">
+                                            <?= $statusText ?>
                                         </span>
                                     </td>
                                     <td class="p-4 font-bold text-white whitespace-nowrap"><?= htmlspecialchars($pay['currency']) ?> $<?= number_format($pay['amount'], 2) ?></td>

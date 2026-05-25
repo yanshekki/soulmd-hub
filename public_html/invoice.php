@@ -48,6 +48,30 @@ try {
     $orderDate = date('F j, Y', strtotime($invoice['created_at']));
     $invoiceNumber = "INV-" . str_pad($invoice['id'], 6, "0", STR_PAD_LEFT);
 
+    // 🚨 智慧型狀態防護分流
+    $currentStatus = strtolower($invoice['status']);
+    $stampText = 'PAID';
+    $stampColor = 'text-emerald-500/20 border-emerald-500/20';
+    $legalStatusNotice = '';
+
+    if ($currentStatus === 'pending') {
+        $stampText = 'PENDING';
+        $stampColor = 'text-amber-500/20 border-amber-500/20';
+        $legalStatusNotice = '⚠️ TRANSACTION CURRENTLY IN SUSPENSE: Premium asset synchronization will execute immediately upon clearing.';
+    } elseif ($currentStatus === 'failed') {
+        $stampText = 'FAILED';
+        $stampColor = 'text-red-500/20 border-red-500/20';
+        $legalStatusNotice = '❌ TRANSACTION DECLINED / VOID: This statement is an authentication of a failed payment attempt. No licenses were provisioned.';
+    } elseif ($currentStatus === 'refunded') {
+        $stampText = 'REFUNDED';
+        $stampColor = 'text-purple-500/20 border-purple-500/20';
+        $legalStatusNotice = '↩️ REVERSED TRANSACTION: A manual merchant refund has been dispatched. Associated server allocation keys and PRO context frames are permanently revoked.';
+    } elseif ($currentStatus === 'reversed') {
+        $stampText = 'REVERSED';
+        $stampColor = 'text-orange-500/20 border-orange-500/20';
+        $legalStatusNotice = '🚫 DISPUTED / CHARGEBACK VOID: Payment forced back via gateway claim. Access terminated. Relational accounting log locked.';
+    }
+
 } catch (Exception $e) {
     http_response_code(500);
     die("Internal server error while processing billing statement.");
@@ -62,31 +86,27 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* 🚨 終極列印優化配置：確保列印或儲存 PDF 時與 HTML 視覺效果完全 100% 一致 */
         @media print {
             @page {
                 size: auto;
-                margin: 0mm; /* 徹底抹除瀏覽器自帶的頁首網址、頁尾日期等雜音 */
+                margin: 0mm; 
             }
-            /* 🚨 修正：打破 min-h-screen 死鎖，並優化 padding 防止爆頁 */
             html, body {
                 height: auto !important;
                 min-height: auto !important;
-                background-color: #09090b !important; /* 強制保持螢幕看到的 zinc-950 背景色 */
+                background-color: #09090b !important; 
                 color: #ffffff !important;
                 margin: 0 !important;
-                padding: 20mm 15mm !important; /* 重新定義列印時乾淨的內邊距，防版面過度貼邊 */
-                -webkit-print-color-adjust: exact !important; /* 關鍵：強制 Chrome / Safari 渲染深色背景 */
-                print-color-adjust: exact !important;         /* 關鍵：強制 Firefox / Edge 渲染深色背景 */
+                padding: 20mm 15mm !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;         
             }
-            .no-print { 
-                display: none !important; /* 隱藏控制按鈕 */
-            }
+            .no-print { display: none !important; }
             .invoice-card {
                 border: none !important;
                 box-shadow: none !important;
-                margin: 0 !important; /* 徹底清除外部 Margin 防止頂爆分頁 */
-                background-color: #18181b !important; /* 強制保持 zinc-900 區塊色 */
+                margin: 0 !important; 
+                background-color: #18181b !important; 
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -104,9 +124,13 @@ try {
         </button>
     </div>
 
-    <div class="invoice-card max-w-3xl mx-auto bg-zinc-900 border border-white/10 rounded-2xl p-8 sm:p-12 shadow-2xl transition-all">
+    <div class="invoice-card max-w-3xl mx-auto bg-zinc-900 border border-white/10 rounded-2xl p-8 sm:p-12 shadow-2xl transition-all relative overflow-hidden">
         
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-8 mb-8">
+        <div class="absolute right-6 top-36 border-8 <?= $stampColor ?> font-black text-4xl sm:text-6xl tracking-widest px-6 py-2 rounded-2xl uppercase pointer-events-none select-none transform rotate-12 font-mono mix-blend-screen z-0 select-none">
+            <?= $stampText ?>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-8 mb-8 relative z-10">
             <div>
                 <div class="text-3xl font-black tracking-tighter text-white">
                     SoulMD <span class="text-emerald-400">HUB</span>
@@ -119,7 +143,7 @@ try {
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12 relative z-10">
             <div>
                 <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Billed To</h3>
                 <div class="font-bold text-lg text-white">@<?= htmlspecialchars($invoice['username']) ?></div>
@@ -135,7 +159,13 @@ try {
             </div>
         </div>
 
-        <div class="mb-12">
+        <?php if ($legalStatusNotice): ?>
+            <div class="mb-8 p-4 bg-zinc-950/80 border border-white/5 rounded-2xl text-xs font-medium tracking-wide leading-relaxed text-zinc-300 relative z-10">
+                <?= $legalStatusNotice ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="mb-12 relative z-10">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b-2 border-white/10 text-zinc-400 text-xs uppercase tracking-widest">
@@ -157,7 +187,7 @@ try {
             </table>
         </div>
 
-        <div class="flex justify-end mb-16">
+        <div class="flex justify-end mb-16 relative z-10">
             <div class="w-full sm:w-1/2">
                 <div class="flex justify-between items-center py-3 border-b border-white/5 text-sm">
                     <span class="text-zinc-400">Subtotal</span>
@@ -174,7 +204,7 @@ try {
             </div>
         </div>
 
-        <div class="border-t border-white/10 pt-6 text-[10px] text-zinc-500 leading-relaxed">
+        <div class="border-t border-white/10 pt-6 text-[10px] text-zinc-500 leading-relaxed relative z-10">
             <p class="mb-2"><strong class="text-zinc-300 font-semibold uppercase tracking-wider">Terms & Conditions - Non-Refundable Transaction</strong></p>
             <p class="mb-2">
                 This document serves as an official cryptographic and legal certificate of your purchase. By authorizing this financial transaction, you acknowledge that immediate digital token activation and architectural capabilities have been rendered onto your container profile.
@@ -183,7 +213,7 @@ try {
                 ⚠️ All transactions executed within this node framework are final. No refunds, partial credits, or automated chargebacks shall be facilitated under any scenario.
             </p>
             <p class="mt-4 text-center pt-4 border-t border-white/5 font-medium">
-                Thank you for supporting the infrastructure ecosystem. For corporate inquiries, contact billing@ysk.hk.
+                Thank you for supporting the infrastructure ecosystem. For corporate inquiries, contact <?= htmlspecialchars(SITE_BILLING_EMAIL) ?>.
             </p>
         </div>
 
