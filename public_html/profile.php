@@ -1,109 +1,126 @@
 <?php
+/**
+ * SoulMD Hub - Public Creator Profile Portfolio
+ * (Dynamic i18n Internationalization & Robust Mobile-First Grid Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 
-$username = $_GET['username'] ?? '';
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('profile');
 
-// 如果網址沒有 username 參數，直接導向瀏覽主頁
-if (empty($username)) {
-    header('Location: /browse');
+$db = Database::getInstance();
+$pdo = $db->getConnection();
+
+$usernameParam = $_GET['username'] ?? '';
+
+// 1. 撈取目標用戶基本資料與全局統計數據
+$userStmt = $pdo->prepare("SELECT id, username, created_at FROM users WHERE username = ?");
+$userStmt->execute([$usernameParam]);
+$profileUser = $userStmt->fetch();
+
+if (!$profileUser) {
+    http_response_code(404);
+    $pageTitle = __('User Not Found');
+    $pageDesc = __('User Not Found Desc');
+    require_once __DIR__ . '/../private/includes/header.php';
+    ?>
+    <div class="max-w-md w-full mx-auto px-4 py-24 text-center animate-fade-in flex-grow flex flex-col justify-center">
+        <div class="w-20 h-20 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-zinc-500"><i class="fas fa-user-slash text-3xl"></i></div>
+        <h1 class="text-3xl font-bold mb-2 text-white"><?= __('User Not Found') ?></h1>
+        <p class="text-sm text-zinc-400 mb-8"><?= __('User Not Found Desc') ?></p>
+        <a href="<?= url('/browse') ?>" class="px-6 py-3 bg-emerald-500 text-zinc-950 font-bold rounded-2xl hover:bg-emerald-400 transition shadow-lg w-fit mx-auto"><?= __('Back to Hub') ?></a>
+    </div>
+    <?php
+    require_once __DIR__ . '/../private/includes/footer.php';
     exit;
 }
 
-$pageTitle = htmlspecialchars($username) . "'s Profile";
-$pageDesc = "Check out AI agent souls and prompts created by @" . htmlspecialchars($username) . " on SoulMD Hub.";
+$profileUserId = (int)$profileUser['id'];
+$safeUsername = htmlspecialchars($profileUser['username']);
+
+// 彙整該創作者獲得的讚好與分叉總數
+$statsStmt = $pdo->prepare("SELECT COUNT(*) as total_souls, SUM(like_count) as total_likes, SUM(fork_count) as total_forks FROM souls WHERE user_id = ? AND is_public = 1");
+$statsStmt->execute([$profileUserId]);
+$stats = $statsStmt->fetch();
+
+$totalSouls = (int)($stats['total_souls'] ?? 0);
+$totalLikes = (int)($stats['total_likes'] ?? 0);
+$totalForks = (int)($stats['total_forks'] ?? 0);
+
+// 🌍 雙語 SEO 動態注入
+$pageTitle = __('SEO Title', ['username' => $safeUsername]);
+$pageDesc = __('SEO Desc', ['username' => $safeUsername]);
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
+<div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
     
-    <div id="loading-view" class="flex-grow flex items-center justify-center py-20">
-        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400"></div>
-    </div>
+    <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-10 backdrop-blur-sm shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-cyan-400"></div>
+        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 text-center sm:text-left">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-black text-2xl sm:text-3xl shadow-lg shadow-emerald-500/10 select-none">
+                <?= strtoupper(substr($profileUser['username'], 0, 1)) ?>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">@<?= $safeUsername ?></h1>
+                <p class="text-zinc-400 text-xs sm:text-sm mt-1 flex items-center gap-1.5 justify-center sm:justify-start">
+                    <i class="far fa-calendar-alt text-zinc-500"></i> <?= date('M Y', strtotime($profileUser['created_at'])) ?>
+                </p>
+            </div>
+        </div>
 
-    <div id="error-view" class="hidden flex-grow flex items-center justify-center py-20">
-        <div class="text-center max-w-sm mx-auto">
-            <div class="text-5xl sm:text-6xl mb-4">🔎</div>
-            <h2 class="text-xl sm:text-2xl font-bold mb-2">User Not Found</h2>
-            <p class="text-zinc-400 text-xs sm:text-sm mb-6">The developer profile you are trying to view does not exist or has been deactivated.</p>
-            <a href="/browse" class="px-6 py-3 bg-zinc-900 border border-white/10 rounded-2xl text-sm font-medium hover:bg-white/5 transition inline-block shadow">Explore Other Souls</a>
+        <div class="grid grid-cols-3 gap-4 sm:gap-6 text-center border-t md:border-t-0 border-white/5 pt-5 md:pt-0 w-full md:w-auto">
+            <div class="px-2 sm:px-4">
+                <div class="text-xl sm:text-2xl font-black text-white font-mono"><?= number_format($totalSouls) ?></div>
+                <div class="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1"><?= __('Total Shared') ?></div>
+            </div>
+            <div class="px-2 sm:px-4 border-x border-white/5">
+                <div class="text-xl sm:text-2xl font-black text-emerald-400 font-mono"><?= number_format($totalForks) ?></div>
+                <div class="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1"><?= __('Forks Received') ?></div>
+            </div>
+            <div class="px-2 sm:px-4">
+                <div class="text-xl sm:text-2xl font-black text-red-400 font-mono"><?= number_format($totalLikes) ?></div>
+                <div class="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1"><?= __('Likes Received') ?></div>
+            </div>
         </div>
     </div>
 
-    <div id="profile-content" class="hidden space-y-8 sm:space-y-10">
+    <div class="flex-grow flex flex-col">
+        <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-white">
+            <i class="fas fa-layer-group text-zinc-500"></i> <?= __('AI Souls Portfolio') ?>
+        </h2>
+
+        <div id="portfolio-container" class="min-h-[300px] flex-grow flex flex-col">
+            <div class="flex justify-center py-20 flex-grow items-center" id="portfolio-loading">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
+            </div>
+        </div>
         
-        <div class="bg-zinc-900/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-sm relative overflow-hidden shadow-xl">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
-            
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div class="flex items-center gap-4">
-                    <div id="avatar-box" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-extrabold text-2xl sm:text-3xl shadow-lg shadow-emerald-500/10 shrink-0">
-                        <span id="avatar-char">U</span>
-                    </div>
-                    <div class="min-w-0">
-                        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2 break-all sm:break-normal">
-                            @<span id="profile-username">username</span>
-                        </h1>
-                        <p class="text-xs text-zinc-500 mt-1">
-                            <i class="far fa-calendar-alt mr-1"></i> Joined <span id="profile-joined">Mmm DD, YYYY</span>
-                        </p>
-                    </div>
-                </div>
-                
-                <div id="owner-badge" class="hidden shrink-0">
-                    <span class="text-[10px] sm:text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-semibold shadow-sm">
-                        <i class="fas fa-user-check mr-1"></i> This is you
-                    </span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-3 sm:gap-4 max-w-md mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-white/5 text-center sm:text-left">
-                <div class="bg-zinc-950/30 sm:bg-transparent rounded-xl p-3 sm:p-0 border border-white/5 sm:border-none shadow-inner sm:shadow-none">
-                    <div id="stat-souls" class="text-xl sm:text-2xl md:text-3xl font-bold text-white font-mono">0</div>
-                    <div class="text-[10px] sm:text-xs text-zinc-500 mt-1">Shared Souls</div>
-                </div>
-                <div class="bg-zinc-950/30 sm:bg-transparent rounded-xl p-3 sm:p-0 border border-white/5 sm:border-none shadow-inner sm:shadow-none">
-                    <div id="stat-likes" class="text-xl sm:text-2xl md:text-3xl font-bold text-red-400 font-mono">0</div>
-                    <div class="text-[10px] sm:text-xs text-zinc-500 mt-1">Total Likes</div>
-                </div>
-                <div class="bg-zinc-950/30 sm:bg-transparent rounded-xl p-3 sm:p-0 border border-white/5 sm:border-none shadow-inner sm:shadow-none">
-                    <div id="stat-forks" class="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-400 font-mono">0</div>
-                    <div class="text-[10px] sm:text-xs text-zinc-500 mt-1">Total Forks</div>
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-white/5 pb-4 gap-4">
-                <h2 class="text-xl sm:text-2xl font-bold flex items-center gap-2 w-full sm:w-auto">
-                    Published Souls <span id="souls-count-badge" class="text-[10px] sm:text-xs bg-white/10 px-2.5 py-0.5 rounded-full text-zinc-400">0</span>
-                </h2>
-                <select id="profile-sort" onchange="fetchProfile()" class="w-full sm:w-auto bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 sm:py-2.5 text-sm focus:outline-none focus:border-emerald-400 text-zinc-300 cursor-pointer shadow-inner appearance-none">
-                    <option value="newest">✨ Newest First</option>
-                    <option value="oldest">⏳ Oldest First</option>
-                    <option value="popular">❤️ Like Count</option>
-                    <option value="forks">🌿 Fork Count</option>
-                    <option value="az">🔤 Title (A-Z)</option>
-                    <option value="za">🔡 Title (Z-A)</option>
-                </select>
-            </div>
-            
-            <div id="souls-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 min-h-[200px]"></div>
-            
-            <div id="empty-souls" class="hidden text-center py-20 bg-zinc-900/20 border border-dashed border-white/10 rounded-3xl mx-4 sm:mx-0">
-                <div class="text-4xl mb-3 opacity-50">📁</div>
-                <p class="text-zinc-400 text-sm">This user hasn't published any public AI souls yet.</p>
-            </div>
-        </div>
-
+        <div id="portfolio-pagination" class="mt-10 flex justify-center items-center w-full select-none"></div>
     </div>
 </div>
 
 <script>
+    let currentPage = 1;
+    const profileUserId = <?= $profileUserId ?>;
+    const safeUsername = "<?= addslashes($safeUsername) ?>";
+
+    // 🌍 JavaScript 多語言字串注入
+    const lang_Modular = "<?= addslashes(__('Modular')) ?>";
+    const lang_SingleMd = "<?= addslashes(__('Single .md')) ?>";
+    const lang_Public = "<?= addslashes(__('Public')) ?>";
+    const lang_Unassigned = "<?= addslashes(__('Unassigned')) ?>";
+    const lang_ViewRepo = "<?= addslashes(__('View Repository')) ?>";
+    const lang_NoSouls = "<?= addslashes(__('No public souls found')) ?>";
+    const lang_EmptyDesc = "<?= addslashes(__('Empty Desc')) ?>";
+    const lang_BackHub = "<?= addslashes(__('Back to Hub')) ?>";
+    const url_hub = "<?= url('/browse') ?>";
+
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
@@ -117,100 +134,96 @@ require_once __DIR__ . '/../private/includes/header.php';
         return encodeURIComponent(slug);
     }
 
-    async function fetchProfile() {
-        const username = "<?= addslashes($username) ?>";
-        const sort = document.getElementById('profile-sort').value;
-        const loadingView = document.getElementById('loading-view');
-        const errorView = document.getElementById('error-view');
-        const profileContent = document.getElementById('profile-content');
-        const soulsGrid = document.getElementById('souls-grid');
-        const emptySouls = document.getElementById('empty-souls');
+    function changePage(page) {
+        currentPage = page;
+        loadPortfolio();
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
 
-        if (!profileContent.classList.contains('hidden')) {
-            soulsGrid.innerHTML = `<div class="col-span-1 md:col-span-2 xl:col-span-3 flex justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
-            emptySouls.classList.add('hidden');
+    function renderPagination(current, totalPages) {
+        const container = document.getElementById('portfolio-pagination');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '<div class="hidden sm:flex items-center gap-1.5 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">';
+        if (current > 1) html += `<button onclick="changePage(${current - 1})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition"><i class="fas fa-chevron-left text-xs"></i></button>`;
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === current) html += `<span class="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black font-mono shadow-md">${i}</span>`;
+            else html += `<button onclick="changePage(${i})" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">${i}</button>`;
         }
+        if (current < totalPages) html += `<button onclick="changePage(${current + 1})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition"><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    async function loadPortfolio() {
+        const container = document.getElementById('portfolio-container');
+        const pagination = document.getElementById('portfolio-pagination');
+        
+        container.innerHTML = `<div class="flex justify-center py-20 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        pagination.innerHTML = '';
 
         try {
-            const res = await fetch(`/api/profile?username=${encodeURIComponent(username)}&sort=${sort}`);
+            // 利用現有的 souls API 過濾該 Creator
+            const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${currentPage}&limit=9&sort=newest`);
             const data = await res.json();
 
-            if (!data.success) {
-                loadingView.classList.add('hidden');
-                errorView.classList.remove('hidden');
-                return;
-            }
-
-            document.getElementById('profile-username').innerText = data.user.username;
-            document.getElementById('avatar-char').innerText = data.user.username.substr(0, 1).toUpperCase();
-            
-            const joinedDate = new Date(data.user.joined_at);
-            document.getElementById('profile-joined').innerText = joinedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-            const currentSessionUser = "<?= $_SESSION['username'] ?? '' ?>";
-            if (currentSessionUser && currentSessionUser.toLowerCase() === data.user.username.toLowerCase()) {
-                document.getElementById('owner-badge').classList.remove('hidden');
-            }
-
-            document.getElementById('stat-souls').innerText = data.stats.total_souls;
-            document.getElementById('stat-likes').innerText = data.stats.total_likes;
-            document.getElementById('stat-forks').innerText = data.stats.total_forks;
-            document.getElementById('souls-count-badge').innerText = data.stats.total_souls;
-
-            if (data.souls.length === 0) {
-                emptySouls.classList.remove('hidden');
-                soulsGrid.innerHTML = '';
-            } else {
-                let html = '';
-                data.souls.forEach(soul => {
+            if (data.success && data.data.length > 0) {
+                let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+                data.data.forEach(soul => {
+                    const tags = soul.domain ? soul.domain.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3) : [];
                     let tagsHtml = '';
-                    if (soul.domain) {
-                        const tags = soul.domain.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3);
-                        tags.forEach(t => {
-                            tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`;
-                        });
-                    }
+                    tags.forEach(t => { tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`; });
 
-                    const seoUrl = `/soul/${encodeURIComponent(data.user.username)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    // 🌍 動態編譯加上雙語路徑前綴的完整 SEO 網址
+                    const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    const typeLabel = soul.file_type === 'full_soul_folder' ? lang_Modular : lang_SingleMd;
+                    const roleLabel = soul.role ? escapeHTML(soul.role) : lang_Unassigned;
 
-                    // 🚨 完美修復：同步套用 p-5 sm:p-6, flex-1 min-w-0 響應式佈局
                     html += `
-                        <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
+                        <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/40 transition-all shadow-lg flex flex-col justify-between backdrop-blur-sm group">
                             <div>
-                                <div class="flex justify-between items-start gap-3 mb-4">
-                                    <div class="font-bold text-lg sm:text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
-                                    <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 shadow-sm ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
-                                        ${soul.file_type === 'full_soul_folder' ? 'Modular' : '.md'}
+                                <div class="flex justify-between items-start gap-3 mb-3">
+                                    <div class="font-bold text-lg text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded font-medium border shrink-0 shadow-sm ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">${typeLabel}</span>
+                                </div>
+                                ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
+                                <div class="flex flex-wrap gap-1.5 mb-5">${tagsHtml}</div>
+                            </div>
+                            <div class="pt-4 border-t border-white/5 flex flex-col gap-4 mt-auto">
+                                <div class="flex items-center justify-between text-xs text-zinc-500">
+                                    <span class="truncate pr-2"><i class="fas fa-robot mr-1 text-zinc-600"></i> ${roleLabel}</span>
+                                    <div class="flex items-center gap-3 shrink-0 font-mono">
+                                        <span title="Forks"><i class="fas fa-code-branch text-emerald-500 mr-1"></i><b>${soul.fork_count}</b></span>
+                                        <span title="Likes"><i class="fas fa-heart text-red-500 mr-1"></i><b>${soul.like_count}</b></span>
                                     </div>
                                 </div>
-                                ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-3 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
-                                <div class="flex flex-wrap gap-1.5 mb-5 sm:mb-6">
-                                    ${tagsHtml}
-                                </div>
+                                <a href="${seoUrl}" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner">
+                                    ${lang_ViewRepo} <i class="fas fa-arrow-right text-[10px] ml-0.5"></i>
+                                </a>
                             </div>
-                            <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
-                                <div class="flex-1 min-w-0 truncate pr-3" title="${escapeHTML(soul.role || 'Unassigned')}">${escapeHTML(soul.role || 'Unassigned')}</div>
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <span title="Forks"><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
-                                    <span title="Likes"><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>
-                                </div>
-                            </div>
-                        </a>
+                        </div>
                     `;
                 });
-                soulsGrid.innerHTML = html;
+                html += `</div>`;
+                container.innerHTML = html;
+                renderPagination(data.current_page, data.total_pages);
+            } else {
+                // 🌍 創作者空白狀態多語言化
+                container.innerHTML = `
+                    <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow flex flex-col justify-center items-center">
+                        <div class="text-5xl mb-4 opacity-40">📁</div>
+                        <p class="text-xl font-bold mb-1 text-zinc-300">${lang_NoSouls}</p>
+                        <p class="text-sm text-zinc-500 max-w-xs mx-auto mb-6">${lang_EmptyDesc}</p>
+                        <a href="${url_hub}" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl text-sm transition shadow border border-white/10">${lang_BackHub}</a>
+                    </div>
+                `;
             }
-
-            loadingView.classList.add('hidden');
-            profileContent.classList.remove('hidden');
-
         } catch (e) {
-            loadingView.classList.add('hidden');
-            errorView.classList.remove('hidden');
+            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2"></i> Error loading profile data.</div>`;
         }
     }
 
-    window.onload = fetchProfile;
+    window.onload = loadPortfolio;
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

@@ -1,4 +1,9 @@
 <?php
+/**
+ * SoulMD Hub - Creator Workspace & Model Management Dashboard
+ * (Dynamic i18n Internationalization & Fully Fluid Responsive Cards Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
@@ -6,9 +11,12 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
+    header('Location: ' . url('/login'));
     exit;
 }
+
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('my-souls');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -18,7 +26,7 @@ $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id A
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
-// 🚨 完美升級：支援 PHP 伺服器端渲染排序 (Like Count / Fork Count)
+// 🚨 支援 PHP 伺服器端多語言排序渲染
 $sort = $_GET['sort'] ?? 'newest';
 $orderSql = "ORDER BY s.created_at DESC";
 if ($sort === 'popular') {
@@ -30,7 +38,7 @@ if ($sort === 'popular') {
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
     FROM souls s 
-    LEFT JOIN categories c ON s.role = c.slug 
+    LEFT JOIN users u ON s.role = c.slug 
     WHERE s.user_id = ? 
     $orderSql
 ");
@@ -45,33 +53,33 @@ function makeSlug($str) {
     return rawurlencode(trim($str, '-'));
 }
 
-$pageTitle = 'My Souls';
-$pageDesc = 'Manage and edit your uploaded AI personalities.';
+$pageTitle = __('My Souls');
+$pageDesc = __('Manage and edit your uploaded AI personalities');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-6">
         <div>
-            <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter">My Souls</h1>
-            <p class="text-sm sm:text-base text-zinc-400 mt-2">Manage and edit your uploaded AI personalities</p>
+            <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter"><?= __('My Souls') ?></h1>
+            <p class="text-sm sm:text-base text-zinc-400 mt-2"><?= __('Manage and edit your uploaded AI personalities') ?></p>
         </div>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full lg:w-auto">
             <select onchange="window.location.href='?sort=' + this.value" class="col-span-2 sm:col-span-1 w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm bg-zinc-900 border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition focus:outline-none focus:border-emerald-400 shadow-inner cursor-pointer appearance-none">
-                <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>✨ Newest</option>
-                <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>>❤️ Like Count</option>
-                <option value="forks" <?= $sort === 'forks' ? 'selected' : '' ?>>🌿 Fork Count</option>
+                <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>><?= __('✨ Newest') ?></option>
+                <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>><?= __('❤️ Like Count') ?></option>
+                <option value="forks" <?= $sort === 'forks' ? 'selected' : '' ?>><?= __('🌿 Fork Count') ?></option>
             </select>
             
-            <a href="/profile/<?= rawurlencode($_SESSION['username'] ?? '') ?>" target="_blank" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center justify-center gap-2 whitespace-nowrap">
-                <i class="fas fa-external-link-alt text-[10px] text-zinc-500"></i> Profile
+            <a href="<?= url('/profile/' . rawurlencode($_SESSION['username'] ?? '')) ?>" target="_blank" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                <i class="fas fa-external-link-alt text-[10px] text-zinc-500"></i> <?= __('Profile') ?>
             </a>
-            <a href="/my-api" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition text-center whitespace-nowrap">
-                My API Key
+            <a href="<?= url('/my-api') ?>" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition text-center whitespace-nowrap">
+                <?= __('My API Key') ?>
             </a>
-            <a href="/upload" class="col-span-2 sm:col-span-1 px-6 py-3 sm:py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto">
-                <i class="fas fa-plus"></i> New Soul
+            <a href="<?= url('/upload') ?>" class="col-span-2 sm:col-span-1 px-6 py-3 sm:py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto">
+                <i class="fas fa-plus"></i> <?= __('New Soul') ?>
             </a>
         </div>
     </div>
@@ -79,8 +87,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php if (empty($mySouls)): ?>
         <div class="text-center py-20 sm:py-24 bg-zinc-900/20 border border-white/5 rounded-3xl mx-4 sm:mx-0">
             <div class="mx-auto w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-6 text-zinc-500"><i class="fas fa-folder-open text-3xl"></i></div>
-            <h2 class="text-xl sm:text-2xl font-semibold mb-2">No souls shared yet</h2>
-            <a href="/upload" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition shadow-lg mt-4 w-full sm:w-auto max-w-[200px] mx-auto">Upload your first</a>
+            <h2 class="text-xl sm:text-2xl font-semibold mb-2"><?= __('No souls shared yet') ?></h2>
+            <a href="<?= url('/upload') ?>" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition shadow-lg mt-4 w-full sm:w-auto max-w-[200px] mx-auto"><?= __('Upload your first') ?></a>
         </div>
     <?php else: ?>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="souls-list">
@@ -91,15 +99,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <div>
                                 <div class="font-bold text-lg sm:text-xl text-white tracking-tight mb-1 line-clamp-2 leading-tight"><?= htmlspecialchars($soul['title']) ?></div>
                                 <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-1.5 flex-wrap">
-                                    <span><?= htmlspecialchars($soul['role_icon'] ?? '✨') ?> <?= htmlspecialchars($soul['role_name'] ?? 'Unassigned') ?></span><span>•</span><span><?= date('M j, Y', strtotime($soul['created_at'])) ?></span>
+                                    <span><?= htmlspecialchars($soul['role_icon'] ?? '✨') ?> <?= htmlspecialchars($soul['role_name'] ?? __('Unassigned')) ?></span><span>•</span><span><?= date('M j, Y', strtotime($soul['created_at'])) ?></span>
                                 </div>
                             </div>
                             <div class="flex gap-2 shrink-0 flex-col items-end">
                                 <span class="text-[10px] px-2.5 py-1 rounded-full font-medium border <?= $soul['is_public'] ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800 text-zinc-400 border-white/5' ?> shadow-sm">
-                                    <i class="fas <?= $soul['is_public'] ? 'fa-globe' : 'fa-lock' ?> mr-1"></i><?= $soul['is_public'] ? 'Public' : 'Private' ?>
+                                    <i class="fas <?= $soul['is_public'] ? 'fa-globe' : 'fa-lock' ?> mr-1"></i><?= $soul['is_public'] ? __('Public') : __('Private') ?>
                                 </span>
                                 <span class="text-[9px] px-2 py-0.5 rounded font-medium border <?= $soul['file_type'] === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20' ?> shadow-sm">
-                                    <?= $soul['file_type'] === 'full_soul_folder' ? 'Modular' : '.md' ?>
+                                    <?= $soul['file_type'] === 'full_soul_folder' ? __('Modular') : __('Single .md') ?>
                                 </span>
                             </div>
                         </div>
@@ -124,11 +132,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                         </div>
                         
                         <div class="flex flex-wrap items-center gap-2">
-                            <button onclick="editSoul(<?= $soul['id'] ?>)" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center">Edit</button>
-                            <a href="/soul-versions/<?= $soul['id'] ?>" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center" title="Version History"><i class="fas fa-history"></i></a>
+                            <button onclick="editSoul(<?= $soul['id'] ?>)" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center"><?= __('Edit') ?></button>
+                            <a href="<?= url('/soul-versions/' . $soul['id']) ?>" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center" title="<?= __('Version History') ?>"><i class="fas fa-history"></i></a>
                             <button onclick="deleteSoul(<?= $soul['id'] ?>)" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center"><i class="far fa-trash-alt sm:text-base"></i></button>
-                            <?php $seoUrl = "/soul/" . rawurlencode($_SESSION['username']) . "/" . $soul['id'] . "/" . makeSlug($soul['role']) . "/" . makeSlug($soul['title']); ?>
-                            <a href="<?= $seoUrl ?>" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">View</a>
+                            <?php $seoUrl = url("/soul/" . rawurlencode($_SESSION['username']) . "/" . $soul['id'] . "/" . makeSlug($soul['role']) . "/" . makeSlug($soul['title'])); ?>
+                            <a href="<?= $seoUrl ?>" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto"><?= __('View') ?></a>
                         </div>
                     </div>
                 </div>
@@ -140,7 +148,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 <div id="edit-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/20 shrink-0">
-            <h3 class="text-xl sm:text-2xl font-bold tracking-tight">Edit Modular AI Soul</h3>
+            <h3 class="text-xl sm:text-2xl font-bold tracking-tight"><?= __('Edit Modular AI Soul') ?></h3>
             <button type="button" onclick="closeModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
         </div>
 
@@ -150,36 +158,36 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium mb-1.5 text-zinc-400">Title</label>
+                        <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Title') ?></label>
                         <input id="edit-title" type="text" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5 text-zinc-400">Visibility</label>
+                        <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Visibility') ?></label>
                         <select id="edit-public" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner appearance-none cursor-pointer">
-                            <option value="1">🌐 Public (Hub)</option>
-                            <option value="0">🔒 Private</option>
+                            <option value="1"><?= __('🌐 Public (Hub)') ?></option>
+                            <option value="0"><?= __('🔒 Private') ?></option>
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium mb-1.5 text-zinc-400">Short Description</label>
+                    <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Short Description') ?></label>
                     <textarea id="edit-description" rows="2" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner"></textarea>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-medium mb-1.5 text-zinc-400">Role</label>
+                        <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Role') ?></label>
                         <select id="edit-role" class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-400 text-sm shadow-inner appearance-none cursor-pointer">
-                            <option value="">Select role</option>
+                            <option value=""><?= __('Select role') ?></option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= htmlspecialchars($cat['slug']) ?>"><?= htmlspecialchars($cat['icon'] ?? '✨') ?> <?= htmlspecialchars($cat['name']) ?></option>
                             <?php endforeach; ?>
-                            <option value="Other">Other</option>
+                            <option value="Other"><?= __('Other') ?></option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5 text-zinc-400">Domain Tags</label>
+                        <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Domain Tags') ?></label>
                         <div class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 min-h-[42px] flex flex-wrap items-center gap-1.5 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
                             <div id="domain-tags" class="flex flex-wrap gap-1.5 empty:hidden"></div>
                             <input type="text" id="domain-input" list="domain-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[60px] text-xs p-0 m-0 text-white">
@@ -192,7 +200,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         </datalist>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5 text-zinc-400">Compatibility</label>
+                        <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Compatibility') ?></label>
                         <div class="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 min-h-[42px] flex flex-wrap items-center gap-1.5 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
                             <div id="compatibility-tags" class="flex flex-wrap gap-1.5 empty:hidden"></div>
                             <input type="text" id="compatibility-input" list="compatibility-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[60px] text-xs p-0 m-0 text-white">
@@ -207,17 +215,17 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium mb-1.5 text-zinc-400">Modular Files Editor</label>
+                    <label class="block text-xs font-medium mb-1.5 text-zinc-400"><?= __('Modular Files Editor') ?></label>
                     <div class="border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row bg-zinc-950 min-h-[300px]">
                         <div class="w-full md:w-48 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
                             <div class="p-2 border-b border-white/10 text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center bg-zinc-950/30">
-                                Files <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
+                                <?= __('Files') ?> <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
                             </div>
                             <div id="modal-file-list" class="flex md:flex-col overflow-x-auto md:overflow-y-auto overflow-y-hidden p-1 space-x-1 md:space-x-0 md:space-y-1 custom-scrollbar shrink-0 border-b border-white/5 md:border-none"></div>
                         </div>
                         <div class="flex-1 flex flex-col relative min-h-[250px]">
                             <div class="bg-zinc-900 border-b border-white/10 px-3 py-2 text-xs font-mono text-zinc-300 flex justify-between items-center">
-                                <span id="modal-current-filename" class="truncate pr-2">Loading...</span>
+                                <span id="modal-current-filename" class="truncate pr-2"><?= __('Loading...') ?></span>
                                 <button type="button" id="modal-btn-delete-file" onclick="editModalFileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden transition shrink-0"><i class="fas fa-trash-alt"></i></button>
                             </div>
                             <textarea id="modal-file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs text-zinc-300 resize-none custom-scrollbar"></textarea>
@@ -229,9 +237,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             <input type="hidden" id="edit-final-payload" name="content">
 
             <div class="p-4 sm:p-5 border-t border-white/5 bg-zinc-900 shrink-0 flex justify-end gap-3">
-                <button type="button" onclick="closeModal()" class="px-5 py-2.5 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/5 transition w-full sm:w-auto">Cancel</button>
+                <button type="button" onclick="closeModal()" class="px-5 py-2.5 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/5 transition w-full sm:w-auto"><?= __('Cancel') ?></button>
                 <button type="submit" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-400 transition w-full sm:w-auto">
-                    <span id="save-text"><i class="fas fa-save mr-1"></i> Save Changes</span>
+                    <span id="save-text"><i class="fas fa-save mr-1"></i> <?= __('Save Changes') ?></span>
                     <span id="loading-spinner" class="hidden animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></span>
                 </button>
             </div>
@@ -242,12 +250,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
-            <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
+            <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i><?= __('Add Module File') ?></h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
         </div>
         <div class="p-5 sm:p-6 space-y-6">
             <div>
-                <label class="block text-sm font-medium mb-3 text-zinc-400">Suggested Modules</label>
+                <label class="block text-sm font-medium mb-3 text-zinc-400"><?= __('Suggested Modules') ?></label>
                 <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
                     <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md</button>
                     <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md</button>
@@ -257,12 +265,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/</button>
                 </div>
             </div>
-            <div class="relative flex items-center py-1"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-[10px] uppercase tracking-widest">or custom path</span><div class="flex-grow border-t border-white/10"></div></div>
+            <div class="relative flex items-center py-1"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-[10px] uppercase tracking-widest"><?= __('or custom path') ?></span><div class="flex-grow border-t border-white/10"></div></div>
             <div>
-                <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
+                <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400"><?= __('Filename / Folder Path') ?></label>
                 <div class="flex gap-2">
                     <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
-                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm">Add</button>
+                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm"><?= __('Add') ?></button>
                 </div>
             </div>
         </div>
@@ -356,7 +364,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 const isActive = filename === this.activeFile;
-                // 🚨 修復：兼容橫向（手機）與直向（電腦）按鈕樣式
                 btn.className = `w-auto md:w-full text-left px-3 py-2 md:px-2 md:py-1.5 rounded-lg md:rounded text-xs font-mono transition flex items-center md:items-start gap-1.5 shrink-0 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 md:border-transparent' : 'text-zinc-400 hover:bg-white/5 border border-white/10 md:border-transparent'}`;
                 
                 let icon = 'fa-file-alt';
@@ -394,8 +401,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             this.renderFileList();
         }
         deleteCurrentFile() {
-            if (Object.keys(this.files).length <= 1) return alert("You must have at least one file.");
-            if (!confirm(`Delete ${this.activeFile}?`)) return;
+            // 🌍 JavaScript 警告視窗翻譯
+            if (Object.keys(this.files).length <= 1) return alert("<?= addslashes(__('You must have at least one file.')) ?>");
+            if (!confirm("<?= addslashes(__('Delete file check')) ?>" + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
             this.switchFile(Object.keys(this.files)[0]);
         }
@@ -433,7 +441,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
-        if (editModalFileEditor.files[name] !== undefined) return alert("File already exists!");
+        // 🌍 JavaScript 警告視窗翻譯
+        if (editModalFileEditor.files[name] !== undefined) return alert("<?= addslashes(__('File already exists!')) ?>");
         editModalFileEditor.files[name] = '';
         editModalFileEditor.switchFile(name);
         closeAddFileModal();
@@ -447,7 +456,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function editSoul(id) {
         currentEditId = id;
         document.getElementById('edit-id').value = id;
-        document.getElementById('edit-title').value = 'Loading...';
+        document.getElementById('edit-title').value = '<?= addslashes(__('Loading...')) ?>';
         
         const modal = document.getElementById('edit-modal');
         const content = modal.firstElementChild;
@@ -473,10 +482,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 
                 editModalFileEditor.loadData(soul.content);
             } else {
-                alert(result.error || 'Failed to fetch soul details'); 
+                // 🌍 錯誤提示詞多語言化
+                alert(result.error || '<?= addslashes(__('Failed to fetch soul details')) ?>'); 
                 closeModal();
             }
-        } catch(e) { alert('Network error.'); closeModal(); }
+        } catch(e) { alert('<?= addslashes(__('Network error.')) ?>'); closeModal(); }
     }
 
     async function handleEdit(e) {
@@ -515,7 +525,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch(e) { 
-            alert('Network error.'); 
+            alert('<?= addslashes(__('Network error.')) ?>'); 
             text.classList.remove('hidden'); spinner.classList.add('hidden'); 
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
@@ -531,12 +541,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function deleteSoul(id) {
-        if (!confirm('Are you sure you want to permanently delete this AI soul?')) return;
+        // 🌍 刪除檢查提示詞多語言化
+        if (!confirm('<?= addslashes(__('Are you sure you want to permanently delete this AI soul?')) ?>')) return;
         try {
             const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
-            if (data.success) { location.reload(); } else { alert(data.error || 'Failed to delete'); }
-        } catch(e) { alert('Network error.'); }
+            if (data.success) { location.reload(); } else { alert(data.error || '<?= addslashes(__('Failed to delete')) ?>'); }
+        } catch(e) { alert('<?= addslashes(__('Network error.')) ?>'); }
     }
 </script>
 

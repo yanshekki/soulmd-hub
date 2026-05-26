@@ -1,7 +1,15 @@
 <?php
+/**
+ * SoulMD Hub - Public AI Souls Catalog
+ * (Dynamic i18n Internationalization & Fully Responsive Mobile Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
+
+// 🌍 引入此頁面的專屬獨立語言包
+loadTranslations('browse');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -9,41 +17,45 @@ $pdo = $db->getConnection();
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $trendingTags = $pdo->query("SELECT name FROM tags_domain WHERE usage_count > 0 ORDER BY usage_count DESC LIMIT 10")->fetchAll(PDO::FETCH_COLUMN);
 
-$pageTitle = 'Browse AI Souls';
-$pageDesc = 'Discover and explore thousands of AI agent souls shared by the community.';
+// 🌍 支援語意變數替換，動態編譯雙語 SEO 標題與簡介
+$pageTitle = __('Browse AI Souls');
+$pageDesc = __('Discover and explore AI personalities, prompts, and modular agents shared by the community.');
+
 if (!empty($_GET['q'])) {
-    $pageTitle = 'Search: ' . htmlspecialchars($_GET['q']);
-    $pageDesc = 'Search results for "' . htmlspecialchars($_GET['q']) . '" on SoulMD Hub.';
+    $sanitizeQ = htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8');
+    $pageTitle = __('Search: :q', ['q' => $sanitizeQ]);
+    $pageDesc = __('Search results for ":q" on SoulMD Hub.', ['q' => $sanitizeQ]);
 }
+
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-    <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter mb-2">Browse Souls</h1>
-    <p class="text-sm sm:text-base text-zinc-400 mb-8 sm:mb-10">Discover and explore AI personalities, prompts, and modular agents shared by the community.</p>
+    <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter mb-2"><?= __('Browse AI Souls') ?></h1>
+    <p class="text-sm sm:text-base text-zinc-400 mb-8 sm:mb-10"><?= __('Discover and explore AI personalities, prompts, and modular agents shared by the community.') ?></p>
 
     <div class="bg-zinc-900/40 border border-white/10 p-5 sm:p-6 rounded-3xl mb-8 sm:mb-10 shadow-lg backdrop-blur-sm">
         
         <div class="flex flex-col xl:flex-row gap-4 mb-4">
             
             <div class="w-full xl:flex-1 relative shrink-0">
-                <input id="search-input" type="text" placeholder="Search titles or tags..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>"
+                <input id="search-input" type="text" placeholder="<?= __('Search titles or tags...') ?>" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>"
                        class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-6 py-3.5 text-sm focus:outline-none focus:border-emerald-400 pl-12 transition shadow-inner">
                 <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
             </div>
 
             <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 w-full xl:w-auto">
                 <select id="sort-filter" class="col-span-2 sm:col-span-1 w-full sm:w-auto bg-zinc-950 border border-white/10 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300 appearance-none cursor-pointer truncate">
-                    <option value="newest" <?= ($_GET['sort'] ?? 'newest') === 'newest' ? 'selected' : '' ?>>✨ Newest First</option>
-                    <option value="oldest" <?= ($_GET['sort'] ?? '') === 'oldest' ? 'selected' : '' ?>>⏳ Oldest First</option>
-                    <option value="popular" <?= ($_GET['sort'] ?? '') === 'popular' ? 'selected' : '' ?>>❤️ Like Count</option>
-                    <option value="forks" <?= ($_GET['sort'] ?? '') === 'forks' ? 'selected' : '' ?>>🌿 Fork Count</option>
-                    <option value="az" <?= ($_GET['sort'] ?? '') === 'az' ? 'selected' : '' ?>>🔤 Title (A-Z)</option>
-                    <option value="za" <?= ($_GET['sort'] ?? '') === 'za' ? 'selected' : '' ?>>🔡 Title (Z-A)</option>
+                    <option value="newest" <?= ($_GET['sort'] ?? 'newest') === 'newest' ? 'selected' : '' ?>><?= __('✨ Newest First') ?></option>
+                    <option value="oldest" <?= ($_GET['sort'] ?? '') === 'oldest' ? 'selected' : '' ?>><?= __('⏳ Oldest First') ?></option>
+                    <option value="popular" <?= ($_GET['sort'] ?? '') === 'popular' ? 'selected' : '' ?>><?= __('❤️ Like Count') ?></option>
+                    <option value="forks" <?= ($_GET['sort'] ?? '') === 'forks' ? 'selected' : '' ?>><?= __('🌿 Fork Count') ?></option>
+                    <option value="az" <?= ($_GET['sort'] ?? '') === 'az' ? 'selected' : '' ?>><?= __('🔤 Title (A-Z)') ?></option>
+                    <option value="za" <?= ($_GET['sort'] ?? '') === 'za' ? 'selected' : '' ?>><?= __('🔡 Title (Z-A)') ?></option>
                 </select>
 
                 <select id="role-filter" class="col-span-2 sm:col-span-1 w-full sm:w-auto bg-zinc-950 border border-white/10 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300 appearance-none cursor-pointer truncate">
-                    <option value="">All Roles</option>
+                    <option value=""><?= __('All Roles') ?></option>
                     <?php $activeRole = $_GET['role'] ?? ''; foreach ($categories as $cat): ?>
                         <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $activeRole === $cat['slug'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($cat['icon']) ?> <?= htmlspecialchars($cat['name']) ?>
@@ -52,20 +64,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </select>
 
                 <select id="type-filter" class="col-span-1 w-full sm:w-auto bg-zinc-950 border border-white/10 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300 appearance-none cursor-pointer truncate">
-                    <option value="">All Types</option>
-                    <option value="single_md" <?= ($_GET['file_type'] ?? '') === 'single_md' ? 'selected' : '' ?>>Single .md</option>
-                    <option value="full_soul_folder" <?= ($_GET['file_type'] ?? '') === 'full_soul_folder' ? 'selected' : '' ?>>Modular</option>
+                    <option value=""><?= __('All Types') ?></option>
+                    <option value="single_md" <?= ($_GET['file_type'] ?? '') === 'single_md' ? 'selected' : '' ?>><?= __('Single .md') ?></option>
+                    <option value="full_soul_folder" <?= ($_GET['file_type'] ?? '') === 'full_soul_folder' ? 'selected' : '' ?>><?= __('Modular') ?></option>
                 </select>
 
                 <button onclick="clearFilters()" class="col-span-1 w-full sm:w-auto px-4 py-3.5 border border-white/10 bg-zinc-800 rounded-2xl hover:bg-zinc-700 hover:text-white transition text-sm flex items-center justify-center gap-2 text-zinc-400 shadow">
-                    <i class="fas fa-times"></i> <span class="hidden sm:inline">Clear</span>
+                    <i class="fas fa-times"></i> <span><?= __('Clear') ?></span>
                 </button>
             </div>
         </div>
 
         <?php if (!empty($trendingTags)): ?>
             <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap custom-scrollbar pb-2 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0">
-                <span class="text-xs text-zinc-500 font-medium uppercase tracking-wider shrink-0 mr-1"><i class="fas fa-fire text-amber-500 mr-1"></i>Trending:</span>
+                <span class="text-xs text-zinc-500 font-medium uppercase tracking-wider shrink-0 mr-1"><i class="fas fa-fire text-amber-500 mr-1"></i><?= __('Trending:') ?></span>
                 <?php foreach($trendingTags as $tag): ?>
                     <button onclick="applyQuickTag('<?= htmlspecialchars(addslashes($tag)) ?>')" class="shrink-0 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30 transition shadow-sm">
                         #<?= htmlspecialchars($tag) ?>
@@ -114,6 +126,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         window.scrollTo({ top: 250, behavior: 'smooth' });
     }
 
+    // 🚨 完美多語言化：JavaScript 異步分頁器注入
     function renderPagination(current, totalPages) {
         const container = document.getElementById('pagination-container');
         if (totalPages <= 1) {
@@ -130,7 +143,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } else {
             html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
         }
-        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">Page <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= __('Page') ?> <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
         if (current < totalPages) {
             html += `<button onclick="changePage(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
         } else {
@@ -169,6 +182,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = html;
     }
 
+    // 🚨 完美多語言化：JavaScript 動態卡片渲染整合
     async function loadSouls() {
         const container = document.getElementById('results-container');
         const pagination = document.getElementById('pagination-container');
@@ -208,15 +222,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
 
                     const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    
+                    // 🌍 將 JS 模板內嵌之文字進行後端多語言編譯
+                    const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= __('Modular') ?>' : '<?= __('Single .md') ?>';
+                    const roleLabel = soul.role ? escapeHTML(soul.role) : '<?= __('Unassigned') ?>';
 
-                    // 🚨 完美修復：底部 flex-1 min-w-0 truncate 確保超長名不會撐爆佈局
                     html += `
                         <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-4">
                                     <div class="font-bold text-lg sm:text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
                                     <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 shadow-sm ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
-                                        ${soul.file_type === 'full_soul_folder' ? 'Modular' : '.md'}
+                                        ${typeLabel}
                                     </div>
                                 </div>
                                 ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-3 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
@@ -228,7 +245,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
                                 <div class="flex-1 min-w-0 truncate pr-3">
                                     <span class="text-white font-medium">@${escapeHTML(soul.username || 'anonymous')}</span>
-                                    <span class="opacity-50 ml-1">• ${escapeHTML(soul.role || 'Unassigned')}</span>
+                                    <span class="opacity-50 ml-1">• ${roleLabel}</span>
                                 </div>
                                 <div class="flex items-center gap-3 shrink-0">
                                     <span title="Forks"><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
@@ -244,17 +261,19 @@ require_once __DIR__ . '/../private/includes/header.php';
                 renderPagination(data.current_page, data.total_pages);
 
             } else {
+                // 🌍 完美修復：AJAX 空白狀態多語言化
                 container.innerHTML = `
                     <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner mx-4 sm:mx-0">
                         <div class="text-5xl sm:text-6xl mb-6 opacity-50">🔎</div>
-                        <p class="text-xl sm:text-2xl font-bold mb-2">No souls found</p>
-                        <p class="text-sm text-zinc-400 max-w-xs mx-auto">Try adjusting your keywords or clearing the active filters.</p>
-                        <button onclick="clearFilters()" class="mt-6 px-6 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition text-sm shadow font-medium">Clear all filters</button>
+                        <p class="text-xl sm:text-2xl font-bold mb-2"><?= __('No souls found') ?></p>
+                        <p class="text-sm text-zinc-400 max-w-xs mx-auto"><?= __('Try adjusting your keywords or clearing the active filters.') ?></p>
+                        <button onclick="clearFilters()" class="mt-6 px-6 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition text-sm shadow font-medium"><?= __('Clear all filters') ?></button>
                     </div>
                 `;
             }
         } catch (e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i>Network error while loading souls</div>`;
+            // 🌍 完美修復：網絡例外錯誤多語言化
+            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i><?= __('Network error while loading souls') ?></div>`;
         }
     }
 

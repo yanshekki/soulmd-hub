@@ -1,4 +1,9 @@
 <?php
+/**
+ * SoulMD Hub - Upload & Publish Dashboard
+ * (Dynamic i18n Internationalization Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
@@ -6,14 +11,16 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
+    header('Location: ' . url('/login'));
     exit;
 }
+
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('upload');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
-// 前端渲染需要的基礎數據 (維持現有功能)
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
@@ -41,8 +48,8 @@ if (!empty($presetRole)) {
 
 unset($_SESSION['preset_title'], $_SESSION['preset_content'], $_SESSION['preset_role']);
 
-$pageTitle = 'Upload Soul';
-$pageDesc = 'Upload your AI personality as .md or full modular folder.';
+$pageTitle = __('Upload Soul');
+$pageDesc = __('Upload Subtitle');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -51,11 +58,11 @@ require_once __DIR__ . '/../private/includes/header.php';
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-10">
         <div>
-            <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter">Upload Soul</h1>
-            <p class="text-sm sm:text-base text-zinc-400 mt-1">Publish single prompts or modular agent architectures.</p>
+            <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter"><?= __('Upload Soul') ?></h1>
+            <p class="text-sm sm:text-base text-zinc-400 mt-1"><?= __('Upload Subtitle') ?></p>
         </div>
-        <a href="/my-souls" class="text-sm text-zinc-400 hover:text-white flex items-center gap-2 border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full w-fit transition shadow-sm">
-            <i class="fas fa-arrow-left"></i> My Souls
+        <a href="<?= url('/my-souls') ?>" class="text-sm text-zinc-400 hover:text-white flex items-center gap-2 border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full w-fit transition shadow-sm">
+            <i class="fas fa-arrow-left"></i> <?= __('Back to My Souls') ?>
         </a>
     </div>
 
@@ -64,33 +71,33 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <form id="upload-form" class="space-y-6 sm:space-y-8">
         <div>
-            <label class="block text-sm font-medium mb-2 text-zinc-300">Soul Title <span class="text-red-400">*</span></label>
+            <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Soul Title') ?> <span class="text-red-400">*</span></label>
             <input type="text" id="title" name="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-emerald-400 shadow-inner">
         </div>
 
         <div>
-            <label class="block text-sm font-medium mb-2 text-zinc-300">Short Description</label>
+            <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Short Description') ?></label>
             <textarea id="description" name="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner"></textarea>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300">Role</label>
+                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Role') ?></label>
                 <select id="role" name="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none cursor-pointer">
-                    <option value="">Select role</option>
+                    <option value=""><?= __('Select role') ?></option>
                     <?php foreach ($categories as $cat): ?>
                         <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $presetRole === $cat['slug'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($cat['icon'] ?? '✨') ?> <?= htmlspecialchars($cat['name']) ?>
                         </option>
                     <?php endforeach; ?>
-                    <option value="Other" <?= $presetRole === 'Other' ? 'selected' : '' ?>>Other</option>
+                    <option value="Other" <?= $presetRole === 'Other' ? 'selected' : '' ?>><?= __('Other') ?></option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300">Domain Tags</label>
+                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Domain Tags') ?></label>
                 <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
                     <div id="domain-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
-                    <input type="text" id="domain-input" list="domain-options" placeholder="Tech, Content..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] sm:min-w-[100px] text-sm p-0 m-0 text-white">
+                    <input type="text" id="domain-input" list="domain-options" placeholder="<?= __('Domain Placeholder') ?>" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] sm:min-w-[100px] text-sm p-0 m-0 text-white">
                     <input type="hidden" id="domain" name="domain" value="">
                 </div>
                 <datalist id="domain-options">
@@ -100,10 +107,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </datalist>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300">Compatibility</label>
+                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Compatibility') ?></label>
                 <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
                     <div id="compatibility-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
-                    <input type="text" id="compatibility-input" list="compatibility-options" placeholder="Claude, GPT-4o..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] sm:min-w-[100px] text-sm p-0 m-0 text-white">
+                    <input type="text" id="compatibility-input" list="compatibility-options" placeholder="<?= __('Compatibility Placeholder') ?>" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] sm:min-w-[100px] text-sm p-0 m-0 text-white">
                     <input type="hidden" id="compatibility" name="compatibility" value="">
                 </div>
                 <datalist id="compatibility-options">
@@ -115,19 +122,19 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
 
         <div>
-            <label class="block text-sm font-medium mb-3 text-zinc-300">Content <span class="text-red-400">*</span></label>
+            <label class="block text-sm font-medium mb-3 text-zinc-300"><?= __('Content') ?> <span class="text-red-400">*</span></label>
             
             <div class="flex border-b border-white/20 mb-4 sm:mb-6 overflow-x-auto custom-scrollbar">
-                <button type="button" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-1.5 sm:mr-2"></i> Visual Editor</button>
-                <button type="button" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-1.5 sm:mr-2"></i> Raw / Paste</button>
-                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-1.5 sm:mr-2"></i> Upload File (.md/.zip)</button>
+                <button type="button" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-1.5 sm:mr-2"></i> <?= __('Visual Editor') ?></button>
+                <button type="button" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-1.5 sm:mr-2"></i> <?= __('Raw / Paste') ?></button>
+                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-1.5 sm:mr-2"></i> <?= __('Upload File') ?></button>
             </div>
 
             <div id="tab-visual" class="upload-tab-content">
                 <div class="border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row bg-zinc-950/50 shadow-inner min-h-[400px]">
                     <div class="w-full md:w-48 xl:w-56 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
                         <div class="p-2.5 sm:p-3 border-b border-white/10 text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center bg-zinc-950/30">
-                            Files <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
+                            <?= __('Files') ?> <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
                         </div>
                         <div id="file-list" class="flex md:flex-col overflow-x-auto md:overflow-y-auto overflow-y-hidden p-1.5 sm:p-2 space-x-1.5 md:space-x-0 md:space-y-1 custom-scrollbar shrink-0 border-b border-white/5 md:border-none"></div>
                     </div>
@@ -136,27 +143,27 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <span id="current-filename" class="truncate pr-2">SOUL.md</span>
                             <button type="button" id="btn-delete-file" onclick="fileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden transition shrink-0"><i class="fas fa-trash-alt"></i></button>
                         </div>
-                        <textarea id="file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs sm:text-sm text-zinc-300 resize-none custom-scrollbar" placeholder="Start typing..."></textarea>
+                        <textarea id="file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs sm:text-sm text-zinc-300 resize-none custom-scrollbar" placeholder="<?= __('Start typing...') ?>"></textarea>
                     </div>
                 </div>
             </div>
 
             <div id="tab-raw" class="upload-tab-content hidden">
-                <textarea id="content-raw" rows="10" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 sm:py-5 font-mono text-xs sm:text-sm focus:outline-none focus:border-emerald-400 shadow-inner custom-scrollbar sm:min-h-[300px]" placeholder="Paste single markdown text OR full JSON folder object here..."><?= htmlspecialchars($presetContent) ?></textarea>
+                <textarea id="content-raw" rows="10" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 sm:py-5 font-mono text-xs sm:text-sm focus:outline-none focus:border-emerald-400 shadow-inner custom-scrollbar sm:min-h-[300px]" placeholder="<?= __('Raw Placeholder') ?>"><?= htmlspecialchars($presetContent) ?></textarea>
             </div>
 
             <div id="tab-zip" class="upload-tab-content hidden">
                 <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center hover:border-emerald-400 transition cursor-pointer bg-zinc-900/50">
                     <input type="file" id="file-input" accept=".md,.txt,.zip,.json" class="hidden">
                     <i class="fas fa-cloud-upload-alt text-4xl sm:text-5xl mb-4 text-zinc-400"></i>
-                    <div class="font-medium text-base sm:text-lg">Drag & drop or click to upload</div>
-                    <div class="text-[10px] sm:text-xs text-zinc-400 mt-2">Supports single .md file or a full configuration .zip bundle</div>
+                    <div class="font-medium text-base sm:text-lg"><?= __('Drag & drop') ?></div>
+                    <div class="text-[10px] sm:text-xs text-zinc-400 mt-2"><?= __('Drag & drop subtext') ?></div>
                 </div>
             </div>
         </div>
 
         <button type="submit" id="submit-btn" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
-            <span id="submit-text"><i class="fas fa-cloud-upload-alt mr-2"></i>Upload Soul</span>
+            <span id="submit-text"><i class="fas fa-cloud-upload-alt mr-2"></i><?= __('Upload Soul') ?></span>
             <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
         </button>
     </form>
@@ -165,12 +172,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
-            <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
+            <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i><?= __('Add Module File') ?></h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
         </div>
         <div class="p-5 sm:p-6 space-y-6">
             <div>
-                <label class="block text-sm font-medium mb-3 text-zinc-400">Suggested Modules</label>
+                <label class="block text-sm font-medium mb-3 text-zinc-400"><?= __('Suggested Modules') ?></label>
                 <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
                     <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md</button>
                     <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md</button>
@@ -180,12 +187,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/</button>
                 </div>
             </div>
-            <div class="relative flex items-center py-1"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-[10px] uppercase tracking-widest">or custom path</span><div class="flex-grow border-t border-white/10"></div></div>
+            <div class="relative flex items-center py-1"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-[10px] uppercase tracking-widest"><?= __('or custom path') ?></span><div class="flex-grow border-t border-white/10"></div></div>
             <div>
-                <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
+                <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400"><?= __('Filename / Folder Path') ?></label>
                 <div class="flex gap-2">
                     <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
-                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm">Add</button>
+                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm"><?= __('Add') ?></button>
                 </div>
             </div>
         </div>
@@ -193,7 +200,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // 🚨 完美安全修復：加入 escapeHTML 防止自訂檔名 XSS 攻擊
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
@@ -214,7 +220,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                 tagsContainer.appendChild(tagEl);
             });
             hiddenInput.value = tags.join(', ');
-            visibleInput.placeholder = tags.length > 0 ? '' : (inputId === 'domain' ? 'Tech, Content...' : 'Claude, GPT-4o...');
+            
+            // 🌍 動態變量處理 Placeholder
+            let ph = '';
+            if (tags.length === 0) {
+                ph = inputId === 'domain' ? '<?= addslashes(__('Domain Placeholder')) ?>' : '<?= addslashes(__('Compatibility Placeholder')) ?>';
+            }
+            visibleInput.placeholder = ph;
         };
 
         const addTag = (val) => {
@@ -288,7 +300,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 const isActive = filename === this.activeFile;
-                // 🚨 完美修復：相容手機版橫向排列樣式
                 btn.className = `w-auto md:w-full text-left px-3 py-2 md:px-3 md:py-2 rounded-lg text-xs font-mono transition flex items-center md:items-start gap-1.5 shrink-0 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 md:border-transparent' : 'text-zinc-400 hover:bg-white/5 border border-white/10 md:border-transparent'}`;
                 
                 let icon = 'fa-file-alt';
@@ -328,8 +339,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         deleteCurrentFile() {
-            if (Object.keys(this.files).length <= 1) return alert("You must have at least one file.");
-            if (!confirm(`Delete ${this.activeFile}?`)) return;
+            // 🌍 多語言化 Alert
+            if (Object.keys(this.files).length <= 1) return alert("<?= addslashes(__('You must have at least one file.')) ?>");
+            if (!confirm("<?= addslashes(__('Delete file check')) ?>" + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
             this.switchFile(Object.keys(this.files)[0]);
         }
@@ -368,7 +380,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!name) return;
         name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
-        if (fileEditor.files[name] !== undefined) return alert("File already exists!");
+        
+        // 🌍 多語言化 Alert
+        if (fileEditor.files[name] !== undefined) return alert("<?= addslashes(__('File already exists!')) ?>");
         
         fileEditor.files[name] = '';
         fileEditor.switchFile(name);
@@ -385,11 +399,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const ext = file.name.split('.').pop().toLowerCase();
         
+        // 🌍 ZIP 成功讀取多語言化
         document.getElementById('tab-zip').innerHTML = `
             <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-2xl border-2 border-emerald-400/30">
                 <i class="fas fa-check-circle text-3xl"></i>
                 <span class="font-medium px-4 text-center truncate w-full">${escapeHTML(file.name)}</span>
-                <span class="text-xs text-zinc-500">Ready to upload</span>
+                <span class="text-xs text-zinc-500"><?= addslashes(__('Ready to upload')) ?></span>
             </div>`;
 
         if (ext === 'md' || ext === 'txt' || ext === 'json') {
@@ -409,11 +424,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     });
                     await Promise.all(promises);
                     uploadedContentStr = JSON.stringify(extractedFiles, null, 2);
-                }).catch(function(err) { alert("Failed to parse zip file structure on client side."); });
+                }).catch(function(err) { alert("<?= addslashes(__('Failed to parse zip')) ?>"); });
             };
             reader.readAsArrayBuffer(file);
         } else {
-            alert("Unsupported file extension.");
+            alert("<?= addslashes(__('Unsupported file extension.')) ?>");
             uploadedContentStr = '';
         }
     });
@@ -438,7 +453,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         else finalContent = uploadedContentStr;
 
         if (!finalContent || finalContent.trim() === '') {
-            errorMsg.innerText = "Soul Content is empty or hasn't loaded yet.";
+            errorMsg.innerText = "<?= addslashes(__('Content empty')) ?>";
             errorBox.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
@@ -466,14 +481,15 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                window.location.href = data.url;
+                // 🚨 發布成功後自動跳轉去雙語版網址
+                window.location.href = data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
             } else {
-                errorMsg.innerText = data.error || "Failed to save soul.";
+                errorMsg.innerText = data.error || "<?= addslashes(__('Failed to save soul.')) ?>";
                 errorBox.classList.remove('hidden');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch(err) {
-            errorMsg.innerText = "Network Error. Please try again.";
+            errorMsg.innerText = "<?= addslashes(__('Network Error')) ?>";
             errorBox.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {

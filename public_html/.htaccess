@@ -1,4 +1,4 @@
-# SoulMD Hub - Apache 配置文件 (終極 SEO API-First 整合版)
+# SoulMD Hub - Apache 配置文件 (終極 SEO API-First + 全域動態 i18n 整合版)
 
 ErrorDocument 404 /404.php
 
@@ -6,9 +6,17 @@ ErrorDocument 404 /404.php
     RewriteEngine On
 
     # ==========================================
+    # 0. 多語言 (i18n) 預處理 (支援未來無限擴充)
+    # 規則：動態捕捉任何 /xx/ 開頭的路由 (例如 /zh/, /ja/, /fr/)
+    # 排除 /api/, /images/, /uploads/, /download/
+    # ==========================================
+    RewriteCond %{REQUEST_URI} ^/([a-z]{2})(/|$) [NC]
+    RewriteCond %{REQUEST_URI} !^/([a-z]{2})/(api|images|uploads|download)(/|$) [NC]
+    RewriteRule ^([a-z]{2})(?:/(.*))?$ /$2?lang=$1 [QSA,E=LANG:$1]
+
+    # ==========================================
     # 1. 外部重定向 (External Redirects - 301)
     # ==========================================
-    # 🚨 新增：舊版 Invoice 網址自動強製轉換為 RESTful 乾淨路徑
     RewriteCond %{THE_REQUEST} \s/+invoice\.php\?id=([0-9]+) [NC]
     RewriteRule ^invoice\.php$ /invoice/%1? [R=301,L]
 
@@ -40,7 +48,7 @@ ErrorDocument 404 /404.php
     RewriteRule ^billing/?$ billing.php [L,QSA]
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
 
-    # 🚨 核心亮點：新版 Invoice 乾淨路由規則 (/invoice/123 -> invoice.php?id=123)
+    # Invoice 乾淨路由規則
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^invoice/([0-9]+)/?$ invoice.php?id=$1 [L,QSA]
@@ -59,7 +67,7 @@ ErrorDocument 404 /404.php
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^chat/([0-9]+)/?$ chat.php?soul_id=$1 [L,QSA]
 
-    # 下載模組
+    # 下載模組 (不受語言前綴影響)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/([^/]+)\.zip$ download.php?username=$1&id=$2&format=zip [B,L,QSA]
     RewriteCond %{REQUEST_FILENAME} !-f

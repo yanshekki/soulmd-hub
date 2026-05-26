@@ -1,102 +1,130 @@
 <?php
+/**
+ * SoulMD Hub - Modular AI Generator
+ * (Dynamic i18n Internationalization Edition with Localized Prompt Templates)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-$pageTitle = 'AI Soul Generator';
-$pageDesc = 'Describe your AI and instantly generate a modular Modular Folder.';
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('generate');
+
+// 🌍 SEO Meta 多語言化
+$pageTitle = __('SEO Title');
+$pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 pb-16 pt-8">
     <div class="text-center mb-12">
         <div class="inline-flex items-center gap-2 bg-emerald-900/20 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-medium mb-6 border border-emerald-500/20">
-            <i class="fas fa-layer-group"></i> Modular AI Generator
+            <i class="fas fa-layer-group"></i> <?= __('Modular AI Generator') ?>
         </div>
-        <h1 class="text-5xl font-bold tracking-tighter mb-4">Design your <span class="gradient-text">Modular AI</span></h1>
-        <p class="text-lg text-zinc-400 max-w-xl mx-auto">Instantly generate a complete agent architecture containing <code>SOUL.md</code>, <code>STYLE.md</code>, and <code>RULES.md</code>.</p>
+        <h1 class="text-5xl font-bold tracking-tighter mb-4"><?= __('Design your') ?> <span class="gradient-text"><?= __('Modular AI') ?></span></h1>
+        <p class="text-lg text-zinc-400 max-w-xl mx-auto"><?= __('Generator Subtitle') ?></p>
     </div>
 
     <div id="form-section">
         <div class="max-w-3xl mx-auto mb-8 flex flex-wrap justify-center gap-3">
-            <span class="text-sm text-zinc-500 py-2">Quick Presets:</span>
-            <button type="button" onclick="fillTemplate('dev')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition">💻 Expert Coder</button>
-            <button type="button" onclick="fillTemplate('writer')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition">✍️ Copywriter</button>
-            <button type="button" onclick="fillTemplate('assistant')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition">🤖 Executive Assistant</button>
+            <span class="text-sm text-zinc-500 py-2"><?= __('Quick Presets:') ?></span>
+            <button type="button" onclick="fillTemplate('dev')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition"><?= __('Expert Coder') ?></button>
+            <button type="button" onclick="fillTemplate('writer')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition"><?= __('Copywriter') ?></button>
+            <button type="button" onclick="fillTemplate('assistant')" class="px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-sm hover:border-emerald-400/50 hover:text-emerald-400 transition"><?= __('Executive Assistant') ?></button>
         </div>
 
         <form id="generate-form" class="max-w-3xl mx-auto bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-2xl">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                    <label class="block text-sm font-medium mb-2 text-zinc-300">Role / Profession</label>
-                    <input type="text" id="input-role" required placeholder="e.g. Senior Data Scientist" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                    <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Role / Profession') ?></label>
+                    <input type="text" id="input-role" required placeholder="<?= __('Role PH') ?>" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-2 text-zinc-300">Personality Traits</label>
-                    <input type="text" id="input-personality" required placeholder="e.g. pragmatic, direct, witty" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                    <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Personality Traits') ?></label>
+                    <input type="text" id="input-personality" required placeholder="<?= __('Personality PH') ?>" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner">
                 </div>
             </div>
 
             <div class="mb-6">
-                <label class="block text-sm font-medium mb-2 text-zinc-300">Expertise / Tech Stack</label>
-                <input type="text" id="input-expertise" required placeholder="e.g. Python, Machine Learning, Data Viz" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Expertise / Tech Stack') ?></label>
+                <input type="text" id="input-expertise" required placeholder="<?= __('Expertise PH') ?>" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner">
             </div>
 
             <div class="mb-6">
-                <label class="block text-sm font-medium mb-2 text-zinc-300">Communication Style</label>
-                <input type="text" id="input-style" required placeholder="e.g. clear, confident, highly technical" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
+                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Communication Style') ?></label>
+                <input type="text" id="input-style" required placeholder="<?= __('Style PH') ?>" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner">
             </div>
 
             <div class="mb-8">
                 <label class="block text-sm font-medium mb-2 text-zinc-300 flex justify-between">
-                    Hard Rules <span class="text-xs text-zinc-500 font-normal">Optional</span>
+                    <?= __('Hard Rules') ?> <span class="text-xs text-zinc-500 font-normal"><?= __('Optional') ?></span>
                 </label>
-                <textarea id="input-special" rows="3" placeholder="e.g. Always output code in blocks, do not explain basics..." class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition"></textarea>
+                <textarea id="input-special" rows="3" placeholder="<?= __('Rules PH') ?>" class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner"></textarea>
             </div>
 
-            <button type="submit" id="submit-btn" class="w-full py-4 bg-emerald-500 text-zinc-950 text-lg font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3">
-                <span id="submit-text"><i class="fas fa-bolt mr-1"></i> Generate Modular Agent</span>
+            <button type="submit" id="submit-btn" class="w-full py-4 bg-emerald-500 text-zinc-950 text-lg font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg transform hover:-translate-y-0.5 duration-200">
+                <span id="submit-text"><i class="fas fa-bolt mr-1"></i> <?= __('Generate Modular Agent') ?></span>
                 <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
             </button>
         </form>
     </div>
 
-    <div id="result-section" class="hidden">
+    <div id="result-section" class="hidden animate-fade-in">
         <div class="max-w-3xl mx-auto mb-6 flex justify-between items-end border-b border-white/10 pb-6">
             <div>
-                <h2 class="text-3xl font-bold mb-2">Modular Folder Generated! 📁</h2>
-                <p class="text-zinc-400 text-sm">We compiled your inputs into a multi-file JSON. Click 'Go to Upload' to publish.</p>
+                <h2 class="text-3xl font-bold mb-2"><?= __('Modular Folder Generated! 📁') ?></h2>
+                <p class="text-zinc-400 text-sm"><?= __('Result Subtitle') ?></p>
             </div>
             <div class="flex gap-3">
-                <button type="button" onclick="resetForm()" class="px-5 py-2.5 border border-white/20 rounded-xl text-sm font-medium hover:bg-white/5 transition flex items-center gap-2">
-                    <i class="fas fa-redo text-xs"></i> New
+                <button type="button" onclick="resetForm()" class="px-5 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-sm font-medium hover:bg-zinc-700 transition flex items-center gap-2 shadow">
+                    <i class="fas fa-redo text-xs"></i> <?= __('New') ?>
                 </button>
             </div>
         </div>
 
-        <div class="max-w-3xl mx-auto bg-zinc-900 border border-white/10 rounded-3xl p-6 flex flex-col mb-8">
+        <div class="max-w-3xl mx-auto bg-zinc-900 border border-white/10 rounded-3xl p-6 flex flex-col mb-8 shadow-xl">
             <div class="flex justify-between items-center mb-4">
                 <div class="font-bold text-lg flex items-center gap-2">
-                    <i class="fas fa-folder-open text-purple-400"></i> JSON Output
+                    <i class="fas fa-folder-open text-purple-400"></i> <?= __('JSON Output') ?>
                 </div>
             </div>
-            <pre id="folder-content" class="bg-zinc-950 border border-white/5 p-5 rounded-2xl text-[13px] whitespace-pre-wrap overflow-y-auto max-h-[450px] font-mono text-zinc-300 leading-relaxed"></pre>
+            <pre id="folder-content" class="bg-zinc-950 border border-white/5 p-5 rounded-2xl text-[13px] whitespace-pre-wrap overflow-y-auto max-h-[450px] font-mono text-zinc-300 leading-relaxed shadow-inner"></pre>
         </div>
 
         <div class="flex flex-col items-center justify-center pt-4">
-            <a href="/upload" class="px-12 py-4 bg-emerald-500 text-zinc-950 text-xl font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center gap-3 shadow-lg hover:scale-105 transform duration-200">
-                Go to Upload <i class="fas fa-arrow-right"></i>
+            <a href="<?= url('/upload') ?>" class="px-12 py-4 bg-emerald-500 text-zinc-950 text-xl font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center gap-3 shadow-lg hover:scale-105 transform duration-200">
+                <?= __('Go to Upload') ?> <i class="fas fa-arrow-right"></i>
             </a>
         </div>
     </div>
 </div>
 
 <script>
+    // 🌍 將 Quick Presets 內容動態轉為多語言變數
     const templates = {
-        dev: { role: 'Senior Full-Stack Engineer', personality: 'pragmatic, logical, direct, slightly witty', expertise: 'TypeScript, Next.js, System Architecture, Clean Code', style: 'concise, code-heavy, professional', special: 'Always provide robust code examples and briefly explain the "why" behind the approach.' },
-        writer: { role: 'Expert Copywriter & Editor', personality: 'creative, empathetic, persuasive, articulate', expertise: 'SEO, Marketing Strategies, Storytelling, Audience Engagement', style: 'engaging, warm, highly readable', special: 'Use markdown headers creatively. Highlight key copywriting points in bold.' },
-        assistant: { role: 'Top-tier Executive Assistant', personality: 'highly organized, polite, efficient, detail-oriented', expertise: 'Task prioritization, summarizing long texts, scheduling logic', style: 'structured, clear, action-oriented', special: 'Always end your responses with a brief bulleted list of "Next Actions" or summaries.' }
+        dev: { 
+            role: '<?= addslashes(__('js_dev_role')) ?>', 
+            personality: '<?= addslashes(__('js_dev_personality')) ?>', 
+            expertise: '<?= addslashes(__('js_dev_expertise')) ?>', 
+            style: '<?= addslashes(__('js_dev_style')) ?>', 
+            special: '<?= addslashes(__('js_dev_special')) ?>' 
+        },
+        writer: { 
+            role: '<?= addslashes(__('js_writer_role')) ?>', 
+            personality: '<?= addslashes(__('js_writer_personality')) ?>', 
+            expertise: '<?= addslashes(__('js_writer_expertise')) ?>', 
+            style: '<?= addslashes(__('js_writer_style')) ?>', 
+            special: '<?= addslashes(__('js_writer_special')) ?>' 
+        },
+        assistant: { 
+            role: '<?= addslashes(__('js_assistant_role')) ?>', 
+            personality: '<?= addslashes(__('js_assistant_personality')) ?>', 
+            expertise: '<?= addslashes(__('js_assistant_expertise')) ?>', 
+            style: '<?= addslashes(__('js_assistant_style')) ?>', 
+            special: '<?= addslashes(__('js_assistant_special')) ?>' 
+        }
     };
 
     function fillTemplate(type) {
@@ -135,9 +163,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         const style = document.getElementById('input-style').value.trim();
         const special = document.getElementById('input-special').value.trim();
 
-        let soulContent = `## 🤖 Identity\nYou are an expert **${role}**. You are known for being ${personality}.\n\n## 🎯 Core Objectives\n- Provide top-tier assistance leveraging your deep expertise in **${expertise}**.\n- Deliver solutions that are accurate, actionable, and highly insightful.\n`;
-        let styleContent = `## 🗣️ Voice & Tone\n- Speak with a ${style} tone.\n- Use bold text for key concepts and code blocks for technical details.\n- Lead with a direct answer, followed by structured elaboration.\n`;
-        let rulesContent = `## 🚧 Boundaries & Hard Rules\n${special ? '- ' + special + '\n' : ''}- Maintain character and role consistency at all times.\n- Never fabricate facts or guess answers if information is missing.\n- Avoid passive voice and unnecessary fluff.\n`;
+        // 🌍 組合多語言的 Prompt 模板 (JS replace)
+        let soulContent = `<?= addslashes(__('Prompt Identity')) ?>`
+                            .replace(':role', role)
+                            .replace(':personality', personality)
+                            .replace(':expertise', expertise);
+                            
+        let styleContent = `<?= addslashes(__('Prompt Voice')) ?>`
+                            .replace(':style', style);
+                            
+        let specialBlock = special ? '- ' + special + '\n' : '';
+        let rulesContent = `<?= addslashes(__('Prompt Rules')) ?>`
+                            .replace(':special', specialBlock);
 
         const filesObj = {
             'SOUL.md': soulContent,
@@ -157,7 +194,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById('result-section').classList.remove('hidden');
             document.getElementById('folder-content').textContent = folderJson; 
         } catch(err) {
-            alert('Error generating preset. Please check connection.');
+            alert('<?= addslashes(__('Error generating preset.')) ?>');
         } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');

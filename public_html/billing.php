@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Billing & Subscription Management
- * (Enhanced Edition: Dynamic Expiration Detection & Renewal Prompt)
+ * (Dynamic i18n Internationalization Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -11,9 +11,12 @@ require_once __DIR__ . '/../private/includes/seo.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
+    header('Location: ' . url('/login'));
     exit;
 }
+
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('billing');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -30,7 +33,6 @@ $currentTier = $user['tier'] ?? 'free';
 $expiresAt = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
 
 $isActivePremium = ($currentTier !== 'free' && $expiresAt > time());
-// 🚨 新增：精準判定用戶是否「已過期」 (曾經有期限，且時間早於現在)
 $isExpired = (!$isActivePremium && $expiresAt > 0 && $expiresAt <= time());
 
 // =========================================================
@@ -65,8 +67,9 @@ function getPageUrl($newPage) {
     return '?' . http_build_query($queryParams);
 }
 
-$pageTitle = 'Billing & Subscriptions - SoulMD Hub';
-$pageDesc = 'Manage your premium AI subscription and view billing history.';
+// 🌍 SEO Meta 多語言化
+$pageTitle = __('SEO Title');
+$pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -74,40 +77,43 @@ require_once __DIR__ . '/../private/includes/header.php';
     
     <div class="flex flex-col sm:flex-row justify-between sm:items-end mb-10 border-b border-white/10 pb-6 gap-4 animate-fade-in">
         <div>
-            <h1 class="text-4xl font-bold tracking-tighter text-white">Billing & Subscriptions</h1>
-            <p class="text-zinc-400 mt-2 text-sm">Manage your premium tier passes, context token allocations, and transaction receipts.</p>
+            <h1 class="text-4xl font-bold tracking-tighter text-white"><?= __('Billing & Subscriptions') ?></h1>
+            <p class="text-zinc-400 mt-2 text-sm"><?= __('Billing Subtitle') ?></p>
         </div>
-        <a href="/upgrade" class="px-6 py-3 <?= $isExpired ? 'bg-red-500 hover:bg-red-400 text-zinc-950' : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950' ?> font-bold rounded-2xl transition flex items-center gap-2 shadow-lg shrink-0 transform hover:scale-[1.02] duration-200">
-            <i class="fas <?= $isExpired ? 'fa-sync-alt' : 'fa-arrow-up' ?>"></i> <?= $isExpired ? 'Renew Subscription' : 'Upgrade Plan' ?>
+        <a href="<?= url('/upgrade') ?>" class="px-6 py-3 <?= $isExpired ? 'bg-red-500 hover:bg-red-400 text-zinc-950' : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950' ?> font-bold rounded-2xl transition flex items-center gap-2 shadow-lg shrink-0 transform hover:scale-[1.02] duration-200">
+            <i class="fas <?= $isExpired ? 'fa-sync-alt' : 'fa-arrow-up' ?>"></i> <?= $isExpired ? __('Renew Subscription') : __('Upgrade Plan') ?>
         </a>
     </div>
 
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r <?= $isExpired ? 'from-red-500 to-amber-500' : 'from-emerald-400 to-cyan-400' ?>"></div>
         <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <i class="fas <?= $isExpired ? 'fa-exclamation-triangle text-red-400' : 'fa-shield-check text-emerald-400' ?>"></i> Current Subscription Status
+            <i class="fas <?= $isExpired ? 'fa-exclamation-triangle text-red-400' : 'fa-shield-check text-emerald-400' ?>"></i> <?= __('Current Subscription Status') ?>
         </h2>
         
         <?php if ($isActivePremium): ?>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950/50 p-6 rounded-2xl border border-white/5">
                 <div>
                     <div class="flex items-center gap-3 mb-2">
-                        <span class="text-2xl font-black text-white uppercase tracking-widest"><?= htmlspecialchars($currentTier) ?> Member</span>
-                        <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase rounded-md border border-emerald-500/20 tracking-wider">Active Pass</span>
+                        <span class="text-2xl font-black text-white uppercase tracking-widest"><?= __('Tier Member', ['tier' => htmlspecialchars($currentTier)]) ?></span>
+                        <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase rounded-md border border-emerald-500/20 tracking-wider"><?= __('Active Pass') ?></span>
                     </div>
                     <p class="text-sm text-zinc-400 leading-relaxed">
-                        Your enterprise-grade AI session cluster layer is unlocked and fully verified. Operational until: <b class="text-zinc-100 font-mono"><?= date('F j, Y, g:i a', $expiresAt) ?></b>.
+                        <?php 
+                        $dateFormatted = date('F j, Y, g:i a', $expiresAt);
+                        echo __('Active Pass Desc', ['date' => $dateFormatted]); 
+                        ?>
                     </p>
                 </div>
                 <div class="text-left md:text-right shrink-0">
                     <?php $daysLeft = max(0, floor(($expiresAt - time()) / (60 * 60 * 24))); ?>
                     <div class="text-4xl font-black text-emerald-400 tracking-tight font-mono"><?= $daysLeft ?></div>
-                    <div class="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Days Remaining</div>
+                    <div class="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1"><?= __('Days Remaining') ?></div>
                 </div>
             </div>
             <p class="text-xs text-amber-400/80 mt-4 px-2 flex items-start gap-1.5 leading-relaxed">
                 <i class="fas fa-info-circle mt-0.5 shrink-0"></i> 
-                <span><strong>Manual Lifecycle Management:</strong> To maintain strict data integrity, we enforce zero automatic recurring billings. Your tokens will automatically expire at the set date. Simply purchase a new license pass to continue.</span>
+                <span><strong><?= __('Manual Lifecycle Management:') ?></strong> <?= __('Lifecycle Desc') ?></span>
             </p>
 
         <?php elseif ($isExpired): ?>
@@ -118,38 +124,43 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <i class="fas fa-history"></i>
                     </div>
                     <div>
-                        <span class="text-xl font-bold text-red-400">Subscription Expired</span>
-                        <p class="text-sm text-zinc-400 mt-1">Your premium access ended on <b class="text-zinc-300"><?= date('F j, Y', $expiresAt) ?></b>. Please renew your plan to restore Headless API access, Vision AI, and unlimited chat capabilities.</p>
+                        <span class="text-xl font-bold text-red-400"><?= __('Subscription Expired') ?></span>
+                        <p class="text-sm text-zinc-400 mt-1">
+                            <?php 
+                            $dateFormatted = date('F j, Y', $expiresAt);
+                            echo __('Expired Desc', ['date' => $dateFormatted]); 
+                            ?>
+                        </p>
                     </div>
                 </div>
-                <a href="/upgrade" class="px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-red-500/20 whitespace-nowrap flex items-center justify-center gap-2 shrink-0">
-                    <i class="fas fa-sync-alt"></i> Renew Plan
+                <a href="<?= url('/upgrade') ?>" class="px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-red-500/20 whitespace-nowrap flex items-center justify-center gap-2 shrink-0">
+                    <i class="fas fa-sync-alt"></i> <?= __('Renew Plan') ?>
                 </a>
             </div>
 
         <?php else: ?>
             <div class="bg-zinc-950/50 p-6 rounded-2xl border border-white/5 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                    <span class="text-xl font-bold text-zinc-300">Free Tier Account</span>
-                    <p class="text-sm text-zinc-500 mt-1">You are currently running on standard sandbox trial limits. Upgrade to expand context size.</p>
+                    <span class="text-xl font-bold text-zinc-300"><?= __('Free Tier Account') ?></span>
+                    <p class="text-sm text-zinc-500 mt-1"><?= __('Free Tier Desc') ?></p>
                 </div>
-                <a href="/upgrade" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold rounded-xl transition border border-white/10 shadow-sm">
-                    View Premium Plans
+                <a href="<?= url('/upgrade') ?>" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold rounded-xl transition border border-white/10 shadow-sm">
+                    <?= __('View Premium Plans') ?>
                 </a>
             </div>
         <?php endif; ?>
     </div>
 
     <div class="flex-grow flex flex-col">
-        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-file-invoice text-zinc-400"></i> Transaction Ledger</h2>
+        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-file-invoice text-zinc-400"></i> <?= __('Transaction Ledger') ?></h2>
         
         <?php if (empty($payments)): ?>
             <div class="bg-zinc-900/20 border border-dashed border-white/10 rounded-3xl p-16 text-center text-zinc-500 flex flex-col items-center justify-center flex-grow min-h-[250px]">
                 <div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center mb-4 shadow-inner">
                     <i class="fas fa-file-invoice-dollar text-2xl opacity-40"></i>
                 </div>
-                <h3 class="text-lg font-bold text-zinc-400 mb-1">No billing rows located</h3>
-                <p class="text-xs text-zinc-500 max-w-xs leading-relaxed">You haven't executed any gateway premium orders inside this account cluster yet.</p>
+                <h3 class="text-lg font-bold text-zinc-400 mb-1"><?= __('No billing rows located') ?></h3>
+                <p class="text-xs text-zinc-500 max-w-xs leading-relaxed"><?= __('No billing desc') ?></p>
             </div>
         <?php else: ?>
             <div class="bg-zinc-900/60 border border-white/10 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm">
@@ -157,47 +168,47 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-zinc-950/80 text-zinc-500 text-xs uppercase tracking-widest border-b border-white/10 select-none">
-                                <th class="p-4 font-semibold whitespace-nowrap">Timestamp</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">Transaction ID</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">Plan</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">Status</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">Gross Amount</th>
-                                <th class="p-4 font-semibold whitespace-nowrap text-right">Action</th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Timestamp') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Transaction ID') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Plan') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Status') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Gross Amount') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap text-right"><?= __('Action') ?></th>
                             </tr>
                         </thead>
                         <tbody class="text-sm divide-y divide-white/5 font-medium">
                             <?php foreach ($payments as $pay): 
                                 $statusClass = 'bg-zinc-800 text-zinc-400 border-white/5';
                                 $statusText = strtoupper($pay['status']);
-                                $statusTooltip = 'Unknown status.';
+                                $statusTooltip = __('Unknown status.');
                                 
                                 switch(strtolower($pay['status'])) {
                                     case 'completed':
                                         $statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
                                         $statusText = 'COMPLETED';
-                                        $statusTooltip = 'Payment cleared successfully.';
+                                        $statusTooltip = __('Payment cleared successfully.');
                                         break;
                                     case 'pending':
                                         $statusClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse';
                                         $statusText = 'PENDING';
-                                        $statusTooltip = 'Awaiting gateway clearance. Assets will provision once settled.';
+                                        $statusTooltip = __('Awaiting gateway clearance. Assets will provision once settled.');
                                         break;
                                     case 'failed':
                                     case 'denied':
                                     case 'expired':
                                         $statusClass = 'bg-red-500/10 text-red-400 border-red-500/20';
                                         $statusText = 'FAILED';
-                                        $statusTooltip = 'Transaction was declined by the issuer or expired.';
+                                        $statusTooltip = __('Transaction was declined by the issuer or expired.');
                                         break;
                                     case 'refunded':
                                         $statusClass = 'bg-purple-500/10 text-purple-400 border-purple-500/20';
                                         $statusText = 'REFUNDED';
-                                        $statusTooltip = 'Manual refund executed. Assets revoked.';
+                                        $statusTooltip = __('Manual refund executed. Assets revoked.');
                                         break;
                                     case 'reversed':
                                         $statusClass = 'bg-orange-500/10 text-orange-400 border-orange-500/20';
                                         $statusText = 'REVERSED';
-                                        $statusTooltip = 'Dispute / Chargeback filed. Access terminated.';
+                                        $statusTooltip = __('Dispute / Chargeback filed. Access terminated.');
                                         break;
                                 }
                             ?>
@@ -210,14 +221,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         </span>
                                     </td>
                                     <td class="p-4 whitespace-nowrap">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase border tracking-wider cursor-help <?= $statusClass ?>" title="<?= $statusTooltip ?>">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase border tracking-wider cursor-help <?= $statusClass ?>" title="<?= htmlspecialchars($statusTooltip) ?>">
                                             <?= $statusText ?>
                                         </span>
                                     </td>
                                     <td class="p-4 font-bold text-white whitespace-nowrap font-mono"><?= htmlspecialchars($pay['currency']) ?> $<?= number_format($pay['amount'], 2) ?></td>
                                     <td class="p-4 text-right whitespace-nowrap">
-                                        <a href="/invoice/<?= $pay['id'] ?>" target="_blank" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg border border-white/10 transition shadow-sm hover:text-white">
-                                            <i class="fas fa-file-invoice text-zinc-500"></i> Receipt
+                                        <a href="<?= url('/invoice/' . $pay['id']) ?>" target="_blank" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg border border-white/10 transition shadow-sm hover:text-white">
+                                            <i class="fas fa-file-invoice text-zinc-500"></i> <?= __('Receipt') ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -231,7 +242,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="mt-8 flex justify-center select-none">
                     <div class="flex sm:hidden w-full max-w-sm items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">
                         <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left"></i></a>
-                        <span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">Page <span class="text-white text-sm font-mono"><?= $page ?></span> / <?= $totalPages ?></span>
+                        <span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= __('Page') ?> <span class="text-white text-sm font-mono"><?= $page ?></span> / <?= $totalPages ?></span>
                         <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right"></i></a>
                     </div>
                     <div class="hidden sm:flex items-center gap-1.5 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">
@@ -259,7 +270,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             <?php endif; ?>
 
             <p class="text-[10px] text-zinc-600 mt-6 text-center leading-relaxed select-none max-w-2xl mx-auto uppercase tracking-wide">
-                All localized frame logs comply with global cryptographic ledger signatures. As locked inside your binding purchase contract, all active or terminated subscription licenses are completely <strong class="text-zinc-500">NON-REFUNDABLE</strong>.
+                <?= __('Legal Footer 1') ?> <strong class="text-zinc-500"><?= __('NON-REFUNDABLE') ?></strong>.
             </p>
         <?php endif; ?>
     </div>

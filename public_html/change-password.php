@@ -1,113 +1,127 @@
 <?php
+/**
+ * SoulMD Hub - Change Password Security Panel
+ * (Dynamic i18n Internationalization & Robust Security Crypt Routing Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
+    header('Location: ' . url('/login'));
     exit;
 }
 
-$pageTitle = 'Change Password';
-$pageDesc = 'Update your SoulMD Hub account password.';
-$hideNavLinks = true; // 隱藏多餘導覽列連結
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('change-password');
+
+// 🌍 SEO Meta 多語言化
+$pageTitle = __('Change Password');
+$pageDesc = __('Security Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="flex-grow flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl font-semibold mb-2">Change Password</h1>
-            <p class="text-zinc-400">Keep your account secure</p>
+<div class="max-w-xl w-full mx-auto px-4 sm:px-6 py-12 flex-grow flex flex-col justify-center animate-fade-in">
+    <div class="mb-8 flex justify-between items-end border-b border-white/10 pb-5">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tighter text-white"><?= __('Account Security') ?></h1>
+            <p class="text-xs text-zinc-400 mt-1.5"><?= __('Update Subtitle') ?></p>
         </div>
-
-        <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-2xl mb-8 text-sm text-center text-red-200 shadow-lg transition-all">
-            <i class="fas fa-exclamation-circle mr-1"></i> <span id="error-msg"></span>
-        </div>
-
-        <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl mb-8 text-sm text-center text-emerald-100 shadow-lg transition-all">
-            <i class="fas fa-check-circle mr-1"></i> <span id="success-msg"></span>
-        </div>
-
-        <form id="password-form" class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 space-y-6 backdrop-blur-sm shadow-2xl">
-            <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-400">Current Password</label>
-                <input type="password" id="current_password" name="current_password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
-            </div>
-
-            <div class="pt-4 border-t border-white/5">
-                <label class="block text-sm font-medium mb-2 text-zinc-400">New Password <span class="text-zinc-500 font-normal">(min 6 chars)</span></label>
-                <input type="password" id="new_password" name="new_password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-400">Confirm New Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition">
-            </div>
-
-            <button type="submit" id="submit-btn" class="w-full py-4 bg-emerald-500 text-zinc-950 font-bold text-lg rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg">
-                <span id="submit-text">Update Password</span>
-                <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
-            </button>
-        </form>
-
-        <div class="text-center mt-8 text-sm text-zinc-400">
-            <a href="/my-souls" class="text-zinc-400 hover:text-white transition flex items-center justify-center gap-2">
-                <i class="fas fa-arrow-left"></i> Back to My Souls
-            </a>
-        </div>
+        <a href="<?= url('/my-souls') ?>" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 border border-white/10 bg-zinc-900/50 px-3.5 py-1.5 rounded-full transition shadow-sm shrink-0">
+            <i class="fas fa-arrow-left text-[10px]"></i> <?= __('Back to Dashboard') ?>
+        </a>
     </div>
+
+    <div id="status-box" class="hidden border p-4 rounded-2xl mb-6 text-sm text-center shadow-lg transition-all"></div>
+
+    <form id="password-form" class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-5 backdrop-blur-sm shadow-2xl">
+        <div>
+            <label class="block text-xs font-medium mb-2 text-zinc-400 uppercase tracking-wider"><?= __('Current Password') ?></label>
+            <input type="password" id="current-password" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm font-mono tracking-widest text-white shadow-inner">
+        </div>
+
+        <div class="border-t border-white/5 pt-4">
+            <label class="block text-xs font-medium mb-2 text-zinc-400 uppercase tracking-wider"><?= __('New Password') ?></label>
+            <input type="password" id="new-password" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm font-mono tracking-widest text-white shadow-inner">
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium mb-2 text-zinc-400 uppercase tracking-wider"><?= __('Confirm New Password') ?></label>
+            <input type="password" id="confirm-password" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm font-mono tracking-widest text-white shadow-inner">
+        </div>
+
+        <button type="submit" id="submit-btn" class="w-full py-3.5 bg-emerald-500 text-zinc-950 font-bold text-sm rounded-xl hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg transform hover:-translate-y-0.5 duration-200 mt-2">
+            <span id="submit-text"><i class="fas fa-shield-keyhole mr-1"></i> <?= __('Save New Credentials') ?></span>
+            <span id="submit-loading" class="hidden animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
+        </button>
+    </form>
 </div>
 
 <script>
-    const form = document.getElementById('password-form');
-    form.addEventListener('submit', async (e) => {
+    const passForm = document.getElementById('password-form');
+    passForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const btn = document.getElementById('submit-btn');
         const text = document.getElementById('submit-text');
         const loading = document.getElementById('submit-loading');
-        const errorBox = document.getElementById('error-box');
-        const errorMsg = document.getElementById('error-msg');
-        const successBox = document.getElementById('success-box');
-        const successMsg = document.getElementById('success-msg');
+        const statusBox = document.getElementById('status-box');
 
-        // Reset UI States
-        errorBox.classList.add('hidden');
-        successBox.classList.add('hidden');
+        const currentPassword = document.getElementById('current-password').value;
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        // Reset Box UI States
+        statusBox.className = "hidden border p-4 rounded-2xl mb-6 text-sm text-center shadow-lg transition-all";
+        statusBox.innerHTML = '';
+
+        // 1. 前端嚴格密碼一致性校驗
+        if (newPassword !== confirmPassword) {
+            statusBox.classList.add('bg-red-900/50', 'text-red-200', 'border-red-500', 'block');
+            statusBox.innerText = "<?= addslashes(__('Passwords do not match!')) ?>";
+            return;
+        }
+
+        // Trigger Loading Spinner
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        // Construct JSON Payload
         const payload = {
-            current_password: document.getElementById('current_password').value,
-            new_password: document.getElementById('new_password').value,
-            confirm_password: document.getElementById('confirm_password').value
+            current_password: currentPassword,
+            new_password: newPassword
         };
 
         try {
-            const res = await fetch('/api/change-password', { 
-                method: 'POST', 
+            // Hit the security API backend (API ignores lang routing via regex)
+            const res = await fetch('/api/change-password', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
 
             if (data.success) {
-                // Success: Show message and clear form
-                successMsg.innerText = data.message;
-                successBox.classList.remove('hidden');
-                form.reset();
+                statusBox.classList.add('bg-emerald-900/50', 'text-emerald-400', 'border-emerald-500', 'block');
+                statusBox.innerHTML = `<i class="fas fa-check-circle mr-1"></i> <?= addslashes(__('Password updated successfully!')) ?>`;
+                passForm.reset();
+                
+                // 🚨 變更成功後，自動導向回多語言首頁前綴的工作區大廳
+                setTimeout(() => { window.location.href = '<?= url("/my-souls") ?>'; }, 2000);
             } else {
-                // Error: Display API error
-                errorMsg.innerText = data.error || 'Update failed.';
-                errorBox.classList.remove('hidden');
+                statusBox.classList.add('bg-red-900/50', 'text-red-200', 'border-red-500', 'block');
+                statusBox.innerText = data.error || "<?= addslashes(__('Failed to update.')) ?>";
+                
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
-        } catch (e) {
-            errorMsg.innerText = 'Network Error. Please try again.';
-            errorBox.classList.remove('hidden');
-        } finally {
+        } catch (err) {
+            statusBox.classList.add('bg-red-900/50', 'text-red-200', 'border-red-500', 'block');
+            statusBox.innerText = "<?= addslashes(__('Network Error.')) ?>";
+            
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

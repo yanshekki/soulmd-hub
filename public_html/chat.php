@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Core Intelligent Chat Interface
- * (Slim & Modular Master Controller Edition)
+ * (Slim & Modular Master Controller Edition with Dynamic i18n Support)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -9,6 +9,9 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
+
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('chat');
 
 // 雙重防護機制：生成專屬 CSRF Token 防止 API 被盜用
 if (empty($_SESSION['chat_csrf_token'])) {
@@ -24,7 +27,7 @@ $sessionToken = $_GET['session_token'] ?? '';
 
 // 如果沒有指定 Soul，跳回首頁
 if (!$soulId) {
-    header('Location: /browse');
+    header('Location: ' . url('/browse'));
     exit;
 }
 
@@ -42,7 +45,7 @@ if (!$soul) {
 // 核心邏輯：如果是第一次進入 (沒有 Session Token)，自動生成並跳轉到專屬 URL
 if (empty($sessionToken)) {
     $newToken = bin2hex(random_bytes(16)); 
-    header("Location: /chat/{$soulId}/{$newToken}", true, 302);
+    header("Location: " . url("/chat/{$soulId}/{$newToken}"), true, 302);
     exit;
 }
 
@@ -88,15 +91,16 @@ $maxTurns = constant("{$tierPrefix}_MAX_TURNS");
 $maxInputChars = constant("{$tierPrefix}_MAX_INPUT_CHARS");
 $allowImage = constant("{$tierPrefix}_ALLOW_IMAGE") ? 'true' : 'false';
 
-$pageTitle = 'Chat Session - ' . htmlspecialchars($soul['title']);
-$pageDesc = 'Live interaction with this specialized AI persona architecture.';
+// 🌍 多語言動態編譯專屬 SEO Titles 與分頁 Meta 資訊
+$pageTitle = __('Chat Session', ['title' => htmlspecialchars($soul['title'])]);
+$pageDesc = __('Live interaction with this specialized AI persona architecture.');
 $hideNavLinks = true; 
 require_once __DIR__ . '/../private/includes/header.php';
 
 // 引入獨立的法律免責聲明彈窗
 require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
 
-// 🌟 引入分拆出來的圖片放大與智慧手機版 Paywall 彈窗組件
+// 🌟 引入分拆出來的圖片放大與智慧手機版 Paywall 彈窗組件 (下一階段會完美多語言化)
 require_once __DIR__ . '/../private/includes/chat-modals.php';
 ?>
 
@@ -104,13 +108,13 @@ require_once __DIR__ . '/../private/includes/chat-modals.php';
     
     <div class="bg-zinc-900/80 border border-white/10 rounded-t-3xl p-4 flex justify-between items-center backdrop-blur-md shrink-0">
         <div class="flex items-center gap-3">
-            <a href="/soul/<?= $soulId ?>" class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-emerald-400 hover:bg-zinc-700 transition">
+            <a href="<?= url('/soul/' . $soulId) ?>" class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-emerald-400 hover:bg-zinc-700 transition">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
                 <h1 class="text-lg font-bold text-white leading-tight"><?= htmlspecialchars($soul['title']) ?></h1>
                 <p class="text-xs text-zinc-500 flex items-center gap-1">
-                    <i class="fas fa-circle text-emerald-500 text-[8px] animate-pulse"></i> Active Persona Session
+                    <i class="fas fa-circle text-emerald-500 text-[8px] animate-pulse"></i> <?= __('Active Persona Session') ?>
                 </p>
             </div>
         </div>
@@ -123,20 +127,20 @@ require_once __DIR__ . '/../private/includes/chat-modals.php';
                         <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 <?= $isPrivate ? 'translate-x-4' : '' ?>" id="privacy-dot"></div>
                     </div>
                     <span class="text-xs font-medium <?= $isPrivate ? 'text-emerald-400' : 'text-zinc-500' ?>" id="privacy-label">
-                        <i class="fas <?= $isPrivate ? 'fa-lock' : 'fa-globe' ?>"></i> <span class="hidden sm:inline"><?= $isPrivate ? 'Private' : 'Public' ?></span>
+                        <i class="fas <?= $isPrivate ? 'fa-lock' : 'fa-globe' ?>"></i> <span class="hidden sm:inline"><?= $isPrivate ? __('Private') : __('Public') ?></span>
                     </span>
                 </label>
             <?php endif; ?>
 
             <button id="share-btn" onclick="shareChat(this)" class="<?= $isPrivate ? 'hidden ' : '' ?>px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
-                <i class="fas fa-share-alt"></i> <span class="hidden sm:inline">Share URL</span>
+                <i class="fas fa-share-alt"></i> <span class="hidden sm:inline"><?= __('Share URL') ?></span>
             </button>
         </div>
     </div>
 
     <div class="bg-amber-500/10 border-x border-b border-amber-500/20 p-3 text-xs text-amber-200/80 flex items-start gap-2 shrink-0">
         <i class="fas fa-shield-alt mt-0.5 text-amber-500"></i>
-        <p><strong>Privacy Warning:</strong> Public session URLs can be viewed by anyone. Do not share sensitive information. Text input is limited to <?= number_format($maxInputChars) ?> characters.</p>
+        <p><strong><?= __('Privacy Warning:') ?></strong> <?= __('Privacy warning text', ['chars' => number_format($maxInputChars)]) ?></p>
     </div>
 
     <div id="chat-box" class="flex-grow bg-zinc-950 border-x border-white/10 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar scroll-smooth">
@@ -160,7 +164,7 @@ require_once __DIR__ . '/../private/includes/chat-modals.php';
                     </button>
                     <input type="file" id="image-upload-input" accept="image/jpeg, image/png, image/webp" class="hidden" onchange="handleImageSelection(event)">
                     
-                    <textarea id="chat-input" rows="1" maxlength="<?= $maxInputChars ?>" placeholder="Type your message, Ctrl+V to paste image, Ctrl+Enter to send..." class="w-full bg-transparent px-2 py-3.5 pr-16 text-sm focus:outline-none resize-none custom-scrollbar text-white placeholder-zinc-500" style="min-height: 48px; max-height: 120px;" oninput="updateCharCount(this)"></textarea>
+                    <textarea id="chat-input" rows="1" maxlength="<?= $maxInputChars ?>" placeholder="<?= __('Type your message...') ?>" class="w-full bg-transparent px-2 py-3.5 pr-16 text-sm focus:outline-none resize-none custom-scrollbar text-white placeholder-zinc-500" style="min-height: 48px; max-height: 120px;" oninput="updateCharCount(this)"></textarea>
                     
                     <div id="char-count" class="absolute bottom-3 right-4 text-[10px] text-zinc-500 font-mono select-none">0/<?= $maxInputChars ?></div>
                 </div>

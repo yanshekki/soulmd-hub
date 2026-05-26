@@ -1,9 +1,17 @@
 <?php
+/**
+ * SoulMD Hub - Public AI Soul Deep Repository View
+ * (Dynamic i18n Internationalization, 4-Layer SEO Routing & Perfect Mobile Grid Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
+
+// 🌍 載入此頁面的專屬獨立多語言詞典
+loadTranslations('soul');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -11,7 +19,7 @@ $pdo = $db->getConnection();
 $id = (int)($_GET['id'] ?? 0);
 
 if (!$id) {
-    header('Location: /browse');
+    header('Location: ' . url('/browse'));
     exit;
 }
 
@@ -43,8 +51,8 @@ $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
 $slugRole = makeSlug($soul['role']);
 $slugTitle = makeSlug($soul['title']);
 
-// 🚨 完美 SEO 301 跳轉機制
-$canonicalUrl = "/soul/{$encodedUsername}/{$id}/{$slugRole}/{$slugTitle}";
+// 🚨 完美 SEO 301 跳轉機制：若果 URL 是舊版短網址，自動跳轉去完整及正確語系的前綴 SEO Path
+$canonicalUrl = url("/soul/{$encodedUsername}/{$id}/{$slugRole}/{$slugTitle}");
 $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 if ($currentUri !== $canonicalUrl && strpos($currentUri, '/api/') === false) {
@@ -70,7 +78,7 @@ if ($isFolder) {
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
         $errorMsg = json_last_error_msg();
         $files = [
-            'ERROR.md' => "## ⚠️ Parse Error\nFailed to parse JSON folder structure. The AI generated a malformed JSON.\n\n**Error Details:** `{$errorMsg}`\n\n---\n\n### Raw Output:\n```json\n" . $contentData . "\n```"
+            'ERROR.md' => "## ⚠️ " . __('Parse Error') . "\n" . __('Failed to parse JSON folder structure.') . "\n\n**" . __('Error Details:') . "** `{$errorMsg}`\n\n---\n\n### " . __('Raw Output:') . "\n```json\n" . $contentData . "\n```"
         ];
     }
 } else {
@@ -104,14 +112,14 @@ function getFileStyle($filename) {
 }
 
 $pageTitle = $soul['title'];
-$pageDesc = $soul['description'] ?: 'View this AI soul on SoulMD Hub.';
+$pageDesc = $soul['description'] ?: __('View this AI soul on SoulMD Hub.');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <a href="/browse" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
-            <i class="fas fa-arrow-left"></i> Back to Hub
+        <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
+            <i class="fas fa-arrow-left"></i> <?= __('Back to Hub') ?>
         </a>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full md:w-auto mt-2 md:mt-0">
@@ -120,11 +128,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
             <button onclick="forkSoul()" id="fork-btn" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
-                <i class="fas fa-code-branch text-emerald-400"></i> Fork
+                <i class="fas fa-code-branch text-emerald-400"></i> <?= __('Fork') ?>
             </button>
             
             <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
-                <i class="fas fa-magic"></i> Copy Full Prompt
+                <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
             </button>
         </div>
     </div>
@@ -132,12 +140,12 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-10 backdrop-blur-sm shadow-xl">
         <div class="flex flex-wrap items-center gap-3 mb-4">
             <?php if ($soul['role_name']): ?>
-                <a href="/browse?role=<?= urlencode($soul['role']) ?>" class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium hover:bg-white/10 transition">
+                <a href="<?= url('/browse?role=' . urlencode($soul['role'])) ?>" class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium hover:bg-white/10 transition">
                     <?= htmlspecialchars($soul['role_icon'] ?? '✨') ?> <?= htmlspecialchars($soul['role_name']) ?>
                 </a>
             <?php endif; ?>
             <span class="px-3 py-1 text-xs font-medium rounded-full <?= $isFolder ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' ?>">
-                <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>"></i> <?= $isFolder ? 'Modular Folder' : 'Single .md' ?>
+                <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>"></i> <?= $isFolder ? __('Modular Folder') : __('Single .md') ?>
             </span>
         </div>
 
@@ -151,18 +159,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         <div class="bg-blue-900/10 border border-blue-500/20 rounded-3xl p-5 sm:p-6 mb-8 max-w-3xl shadow-inner">
             <h3 class="text-blue-400 text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
-                <i class="fas fa-bolt text-blue-500"></i> One-Click Interaction
+                <i class="fas fa-bolt text-blue-500"></i> <?= __('One-Click Interaction') ?>
             </h3>
             <p class="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
-                Instantly interact with this AI soul directly in your browser. Start a live conversation based on the modular instructions provided in this repository. No complex API integrations required.
+                <?= __('Instantly interact with this AI soul directly in your browser. Start a live conversation based on the modular instructions provided in this repository. No complex API integrations required.') ?>
             </p>
             
-            <a href="/chat/<?= $id ?>" target="_blank" class="flex sm:inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition shadow-lg shadow-blue-500/20 sm:hover:scale-[1.02] transform duration-200">
-                <i class="fas fa-paper-plane"></i> Start Conversation
+            <a href="<?= url('/chat/' . $id) ?>" target="_blank" class="flex sm:inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition shadow-lg shadow-blue-500/20 sm:hover:scale-[1.02] transform duration-200 w-full sm:w-auto">
+                <i class="fas fa-paper-plane"></i> <?= __('Start Conversation') ?>
             </a>
             
             <div class="mt-5 text-xs text-zinc-400 bg-black/30 p-4 rounded-xl border border-white/5 leading-relaxed">
-                <i class="fas fa-shield-alt text-amber-500 mr-1.5"></i> <strong>Privacy Notice:</strong> Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.
+                <i class="fas fa-disabled fa-shield-alt text-amber-500 mr-1.5"></i> <strong><?= __('Privacy Notice:') ?></strong> <?= __('Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.') ?>
             </div>
         </div>
 
@@ -172,7 +180,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-bold shrink-0">
                         <?= strtoupper(substr($soul['username'] ?? 'A', 0, 1)) ?>
                     </div>
-                    <a href="/profile/<?= rawurlencode($soul['username'] ?? 'anonymous') ?>" class="font-medium text-white hover:text-emerald-400 transition truncate max-w-[120px] sm:max-w-none">
+                    <a href="<?= url('/profile/' . rawurlencode($soul['username'] ?? 'anonymous')) ?>" class="font-medium text-white hover:text-emerald-400 transition truncate max-w-[120px] sm:max-w-none">
                         @<?= htmlspecialchars($soul['username'] ?? 'Anonymous') ?>
                     </a>
                 </div>
@@ -180,10 +188,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <i class="far fa-calendar-alt"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
                 </div>
                 <div class="flex items-center gap-2">
-                    <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> forks
+                    <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> <?= __('forks') ?>
                 </div>
-                <a href="/soul-versions/<?= $id ?>" class="flex items-center gap-2 hover:text-emerald-400 transition">
-                    <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> versions
+                <a href="<?= url('/soul-versions/' . $id) ?>" class="flex items-center gap-2 hover:text-emerald-400 transition">
+                    <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> <?= __('versions') ?>
                 </a>
                 
                 <div class="flex items-center gap-2 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-white/5">
@@ -257,7 +265,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <i class="fas fa-file-archive text-amber-400"></i> .zip
                     </a>
                     <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-copy"></i> JSON
+                        <i class="fas fa-copy"></i> <?= __('JSON') ?>
                     </button>
                 <?php endif; ?>
             </div>
@@ -275,18 +283,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
                         
                         <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="fas fa-external-link-alt"></i> <span class="hidden sm:inline">Raw</span>
+                            <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
                         </a>
                         
                         <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="far fa-copy"></i> <span class="hidden sm:inline">Copy</span>
+                            <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
                         </button>
                     </div>
                     
                     <textarea id="raw-<?= $i ?>" class="hidden"><?= htmlspecialchars($safeContent) ?></textarea>
                     
                     <div id="render-<?= $i ?>" class="prose prose-invert prose-emerald max-w-none px-4 sm:px-8 pb-10 -mt-6">
-                        <div class="animate-pulse text-zinc-500">Rendering Markdown...</div>
+                        <div class="animate-pulse text-zinc-500"><?= __('Rendering Markdown...') ?></div>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -298,11 +306,12 @@ require_once __DIR__ . '/../private/includes/header.php';
     const soulDataFiles = <?= json_encode($files, JSON_UNESCAPED_UNICODE) ?>;
     const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
 
+    // 🚨 完美多語言化：JavaScript 終極 Mega-Prompt 提示詞建構核心
     function copyMegaPrompt(btn) {
         let megaPrompt = '';
         
         if (isFolder) {
-            megaPrompt += "Please adopt the following modular AI persona. The persona is defined across several modules below. Read and internalize all rules, styles, and context before interacting with me.\n\n";
+            megaPrompt += `<?= addslashes(__('MegaPrompt Intro')) ?>\n\n`;
             
             for (const [filename, content] of Object.entries(soulDataFiles)) {
                 if (filename.includes('ERROR.md')) continue;
@@ -315,22 +324,22 @@ require_once __DIR__ . '/../private/includes/header.php';
                 megaPrompt += fileStr + `\n\n`;
             }
             
-            megaPrompt += "If you understand these instructions and have fully adopted the persona, acknowledge briefly and await my first prompt.";
+            megaPrompt += `<?= addslashes(__('MegaPrompt Outro')) ?>`;
         } else {
             megaPrompt = Object.values(soulDataFiles)[0];
         }
         
         navigator.clipboard.writeText(megaPrompt).then(() => {
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.innerHTML = '<i class="fas fa-check"></i> <?= addslashes(__('Copied!')) ?>';
             btn.classList.add('bg-white', 'text-black');
             btn.classList.remove('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
             
-            alert('✨ Mega-Prompt compiled and copied!\n\nYou can now paste it directly into ChatGPT, Claude, or any LLM interface.');
+            alert(`<?= addslashes(__('MegaPrompt Success')) ?>`);
             
             setTimeout(() => { 
                 btn.innerHTML = originalHtml; 
-                btn.classList.remove('bg-white', 'text-black');
+                btn.removeCardClass = btn.classList.remove('bg-white', 'text-black');
                 btn.classList.add('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
             }, 3000);
         });
@@ -377,7 +386,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const text = document.getElementById('raw-' + id).value;
         navigator.clipboard.writeText(text).then(() => {
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> Copied!';
+            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> <?= addslashes(__('Copied!')) ?>';
             btn.classList.add('border-emerald-400/50', 'text-white');
             setTimeout(() => { btn.innerHTML = originalHtml; btn.classList.remove('border-emerald-400/50', 'text-white'); }, 2000);
         });
@@ -388,12 +397,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             const jsonStr = <?= json_encode($cleanedContent ?? $contentData) ?>;
             navigator.clipboard.writeText(jsonStr).then(() => { 
                 const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check text-emerald-600"></i> Copied!';
+                btn.innerHTML = '<i class="fas fa-check text-emerald-600"></i> <?= addslashes(__('Copied!')) ?>';
                 setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
             });
         <?php endif; ?>
     }
 
+    // 🚨 完美多語言化：社交與評分異步控制台提示詞
     async function rateSoul(stars) {
         const btns = document.querySelectorAll('#rating-stars i');
         btns.forEach(btn => btn.style.pointerEvents = 'none');
@@ -421,13 +431,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                 });
             } else {
                 if (data.error && data.error.includes('Login')) {
-                    window.location.href = '/login';
+                    window.location.href = '<?= url('/login') ?>';
                 } else {
-                    alert(data.error || 'Rating failed');
+                    alert(data.error || `<?= addslashes(__('Rating failed')) ?>`);
                 }
             }
         } catch (e) { 
-            alert('Network error'); 
+            alert(`<?= addslashes(__('Network error')) ?>`); 
         } finally { 
             btns.forEach(btn => btn.style.pointerEvents = 'auto'); 
         }
@@ -462,14 +472,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                 }
             } else {
                 if (data.error && data.error.includes('Login')) {
-                    window.location.href = '/login'; 
+                    window.location.href = '<?= url('/login') ?>'; 
                 } else {
-                    alert(data.error || 'Operation failed');
+                    alert(data.error || `<?= addslashes(__('Operation failed')) ?>`);
                     icon.className = originalClassName;
                 }
             }
         } catch (e) { 
-            alert('Network error'); 
+            alert(`<?= addslashes(__('Network error')) ?>`); 
             icon.className = originalClassName;
         } finally { 
             btn.style.pointerEvents = 'auto'; 
@@ -480,16 +490,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('fork-btn');
         const originalHtml = btn.innerHTML;
         btn.style.pointerEvents = 'none';
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Forking...`;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <?= addslashes(__('Forking...')) ?>`;
         try {
             const res = await fetch('/api/fork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
             const data = await res.json();
             if (data.success && data.new_soul_id) window.location.href = data.url;
             else {
-                if(data.error === 'Login required') window.location.href = '/login'; else alert(data.error || 'Fork failed');
+                if(data.error === 'Login required') window.location.href = '<?= url('/login') ?>'; else alert(data.error || `<?= addslashes(__('Fork failed')) ?>`);
                 btn.innerHTML = originalHtml;
             }
-        } catch (e) { alert('Network error'); btn.innerHTML = originalHtml; } finally { btn.style.pointerEvents = 'auto'; }
+        } catch (e) { alert(`<?= addslashes(__('Network error')) ?>`); btn.innerHTML = originalHtml; } finally { btn.style.pointerEvents = 'auto'; }
     }
 </script>
 
