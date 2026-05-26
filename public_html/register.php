@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Registration Gateway
- * (Dynamic i18n Multi-Language, Secure Nonce Modals & Perfect API Alignment Edition)
+ * (Dynamic i18n Multi-Language, Secure Nonce Modals & Perfect Mobile Modal Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -72,8 +72,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
-<div id="terms-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+<div id="terms-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30 shrink-0">
             <h3 class="text-2xl font-bold tracking-tight text-emerald-400"><i class="fas fa-file-contract mr-2"></i><?= __('Terms of Service') ?></h3>
             <button onclick="closeModal('terms-modal')" class="text-zinc-400 hover:text-white transition focus:outline-none"><i class="fas fa-times text-xl"></i></button>
@@ -93,8 +93,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
-<div id="privacy-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+<div id="privacy-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30 shrink-0">
             <h3 class="text-2xl font-bold tracking-tight text-emerald-400"><i class="fas fa-shield-alt mr-2"></i><?= __('Privacy Policy') ?></h3>
             <button onclick="closeModal('privacy-modal')" class="text-zinc-400 hover:text-white transition focus:outline-none"><i class="fas fa-times text-xl"></i></button>
@@ -118,13 +118,17 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // 🚨 Modal 鎖定背景滾動修復
     function openModal(modalId) {
+        document.body.style.overflow = 'hidden'; // 鎖定背景滾動
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
         modal.classList.remove('hidden');
         setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
     }
+    
     function closeModal(modalId) {
+        document.body.style.overflow = ''; // 恢復背景滾動
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
         modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
@@ -160,10 +164,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                // 🚨 完美跳轉優化：編譯加上多語言前綴，直達 Profile 頁面
                 window.location.href = '<?= url("/profile") ?>/' + encodeURIComponent(payload.username);
             } else {
-                // 💡 超強優化：直接讀取後端經由 i18n 翻譯好吐出來的 data.error，實現百分百語系同步
                 errorMsg.innerText = data.error || '<?= addslashes(__('Registration failed.')) ?>';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');

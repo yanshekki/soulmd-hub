@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
- * (Dynamic i18n Internationalization & Fully Fluid Responsive Cards Edition)
+ * (Dynamic i18n Internationalization & Perfect Mobile Modals Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -35,7 +35,6 @@ if ($sort === 'popular') {
     $orderSql = "ORDER BY s.fork_count DESC, s.created_at DESC";
 }
 
-// 💡 關鍵修復：修正為 LEFT JOIN categories c 解決 500 Fatal Error
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
     FROM souls s 
@@ -146,8 +145,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php endif; ?>
 </div>
 
-<div id="edit-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+<div id="edit-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-4xl w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/20 shrink-0">
             <h3 class="text-xl sm:text-2xl font-bold tracking-tight"><?= __('Edit Modular AI Soul') ?></h3>
             <button type="button" onclick="closeModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
@@ -248,13 +247,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
-<div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
+<div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
             <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i><?= __('Add Module File') ?></h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
         </div>
-        <div class="p-5 sm:p-6 space-y-6">
+        <div class="p-5 sm:p-6 space-y-6 overflow-y-auto custom-scrollbar">
             <div>
                 <label class="block text-sm font-medium mb-3 text-zinc-400"><?= __('Suggested Modules') ?></label>
                 <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -402,7 +401,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             this.renderFileList();
         }
         deleteCurrentFile() {
-            // 🌍 嚴格套用 JSON_UNESCAPED_UNICODE 確保前端除錯體驗
             if (Object.keys(this.files).length <= 1) return alert(<?= json_encode(__('You must have at least one file.'), JSON_UNESCAPED_UNICODE) ?>);
             if (!confirm(<?= json_encode(__('Delete file check'), JSON_UNESCAPED_UNICODE) ?> + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
@@ -453,10 +451,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     let currentEditId = null;
 
+    // 🚨 開啟 Modal 時，鎖定背景滾動
     async function editSoul(id) {
         currentEditId = id;
         document.getElementById('edit-id').value = id;
         document.getElementById('edit-title').value = <?= json_encode(__('Loading...'), JSON_UNESCAPED_UNICODE) ?>;
+        
+        document.body.style.overflow = 'hidden'; 
         
         const modal = document.getElementById('edit-modal');
         const content = modal.firstElementChild;
@@ -530,7 +531,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 關閉 Modal 時，恢復背景滾動
     function closeModal() { 
+        document.body.style.overflow = '';
+        
         const modal = document.getElementById('edit-modal');
         const content = modal.firstElementChild;
         modal.classList.add('opacity-0'); 

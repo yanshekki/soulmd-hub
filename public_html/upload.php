@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Upload & Publish Dashboard
- * (Dynamic i18n Internationalization & Secure UI Edition)
+ * (Dynamic i18n Internationalization & Perfect Mobile Modals Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -169,13 +169,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     </form>
 </div>
 
-<div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
-        <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
+<div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
+        <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30 shrink-0">
             <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i><?= __('Add Module File') ?></h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
         </div>
-        <div class="p-5 sm:p-6 space-y-6">
+        <div class="p-5 sm:p-6 space-y-6 overflow-y-auto custom-scrollbar flex-grow">
             <div>
                 <label class="block text-sm font-medium mb-3 text-zinc-400"><?= __('Suggested Modules') ?></label>
                 <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -221,7 +221,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             hiddenInput.value = tags.join(', ');
             
-            // 💡 完美修復：利用 JSON 確保 Placeholder 語法絕對安全
             let ph = '';
             if (tags.length === 0) {
                 ph = inputId === 'domain' ? <?= json_encode(__('Domain Placeholder'), JSON_UNESCAPED_UNICODE) ?> : <?= json_encode(__('Compatibility Placeholder'), JSON_UNESCAPED_UNICODE) ?>;
@@ -339,7 +338,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         deleteCurrentFile() {
-            // 💡 完美安全：使用 json_encode 防止任何字元中斷 JS 執行
             if (Object.keys(this.files).length <= 1) return alert(<?= json_encode(__('You must have at least one file.'), JSON_UNESCAPED_UNICODE) ?>);
             if (!confirm(<?= json_encode(__('Delete file check'), JSON_UNESCAPED_UNICODE) ?> + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
@@ -348,14 +346,16 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         getPayload() {
             const keys = Object.keys(this.files);
-            if (keys.length === 1 && !keys[0].includes('/')) return this.files[keys[0]];
+            if (keys.length === 1 && !keys[0].includes('/')) return this.files[keys[0]]; 
             return JSON.stringify(this.files, null, 2);
         }
     }
 
     const fileEditor = new MultiFileEditor();
 
+    // 🚨 開啟 Modal 時，鎖定背景滾動
     function openAddFileModal() {
+        document.body.style.overflow = 'hidden';
         const modal = document.getElementById('add-file-modal');
         const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
@@ -367,7 +367,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         }, 10);
     }
 
+    // 🚨 關閉 Modal 時，恢復背景滾動
     function closeAddFileModal() {
+        document.body.style.overflow = '';
         const modal = document.getElementById('add-file-modal');
         const content = document.getElementById('add-file-content');
         modal.classList.add('opacity-0'); 
@@ -381,7 +383,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
-        // 💡 完美安全：使用 json_encode 防止任何字元中斷 JS 執行
         if (fileEditor.files[name] !== undefined) return alert(<?= json_encode(__('File already exists!'), JSON_UNESCAPED_UNICODE) ?>);
         
         fileEditor.files[name] = '';
@@ -399,7 +400,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const ext = file.name.split('.').pop().toLowerCase();
         
-        // 💡 完美安全：使用 json_encode 注入多語言
         document.getElementById('tab-zip').innerHTML = `
             <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-2xl border-2 border-emerald-400/30">
                 <i class="fas fa-check-circle text-3xl"></i>
