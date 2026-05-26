@@ -1,9 +1,17 @@
 <?php
+/**
+ * SoulMD Hub - Model Version History Archive
+ * (Dynamic i18n Internationalization & Secure Parsing Edition)
+ */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
+
+// 🌍 載入專屬語言包
+loadTranslations('soul-versions');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -12,7 +20,7 @@ $soulId = (int)($_GET['id'] ?? 0);
 $userId = $_SESSION['user_id'] ?? 0;
 
 if (!$soulId) {
-    header('Location: /browse');
+    header('Location: ' . url('/browse'));
     exit;
 }
 
@@ -49,7 +57,7 @@ function makeSlug($str) {
 $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
 $slugRole = makeSlug($soul['role']);
 $slugTitle = makeSlug($soul['title']);
-$canonicalUrl = "/soul/{$encodedUsername}/{$soulId}/{$slugRole}/{$slugTitle}";
+$canonicalUrl = url("/soul/{$encodedUsername}/{$soulId}/{$slugRole}/{$slugTitle}");
 
 function getFileStyle($filename) {
     $name = strtoupper($filename);
@@ -64,25 +72,25 @@ function getFileStyle($filename) {
     return ['icon' => 'fa-file-alt', 'color' => 'text-zinc-400', 'border' => 'border-zinc-400'];
 }
 
-$pageTitle = 'Version History - ' . $soul['title'];
-$pageDesc = 'View and explore previous versions of this AI soul.';
+$pageTitle = __('Version History') . ' - ' . $soul['title'];
+$pageDesc = __('Version History Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-8">
+<div class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10 border-b border-white/10 pb-6">
         <div>
             <a href="javascript:history.back()" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
-                <i class="fas fa-arrow-left"></i> Back
+                <i class="fas fa-arrow-left"></i> <?= __('Back') ?>
             </a>
-            <h1 class="text-4xl font-bold tracking-tighter">Version History</h1>
+            <h1 class="text-4xl font-bold tracking-tighter"><?= __('Version History') ?></h1>
             <p class="text-zinc-400 mt-2 flex items-center gap-2">
                 <i class="fas fa-file-alt text-emerald-500"></i> <?= htmlspecialchars($soul['title']) ?>
             </p>
         </div>
         <div>
             <a href="<?= $canonicalUrl ?>" class="px-5 py-2.5 bg-white text-zinc-950 rounded-xl font-bold hover:bg-zinc-200 transition shadow-lg flex items-center gap-2">
-                View Current <i class="fas fa-external-link-alt text-xs"></i>
+                <?= __('View Current') ?> <i class="fas fa-external-link-alt text-xs"></i>
             </a>
         </div>
     </div>
@@ -92,8 +100,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="mx-auto w-20 h-20 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-6 text-zinc-500">
                 <i class="fas fa-history text-3xl"></i>
             </div>
-            <h2 class="text-2xl font-semibold mb-2">No versions yet</h2>
-            <p class="text-zinc-400 text-sm max-w-sm mx-auto">Every time this soul is edited and saved, the previous version will be automatically backed up here.</p>
+            <h2 class="text-2xl font-semibold mb-2"><?= __('No versions yet') ?></h2>
+            <p class="text-zinc-400 text-sm max-w-sm mx-auto"><?= __('No versions desc') ?></p>
         </div>
     <?php else: ?>
         <div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
@@ -103,7 +111,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <i class="fas fa-check text-xs"></i>
                 </div>
                 <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-emerald-400 text-sm font-medium text-center shadow-lg">
-                    Currently Active Version
+                    <?= __('Currently Active Version') ?>
                 </div>
             </div>
 
@@ -119,7 +127,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
                         $errorMsg = json_last_error_msg();
                         $files = [
-                            'ERROR.md' => "## ⚠️ Parse Error\nFailed to parse JSON folder structure in this version.\n\n**Error:** `{$errorMsg}`\n\n---\n\n### Raw Content:\n```json\n" . $version['content'] . "\n```"
+                            'ERROR.md' => "## ⚠️ " . __('Parse Error') . "\n" . __('Failed to parse JSON folder structure in this version.') . "\n\n**" . __('Error:') . "** `{$errorMsg}`\n\n---\n\n### " . __('Raw Content:') . "\n```json\n" . $version['content'] . "\n```"
                         ];
                     }
                 } else {
@@ -134,25 +142,25 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-zinc-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-sm hover:border-white/20 transition-colors shadow-xl">
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <div class="text-xs text-emerald-400 font-medium mb-1 tracking-wider uppercase">Version <?= $versionNumber ?></div>
+                                <div class="text-xs text-emerald-400 font-medium mb-1 tracking-wider uppercase"><?= __('Version') ?> <?= $versionNumber ?></div>
                                 <div class="font-bold text-lg mb-1 leading-tight text-white"><?= htmlspecialchars($version['title']) ?></div>
                                 <div class="text-xs text-zinc-500 flex items-center gap-1.5">
                                     <i class="far fa-clock"></i> <?= date('M j, Y • H:i', strtotime($version['edited_at'])) ?>
                                 </div>
                             </div>
                             <?php if ($isVersionFolder): ?>
-                                <span class="text-[10px] px-2 py-0.5 rounded font-medium border bg-purple-500/10 text-purple-400 border-purple-500/20 shrink-0">Modular</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded font-medium border bg-purple-500/10 text-purple-400 border-purple-500/20 shrink-0"><?= __('Modular') ?></span>
                             <?php endif; ?>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-white/5">
                             <button onclick="toggleContent(<?= $version['id'] ?>)" id="btn-toggle-<?= $version['id'] ?>" class="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl hover:bg-zinc-700 transition flex items-center justify-center gap-2 border border-white/5 shadow-sm">
-                                <i class="fas fa-eye" id="icon-<?= $version['id'] ?>"></i> <span>View Content</span>
+                                <i class="fas fa-eye" id="icon-<?= $version['id'] ?>"></i> <span><?= __('View Content') ?></span>
                             </button>
                             
                             <?php if ($isOwner): ?>
                             <button onclick="restoreVersion(<?= $version['id'] ?>, <?= $soulId ?>)" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
-                                <i class="fas fa-undo"></i> Restore
+                                <i class="fas fa-undo"></i> <?= __('Restore') ?>
                             </button>
                             <?php endif; ?>
                         </div>
@@ -200,13 +208,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
                                             <span class="text-xs font-mono text-zinc-500"><?= htmlspecialchars($fname) ?></span>
                                             <button onclick="copyRaw(<?= $version['id'] ?>, <?= $fIdx ?>, this)" class="text-[10px] bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-md border border-white/10 hover:bg-zinc-700 transition shadow">
-                                                <i class="far fa-copy mr-1"></i> Copy
+                                                <i class="far fa-copy mr-1"></i> <?= __('Copy') ?>
                                             </button>
                                         </div>
                                         <textarea id="raw-v<?= $version['id'] ?>-<?= $fIdx ?>" class="raw-v<?= $version['id'] ?> hidden" data-idx="<?= $fIdx ?>"><?= htmlspecialchars($safeContent) ?></textarea>
                                         
                                         <div id="render-v<?= $version['id'] ?>-<?= $fIdx ?>" class="prose prose-invert prose-emerald max-w-none prose-sm overflow-y-auto max-h-[350px] custom-scrollbar pr-2 text-zinc-300 leading-relaxed">
-                                            <div class="animate-pulse text-zinc-500 flex items-center gap-2"><i class="fas fa-spinner fa-spin"></i> Rendering Markdown...</div>
+                                            <div class="animate-pulse text-zinc-500 flex items-center gap-2"><i class="fas fa-spinner fa-spin"></i> <?= __('Rendering Markdown...') ?></div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -220,6 +228,11 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
+    // 🌍 動態注入多語言 JS 變數 (安全 json_encode)
+    const lang_ViewContent = <?= json_encode(__('View Content'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_HideContent = <?= json_encode(__('Hide Content'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Copied = <?= json_encode(__('Copied!'), JSON_UNESCAPED_UNICODE) ?>;
+
     marked.setOptions({
         breaks: true,
         gfm: true,
@@ -232,7 +245,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 
     async function restoreVersion(versionId, soulId) {
-        if (!confirm('Are you sure you want to restore this version?\n\nThe currently active version will be automatically backed up as a new history record.')) return;
+        if (!confirm(<?= json_encode(__('Restore Confirm'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
         try {
             const res = await fetch('/api/versions', { 
@@ -243,13 +256,16 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if (data.success) {
-                window.location.href = '/my-souls'; 
+                window.location.href = '<?= url("/my-souls") ?>'; 
             } else {
-                if (data.error && data.error.includes('Login')) { window.location.href = '/login'; } 
-                else { alert(data.error || 'Restore failed'); }
+                if (data.error && data.error.includes('Login')) { 
+                    window.location.href = '<?= url("/login") ?>'; 
+                } else { 
+                    alert(data.error || <?= json_encode(__('Restore failed'), JSON_UNESCAPED_UNICODE) ?>); 
+                }
             }
         } catch(e) {
-            alert('Network error while restoring.');
+            alert(<?= json_encode(__('Network error while restoring.'), JSON_UNESCAPED_UNICODE) ?>);
         }
     }
 
@@ -262,13 +278,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             contentDiv.classList.remove('hidden');
             icon.classList.remove('fa-eye');
             icon.classList.add('fa-eye-slash');
-            btnSpan.innerText = 'Hide Content';
+            btnSpan.innerText = lang_HideContent;
 
             const textareas = document.querySelectorAll(`.raw-v${versionId}`);
             textareas.forEach(ta => {
                 const idx = ta.dataset.idx;
                 const renderDiv = document.getElementById(`render-v${versionId}-${idx}`);
-                if (renderDiv.innerHTML.includes('Rendering Markdown...')) {
+                if (renderDiv.innerHTML.includes('fa-spinner')) {
                     const parsedHTML = marked.parse(ta.value);
                     renderDiv.innerHTML = DOMPurify.sanitize(parsedHTML);
                 }
@@ -277,7 +293,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             contentDiv.classList.add('hidden');
             icon.classList.remove('fa-eye-slash');
             icon.classList.add('fa-eye');
-            btnSpan.innerText = 'View Content';
+            btnSpan.innerText = lang_ViewContent;
         }
     }
 
@@ -304,7 +320,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const text = document.getElementById(`raw-v${versionId}-${fileIdx}`).value;
         navigator.clipboard.writeText(text).then(() => {
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> Copied!';
+            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> ' + lang_Copied;
             btn.classList.add('border-emerald-400/50', 'text-white');
             setTimeout(() => {
                 btn.innerHTML = originalHtml;
