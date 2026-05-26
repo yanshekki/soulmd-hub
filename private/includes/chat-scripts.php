@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
- * (100% i18n Internationalized Edition - Syntax Error Fixed)
+ * (100% i18n Internationalized Edition - Syntax Error & Auth Handshake Fixed)
  */
 ?>
 <script>
@@ -300,8 +300,8 @@
                 }
             } else {
                 const errMsg = data.error || 'Access Denied';
-                if (errMsg.includes('Access Denied')) {
-                    // 💡 關鍵安全修復：利用 json_encode 完美轉譯包含 \n 的私密權限錯誤，絕不崩潰
+                // 💡 關鍵修復：同時兼容英文 "Access Denied" 與中文 "拒絕存取" 攔截觸發
+                if (errMsg.includes('Access Denied') || errMsg.includes('拒絕存取')) {
                     appendMessage('assistant', <?= json_encode(__('Private Session warning'), JSON_UNESCAPED_UNICODE) ?>);
                     chatInput.disabled = true; sendBtn.disabled = true;
                 } else {
@@ -386,6 +386,7 @@
                 aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
             } else {
                 if (data.needs_upgrade) {
+                    // 💡 API 後端會經由 i18n 吐出翻譯後的 data.error
                     aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${data.error}</span>`;
                     showPaywall();
                 } else {

@@ -4,6 +4,7 @@
  * GET    /api/soul/{id} - Get single soul details
  * PUT    /api/soul/{id} - Update a soul (Requires Auth: Session or API Key, with JSON Auto-Fix)
  * DELETE /api/soul/{id} - Delete a soul (Requires Auth: Session or API Key)
+ * (100% Dynamic i18n Internationalized Error Stack & UNESCAPED Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,6 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
+// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+loadTranslations('api');
+
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
@@ -26,7 +30,7 @@ $id = (int)($_GET['id'] ?? 0);
 
 if (!$id) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'ID is required in the URL']);
+    echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -82,14 +86,14 @@ if ($method === 'GET') {
 
     if (!$soul) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Soul not found']);
+        echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     // 檢查私有權限
     if (!$soul['is_public'] && $soul['user_id'] !== $userId) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Access denied. This soul is private.']);
+        echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -100,14 +104,14 @@ if ($method === 'GET') {
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
+        echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid JSON payload']);
+        echo json_encode(['success' => false, 'error' => __('Invalid JSON payload')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -117,7 +121,7 @@ if ($method === 'GET') {
 
     if (!$old) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Soul not found or you do not have permission to edit it.']);
+        echo json_encode(['success' => false, 'error' => __('Soul not found or no edit perm')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -132,7 +136,7 @@ if ($method === 'GET') {
 
     if (empty($title) || empty($content)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Title and content cannot be empty']);
+        echo json_encode(['success' => false, 'error' => __('Fields required title content')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -145,7 +149,8 @@ if ($method === 'GET') {
         
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($parsed)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Invalid Modular JSON structure inside content field: ' . json_last_error_msg()]);
+            $errDetail = json_last_error_msg();
+            echo json_encode(['success' => false, 'error' => __('Invalid Modular JSON content', ['error' => $errDetail])], JSON_UNESCAPED_UNICODE);
             exit;
         }
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -167,11 +172,11 @@ if ($method === 'GET') {
         syncTags($pdo, 'tags_compatibility', $old['compatibility'], $compatibility);
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Soul updated successfully']);
+        echo json_encode(['success' => true, 'message' => __('Soul updated successfully')], JSON_UNESCAPED_UNICODE);
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to update soul']);
+        echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
 
 } elseif ($method === 'DELETE') {
@@ -179,7 +184,7 @@ if ($method === 'GET') {
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
+        echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -189,7 +194,7 @@ if ($method === 'GET') {
 
     if (!$old) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Soul not found or you do not have permission to delete it.']);
+        echo json_encode(['success' => false, 'error' => __('Soul not found or no delete perm')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -203,14 +208,14 @@ if ($method === 'GET') {
         syncTags($pdo, 'tags_compatibility', $old['compatibility'], '');
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Soul deleted successfully']);
+        echo json_encode(['success' => true, 'message' => __('Soul deleted successfully')], JSON_UNESCAPED_UNICODE);
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to delete soul']);
+        echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
 
 } else {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }

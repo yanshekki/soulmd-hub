@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Login Page
- * (Dynamic i18n Internationalization Edition)
+ * (Dynamic i18n Internationalization & Perfect API Alignment Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -90,7 +90,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
 
         try {
-            // Hit the login API endpoint (API routing naturally ignores lang prefix via .htaccess)
             const res = await fetch('/api/login', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -102,7 +101,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 // 🚨 完美跳轉：登入成功後，使用 url() 動態繼承當前的語系前綴跳轉到儀表板
                 window.location.href = '<?= url("/my-souls") ?>';
             } else {
-                // Display Error gracefully
+                // 💡 超強優化：直接讀取後端經由 i18n 翻譯好吐出來的 data.error，實現百分百語系同步
                 errorMsg.innerText = data.error || '<?= addslashes(__('Login failed.')) ?>';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');

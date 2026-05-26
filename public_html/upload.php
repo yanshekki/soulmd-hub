@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Upload & Publish Dashboard
- * (Dynamic i18n Internationalization Edition)
+ * (Dynamic i18n Internationalization & Secure UI Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -191,7 +191,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div>
                 <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400"><?= __('Filename / Folder Path') ?></label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
+                    <input type="text" id="custom-filename-input" placeholder="<?= __('e.g. docs/guide.md') ?>" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
                     <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm"><?= __('Add') ?></button>
                 </div>
             </div>
@@ -221,10 +221,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             hiddenInput.value = tags.join(', ');
             
-            // 🌍 動態變量處理 Placeholder
+            // 💡 完美修復：利用 JSON 確保 Placeholder 語法絕對安全
             let ph = '';
             if (tags.length === 0) {
-                ph = inputId === 'domain' ? '<?= addslashes(__('Domain Placeholder')) ?>' : '<?= addslashes(__('Compatibility Placeholder')) ?>';
+                ph = inputId === 'domain' ? <?= json_encode(__('Domain Placeholder'), JSON_UNESCAPED_UNICODE) ?> : <?= json_encode(__('Compatibility Placeholder'), JSON_UNESCAPED_UNICODE) ?>;
             }
             visibleInput.placeholder = ph;
         };
@@ -339,9 +339,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         deleteCurrentFile() {
-            // 🌍 多語言化 Alert
-            if (Object.keys(this.files).length <= 1) return alert("<?= addslashes(__('You must have at least one file.')) ?>");
-            if (!confirm("<?= addslashes(__('Delete file check')) ?>" + this.activeFile + "?")) return;
+            // 💡 完美安全：使用 json_encode 防止任何字元中斷 JS 執行
+            if (Object.keys(this.files).length <= 1) return alert(<?= json_encode(__('You must have at least one file.'), JSON_UNESCAPED_UNICODE) ?>);
+            if (!confirm(<?= json_encode(__('Delete file check'), JSON_UNESCAPED_UNICODE) ?> + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
             this.switchFile(Object.keys(this.files)[0]);
         }
@@ -381,8 +381,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
-        // 🌍 多語言化 Alert
-        if (fileEditor.files[name] !== undefined) return alert("<?= addslashes(__('File already exists!')) ?>");
+        // 💡 完美安全：使用 json_encode 防止任何字元中斷 JS 執行
+        if (fileEditor.files[name] !== undefined) return alert(<?= json_encode(__('File already exists!'), JSON_UNESCAPED_UNICODE) ?>);
         
         fileEditor.files[name] = '';
         fileEditor.switchFile(name);
@@ -399,12 +399,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const ext = file.name.split('.').pop().toLowerCase();
         
-        // 🌍 ZIP 成功讀取多語言化
+        // 💡 完美安全：使用 json_encode 注入多語言
         document.getElementById('tab-zip').innerHTML = `
             <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-2xl border-2 border-emerald-400/30">
                 <i class="fas fa-check-circle text-3xl"></i>
                 <span class="font-medium px-4 text-center truncate w-full">${escapeHTML(file.name)}</span>
-                <span class="text-xs text-zinc-500"><?= addslashes(__('Ready to upload')) ?></span>
+                <span class="text-xs text-zinc-500">${<?= json_encode(__('Ready to upload'), JSON_UNESCAPED_UNICODE) ?>}</span>
             </div>`;
 
         if (ext === 'md' || ext === 'txt' || ext === 'json') {
@@ -424,11 +424,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     });
                     await Promise.all(promises);
                     uploadedContentStr = JSON.stringify(extractedFiles, null, 2);
-                }).catch(function(err) { alert("<?= addslashes(__('Failed to parse zip')) ?>"); });
+                }).catch(function(err) { alert(<?= json_encode(__('Failed to parse zip'), JSON_UNESCAPED_UNICODE) ?>); });
             };
             reader.readAsArrayBuffer(file);
         } else {
-            alert("<?= addslashes(__('Unsupported file extension.')) ?>");
+            alert(<?= json_encode(__('Unsupported file extension.'), JSON_UNESCAPED_UNICODE) ?>);
             uploadedContentStr = '';
         }
     });
@@ -453,7 +453,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         else finalContent = uploadedContentStr;
 
         if (!finalContent || finalContent.trim() === '') {
-            errorMsg.innerText = "<?= addslashes(__('Content empty')) ?>";
+            errorMsg.innerText = <?= json_encode(__('Content empty'), JSON_UNESCAPED_UNICODE) ?>;
             errorBox.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
@@ -484,12 +484,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                 // 🚨 發布成功後自動跳轉去雙語版網址
                 window.location.href = data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
             } else {
-                errorMsg.innerText = data.error || "<?= addslashes(__('Failed to save soul.')) ?>";
+                errorMsg.innerText = data.error || <?= json_encode(__('Failed to save soul.'), JSON_UNESCAPED_UNICODE) ?>;
                 errorBox.classList.remove('hidden');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch(err) {
-            errorMsg.innerText = "<?= addslashes(__('Network Error')) ?>";
+            errorMsg.innerText = <?= json_encode(__('Network Error'), JSON_UNESCAPED_UNICODE) ?>;
             errorBox.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {

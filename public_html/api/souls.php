@@ -3,6 +3,7 @@
  * SoulMD Hub Public API
  * GET  /api/souls          - List public souls (Optimized Search, Multi-Keyword, Sorting & Pagination)
  * POST /api/souls          - Create soul (Auth: Session or API Key, with JSON Auto-Fix)
+ * (100% Dynamic i18n Internationalized Error Stack Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -17,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+
+// 🌍 載入後端 API 全域專屬語言包
+loadTranslations('api');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -78,16 +82,14 @@ if ($method === 'GET') {
     $whereSql = " WHERE s.is_public = 1";
     $binds = [];
 
-    // 🚨 完美升級：支援多重關鍵字智能拆分搜尋
+    // 支援多重關鍵字智能拆分搜尋
     if ($q) {
-        // 利用 Regex 拆分: 匹配空格包圍的 and/or, 或任何逗號, 直線, 空格
         $keywords = preg_split('/\s+(and|or)\s+|[,|\s]+/i', $q, -1, PREG_SPLIT_NO_EMPTY);
-        $keywords = array_unique($keywords); // 移除重複詞彙
-        $keywords = array_slice($keywords, 0, 5); // 限制最多 5 個關鍵字以保護資料庫效能
+        $keywords = array_unique($keywords);
+        $keywords = array_slice($keywords, 0, 5); 
 
         if (!empty($keywords)) {
             foreach ($keywords as $kw) {
-                // 每一個關鍵字都必須符合 (AND 邏輯)，但可以出現在任何一個欄位 (OR 邏輯)
                 $whereSql .= " AND (s.title LIKE ? OR s.role LIKE ? OR s.domain LIKE ? OR s.compatibility LIKE ?)";
                 $binds[] = ["%$kw%", PDO::PARAM_STR];
                 $binds[] = ["%$kw%", PDO::PARAM_STR];
@@ -107,7 +109,6 @@ if ($method === 'GET') {
     }
 
     try {
-        // 1. 獲取符合條件的總筆數 (計算總頁數用)
         $countSql = "SELECT COUNT(*) FROM souls s" . $whereSql;
         $countStmt = $pdo->prepare($countSql);
         $paramIndex = 1;
@@ -118,7 +119,6 @@ if ($method === 'GET') {
         $totalCount = (int)$countStmt->fetchColumn();
         $totalPages = ceil($totalCount / $limit);
 
-        // 2. 獲取當頁資料 (JOIN users 表以獲取 username 供前端組合 SEO URL)
         $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username 
                     FROM souls s 
                     LEFT JOIN users u ON s.user_id = u.id" . $whereSql;
@@ -150,6 +150,7 @@ if ($method === 'GET') {
         $stmt->execute();
         $souls = $stmt->fetchAll();
 
+        // 💡 補回 JSON_UNESCAPED_UNICODE
         echo json_encode([
             'success' => true,
             'count' => count($souls),
@@ -161,7 +162,7 @@ if ($method === 'GET') {
         
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database query failed']);
+        echo json_encode(['success' => false, 'error' => __('Database query failed')], JSON_UNESCAPED_UNICODE);
     }
 
 } elseif ($method === 'POST') {
@@ -169,7 +170,7 @@ if ($method === 'GET') {
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
+        echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -185,7 +186,7 @@ if ($method === 'GET') {
 
     if (empty($title) || empty($content)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Fields "title" and "content" are required']);
+        echo json_encode(['success' => false, 'error' => __('Fields required title content')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -199,14 +200,13 @@ if ($method === 'GET') {
 
     $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';
 
-    // 🚨 完美 JSON 容錯修復：寫入資料庫前，清洗 AI 生成的非法單引號，並重新編碼為乾淨 JSON
     if ($fileType === 'full_soul_folder') {
         $cleanedContent = str_replace("\\'", "'", $content);
         $parsed = json_decode($cleanedContent, true);
         
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($parsed)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Invalid Modular JSON structure. AI might have generated malformed formatting. Please check the JSON payload.']);
+            echo json_encode(['success' => false, 'error' => __('Invalid Modular JSON general')], JSON_UNESCAPED_UNICODE);
             exit;
         }
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -246,7 +246,7 @@ if ($method === 'GET') {
         http_response_code(201);
         echo json_encode([
             'success' => true,
-            'message' => 'Soul created successfully',
+            'message' => __('Soul created successfully'),
             'id' => $newId,
             'url' => $seoUrl
         ], JSON_UNESCAPED_UNICODE);
@@ -254,10 +254,10 @@ if ($method === 'GET') {
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to save soul via API']);
+        echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
 
 } else {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }

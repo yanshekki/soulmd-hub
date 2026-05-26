@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub Public API
  * POST /api/register - Register a new user and generate an API key
+ * (100% Dynamic i18n Internationalized Error Stack Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -17,9 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
+// 🌍 載入後端 API 全域專屬語言包
+loadTranslations('api');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -32,19 +37,22 @@ $password = $input['password'] ?? '';
 
 if (strlen($username) < 3) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Username must be at least 3 characters']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Username min chars')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $username)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Username can only contain alphanumeric characters, underscores, and dashes.']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Username invalid format')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 if (strlen($password) < 6) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Password must be at least 6 characters']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Password min chars')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -69,11 +77,12 @@ try {
     http_response_code(201);
     echo json_encode([
         'success' => true,
-        'message' => 'Account created successfully',
+        'message' => __('Account created successfully'),
         'api_key' => $apiKey
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } catch (Exception $e) {
     http_response_code(409);
-    echo json_encode(['success' => false, 'error' => 'Username already taken']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Username taken')], JSON_UNESCAPED_UNICODE);
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API - Smart Dual-Engine Routing Edition
- * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect, Exponential Backoff & API Gateway Architecture)
+ * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
  */
 
 set_time_limit(180);
@@ -18,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+
+// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+loadTranslations('api');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -43,7 +46,7 @@ if (!empty($apiKey)) {
         $apiUserId = $user['id'];
     } else {
         http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Invalid API Key.']);
+        echo json_encode(['success' => false, 'error' => __('Invalid API Key')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
@@ -114,16 +117,14 @@ if ($method === 'GET') {
     // 🚨 API 使用者權限檢查
     if ($isApiCall && $currentUser['tier'] === 'free') {
         http_response_code(403);
-        $msg = $currentUser['is_expired'] 
-            ? 'Your premium subscription has expired. Direct API access is restricted to active VIP or PRO members. Please renew your plan.' 
-            : 'Direct API access is restricted to VIP or PRO members. Free users must use the web interface.';
-        echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true]);
+        $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('API restricted free');
+        echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     if (!$soulId || empty($sessionToken)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Missing required parameters.']);
+        echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -134,7 +135,7 @@ if ($method === 'GET') {
     if ($chatSession && $chatSession['is_private']) {
         if ($currentUser['id'] === null || $currentUser['id'] !== $chatSession['user_id']) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Access Denied. This chat session is private.']);
+            echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -147,7 +148,7 @@ if ($method === 'GET') {
         echo json_encode(['success' => true, 'messages' => $messages], JSON_UNESCAPED_UNICODE);
     } catch (Throwable $e) { 
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to load chat history.']);
+        echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
     exit;
 }
@@ -159,10 +160,8 @@ if ($method === 'POST') {
     if ($isApiCall) {
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
-            $msg = $currentUser['is_expired'] 
-                ? 'Your premium subscription has expired. Direct API access to /api/chat is restricted to active VIP or PRO members. Please renew your plan.' 
-                : 'Direct API access to /api/chat is restricted to VIP or PRO members. Free users must use the web interface.';
-            echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true]);
+            $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('API restricted free');
+            echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
     } else {
@@ -176,7 +175,7 @@ if ($method === 'POST') {
 
         if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Security validation failed. Direct access blocked, please use the web interface.']);
+            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -202,7 +201,7 @@ if ($method === 'POST') {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
             } else {
-                http_response_code(403); echo json_encode(['success' => false, 'error' => 'Not the session owner.']);
+                http_response_code(403); echo json_encode(['success' => false, 'error' => __('Not the session owner')], JSON_UNESCAPED_UNICODE);
             }
         } else {
             $actualPrivate = ($currentUser['tier'] !== 'free') ? (int)$isPrivate : 0;
@@ -218,7 +217,7 @@ if ($method === 'POST') {
         $currentTime = time();
         if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
             http_response_code(429); 
-            echo json_encode(['success' => false, 'error' => 'Sending too fast. Please wait 3 seconds.']);
+            echo json_encode(['success' => false, 'error' => __('Sending too fast')], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -229,7 +228,7 @@ if ($method === 'POST') {
 
     if (!$soulId || empty($sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Missing required fields.']);
+        echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -237,14 +236,16 @@ if ($method === 'POST') {
 
     if ($currentUser['daily_count'] >= $tierConfig['daily_limit']) {
         http_response_code(403);
-        $upgradeMsg = $currentUser['tier'] === 'free' ? " Upgrade your tier to unlock higher daily capacity!" : "";
-        echo json_encode(['success' => false, 'error' => "Daily anti-bot limit reached ({$tierConfig['daily_limit']} messages). Please try again tomorrow.{$upgradeMsg}", 'needs_upgrade' => true]);
+        $upgradeMsg = $currentUser['tier'] === 'free' ? __('Upgrade suffix') : "";
+        $errorMsg = __('Daily limit reached', ['limit' => $tierConfig['daily_limit'], 'upgrade' => $upgradeMsg]);
+        echo json_encode(['success' => false, 'error' => $errorMsg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     if (mb_strlen($userMessageText, 'UTF-8') > $tierConfig['max_input']) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => "Message exceeds the {$tierConfig['max_input']} characters limit for your tier."]);
+        $errorMsg = __('Message exceeds chars', ['limit' => $tierConfig['max_input']]);
+        echo json_encode(['success' => false, 'error' => $errorMsg], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -252,7 +253,7 @@ if ($method === 'POST') {
     if ($imageBase64) {
         if (!$tierConfig['allow_image']) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Vision AI (Image Upload) is an exclusive feature for VIP & PRO members.', 'needs_upgrade' => true]);
+            echo json_encode(['success' => false, 'error' => __('Vision AI exclusive'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
         $isVisionRequest = true;
@@ -266,7 +267,7 @@ if ($method === 'POST') {
         if ($chatSession) {
             if ($chatSession['is_private'] && $currentUser['id'] !== $chatSession['user_id']) {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Access Denied to this private session.']);
+                echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
                 exit;
             }
             if ($currentUser['id'] !== null && $currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
@@ -284,14 +285,15 @@ if ($method === 'POST') {
 
         if ($userMsgCount >= $tierConfig['max_turns']) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => "You have reached the free preview capacity of {$tierConfig['max_turns']} messages. Upgrade to unlock completely unlimited conversations.", 'needs_upgrade' => true]);
+            $errorMsg = __('Free preview capacity reached', ['limit' => $tierConfig['max_turns']]);
+            echo json_encode(['success' => false, 'error' => $errorMsg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
         $stmt = $pdo->prepare("SELECT content, file_type FROM souls WHERE id = ? AND is_public = 1");
         $stmt->execute([$soulId]);
         $soul = $stmt->fetch();
-        if (!$soul) { http_response_code(404); echo json_encode(['success' => false, 'error' => 'Persona not found.']); exit; }
+        if (!$soul) { http_response_code(404); echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE); exit; }
 
         $systemPrompt = "";
         if ($soul['file_type'] === 'full_soul_folder') {
@@ -462,7 +464,7 @@ if ($method === 'POST') {
 
             if ($curlError) { 
                 http_response_code(504); 
-                echo json_encode(['success' => false, 'error' => 'AI Service processing timeout.']); 
+                echo json_encode(['success' => false, 'error' => __('AI Service timeout')], JSON_UNESCAPED_UNICODE); 
                 exit; 
             }
 
@@ -477,7 +479,8 @@ if ($method === 'POST') {
         $responseData = json_decode($response, true);
         if ($httpCode !== 200 || !empty($responseData['error'])) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => "Engine Error: " . ($responseData['error']['message'] ?? 'Unknown Connection Failure')]);
+            $errorDetail = $responseData['error']['message'] ?? 'Unknown Connection Failure';
+            echo json_encode(['success' => false, 'error' => __('Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
@@ -518,12 +521,12 @@ if ($method === 'POST') {
         } catch (Throwable $e) {
             if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();
             http_response_code(500); 
-            echo json_encode(['success' => false, 'error' => 'DB Sync Error: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => __('DB Sync Error', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
         }
     } catch (Throwable $e) {
         http_response_code(500); 
-        echo json_encode(['success' => false, 'error' => 'Fatal Server Exception: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'error' => __('Fatal Server Exception', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
     }
 } else {
-    http_response_code(405); echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    http_response_code(405); echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }

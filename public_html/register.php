@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Registration Gateway
- * (Dynamic i18n Multi-Language, Secure Nonce Modals & Dynamic Routing Edition)
+ * (Dynamic i18n Multi-Language, Secure Nonce Modals & Perfect API Alignment Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -118,7 +118,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    // Modal 控制動畫層
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
@@ -162,8 +161,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             if (data.success) {
                 // 🚨 完美跳轉優化：編譯加上多語言前綴，直達 Profile 頁面
-                window.location.href = '<?= url("/profile/") ?>' + encodeURIComponent(payload.username);
+                window.location.href = '<?= url("/profile") ?>/' + encodeURIComponent(payload.username);
             } else {
+                // 💡 超強優化：直接讀取後端經由 i18n 翻譯好吐出來的 data.error，實現百分百語系同步
                 errorMsg.innerText = data.error || '<?= addslashes(__('Registration failed.')) ?>';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');

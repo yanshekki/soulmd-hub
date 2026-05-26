@@ -128,8 +128,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     <div class="pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
                         <div class="flex items-center gap-4 text-xs text-zinc-500">
-                            <span title="Forks"><i class="fas fa-code-branch mr-1 text-emerald-500"></i><b class="text-zinc-300"><?= $soul['fork_count'] ?></b></span>
-                            <span title="Likes"><i class="fas fa-heart mr-1 text-red-500"></i><b class="text-zinc-300"><?= $soul['like_count'] ?></b></span>
+                            <span title="<?= __('Forks') ?>"><i class="fas fa-code-branch mr-1 text-emerald-500"></i><b class="text-zinc-300"><?= $soul['fork_count'] ?></b></span>
+                            <span title="<?= __('Likes') ?>"><i class="fas fa-heart mr-1 text-red-500"></i><b class="text-zinc-300"><?= $soul['like_count'] ?></b></span>
                         </div>
                         
                         <div class="flex flex-wrap items-center gap-2">
@@ -270,7 +270,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div>
                 <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400"><?= __('Filename / Folder Path') ?></label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
+                    <input type="text" id="custom-filename-input" placeholder="<?= __('e.g. docs/guide.md') ?>" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
                     <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm"><?= __('Add') ?></button>
                 </div>
             </div>
@@ -402,6 +402,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             this.renderFileList();
         }
         deleteCurrentFile() {
+            // 🌍 嚴格套用 JSON_UNESCAPED_UNICODE 確保前端除錯體驗
             if (Object.keys(this.files).length <= 1) return alert(<?= json_encode(__('You must have at least one file.'), JSON_UNESCAPED_UNICODE) ?>);
             if (!confirm(<?= json_encode(__('Delete file check'), JSON_UNESCAPED_UNICODE) ?> + this.activeFile + "?")) return;
             delete this.files[this.activeFile];

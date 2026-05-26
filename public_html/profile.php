@@ -110,7 +110,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     const profileUserId = <?= $profileUserId ?>;
     const safeUsername = <?= json_encode($safeUsername, JSON_UNESCAPED_UNICODE) ?>;
 
-    // 💡 安全修復：使用 json_encode 防止任何語法報錯斷行
+    // 💡 安全修復：使用 json_encode 防止任何語法報錯斷行，確保純淨 UTF-8 中文
     const lang_Modular = <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_SingleMd = <?= json_encode(__('Single .md'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Public = <?= json_encode(__('Public'), JSON_UNESCAPED_UNICODE) ?>;
@@ -119,6 +119,11 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_NoSouls = <?= json_encode(__('No public souls found'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_EmptyDesc = <?= json_encode(__('Empty Desc'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_BackHub = <?= json_encode(__('Back to Hub'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Page = <?= json_encode(__('Page'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ErrorLoading = <?= json_encode(__('Error loading profile data.'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_NetworkError = <?= json_encode(__('Network Error.'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Forks = <?= json_encode(__('Forks Received'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Likes = <?= json_encode(__('Likes Received'), JSON_UNESCAPED_UNICODE) ?>;
     const url_hub = <?= json_encode(url('/browse'), JSON_UNESCAPED_UNICODE) ?>;
     const url_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
 
@@ -141,7 +146,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         window.scrollTo({ top: 300, behavior: 'smooth' });
     }
 
-    // 💡 嚴重錯誤修復：完美恢復雙端（手機+桌面）響應式分頁器
     function renderPagination(current, totalPages) {
         const container = document.getElementById('portfolio-pagination');
         if (totalPages <= 1) { 
@@ -158,7 +162,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         } else {
             html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
         }
-        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">PAGE <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        // 💡 套用多語言 `PAGE` 變數
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
         if (current < totalPages) {
             html += `<button onclick="changePage(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
         } else {
@@ -233,8 +238,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <div class="flex items-center justify-between text-xs text-zinc-500">
                                     <span class="truncate pr-2"><i class="fas fa-robot mr-1 text-zinc-600"></i> ${roleLabel}</span>
                                     <div class="flex items-center gap-3 shrink-0 font-mono">
-                                        <span title="Forks"><i class="fas fa-code-branch text-emerald-500 mr-1"></i><b>${soul.fork_count}</b></span>
-                                        <span title="Likes"><i class="fas fa-heart text-red-500 mr-1"></i><b>${soul.like_count}</b></span>
+                                        <span title="${lang_Forks}"><i class="fas fa-code-branch text-emerald-500 mr-1"></i><b>${soul.fork_count}</b></span>
+                                        <span title="${lang_Likes}"><i class="fas fa-heart text-red-500 mr-1"></i><b>${soul.like_count}</b></span>
                                     </div>
                                 </div>
                                 <a href="${seoUrl}" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner">
@@ -247,7 +252,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 html += `</div>`;
                 container.innerHTML = html;
                 renderPagination(data.current_page, data.total_pages);
-            } else {
+            } else if (data.success) {
                 container.innerHTML = `
                     <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow flex flex-col justify-center items-center">
                         <div class="text-5xl mb-4 opacity-40">📁</div>
@@ -256,9 +261,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <a href="${url_hub}" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl text-sm transition shadow border border-white/10">${lang_BackHub}</a>
                     </div>
                 `;
+            } else {
+                // 💡 若 API 回傳失敗 (例如傳入無效請求等)，精準捕捉 data.error 雙語輸出
+                container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium flex-grow flex items-center justify-center"><i class="fas fa-exclamation-circle mr-2"></i> ${escapeHTML(data.error || lang_ErrorLoading)}</div>`;
             }
         } catch (e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2"></i> Error loading profile data.</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2"></i> ${lang_NetworkError}</div>`;
         }
     }
 

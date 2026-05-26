@@ -24,12 +24,17 @@ return [
         'Unassigned' => 'Unassigned',
         'View Repository' => 'View Repository',
         
-        // Empty State & Errors
+        // Dynamic JS & Pagination
+        'Page' => 'Page',
         'No public souls found' => 'No public souls shared yet',
         'Empty Desc' => 'This creator hasn\'t published any AI soul architectures to the public Hub yet.',
         'Back to Hub' => 'Back to Hub',
+        
+        // Errors
         'User Not Found' => 'User Not Found',
         'User Not Found Desc' => 'The creator profile you are attempting to access does not exist in our database grid.',
+        'Error loading profile data.' => 'Error loading profile data.',
+        'Network Error.' => 'Network Error. Please try again.',
     ],
     
     'zh' => [
@@ -51,11 +56,16 @@ return [
         'Unassigned' => '未分類',
         'View Repository' => '檢視代碼庫',
         
-        // Empty State & Errors
+        // Dynamic JS & Pagination
+        'Page' => '頁數',
         'No public souls found' => '暫無公開模型',
         'Empty Desc' => '此創作者目前尚未將任何 AI 靈魂架構發佈至大廳 (Hub)。',
         'Back to Hub' => '返回大廳探索',
+        
+        // Errors
         'User Not Found' => '找不到該使用者',
         'User Not Found Desc' => '您嘗試存取的創作者個人檔案並不存在於系統數據庫中。',
+        'Error loading profile data.' => '載入創作者檔案數據時發生錯誤。',
+        'Network Error.' => '網絡異常，請檢查連線後重試。',
     ]
 ];

@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub Public API
  * POST /api/login - Authenticate a user and create a session / return API key
+ * (100% Dynamic i18n Internationalized Error Stack Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -17,13 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
+// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+loadTranslations('api');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// 🚨 完美安全修復：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
+// 🚨 完美安全機制：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $username = trim($input['username'] ?? '');
@@ -32,7 +37,8 @@ $remember = isset($input['remember']) && ($input['remember'] === true || $input[
 
 if (empty($username) || empty($password)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Username and password are required']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('All fields required')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -62,11 +68,12 @@ if ($user && password_verify($password, $user['password'])) {
 
     echo json_encode([
         'success' => true,
-        'message' => 'Login successful',
+        'message' => __('Login successful'),
         'api_key' => $user['api_key']
     ], JSON_UNESCAPED_UNICODE);
 
 } else {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Incorrect username or password. Please try again.']);
+    // 💡 補回 JSON_UNESCAPED_UNICODE
+    echo json_encode(['success' => false, 'error' => __('Incorrect credentials')], JSON_UNESCAPED_UNICODE);
 }

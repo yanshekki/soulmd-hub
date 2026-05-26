@@ -15,6 +15,8 @@ return [
         'Profile' => 'Profile',
         'My API Key' => 'My API Key',
         'New Soul' => 'New Soul',
+        'Forks' => 'Forks',
+        'Likes' => 'Likes',
         
         // Empty State
         'No souls shared yet' => 'No souls shared yet',
@@ -53,6 +55,7 @@ return [
         'or custom path' => 'or custom path',
         'Filename / Folder Path' => 'Filename / Folder Path',
         'Add' => 'Add',
+        'e.g. docs/guide.md' => 'e.g. docs/guide.md',
         
         // JavaScript Alerts & Core Tooltips
         'You must have at least one file.' => 'You must have at least one file.',
@@ -74,6 +77,8 @@ return [
         'Profile' => '個人主頁',
         'My API Key' => '我的 API 金鑰',
         'New Soul' => '新建模型',
+        'Forks' => '獲得分叉次數',
+        'Likes' => '獲得讚好次數',
         
         // Empty State
         'No souls shared yet' => '您目前尚未發佈任何靈魂模型',
@@ -112,6 +117,7 @@ return [
         'or custom path' => '或使用自訂路徑',
         'Filename / Folder Path' => '自訂檔案名稱 / 資料夾路徑',
         'Add' => '確認新增',
+        'e.g. docs/guide.md' => '例如：docs/guide.md',
         
         // JavaScript Alerts & Core Tooltips
         'You must have at least one file.' => '模組化結構內必須包含至少一個架構檔案。',

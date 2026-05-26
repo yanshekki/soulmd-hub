@@ -39,6 +39,7 @@ return [
         'or custom path' => 'or custom path',
         'Filename / Folder Path' => 'Filename / Folder Path',
         'Add' => 'Add',
+        'e.g. docs/guide.md' => 'e.g. docs/guide.md',
         
         // JavaScript Alerts & Dynamic Texts
         'Ready to upload' => 'Ready to upload',
@@ -86,6 +87,7 @@ return [
         'or custom path' => '或使用自訂路徑',
         'Filename / Folder Path' => '自訂檔案名稱 / 資料夾路徑',
         'Add' => '確認新增',
+        'e.g. docs/guide.md' => '例如：docs/guide.md',
         
         // JavaScript Alerts & Dynamic Texts
         'Ready to upload' => '準備好上傳',

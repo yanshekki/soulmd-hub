@@ -3,6 +3,7 @@
  * SoulMD Hub Public API
  * GET  /api/versions?soul_id={id} - List all versions of a specific soul
  * POST /api/versions              - Restore a specific version (Requires Auth)
+ * (100% Dynamic i18n Internationalized Error Stack & UNESCAPED Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -17,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+
+// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+loadTranslations('api');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -47,7 +51,7 @@ if ($method === 'GET') {
     $soulId = (int)($_GET['soul_id'] ?? 0);
     if (!$soulId) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'soul_id is required']);
+        echo json_encode(['success' => false, 'error' => __('soul_id required')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -59,13 +63,13 @@ if ($method === 'GET') {
 
     if (!$soulCheck) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Soul not found']);
+        echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     if (!$soulCheck['is_public'] && $soulCheck['user_id'] !== $userId) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Access denied. This soul is private.']);
+        echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -80,7 +84,7 @@ if ($method === 'GET') {
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
+        echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -90,7 +94,7 @@ if ($method === 'GET') {
 
     if (!$versionId || !$soulId) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'version_id and soul_id are required']);
+        echo json_encode(['success' => false, 'error' => __('version_id and soul_id required')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -101,7 +105,7 @@ if ($method === 'GET') {
 
     if (!$soul) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Soul not found or access denied.']);
+        echo json_encode(['success' => false, 'error' => __('Soul not found or access denied')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -112,7 +116,7 @@ if ($method === 'GET') {
 
     if (!$version) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Version not found.']);
+        echo json_encode(['success' => false, 'error' => __('Version not found')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -129,14 +133,14 @@ if ($method === 'GET') {
             ->execute([$version['title'], $version['content'], $fileType, $soulId, $userId]);
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Version restored successfully']);
+        echo json_encode(['success' => true, 'message' => __('Version restored successfully')], JSON_UNESCAPED_UNICODE);
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Restore failed']);
+        echo json_encode(['success' => false, 'error' => __('Restore failed')], JSON_UNESCAPED_UNICODE);
     }
 
 } else {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }
