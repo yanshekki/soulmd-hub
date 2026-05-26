@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Core Intelligent Chat Interface
  * (Includes Client-side Pre-compression, Ctrl+V Paste, Ctrl+Enter Send, Silent Privacy Sync, Auto-grow Input & Smart Expired Paywall)
+ * (Mobile UX Responsive & Scrollable Paywall Fixed)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -28,7 +29,7 @@ if (!$soulId) {
     exit;
 }
 
-// 獲取 Soul 資訊 (只限公開的 Soul)
+// 獲獲 Soul 資訊 (只限公開的 Soul)
 $stmt = $pdo->prepare("SELECT title, role, content, file_type FROM souls WHERE id = ? AND is_public = 1");
 $stmt->execute([$soulId]);
 $soul = $stmt->fetch();
@@ -52,7 +53,7 @@ if (empty($sessionToken)) {
 $userTier = 'free';
 $isSessionOwner = false;
 $isPrivate = false;
-$isExpired = false; // 🚨 新增：判定該用戶是否已過期
+$isExpired = false; 
 
 if (isset($_SESSION['user_id'])) {
     $userStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
@@ -62,10 +63,10 @@ if (isset($_SESSION['user_id'])) {
         $userTier = $uData['tier'];
         $expiryTime = $uData['vip_expires_at'] ? strtotime($uData['vip_expires_at']) : 0;
         
-        // 🚨 自動過期降級與標記保護
+        // 自動過期降級與標記保護
         if ($expiryTime > 0 && $expiryTime < time()) {
             $isExpired = true;
-            $userTier = 'free'; // 強制鎖回免費權限
+            $userTier = 'free'; 
         }
     }
 }
@@ -103,52 +104,61 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
 </div>
 
 <div id="paywall-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[200] p-4 backdrop-blur-md opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border <?= $isExpired ? 'border-red-500/40 shadow-red-500/5' : 'border-emerald-500/30 shadow-emerald-500/5' ?> rounded-3xl max-w-4xl w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
-        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
+    <div class="bg-zinc-900 border <?= $isExpired ? 'border-red-500/40 shadow-red-500/5' : 'border-emerald-500/30 shadow-emerald-500/5' ?> rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+        
+        <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/50 shrink-0 select-none">
             <div>
-                <h3 class="text-2xl font-bold tracking-tight text-white">
+                <h3 class="text-xl sm:text-2xl font-bold tracking-tight text-white">
                     <?= $isExpired ? 'Your Premium Subscription has Expired! ⚠️' : 'Unlock Full AI Power 🚀' ?>
                 </h3>
-                <p class="text-sm text-zinc-400 mt-1">
+                <p class="text-xs sm:text-sm text-zinc-400 mt-1 leading-tight">
                     <?= $isExpired ? 'Your access window has closed. Please renew your plan to restore active token clusters.' : 'You\'ve reached the free trial limit or tried to access a premium feature.' ?>
                 </p>
             </div>
-            <button type="button" onclick="closePaywall()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            <button type="button" onclick="closePaywall()" class="text-zinc-400 hover:text-white transition pl-2 focus:outline-none"><i class="fas fa-times text-xl"></i></button>
         </div>
 
-        <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-950/30">
-            <div class="bg-zinc-900 border border-white/10 rounded-3xl p-6 flex flex-col hover:border-emerald-400/50 transition">
-                <div class="text-emerald-400 text-sm font-bold tracking-widest uppercase mb-2">VIP Member</div>
-                <div class="text-4xl font-extrabold text-white mb-2">$<?= PRICE_VIP_MONTHLY ?> <span class="text-lg text-zinc-500 font-normal">/mo</span></div>
-                <p class="text-sm text-zinc-400 mb-6 pb-6 border-b border-white/10">Perfect for daily tasks and unrestricted standard AI conversations.</p>
-                <ul class="space-y-3 mb-8 flex-grow text-sm text-zinc-300">
-                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> <b>Unlimited</b> standard messages</li>
-                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> Up to <b><?= number_format(VIP_MAX_INPUT_CHARS) ?></b> characters per input</li>
-                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> <b>Vision AI</b> (Upload JPG/PNG)</li>
-                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> Extended chat memory retention</li>
-                    <li><i class="fas fa-check text-emerald-500 mr-2"></i> Private session toggle lock</li>
-                </ul>
-                <a href="/upgrade" class="w-full夹 py-3 <?= $isExpired ? 'bg-zinc-800 hover:bg-red-500 hover:text-zinc-950' : 'bg-zinc-800 hover:bg-zinc-700' ?> text-white font-bold rounded-xl text-center transition">
-                    <?= $isExpired ? '<i class="fas fa-sync-alt mr-1"></i> Renew VIP Pass' : 'Upgrade to VIP' ?>
-                </a>
+        <div class="p-5 sm:p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-950/30 overflow-y-auto custom-scrollbar flex-grow">
+            
+            <div class="bg-zinc-900 border border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col hover:border-emerald-400/50 transition justify-between min-h-[400px] md:min-h-0">
+                <div>
+                    <div class="text-emerald-400 text-xs font-bold tracking-widest uppercase mb-1">VIP Plan</div>
+                    <div class="text-3xl sm:text-4xl font-extrabold text-white mb-2">$<?= PRICE_VIP_MONTHLY ?> <span class="text-sm text-zinc-500 font-normal">/mo</span></div>
+                    <p class="text-xs sm:text-sm text-zinc-400 mb-6 pb-6 border-b border-white/10 leading-relaxed">Perfect for daily tasks and unrestricted standard AI conversations.</p>
+                    <ul class="space-y-3 mb-6 text-xs sm:text-sm text-zinc-300">
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5 shrink-0"></i> <span><b>Unlimited</b> standard messages</span></li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5 shrink-0"></i> <span>Up to <b><?= number_format(VIP_MAX_INPUT_CHARS) ?></b> characters</span></li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5 shrink-0"></i> <span><b>Vision AI</b>: Snapshot upload features</span></li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5 shrink-0"></i> <span>Smart context sliding snapshots</span></li>
+                    </ul>
+                </div>
+                <div class="pt-4 border-t border-white/5 mt-auto">
+                    <a href="/upgrade" class="w-full block py-3 <?= $isExpired ? 'bg-zinc-800 hover:bg-red-500 hover:text-zinc-950' : 'bg-zinc-800 hover:bg-zinc-700' ?> text-white font-bold rounded-xl text-center text-sm transition shadow-md">
+                        <?= $isExpired ? '<i class="fas fa-sync-alt mr-1"></i> Renew VIP Pass' : 'Upgrade to VIP' ?>
+                    </a>
+                </div>
             </div>
 
-            <div class="bg-gradient-to-b from-emerald-900/40 to-zinc-900 border border-emerald-500/50 rounded-3xl p-6 flex flex-col relative transform md:-translate-y-2 shadow-2xl">
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-zinc-950 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-md">Most Powerful</div>
-                <div class="text-white text-sm font-bold tracking-widest uppercase mb-2 flex items-center gap-2"><i class="fas fa-fire text-amber-500"></i> PRO Member</div>
-                <div class="text-4xl font-extrabold text-white mb-2">$<?= PRICE_PRO_MONTHLY ?> <span class="text-lg text-emerald-500/50 font-normal">/mo</span></div>
-                <p class="text-sm text-emerald-100/70 mb-6 pb-6 border-b border-emerald-500/20">Unlock our ultimate Elite Reasoning Engine for complex logic and coding tasks.</p>
-                <ul class="space-y-3 mb-8 flex-grow text-sm text-zinc-200">
-                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> <b>Elite Reasoning Engine</b> Access</li>
-                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> <b>Unlimited</b> advanced messages</li>
-                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> Massive <b><?= number_format(PRO_MAX_INPUT_CHARS) ?></b> characters per input</li>
-                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> Deep thinking & long AI outputs</li>
-                    <li><i class="fas fa-check text-emerald-400 mr-2"></i> Advanced Vision AI analysis</li>
-                </ul>
-                <a href="/upgrade" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-center transition shadow-lg">
-                    <?= $isExpired ? '<i class="fas fa-sync-alt mr-1"></i> Renew PRO Pass' : 'Get PRO Access' ?>
-                </a>
+            <div class="bg-gradient-to-b from-emerald-900/40 to-zinc-900 border border-emerald-500/50 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative shadow-2xl min-h-[400px] md:min-h-0 md:transform md:-translate-y-1">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-zinc-950 text-[9px] font-black px-3 py-0.5 rounded-full uppercase tracking-widest shadow-md">Most Powerful</div>
+                <div>
+                    <div class="text-white text-xs font-bold tracking-widest uppercase mb-1 flex items-center gap-1.5"><i class="fas fa-fire text-amber-500"></i> PRO Plan</div>
+                    <div class="text-3xl sm:text-4xl font-extrabold text-white mb-2">$<?= PRICE_PRO_MONTHLY ?> <span class="text-sm text-emerald-500/50 font-normal">/mo</span></div>
+                    <p class="text-xs sm:text-sm text-emerald-100/70 mb-6 pb-6 border-b border-emerald-500/20 leading-relaxed">Unlock our ultimate Elite Reasoning Engine for complex logic and coding tasks.</p>
+                    <ul class="space-y-3 mb-6 text-xs sm:text-sm text-zinc-200">
+                        <li class="flex items-start gap-2"><i class="fas fa-star text-amber-400 mt-0.5 shrink-0"></i> <span><b>Elite Reasoning Engine</b> Brain Access</span></li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-400 mt-0.5 shrink-0"></i> <span><b>Unlimited</b> advanced reasoning slots</span></li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-400 mt-0.5 shrink-0"></i> <span>Massive <b><?= number_format(PRO_MAX_INPUT_CHARS) ?></b> characters</span></li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-400 mt-0.5 shrink-0"></i> <span>High snapshot memory snap (30 layers)</span></li>
+                    </ul>
+                </div>
+                <div class="pt-4 border-t border-emerald-500/20 mt-auto">
+                    <a href="/upgrade" class="w-full block py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-center text-sm transition shadow-lg">
+                        <?= $isExpired ? '<i class="fas fa-sync-alt mr-1"></i> Renew PRO Pass' : 'Get PRO Access' ?>
+                    </a>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -427,7 +437,6 @@ require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 核心 UX 擴展：輸入框自動變高
     function updateCharCount(el) {
         const len = el.value.length;
         charCount.innerText = `${len}/${MAX_INPUT_CHARS}`;

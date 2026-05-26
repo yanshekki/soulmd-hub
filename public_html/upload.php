@@ -49,34 +49,34 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
-    <div class="flex justify-between items-center mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-10">
         <div>
-            <h1 class="text-4xl font-bold tracking-tighter">Upload Soul</h1>
-            <p class="text-zinc-400 mt-1">Publish single prompts or modular agent architectures.</p>
+            <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter">Upload Soul</h1>
+            <p class="text-sm sm:text-base text-zinc-400 mt-1">Publish single prompts or modular agent architectures.</p>
         </div>
-        <a href="/my-souls" class="text-sm text-zinc-400 hover:text-white flex items-center gap-1">
+        <a href="/my-souls" class="text-sm text-zinc-400 hover:text-white flex items-center gap-2 border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full w-fit transition shadow-sm">
             <i class="fas fa-arrow-left"></i> My Souls
         </a>
     </div>
 
-    <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-6 rounded-3xl mb-8 text-lg shadow-lg"></div>
-    <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-6 rounded-3xl mb-8 shadow-lg"><i class="fas fa-exclamation-circle mr-2"></i><span id="error-msg"></span></div>
+    <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-5 sm:p-6 rounded-3xl mb-8 text-sm sm:text-lg shadow-lg"></div>
+    <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-5 sm:p-6 rounded-3xl mb-8 shadow-lg text-sm sm:text-base"><i class="fas fa-exclamation-circle mr-2"></i><span id="error-msg"></span></div>
 
-    <form id="upload-form" class="space-y-8">
+    <form id="upload-form" class="space-y-6 sm:space-y-8">
         <div>
             <label class="block text-sm font-medium mb-2 text-zinc-300">Soul Title <span class="text-red-400">*</span></label>
-            <input type="text" id="title" name="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-400 shadow-inner">
+            <input type="text" id="title" name="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-emerald-400 shadow-inner">
         </div>
 
         <div>
             <label class="block text-sm font-medium mb-2 text-zinc-300">Short Description</label>
-            <textarea id="description" name="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-4 focus:outline-none focus:border-emerald-400 shadow-inner"></textarea>
+            <textarea id="description" name="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner"></textarea>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Role</label>
-                <select id="role" name="role" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-5 py-4 focus:outline-none focus:border-emerald-400 shadow-inner">
+                <select id="role" name="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none cursor-pointer">
                     <option value="">Select role</option>
                     <?php foreach ($categories as $cat): ?>
                         <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $presetRole === $cat['slug'] ? 'selected' : '' ?>>
@@ -88,9 +88,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Domain Tags</label>
-                <div class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-4 py-3 min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
-                    <div id="domain-tags" class="flex flex-wrap gap-2 empty:hidden"></div>
-                    <input type="text" id="domain-input" list="domain-options" placeholder="Tech, Content..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[100px] text-sm p-0 m-0 text-white">
+                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
+                    <div id="domain-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
+                    <input type="text" id="domain-input" list="domain-options" placeholder="Tech, Content..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] sm:min-w-[100px] text-sm p-0 m-0 text-white">
                     <input type="hidden" id="domain" name="domain" value="">
                 </div>
                 <datalist id="domain-options">
@@ -101,9 +101,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300">Compatibility</label>
-                <div class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-4 py-3 min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
-                    <div id="compatibility-tags" class="flex flex-wrap gap-2 empty:hidden"></div>
-                    <input type="text" id="compatibility-input" list="compatibility-options" placeholder="Claude, GPT-4o..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[100px] text-sm p-0 m-0 text-white">
+                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
+                    <div id="compatibility-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
+                    <input type="text" id="compatibility-input" list="compatibility-options" placeholder="Claude, GPT-4o..." class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] sm:min-w-[100px] text-sm p-0 m-0 text-white">
                     <input type="hidden" id="compatibility" name="compatibility" value="">
                 </div>
                 <datalist id="compatibility-options">
@@ -117,45 +117,45 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div>
             <label class="block text-sm font-medium mb-3 text-zinc-300">Content <span class="text-red-400">*</span></label>
             
-            <div class="flex border-b border-white/20 mb-6 overflow-x-auto">
-                <button type="button" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 py-4 text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-2"></i> Visual Editor</button>
-                <button type="button" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 py-4 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-2"></i> Raw JSON / Paste</button>
-                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 py-4 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-2"></i> Upload File (.md/.zip)</button>
+            <div class="flex border-b border-white/20 mb-4 sm:mb-6 overflow-x-auto custom-scrollbar">
+                <button type="button" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-1.5 sm:mr-2"></i> Visual Editor</button>
+                <button type="button" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-1.5 sm:mr-2"></i> Raw / Paste</button>
+                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-1.5 sm:mr-2"></i> Upload File (.md/.zip)</button>
             </div>
 
             <div id="tab-visual" class="upload-tab-content">
                 <div class="border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row bg-zinc-950/50 shadow-inner min-h-[400px]">
-                    <div class="w-full md:w-56 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
-                        <div class="p-3 border-b border-white/10 text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center">
+                    <div class="w-full md:w-48 xl:w-56 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
+                        <div class="p-2.5 sm:p-3 border-b border-white/10 text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center bg-zinc-950/30">
                             Files <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
                         </div>
-                        <div id="file-list" class="flex-grow overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
+                        <div id="file-list" class="flex md:flex-col overflow-x-auto md:overflow-y-auto overflow-y-hidden p-1.5 sm:p-2 space-x-1.5 md:space-x-0 md:space-y-1 custom-scrollbar shrink-0 border-b border-white/5 md:border-none"></div>
                     </div>
-                    <div class="flex-1 flex flex-col relative">
-                        <div class="bg-zinc-900 border-b border-white/10 px-4 py-2 text-sm font-mono text-zinc-300 flex justify-between items-center">
-                            <span id="current-filename">SOUL.md</span>
-                            <button type="button" id="btn-delete-file" onclick="fileEditor.deleteCurrentFile()" class="text-xs text-red-400 hover:text-red-300 hidden transition"><i class="fas fa-trash-alt"></i></button>
+                    <div class="flex-1 flex flex-col relative min-h-[250px]">
+                        <div class="bg-zinc-900 border-b border-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-mono text-zinc-300 flex justify-between items-center">
+                            <span id="current-filename" class="truncate pr-2">SOUL.md</span>
+                            <button type="button" id="btn-delete-file" onclick="fileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden transition shrink-0"><i class="fas fa-trash-alt"></i></button>
                         </div>
-                        <textarea id="file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-sm text-zinc-300 resize-none custom-scrollbar" placeholder="Start typing..."></textarea>
+                        <textarea id="file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs sm:text-sm text-zinc-300 resize-none custom-scrollbar" placeholder="Start typing..."></textarea>
                     </div>
                 </div>
             </div>
 
             <div id="tab-raw" class="upload-tab-content hidden">
-                <textarea id="content-raw" rows="14" class="w-full bg-zinc-900 border border-white/20 rounded-3xl px-6 py-5 font-mono text-sm focus:outline-none focus:border-emerald-400 shadow-inner" placeholder="Paste single markdown text OR full JSON folder object here..."><?= htmlspecialchars($presetContent) ?></textarea>
+                <textarea id="content-raw" rows="10" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 sm:py-5 font-mono text-xs sm:text-sm focus:outline-none focus:border-emerald-400 shadow-inner custom-scrollbar sm:min-h-[300px]" placeholder="Paste single markdown text OR full JSON folder object here..."><?= htmlspecialchars($presetContent) ?></textarea>
             </div>
 
             <div id="tab-zip" class="upload-tab-content hidden">
-                <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-3xl p-12 text-center hover:border-emerald-400 transition cursor-pointer bg-zinc-900/50">
+                <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center hover:border-emerald-400 transition cursor-pointer bg-zinc-900/50">
                     <input type="file" id="file-input" accept=".md,.txt,.zip,.json" class="hidden">
-                    <i class="fas fa-cloud-upload-alt text-5xl mb-4 text-zinc-400"></i>
-                    <div class="font-medium text-lg">Drag & drop or click to upload</div>
-                    <div class="text-xs text-zinc-400 mt-2">Supports single .md file or a full configuration .zip bundle</div>
+                    <i class="fas fa-cloud-upload-alt text-4xl sm:text-5xl mb-4 text-zinc-400"></i>
+                    <div class="font-medium text-base sm:text-lg">Drag & drop or click to upload</div>
+                    <div class="text-[10px] sm:text-xs text-zinc-400 mt-2">Supports single .md file or a full configuration .zip bundle</div>
                 </div>
             </div>
         </div>
 
-        <button type="submit" id="submit-btn" class="w-full py-6 bg-emerald-500 text-zinc-950 font-bold text-xl rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200">
+        <button type="submit" id="submit-btn" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
             <span id="submit-text"><i class="fas fa-cloud-upload-alt mr-2"></i>Upload Soul</span>
             <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
         </button>
@@ -164,28 +164,28 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
-        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
-            <h3 class="text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
+        <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30">
+            <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i>Add Module File</h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
         </div>
-        <div class="p-6 space-y-6">
+        <div class="p-5 sm:p-6 space-y-6">
             <div>
                 <label class="block text-sm font-medium mb-3 text-zinc-400">Suggested Modules</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md</button>
-                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md</button>
-                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md</button>
-                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md</button>
-                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md</button>
-                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-sm"><i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/</button>
+                <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+                    <button type="button" onclick="addSpecificFile('STYLE.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-purple-400/50 hover:bg-purple-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-palette text-purple-400 w-4 text-center"></i> STYLE.md</button>
+                    <button type="button" onclick="addSpecificFile('RULES.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-red-400/50 hover:bg-red-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-shield-alt text-red-400 w-4 text-center"></i> RULES.md</button>
+                    <button type="button" onclick="addSpecificFile('SKILL.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-amber-400/50 hover:bg-amber-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-tools text-amber-400 w-4 text-center"></i> SKILL.md</button>
+                    <button type="button" onclick="addSpecificFile('MEMORY.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-blue-400/50 hover:bg-blue-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-memory text-blue-400 w-4 text-center"></i> MEMORY.md</button>
+                    <button type="button" onclick="addSpecificFile('CONTEXT.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-cyan-400/50 hover:bg-cyan-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-globe text-cyan-400 w-4 text-center"></i> CONTEXT.md</button>
+                    <button type="button" onclick="addSpecificFile('prompts/user.md')" class="flex items-center gap-2 p-2.5 sm:p-3 bg-zinc-950 border border-white/5 rounded-xl hover:border-green-400/50 hover:bg-green-400/10 text-zinc-300 transition text-left text-[11px] sm:text-sm"><i class="fas fa-folder text-green-400 w-4 text-center"></i> prompts/</button>
                 </div>
             </div>
-            <div class="relative flex items-center py-2"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-xs uppercase tracking-widest">or custom path</span><div class="flex-grow border-t border-white/10"></div></div>
+            <div class="relative flex items-center py-1"><div class="flex-grow border-t border-white/10"></div><span class="flex-shrink-0 mx-4 text-zinc-500 text-[10px] uppercase tracking-widest">or custom path</span><div class="flex-grow border-t border-white/10"></div></div>
             <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
+                <label class="block text-xs sm:text-sm font-medium mb-2 text-zinc-400">Filename / Folder Path</label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
-                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5">Add</button>
+                    <input type="text" id="custom-filename-input" placeholder="e.g. docs/guide.md" class="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-400 text-sm text-white shadow-inner" onkeydown="if(event.key === 'Enter') { event.preventDefault(); addCustomFile(); }">
+                    <button type="button" onclick="addCustomFile()" class="px-4 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition font-medium text-sm border border-white/5 shadow-sm">Add</button>
                 </div>
             </div>
         </div>
@@ -209,8 +209,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             tagsContainer.innerHTML = '';
             tags.forEach((tag, index) => {
                 const tagEl = document.createElement('span');
-                tagEl.className = 'inline-flex items-center gap-1.5 bg-emerald-900/40 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium border border-emerald-500/20';
-                tagEl.innerHTML = `${escapeHTML(tag)} <button type="button" class="hover:text-white focus:outline-none" onclick="removeTag('${inputId}', ${index})"><i class="fas fa-times"></i></button>`;
+                tagEl.className = 'inline-flex items-center gap-1.5 bg-emerald-900/40 text-emerald-400 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-medium border border-emerald-500/20';
+                tagEl.innerHTML = `${escapeHTML(tag)} <button type="button" class="hover:text-white focus:outline-none ml-1" onclick="removeTag('${inputId}', ${index})"><i class="fas fa-times text-[10px]"></i></button>`;
                 tagsContainer.appendChild(tagEl);
             });
             hiddenInput.value = tags.join(', ');
@@ -288,7 +288,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 const isActive = filename === this.activeFile;
-                btn.className = `w-full text-left px-3 py-2 rounded-lg text-sm font-mono transition flex items-start gap-2 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:bg-white/5 border border-transparent'}`;
+                // 🚨 完美修復：相容手機版橫向排列樣式
+                btn.className = `w-auto md:w-full text-left px-3 py-2 md:px-3 md:py-2 rounded-lg text-xs font-mono transition flex items-center md:items-start gap-1.5 shrink-0 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 md:border-transparent' : 'text-zinc-400 hover:bg-white/5 border border-white/10 md:border-transparent'}`;
                 
                 let icon = 'fa-file-alt';
                 const nameUpper = filename.toUpperCase();
@@ -301,19 +302,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
 
-                // 🚨 完美安全修復：確保檔名輸出 HTML 時經過轉譯，防範 DOM XSS
                 let displayHtml = '';
                 const safeFilename = escapeHTML(filename);
                 if (filename.includes('/')) {
                     const parts = filename.split('/');
                     const name = escapeHTML(parts.pop());
                     const path = escapeHTML(parts.join('/'));
-                    displayHtml = `<div class="flex flex-col overflow-hidden"><span class="text-[9px] text-zinc-500 truncate leading-none mb-0.5">${path}/</span><span class="truncate leading-tight">${name}</span></div>`;
+                    displayHtml = `<div class="flex flex-row md:flex-col overflow-hidden items-center md:items-start gap-1 md:gap-0"><span class="text-[9px] text-zinc-500 truncate leading-none md:mb-0.5">${path}/</span><span class="truncate leading-tight">${name}</span></div>`;
                 } else {
-                    displayHtml = `<span class="truncate mt-0.5">${safeFilename}</span>`;
+                    displayHtml = `<span class="truncate md:mt-0.5">${safeFilename}</span>`;
                 }
 
-                btn.innerHTML = `<i class="fas ${icon} w-4 text-center shrink-0 mt-1"></i> ${displayHtml}`;
+                btn.innerHTML = `<i class="fas ${icon} w-3 text-center shrink-0 md:mt-1"></i> ${displayHtml}`;
                 btn.onclick = () => this.switchFile(filename);
                 this.fileListEl.appendChild(btn);
             });
@@ -345,14 +345,22 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     function openAddFileModal() {
         const modal = document.getElementById('add-file-modal');
+        const content = document.getElementById('add-file-content');
         modal.classList.remove('hidden');
         document.getElementById('custom-filename-input').value = '';
-        setTimeout(() => { modal.classList.remove('opacity-0'); modal.firstElementChild.classList.remove('scale-95'); modal.firstElementChild.classList.add('scale-100'); }, 10);
+        setTimeout(() => { 
+            modal.classList.remove('opacity-0'); 
+            content.classList.remove('scale-95'); 
+            content.classList.add('scale-100'); 
+        }, 10);
     }
 
     function closeAddFileModal() {
         const modal = document.getElementById('add-file-modal');
-        modal.classList.add('opacity-0'); modal.firstElementChild.classList.remove('scale-100'); modal.firstElementChild.classList.add('scale-95');
+        const content = document.getElementById('add-file-content');
+        modal.classList.add('opacity-0'); 
+        content.classList.remove('scale-100'); 
+        content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
@@ -378,9 +386,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         const ext = file.name.split('.').pop().toLowerCase();
         
         document.getElementById('tab-zip').innerHTML = `
-            <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-3xl border-2 border-emerald-400/30">
+            <div class="text-emerald-400 flex flex-col items-center justify-center gap-2 py-8 bg-zinc-900/50 rounded-2xl border-2 border-emerald-400/30">
                 <i class="fas fa-check-circle text-3xl"></i>
-                <span class="font-medium">${escapeHTML(file.name)}</span>
+                <span class="font-medium px-4 text-center truncate w-full">${escapeHTML(file.name)}</span>
                 <span class="text-xs text-zinc-500">Ready to upload</span>
             </div>`;
 
@@ -432,6 +440,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!finalContent || finalContent.trim() === '') {
             errorMsg.innerText = "Soul Content is empty or hasn't loaded yet.";
             errorBox.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
@@ -457,15 +466,16 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                // 🚨 完美流暢 UX：上傳成功後直接跳轉去專屬頁面
                 window.location.href = data.url;
             } else {
                 errorMsg.innerText = data.error || "Failed to save soul.";
                 errorBox.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch(err) {
             errorMsg.innerText = "Network Error. Please try again.";
             errorBox.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');

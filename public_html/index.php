@@ -35,7 +35,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             The most advanced SaaS ecosystem to discover, interact, and monetize `.md` based AI personas. Powered by extreme logic reasoning and real-time image analysis.
         </p>
         
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-sm sm:max-w-none mx-auto">
             <a href="/browse" class="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-4 bg-emerald-500 text-zinc-950 text-lg font-bold rounded-2xl hover:bg-emerald-400 transition shadow-xl shadow-emerald-500/20 hover:-translate-y-1">
                 <i class="fas fa-compass"></i> Discover Souls
             </a>

@@ -19,20 +19,21 @@ require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-    <h1 class="text-5xl font-bold tracking-tighter mb-2">Browse Souls</h1>
-    <p class="text-zinc-400 mb-10">Discover and explore AI personalities, prompts, and modular agents shared by the community.</p>
+    <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter mb-2">Browse Souls</h1>
+    <p class="text-sm sm:text-base text-zinc-400 mb-8 sm:mb-10">Discover and explore AI personalities, prompts, and modular agents shared by the community.</p>
 
-    <div class="bg-zinc-900/40 border border-white/10 p-6 rounded-3xl mb-10 shadow-lg backdrop-blur-sm">
-        <div class="flex flex-col lg:flex-row gap-4 mb-4">
+    <div class="bg-zinc-900/40 border border-white/10 p-5 sm:p-6 rounded-3xl mb-8 sm:mb-10 shadow-lg backdrop-blur-sm">
+        
+        <div class="flex flex-col xl:flex-row gap-4 mb-4">
             
-            <div class="flex-1 relative">
+            <div class="w-full xl:flex-1 relative shrink-0">
                 <input id="search-input" type="text" placeholder="Search titles or tags..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>"
                        class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-6 py-3.5 text-sm focus:outline-none focus:border-emerald-400 pl-12 transition shadow-inner">
                 <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-                <select id="sort-filter" class="bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300">
+            <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 w-full xl:w-auto">
+                <select id="sort-filter" class="col-span-2 sm:col-span-1 w-full sm:w-auto bg-zinc-950 border border-white/10 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300 appearance-none cursor-pointer truncate">
                     <option value="newest" <?= ($_GET['sort'] ?? 'newest') === 'newest' ? 'selected' : '' ?>>✨ Newest First</option>
                     <option value="oldest" <?= ($_GET['sort'] ?? '') === 'oldest' ? 'selected' : '' ?>>⏳ Oldest First</option>
                     <option value="popular" <?= ($_GET['sort'] ?? '') === 'popular' ? 'selected' : '' ?>>❤️ Like Count</option>
@@ -41,7 +42,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <option value="za" <?= ($_GET['sort'] ?? '') === 'za' ? 'selected' : '' ?>>🔡 Title (Z-A)</option>
                 </select>
 
-                <select id="role-filter" class="bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300">
+                <select id="role-filter" class="col-span-2 sm:col-span-1 w-full sm:w-auto bg-zinc-950 border border-white/10 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300 appearance-none cursor-pointer truncate">
                     <option value="">All Roles</option>
                     <?php $activeRole = $_GET['role'] ?? ''; foreach ($categories as $cat): ?>
                         <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $activeRole === $cat['slug'] ? 'selected' : '' ?>>
@@ -50,23 +51,23 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <?php endforeach; ?>
                 </select>
 
-                <select id="type-filter" class="bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300">
+                <select id="type-filter" class="col-span-1 w-full sm:w-auto bg-zinc-950 border border-white/10 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 shadow-inner text-zinc-300 appearance-none cursor-pointer truncate">
                     <option value="">All Types</option>
                     <option value="single_md" <?= ($_GET['file_type'] ?? '') === 'single_md' ? 'selected' : '' ?>>Single .md</option>
-                    <option value="full_soul_folder" <?= ($_GET['file_type'] ?? '') === 'full_soul_folder' ? 'selected' : '' ?>>Modular Folder</option>
+                    <option value="full_soul_folder" <?= ($_GET['file_type'] ?? '') === 'full_soul_folder' ? 'selected' : '' ?>>Modular</option>
                 </select>
 
-                <button onclick="clearFilters()" class="px-5 py-3.5 border border-white/10 bg-zinc-800 rounded-2xl hover:bg-zinc-700 hover:text-white transition text-sm flex items-center gap-2 text-zinc-400 shadow">
-                    <i class="fas fa-times"></i> Clear
+                <button onclick="clearFilters()" class="col-span-1 w-full sm:w-auto px-4 py-3.5 border border-white/10 bg-zinc-800 rounded-2xl hover:bg-zinc-700 hover:text-white transition text-sm flex items-center justify-center gap-2 text-zinc-400 shadow">
+                    <i class="fas fa-times"></i> <span class="hidden sm:inline">Clear</span>
                 </button>
             </div>
         </div>
 
         <?php if (!empty($trendingTags)): ?>
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="text-xs text-zinc-500 font-medium uppercase tracking-wider mr-1"><i class="fas fa-fire text-amber-500 mr-1"></i>Trending:</span>
+            <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap custom-scrollbar pb-2 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                <span class="text-xs text-zinc-500 font-medium uppercase tracking-wider shrink-0 mr-1"><i class="fas fa-fire text-amber-500 mr-1"></i>Trending:</span>
                 <?php foreach($trendingTags as $tag): ?>
-                    <button onclick="applyQuickTag('<?= htmlspecialchars(addslashes($tag)) ?>')" class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30 transition">
+                    <button onclick="applyQuickTag('<?= htmlspecialchars(addslashes($tag)) ?>')" class="shrink-0 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30 transition shadow-sm">
                         #<?= htmlspecialchars($tag) ?>
                     </button>
                 <?php endforeach; ?>
@@ -81,24 +82,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     let timeout = null;
-    
-    // 讀取網址列的 page 參數，預設為 1
     let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
-    // 完美防禦 DOM XSS
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
     
-    // SEO URL 轉換 (安全支援中文及多國語言)
     function makeSlug(str) {
         if (!str) return 'unassigned';
         let slug = str.toLowerCase();
-        // 替換特殊符號為橫線，但保留中文字與英數字
         slug = slug.replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-');
         slug = slug.replace(/^-+|-+$/g, '');
-        // 使用 encodeURIComponent 確保中文能夠成為安全的 URL
         return encodeURIComponent(slug);
     }
 
@@ -116,11 +111,9 @@ require_once __DIR__ . '/../private/includes/header.php';
     function changePage(page) {
         currentPage = page;
         loadSouls();
-        // 換頁後自動平滑捲動到結果區頂部
         window.scrollTo({ top: 250, behavior: 'smooth' });
     }
 
-    // 🚨 全新雙軌響應式分頁器 UI (完美解決手機走位問題)
     function renderPagination(current, totalPages) {
         const container = document.getElementById('pagination-container');
         if (totalPages <= 1) {
@@ -130,40 +123,30 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         let html = '';
         
-        // ==========================================
-        // 📱 1. 手機版極簡視圖 (sm:hidden)
-        // ==========================================
+        // Mobile UI (sm:hidden)
         html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
-        
         if (current > 1) {
             html += `<button onclick="changePage(${current - 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left"></i></button>`;
         } else {
             html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
         }
-        
         html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">Page <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
-        
         if (current < totalPages) {
             html += `<button onclick="changePage(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
         } else {
             html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>`;
         }
-        
         html += `</div>`;
 
-        // ==========================================
-        // 💻 2. 電腦版滑動視窗視圖 (hidden sm:flex)
-        // ==========================================
+        // Desktop UI (hidden sm:flex)
         html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
-        
-        // Desktop Prev
         if (current > 1) {
             html += `<button onclick="changePage(${current - 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left text-xs"></i></button>`;
         } else {
             html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left text-xs"></i></button>`;
         }
 
-        const windowSize = 2; // 當前頁碼前後顯示幾頁
+        const windowSize = 2; 
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
                 if (i === current) {
@@ -172,18 +155,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                     html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
                 }
             } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
-                // 省略號
                 html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
             }
         }
 
-        // Desktop Next
         if (current < totalPages) {
             html += `<button onclick="changePage(${current + 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right text-xs"></i></button>`;
         } else {
             html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right text-xs"></i></button>`;
         }
-        
         html += `</div>`;
 
         container.innerHTML = html;
@@ -193,7 +173,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const container = document.getElementById('results-container');
         const pagination = document.getElementById('pagination-container');
         
-        // 顯示 Loading
         container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
         pagination.innerHTML = '';
 
@@ -202,16 +181,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         const role = document.getElementById('role-filter').value;
         const type = document.getElementById('type-filter').value;
 
-        // 組合 API 查詢參數
         const params = new URLSearchParams();
         if (q) params.append('q', q);
         if (sort && sort !== 'newest') params.append('sort', sort);
         if (role) params.append('role', role);
         if (type) params.append('file_type', type);
         params.append('page', currentPage);
-        params.append('limit', 12); // 每頁顯示 12 筆
+        params.append('limit', 12); 
 
-        // 靜默更新網址列，方便用戶分享當前條件及頁數的連結 (安全處理中文字 URL)
         const newUrl = window.location.pathname + '?' + params.toString();
         window.history.replaceState({}, '', newUrl);
 
@@ -222,41 +199,40 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success && data.data.length > 0) {
                 let html = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">`;
                 data.data.forEach(soul => {
-                    
                     let tagsHtml = '';
                     if (soul.domain) {
                         const tags = soul.domain.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3);
                         tags.forEach(t => {
-                            tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded">#${escapeHTML(t)}</span>`;
+                            tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`;
                         });
                     }
 
-                    // 🚨 完美構建 4 層 SEO Link (安全編碼中文/日文/特殊字元)
                     const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
+                    // 🚨 完美修復：底部 flex-1 min-w-0 truncate 確保超長名不會撐爆佈局
                     html += `
-                        <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
+                        <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-4">
-                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
-                                    <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
+                                    <div class="font-bold text-lg sm:text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
+                                    <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 shadow-sm ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
                                         ${soul.file_type === 'full_soul_folder' ? 'Modular' : '.md'}
                                     </div>
                                 </div>
-                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
+                                ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-3 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                                 
-                                <div class="flex flex-wrap gap-1.5 mb-6">
+                                <div class="flex flex-wrap gap-1.5 mb-5 sm:mb-6">
                                     ${tagsHtml}
                                 </div>
                             </div>
                             <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
-                                <div class="truncate max-w-[120px]">
+                                <div class="flex-1 min-w-0 truncate pr-3">
                                     <span class="text-white font-medium">@${escapeHTML(soul.username || 'anonymous')}</span>
                                     <span class="opacity-50 ml-1">• ${escapeHTML(soul.role || 'Unassigned')}</span>
                                 </div>
                                 <div class="flex items-center gap-3 shrink-0">
-                                    <span><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
-                                    <span><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>
+                                    <span title="Forks"><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
+                                    <span title="Likes"><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>
                                 </div>
                             </div>
                         </a>
@@ -265,21 +241,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                 html += `</div>`;
                 container.innerHTML = html;
                 
-                // 渲染防爆版分頁器 UI
                 renderPagination(data.current_page, data.total_pages);
 
             } else {
                 container.innerHTML = `
-                    <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
-                        <div class="text-6xl mb-6 opacity-50">🔎</div>
-                        <p class="text-2xl font-bold mb-2">No souls found</p>
-                        <p class="text-zinc-400">Try adjusting your keywords or filters.</p>
-                        <button onclick="clearFilters()" class="mt-6 px-6 py-2 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 transition text-sm">Clear all filters</button>
+                    <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner mx-4 sm:mx-0">
+                        <div class="text-5xl sm:text-6xl mb-6 opacity-50">🔎</div>
+                        <p class="text-xl sm:text-2xl font-bold mb-2">No souls found</p>
+                        <p class="text-sm text-zinc-400 max-w-xs mx-auto">Try adjusting your keywords or clearing the active filters.</p>
+                        <button onclick="clearFilters()" class="mt-6 px-6 py-2.5 bg-zinc-800 text-white rounded-xl hover:bg-zinc-700 transition text-sm shadow font-medium">Clear all filters</button>
                     </div>
                 `;
             }
         } catch (e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-20">Network error while loading souls</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i>Network error while loading souls</div>`;
         }
     }
 
@@ -292,7 +267,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadSouls();
     }
 
-    // 綁定 Event Listeners
     document.getElementById('search-input').addEventListener('input', () => { 
         clearTimeout(timeout); 
         timeout = setTimeout(resetAndLoad, 400); 
@@ -302,7 +276,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     document.getElementById('role-filter').addEventListener('change', resetAndLoad);
     document.getElementById('type-filter').addEventListener('change', resetAndLoad);
 
-    // 初始載入
     window.onload = loadSouls;
 </script>
 
