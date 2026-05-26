@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
- * (Dynamic i18n Internationalization & Robust Mobile-First Grid Edition)
+ * (Dynamic i18n Internationalization & Robust Mobile-First Grid Edition - Fixed)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -108,18 +108,19 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     let currentPage = 1;
     const profileUserId = <?= $profileUserId ?>;
-    const safeUsername = "<?= addslashes($safeUsername) ?>";
+    const safeUsername = <?= json_encode($safeUsername, JSON_UNESCAPED_UNICODE) ?>;
 
-    // 🌍 JavaScript 多語言字串注入
-    const lang_Modular = "<?= addslashes(__('Modular')) ?>";
-    const lang_SingleMd = "<?= addslashes(__('Single .md')) ?>";
-    const lang_Public = "<?= addslashes(__('Public')) ?>";
-    const lang_Unassigned = "<?= addslashes(__('Unassigned')) ?>";
-    const lang_ViewRepo = "<?= addslashes(__('View Repository')) ?>";
-    const lang_NoSouls = "<?= addslashes(__('No public souls found')) ?>";
-    const lang_EmptyDesc = "<?= addslashes(__('Empty Desc')) ?>";
-    const lang_BackHub = "<?= addslashes(__('Back to Hub')) ?>";
-    const url_hub = "<?= url('/browse') ?>";
+    // 💡 安全修復：使用 json_encode 防止任何語法報錯斷行
+    const lang_Modular = <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_SingleMd = <?= json_encode(__('Single .md'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Public = <?= json_encode(__('Public'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Unassigned = <?= json_encode(__('Unassigned'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ViewRepo = <?= json_encode(__('View Repository'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_NoSouls = <?= json_encode(__('No public souls found'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_EmptyDesc = <?= json_encode(__('Empty Desc'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_BackHub = <?= json_encode(__('Back to Hub'), JSON_UNESCAPED_UNICODE) ?>;
+    const url_hub = <?= json_encode(url('/browse'), JSON_UNESCAPED_UNICODE) ?>;
+    const url_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
 
     function escapeHTML(str) {
         if (!str) return '';
@@ -140,18 +141,59 @@ require_once __DIR__ . '/../private/includes/header.php';
         window.scrollTo({ top: 300, behavior: 'smooth' });
     }
 
+    // 💡 嚴重錯誤修復：完美恢復雙端（手機+桌面）響應式分頁器
     function renderPagination(current, totalPages) {
         const container = document.getElementById('portfolio-pagination');
-        if (totalPages <= 1) { container.innerHTML = ''; return; }
-
-        let html = '<div class="hidden sm:flex items-center gap-1.5 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">';
-        if (current > 1) html += `<button onclick="changePage(${current - 1})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition"><i class="fas fa-chevron-left text-xs"></i></button>`;
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === current) html += `<span class="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black font-mono shadow-md">${i}</span>`;
-            else html += `<button onclick="changePage(${i})" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">${i}</button>`;
+        if (totalPages <= 1) { 
+            container.innerHTML = ''; 
+            return; 
         }
-        if (current < totalPages) html += `<button onclick="changePage(${current + 1})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition"><i class="fas fa-chevron-right text-xs"></i></button>`;
-        html += '</div>';
+
+        let html = '';
+        
+        // 📱 手機版 UI (sm:hidden)
+        html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
+        if (current > 1) {
+            html += `<button onclick="changePage(${current - 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left"></i></button>`;
+        } else {
+            html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
+        }
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">PAGE <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        if (current < totalPages) {
+            html += `<button onclick="changePage(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
+        } else {
+            html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>`;
+        }
+        html += `</div>`;
+
+        // 💻 桌面版 UI (hidden sm:flex)
+        html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
+        if (current > 1) {
+            html += `<button onclick="changePage(${current - 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left text-xs"></i></button>`;
+        } else {
+            html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left text-xs"></i></button>`;
+        }
+
+        const windowSize = 2; 
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
+                if (i === current) {
+                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
+                }
+            } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+            }
+        }
+
+        if (current < totalPages) {
+            html += `<button onclick="changePage(${current + 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right text-xs"></i></button>`;
+        } else {
+            html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right text-xs"></i></button>`;
+        }
+        html += `</div>`;
+
         container.innerHTML = html;
     }
 
@@ -163,7 +205,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         pagination.innerHTML = '';
 
         try {
-            // 利用現有的 souls API 過濾該 Creator
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${currentPage}&limit=9&sort=newest`);
             const data = await res.json();
 
@@ -174,8 +215,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     let tagsHtml = '';
                     tags.forEach(t => { tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`; });
 
-                    // 🌍 動態編譯加上雙語路徑前綴的完整 SEO 網址
-                    const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     const typeLabel = soul.file_type === 'full_soul_folder' ? lang_Modular : lang_SingleMd;
                     const roleLabel = soul.role ? escapeHTML(soul.role) : lang_Unassigned;
 
@@ -208,7 +248,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 container.innerHTML = html;
                 renderPagination(data.current_page, data.total_pages);
             } else {
-                // 🌍 創作者空白狀態多語言化
                 container.innerHTML = `
                     <div class="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow flex flex-col justify-center items-center">
                         <div class="text-5xl mb-4 opacity-40">📁</div>

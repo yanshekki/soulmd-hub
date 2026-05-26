@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
- * (100% i18n Internationalized Edition)
+ * (100% i18n Internationalized Edition - Syntax Error Fixed)
  */
 ?>
 <script>
@@ -132,8 +132,8 @@
 
     function processImageFile(file) {
         if (!file.type.match('image.*')) {
-            // 🌍 動態翻譯 Alert 提示
-            alert("<?= addslashes(__('Only JPG, PNG and WEBP images are supported.')) ?>");
+            // 💡 使用 json_encode 防止任何引號及語言斷行衝突
+            alert(<?= json_encode(__('Only JPG, PNG and WEBP images are supported.'), JSON_UNESCAPED_UNICODE) ?>);
             return;
         }
 
@@ -222,8 +222,7 @@
         const url = window.location.href;
         navigator.clipboard.writeText(url).then(() => {
             const originalHtml = btn.innerHTML;
-            // 🌍 動態翻譯按鈕文字
-            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> <span class="hidden sm:inline"><?= addslashes(__('Copied!')) ?></span>';
+            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> <span class="hidden sm:inline">' + <?= json_encode(__('Copied!'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
             btn.classList.add('border-emerald-400/50', 'text-white');
             setTimeout(() => { btn.innerHTML = originalHtml; btn.classList.remove('border-emerald-400/50', 'text-white'); }, 2000);
         });
@@ -296,14 +295,14 @@
                         showPaywall();
                     }
                 } else {
-                    // 🌍 動態翻譯初始化對話
-                    appendMessage('assistant', "<?= addslashes(__('Init message')) ?>");
+                    // 💡 用 json_encode 安全載入初始歡迎詞
+                    appendMessage('assistant', <?= json_encode(__('Init message'), JSON_UNESCAPED_UNICODE) ?>);
                 }
             } else {
                 const errMsg = data.error || 'Access Denied';
                 if (errMsg.includes('Access Denied')) {
-                    // 🌍 動態翻譯私密權限錯誤
-                    appendMessage('assistant', "<?= addslashes(__('Private Session warning')) ?>");
+                    // 💡 關鍵安全修復：利用 json_encode 完美轉譯包含 \n 的私密權限錯誤，絕不崩潰
+                    appendMessage('assistant', <?= json_encode(__('Private Session warning'), JSON_UNESCAPED_UNICODE) ?>);
                     chatInput.disabled = true; sendBtn.disabled = true;
                 } else {
                     appendMessage('assistant', `⚠️ Error: ${escapeHTML(errMsg)}`);
@@ -311,11 +310,9 @@
             }
         } catch (e) {
             if (loading) {
-                // 🌍 動態翻譯歷史紀錄錯誤
-                loading.innerHTML = '<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> <?= addslashes(__('Failed to load conversation history.')) ?></span>';
+                loading.innerHTML = '<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> ' + <?= json_encode(__('Failed to load conversation history.'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
             } else {
-                // 🌍 動態翻譯 DOM 例外錯誤
-                appendMessage('assistant', "⚠️ <?= addslashes(__('Browser core exception while compiling logs frame.')) ?>");
+                appendMessage('assistant', "⚠️ " + <?= json_encode(__('Browser core exception while compiling logs frame.'), JSON_UNESCAPED_UNICODE) ?>);
             }
         }
     }
@@ -332,8 +329,7 @@
         if (!messageText && !currentImageBase64) return;
         
         if (messageText.length > MAX_INPUT_CHARS) {
-            // 🌍 動態結合 JS .replace() 與 PHP i18n 翻譯長度限制
-            alert("<?= addslashes(__('Message exceeds chars limit.')) ?>".replace(':chars', MAX_INPUT_CHARS));
+            alert(<?= json_encode(__('Message exceeds chars limit.'), JSON_UNESCAPED_UNICODE) ?>.replace(':chars', MAX_INPUT_CHARS));
             return;
         }
 
@@ -379,11 +375,9 @@
             } catch (parseErr) {
                 console.error("Raw Server Response:", rawText);
                 if (rawText.includes('524') || rawText.includes('timeout') || rawText.includes('Cloudflare')) {
-                    // 🌍 動態翻譯 Cloudflare 逾時錯誤
-                    aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-hourglass-end"></i> <?= addslashes(__('Cloudflare Timeout')) ?></span>`;
+                    aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-hourglass-end"></i> ` + <?= json_encode(__('Cloudflare Timeout'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
                 } else {
-                    // 🌍 動態翻譯嚴重伺服器錯誤
-                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-bug"></i> <?= addslashes(__('Fatal Server Error')) ?></span>`;
+                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-bug"></i> ` + <?= json_encode(__('Fatal Server Error'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
                 }
                 return;
             }
@@ -392,17 +386,14 @@
                 aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
             } else {
                 if (data.needs_upgrade) {
-                    // API 回傳嘅升級提示保留伺服器內容（因為 Server 會判斷過期定權限不足）
                     aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${data.error}</span>`;
                     showPaywall();
                 } else {
-                    // 🌍 動態翻譯一般回覆失敗
-                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> ${data.error || '<?= addslashes(__('Failed to get response.')) ?>'}</span>`;
+                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> ${data.error || <?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>}`;
                 }
             }
         } catch (err) {
-            // 🌍 動態翻譯網絡中斷
-            aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> <?= addslashes(__('Network error. Connection failed.')) ?></span>`;
+            aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> ` + <?= json_encode(__('Network error. Connection failed.'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
         } finally {
             chatInput.disabled = false;
             sendBtn.disabled = false;

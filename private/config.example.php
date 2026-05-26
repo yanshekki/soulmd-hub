@@ -33,15 +33,26 @@ define('DEFAULT_LANG', 'en');
 $req_lang = $_GET['lang'] ?? '';
 $cookie_lang = $_COOKIE['soulmd_lang'] ?? '';
 
-// 決定當前語言
+// 判斷當前是否為後端 API 請求
+$is_api = (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false);
+
 $current_lang = DEFAULT_LANG;
-if (array_key_exists($req_lang, $SUPPORTED_LANGS)) {
-    $current_lang = $req_lang;
-} elseif (array_key_exists($cookie_lang, $SUPPORTED_LANGS)) {
-    $current_lang = $cookie_lang;
+
+if ($is_api) {
+    // 🤖 API 請求模式：因為 API 路由沒有語言前綴，所以完全依賴 Cookie 決定回傳語言
+    if (array_key_exists($cookie_lang, $SUPPORTED_LANGS)) {
+        $current_lang = $cookie_lang;
+    }
+} else {
+    // 🖥️ 網頁渲染模式：URL 是唯一真理 (URL is King)
+    if (!empty($req_lang) && array_key_exists($req_lang, $SUPPORTED_LANGS)) {
+        $current_lang = $req_lang;
+    }
+    // 💡 關鍵修復：如果 $req_lang 為空，代表用戶點擊了預設語言 (EN) 的乾淨網址 (例如 /browse)
+    // 這時 $current_lang 會維持是 DEFAULT_LANG ('en')，並且會在下方強制覆蓋掉舊的中文 Cookie！
 }
 
-// 同步 Cookie，確保 API 及下次訪問一致
+// 同步 Cookie，確保接下來的 API 請求能正確對應當前頁面的語言
 if ($cookie_lang !== $current_lang) {
     setcookie('soulmd_lang', $current_lang, time() + (86400 * 30), '/'); 
 }
@@ -53,14 +64,13 @@ $GLOBALS['i18n_strings'] = [];
 
 /**
  * 載入指定頁面的翻譯檔 (例如: browse)
- * 格式要求：檔案需 return 一個包含所有語言的 array
  */
 function loadTranslations($pageName) {
     $langFile = __DIR__ . "/includes/languages/{$pageName}.php";
     if (file_exists($langFile)) {
         $translations = require $langFile;
         
-        // 1. 先載入預設語言 (Fallback)，防止漏翻譯
+        // 1. 先載入預設語言 (Fallback)
         if (isset($translations[DEFAULT_LANG])) {
             $GLOBALS['i18n_strings'] = array_merge($GLOBALS['i18n_strings'], $translations[DEFAULT_LANG]);
         }
@@ -82,12 +92,12 @@ function __($key, $replacements = []) {
             $str = str_replace(':' . $k, $v, $str);
         }
     }
-    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+    // 💡 移除 htmlspecialchars，允許翻譯檔內正常渲染 <br>, <b>, <code> 等 HTML 標籤
+    return $str;
 }
 
 /**
  * URL 語言前綴助手函數
- * 確保內部連結會自動加上正確的語言
  */
 function url($path) {
     $path = ltrim($path, '/');

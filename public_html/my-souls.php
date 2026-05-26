@@ -35,10 +35,11 @@ if ($sort === 'popular') {
     $orderSql = "ORDER BY s.fork_count DESC, s.created_at DESC";
 }
 
+// 💡 關鍵修復：修正為 LEFT JOIN categories c 解決 500 Fatal Error
 $stmt = $pdo->prepare("
     SELECT s.*, c.icon as role_icon, c.name as role_name 
     FROM souls s 
-    LEFT JOIN users u ON s.role = c.slug 
+    LEFT JOIN categories c ON s.role = c.slug 
     WHERE s.user_id = ? 
     $orderSql
 ");
@@ -401,9 +402,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             this.renderFileList();
         }
         deleteCurrentFile() {
-            // 🌍 JavaScript 警告視窗翻譯
-            if (Object.keys(this.files).length <= 1) return alert("<?= addslashes(__('You must have at least one file.')) ?>");
-            if (!confirm("<?= addslashes(__('Delete file check')) ?>" + this.activeFile + "?")) return;
+            if (Object.keys(this.files).length <= 1) return alert(<?= json_encode(__('You must have at least one file.'), JSON_UNESCAPED_UNICODE) ?>);
+            if (!confirm(<?= json_encode(__('Delete file check'), JSON_UNESCAPED_UNICODE) ?> + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
             this.switchFile(Object.keys(this.files)[0]);
         }
@@ -441,8 +441,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
-        // 🌍 JavaScript 警告視窗翻譯
-        if (editModalFileEditor.files[name] !== undefined) return alert("<?= addslashes(__('File already exists!')) ?>");
+        if (editModalFileEditor.files[name] !== undefined) return alert(<?= json_encode(__('File already exists!'), JSON_UNESCAPED_UNICODE) ?>);
         editModalFileEditor.files[name] = '';
         editModalFileEditor.switchFile(name);
         closeAddFileModal();
@@ -456,7 +455,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function editSoul(id) {
         currentEditId = id;
         document.getElementById('edit-id').value = id;
-        document.getElementById('edit-title').value = '<?= addslashes(__('Loading...')) ?>';
+        document.getElementById('edit-title').value = <?= json_encode(__('Loading...'), JSON_UNESCAPED_UNICODE) ?>;
         
         const modal = document.getElementById('edit-modal');
         const content = modal.firstElementChild;
@@ -482,11 +481,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 
                 editModalFileEditor.loadData(soul.content);
             } else {
-                // 🌍 錯誤提示詞多語言化
-                alert(result.error || '<?= addslashes(__('Failed to fetch soul details')) ?>'); 
+                alert(result.error || <?= json_encode(__('Failed to fetch soul details'), JSON_UNESCAPED_UNICODE) ?>); 
                 closeModal();
             }
-        } catch(e) { alert('<?= addslashes(__('Network error.')) ?>'); closeModal(); }
+        } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); closeModal(); }
     }
 
     async function handleEdit(e) {
@@ -525,7 +523,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch(e) { 
-            alert('<?= addslashes(__('Network error.')) ?>'); 
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
             text.classList.remove('hidden'); spinner.classList.add('hidden'); 
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
@@ -541,13 +539,12 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function deleteSoul(id) {
-        // 🌍 刪除檢查提示詞多語言化
-        if (!confirm('<?= addslashes(__('Are you sure you want to permanently delete this AI soul?')) ?>')) return;
+        if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
         try {
             const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
-            if (data.success) { location.reload(); } else { alert(data.error || '<?= addslashes(__('Failed to delete')) ?>'); }
-        } catch(e) { alert('<?= addslashes(__('Network error.')) ?>'); }
+            if (data.success) { location.reload(); } else { alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); }
+        } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); }
     }
 </script>
 
