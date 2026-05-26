@@ -8,6 +8,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 🌍 全域無縫掛載頂部導覽列公共組件的專屬獨立多語言語言包
+loadTranslations('header');
+
 // 處理 Remember Me 自動登入邏輯
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
     require_once __DIR__ . '/../src/Database.php';
@@ -175,11 +178,11 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
             </div>
 
             <?php if ($isLoggedIn): ?>
-                <a href="<?= url('/my-souls') ?>" class="text-xs sm:text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition flex items-center gap-1.5" title="My Souls">
+                <a href="<?= url('/my-souls') ?>" class="text-xs sm:text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition flex items-center gap-1.5" title="<?= __('My Souls') ?>">
                     <i class="fas fa-user-circle text-emerald-400 text-sm"></i> <span class="hidden sm:inline"><?= __('My Souls') ?></span>
                 </a>
                 
-                <a href="<?= url('/billing') ?>" class="text-xs sm:text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition flex items-center gap-1.5" title="Billing & Invoices">
+                <a href="<?= url('/billing') ?>" class="text-xs sm:text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition flex items-center gap-1.5" title="<?= __('Billing') ?>">
                     <i class="fas fa-file-invoice-dollar text-emerald-400 text-sm"></i> <span class="hidden md:inline"><?= __('Billing') ?></span>
                 </a>
 
@@ -187,7 +190,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
                     <i class="fas fa-key text-emerald-400"></i>
                 </a>
                 
-                <button onclick="handleLogout()" class="text-xs sm:text-sm px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition flex items-center gap-1.5" title="Log out">
+                <button onclick="handleLogout()" class="text-xs sm:text-sm px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition flex items-center gap-1.5" title="<?= __('Log out') ?>">
                     <i class="fas fa-sign-out-alt"></i> <span class="hidden lg:inline"><?= __('Log out') ?></span>
                 </button>
             <?php else: ?>
