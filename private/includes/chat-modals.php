@@ -11,6 +11,24 @@
     <img id="image-viewer-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
 </div>
 
+<div id="soul-info-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-3xl w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+        <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30 shrink-0">
+            <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <i class="fas fa-layer-group text-emerald-400"></i> <?= __('Soul Architecture') ?>
+            </h3>
+            <button type="button" onclick="closeSoulModal()" class="text-zinc-400 hover:text-white transition focus:outline-none"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-grow bg-zinc-950/50">
+            <div id="soul-info-content" class="prose prose-invert prose-emerald max-w-none prose-sm text-zinc-300 leading-relaxed font-mono text-[13px]">
+                </div>
+        </div>
+        <div class="p-4 sm:p-5 border-t border-white/10 bg-zinc-900 shrink-0 flex justify-end">
+            <button type="button" onclick="closeSoulModal()" class="px-6 py-2.5 bg-zinc-800 text-white rounded-xl font-bold hover:bg-zinc-700 transition shadow-sm border border-white/5 w-full sm:w-auto"><?= __('Close') ?></button>
+        </div>
+    </div>
+</div>
+
 <div id="paywall-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[200] p-4 backdrop-blur-md opacity-0 transition-opacity duration-300">
     <div class="bg-zinc-900 border <?= $isExpired ? 'border-red-500/40 shadow-red-500/5' : 'border-emerald-500/30 shadow-emerald-500/5' ?> rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         

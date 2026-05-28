@@ -31,8 +31,8 @@ if (!$soulId) {
     exit;
 }
 
-// 獲取 Soul 資訊 (只限公開的 Soul)
-$stmt = $pdo->prepare("SELECT title, role, content, file_type FROM souls WHERE id = ? AND is_public = 1");
+// 🚨 修改 SQL 查詢：加入 description 欄位
+$stmt = $pdo->prepare("SELECT title, role, content, file_type, description FROM souls WHERE id = ? AND is_public = 1");
 $stmt->execute([$soulId]);
 $soul = $stmt->fetch();
 
@@ -100,27 +100,56 @@ require_once __DIR__ . '/../private/includes/header.php';
 // 引入獨立的法律免責聲明彈窗
 require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
 
-// 🌟 引入分拆出來的圖片放大與智慧手機版 Paywall 彈窗組件 (下一階段會完美多語言化)
+// 🌟 引入分拆出來的圖片放大與智慧手機版 Paywall 彈窗組件
 require_once __DIR__ . '/../private/includes/chat-modals.php';
+
+// 🚨 預先格式化要放入 Popup 內的 Soul 原生架構內容
+$rawContentForModal = '';
+if ($soul['file_type'] === 'full_soul_folder') {
+    $cleaned = str_replace("\\'", "'", $soul['content']);
+    $parsed = json_decode($cleaned, true);
+    if (is_array($parsed)) {
+        foreach ($parsed as $fname => $fcontent) {
+            if (strpos($fname, 'ERROR.md') !== false) continue;
+            $fcontentStr = is_string($fcontent) ? $fcontent : json_encode($fcontent, JSON_UNESCAPED_UNICODE);
+            $rawContentForModal .= "### 📄 {$fname}\n\n{$fcontentStr}\n\n---\n\n";
+        }
+    } else {
+        $rawContentForModal = $soul['content'];
+    }
+} else {
+    $rawContentForModal = $soul['content'];
+}
 ?>
+
+<textarea id="raw-soul-content" class="hidden"><?= htmlspecialchars($rawContentForModal) ?></textarea>
 
 <div class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col h-[calc(100vh-80px)]">
     
     <div class="bg-zinc-900/80 border border-white/10 rounded-t-3xl p-4 flex justify-between items-center backdrop-blur-md shrink-0">
-        <div class="flex items-center gap-3">
-            <a href="<?= url('/soul/' . $soulId) ?>" class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-emerald-400 hover:bg-zinc-700 transition">
+        <div class="flex items-center gap-3 w-full">
+            <a href="<?= url('/soul/' . $soulId) ?>" class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-emerald-400 hover:bg-zinc-700 transition shrink-0">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <div>
-                <h1 class="text-lg font-bold text-white leading-tight"><?= htmlspecialchars($soul['title']) ?></h1>
-                <p class="text-xs text-zinc-500 flex items-center gap-1">
-                    <i class="fas fa-circle text-emerald-500 text-[8px] animate-pulse"></i> <?= __('Active Persona Session') ?>
-                </p>
+            <div class="flex-grow">
+                <h1 class="text-base sm:text-lg font-bold text-white leading-tight line-clamp-1"><?= htmlspecialchars($soul['title']) ?></h1>
+                
+                <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
+                    <span class="flex items-center gap-1"><i class="fas fa-circle text-emerald-500 text-[8px] animate-pulse"></i> <?= __('Active Persona Session') ?></span>
+                    <span class="opacity-50">•</span>
+                    <button type="button" onclick="openSoulModal()" class="text-emerald-400 hover:text-emerald-300 font-medium transition flex items-center gap-1 focus:outline-none">
+                        <i class="fas fa-info-circle"></i> <?= __('More Info') ?>
+                    </button>
+                </div>
+                
+                <?php if (!empty($soul['description'])): ?>
+                    <p class="text-[10px] sm:text-xs text-zinc-400 mt-1 line-clamp-1 max-w-md hidden sm:block"><?= htmlspecialchars($soul['description']) ?></p>
+                <?php endif; ?>
             </div>
         </div>
-        <div class="flex items-center">
+        <div class="flex items-center shrink-0 ml-2">
             <?php if ($userTier !== 'free' && $isSessionOwner): ?>
-                <label class="flex items-center cursor-pointer gap-2 mr-4 pr-4 border-r border-white/10" title="Toggle Private Session">
+                <label class="flex items-center cursor-pointer gap-2 mr-4 pr-4 border-r border-white/10 hidden sm:flex" title="Toggle Private Session">
                     <div class="relative">
                         <input type="checkbox" id="privacy-toggle" class="sr-only" <?= $isPrivate ? 'checked' : '' ?> onchange="updatePrivacyUI()">
                         <div class="block w-10 h-6 rounded-full border transition-colors duration-300 <?= $isPrivate ? 'bg-emerald-500 border-emerald-500' : 'bg-zinc-800 border-white/10' ?>" id="privacy-bg"></div>
@@ -132,7 +161,7 @@ require_once __DIR__ . '/../private/includes/chat-modals.php';
                 </label>
             <?php endif; ?>
 
-            <button id="share-btn" onclick="shareChat(this)" class="<?= $isPrivate ? 'hidden ' : '' ?>px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <button id="share-btn" onclick="shareChat(this)" class="<?= $isPrivate ? 'hidden ' : '' ?>px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
                 <i class="fas fa-share-alt"></i> <span class="hidden sm:inline"><?= __('Share URL') ?></span>
             </button>
         </div>

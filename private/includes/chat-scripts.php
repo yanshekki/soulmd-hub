@@ -56,6 +56,36 @@
         }
     }
 
+    // 🚨 全新：模型架構與描述資料彈窗控制邏輯
+    function openSoulModal() {
+        document.body.style.overflow = 'hidden';
+        const modal = document.getElementById('soul-info-modal');
+        const contentDiv = modal.querySelector('div');
+        
+        // 解析並注入隱藏的 Markdown 資料
+        const rawContent = document.getElementById('raw-soul-content').value;
+        const parsedHTML = marked.parse(rawContent);
+        document.getElementById('soul-info-content').innerHTML = DOMPurify.sanitize(parsedHTML);
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => { 
+            modal.classList.remove('opacity-0'); 
+            contentDiv.classList.remove('scale-95'); 
+            contentDiv.classList.add('scale-100'); 
+        }, 10);
+    }
+
+    function closeSoulModal() {
+        document.body.style.overflow = '';
+        const modal = document.getElementById('soul-info-modal');
+        const contentDiv = modal.querySelector('div');
+        
+        modal.classList.add('opacity-0'); 
+        contentDiv.classList.remove('scale-100'); 
+        contentDiv.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
     function openImageModal(src) {
         const modal = document.getElementById('image-viewer-modal');
         const img = document.getElementById('image-viewer-img');
@@ -132,7 +162,6 @@
 
     function processImageFile(file) {
         if (!file.type.match('image.*')) {
-            // 💡 使用 json_encode 防止任何引號及語言斷行衝突
             alert(<?= json_encode(__('Only JPG, PNG and WEBP images are supported.'), JSON_UNESCAPED_UNICODE) ?>);
             return;
         }
@@ -295,12 +324,10 @@
                         showPaywall();
                     }
                 } else {
-                    // 💡 用 json_encode 安全載入初始歡迎詞
                     appendMessage('assistant', <?= json_encode(__('Init message'), JSON_UNESCAPED_UNICODE) ?>);
                 }
             } else {
                 const errMsg = data.error || 'Access Denied';
-                // 💡 關鍵修復：同時兼容英文 "Access Denied" 與中文 "拒絕存取" 攔截觸發
                 if (errMsg.includes('Access Denied') || errMsg.includes('拒絕存取')) {
                     appendMessage('assistant', <?= json_encode(__('Private Session warning'), JSON_UNESCAPED_UNICODE) ?>);
                     chatInput.disabled = true; sendBtn.disabled = true;
@@ -386,7 +413,6 @@
                 aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
             } else {
                 if (data.needs_upgrade) {
-                    // 💡 API 後端會經由 i18n 吐出翻譯後的 data.error
                     aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${data.error}</span>`;
                     showPaywall();
                 } else {
