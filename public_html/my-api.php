@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless BYOK Proxy & One-Time Wallet Binding Edition)
+ * 🚀 Fixed: Pure MyNearWallet Redirect & Emerald Contrast Button
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -168,9 +169,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                         </div>
                     </div>
                     
-                    <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-sm rounded-xl hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200 relative overflow-hidden">
-                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 transition relative z-10" alt="NEAR"> 
-                        <span id="bind-wallet-text" class="relative z-10"><?= __('Connect & Bind Wallet') ?></span>
+                    <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200 relative overflow-hidden">
+                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
+                        <span id="bind-wallet-text"><?= __('Connect & Bind Wallet') ?></span>
                     </button>
                 <?php endif; ?>
             </div>
@@ -208,13 +209,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php if (!$isPublicApiPage): ?>
     window.addEventListener('DOMContentLoaded', async () => {
         <?php if (!$nearWallet): ?>
+            // 🚀 採用與 login.php 完美一致的 URL 監聽回調機制，徹底移走舊版 Selector
             const wallet = await initNearWallet();
-            if (window.nearHubWalletSelector) {
-                window.nearHubWalletSelector.on("signedIn", async (e) => {
-                    const accountId = e.accounts[0].accountId;
-                    await executeWalletBind(accountId);
-                });
-            }
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('account_id') || urlParams.has('all_keys')) {
                 setTimeout(async () => {
@@ -237,10 +233,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             const wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
                 wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-                setTimeout(() => {
-                    text.innerText = originalText;
-                    btn.classList.remove('opacity-50', 'pointer-events-none');
-                }, 1000);
             } else {
                 await executeWalletBind(wallet.getAccountId());
             }
@@ -268,7 +260,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 showFeedbackNotification(false, data.error || 'Failed to bind wallet.');
                 const wallet = await initNearWallet();
-                await wallet.signOut();
+                wallet.signOut();
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
                 const btn = document.getElementById('bind-wallet-btn');
                 if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');

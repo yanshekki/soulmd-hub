@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub - AgentFi Marketplace
- * (Dynamic Blockchain Polling & Web2.5 Integration)
+ * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
+ * 🚀 Fixed: Pure MyNearWallet Native Integration & Non-Black Contrast UI
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -21,19 +22,19 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
     
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-8">
-        <div>
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-10 border-b border-white/10 pb-8">
+        <div class="flex-1 min-w-[280px]">
             <div class="inline-flex items-center gap-2 bg-blue-900/30 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-3 shadow-sm">
                 <i class="fas fa-gem"></i> Web3 Market
             </div>
-            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tighter text-white"><?= __('AgentFi Marketplace') ?></h1>
-            <p class="text-sm sm:text-base text-zinc-400 mt-2 max-w-2xl leading-relaxed"><?= __('Market Subtitle') ?></p>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tighter text-white break-words"><?= __('AgentFi Marketplace') ?></h1>
+            <p class="text-sm sm:text-base text-zinc-400 mt-2 leading-relaxed break-words"><?= __('Market Subtitle') ?></p>
         </div>
         
         <div class="shrink-0" id="wallet-status-container">
-            <button onclick="ensureWalletConnection()" class="px-6 py-3 bg-zinc-950 border border-emerald-500/30 text-emerald-400 rounded-xl font-bold hover:bg-emerald-900/30 transition flex items-center gap-2 shadow-lg group">
-                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition" alt="NEAR">
-                <span id="wallet-btn-text"><?= __('Connect Wallet to Trade') ?></span>
+            <button onclick="ensureWalletConnection()" class="px-6 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 rounded-xl font-black hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
+                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR">
+                <span id="wallet-btn-text" class="truncate max-w-[200px]"><?= __('Connect Wallet to Trade') ?></span>
             </button>
         </div>
     </div>
@@ -75,9 +76,12 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function ensureWalletConnection() {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         } else {
-            alert(`Wallet Connected: ${wallet.getAccountId()}`);
+            if(confirm("Wallet Connected: " + wallet.getAccountId() + "\nDo you want to sign out?")) {
+                wallet.signOut();
+                window.location.reload();
+            }
         }
     }
 
@@ -90,18 +94,96 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadMarketplace();
     });
 
+    async function executeBuySoul() {
+        const btn = document.getElementById('buy-soul-btn');
+        const textSpan = document.getElementById('buy-soul-text');
+        const amountInput = document.getElementById('buy-soul-amount').value;
+
+        if (!amountInput || parseFloat(amountInput) <= 0) {
+            alert('<?= addslashes(__('Invalid amount')) ?>');
+            return;
+        }
+
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            wallet.requestSignIn({ contractId: "<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>" });
+            return;
+        }
+
+        const originalText = textSpan.innerHTML;
+        textSpan.innerHTML = '<?= addslashes(__('Processing')) ?>';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        try {
+            const amountYocto = nearApi.utils.format.parseNearAmount(amountInput.toString());
+            const tokenContract = '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>';
+
+            const transactions = [
+                {
+                    receiverId: tokenContract,
+                    actions: [
+                        {
+                            methodName: 'storage_deposit',
+                            args: { account_id: wallet.getAccountId(), registration_only: true },
+                            gas: '30000000000000',
+                            deposit: nearApi.utils.format.parseNearAmount('0.00125')
+                        }
+                    ]
+                },
+                {
+                    receiverId: 'wrap.near',
+                    actions: [
+                        {
+                            methodName: 'near_deposit',
+                            args: {},
+                            gas: '30000000000000',
+                            deposit: amountYocto
+                        },
+                        {
+                            methodName: 'ft_transfer_call',
+                            args: {
+                                receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>',
+                                amount: amountYocto,
+                                msg: JSON.stringify({
+                                    force: 0,
+                                    actions: [{
+                                        pool_id: <?= defined('NEAR_POOL_ID') ? NEAR_POOL_ID : 8546 ?>,
+                                        token_in: 'wrap.near',
+                                        token_out: tokenContract,
+                                        amount_in: amountYocto,
+                                        min_amount_out: '1'
+                                    }]
+                                })
+                            },
+                            gas: '100000000000000',
+                            deposit: '1'
+                        }
+                    ]
+                }
+            ];
+
+            await wallet.requestSignTransactions({
+                transactions: transactions,
+                callbackUrl: window.location.href
+            });
+
+        } catch(e) {
+            alert('<?= addslashes(__('Transaction failed')) ?>');
+            textSpan.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    }
+
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
         try {
-            // 1. 撈取大部份公開的 Souls
             const res = await fetch('/api/souls?limit=100&sort=newest');
             const data = await res.json();
-            
             if (!data.success || data.data.length === 0) throw new Error("No data");
 
             const activeListings = [];
-            
-            // 2. 併發查詢區塊鏈，過濾出有掛牌價格的資產
             const rpcPromises = data.data.map(async (soul) => {
                 try {
                     const rpcRes = await fetch('https://rpc.mainnet.near.org', {
@@ -121,7 +203,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                 } catch(e) {}
             });
-            
             await Promise.all(rpcPromises);
 
             if (activeListings.length === 0) {
@@ -142,7 +223,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 html += `
                     <div class="bg-zinc-900/80 border border-blue-500/20 rounded-3xl p-6 hover:border-blue-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-                        
                         <div>
                             <div class="flex justify-between items-start gap-3 mb-2">
                                 <a href="${seoUrl}" class="font-bold text-xl text-white hover:text-blue-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
@@ -151,36 +231,32 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <?= addslashes(__('Owner:')) ?> <span class="text-blue-300">${escapeHTML(soul.market.owner_id)}</span>
                             </div>
                         </div>
-
                         <div class="mt-auto space-y-3 pt-4 border-t border-white/10">
                             ${salePrice ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
-                                <div>
+                                <div class="min-w-0 pr-2">
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
-                                    <div class="text-lg font-black text-white font-mono">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
+                                    <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
                                     <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
                                 </button>
                             </div>` : ''}
-
                             ${rentPrice ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
-                                <div>
+                                <div class="min-w-0 pr-2">
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
-                                    <div class="text-lg font-black text-emerald-400 font-mono">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
+                                    <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
                                     <i class="fas fa-handshake"></i> <?= addslashes(__('Rent Now')) ?>
                                 </button>
                             </div>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
             html += `</div>`;
             container.innerHTML = html;
-
         } catch (e) {
             container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i>Network Error</div>`;
         }
@@ -188,18 +264,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function buyMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         await wallet.account().functionCall({
-            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", methodName: "buy_soul", args: { token_id: "soul_" + id },
+            contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + id },
             gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href
         });
     }
 
     async function rentMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         await wallet.account().functionCall({
-            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", methodName: "rent_soul", args: { token_id: "soul_" + id },
+            contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + id },
             gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href
         });
     }
