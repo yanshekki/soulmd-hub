@@ -1,5 +1,5 @@
 # SoulMD Hub: Web2.5 AgentFi & BYOK Proxy Architecture Specification
-## 終極 Web2.5 智能體金融與黑盒代理架構升級白皮書 (V3 數字代幣經濟學增強版)
+## 終極 Web2.5 智能體金融與無狀態黑盒代理架構升級白皮書 (V4 零儲存安全版)
 
 ---
 
@@ -7,36 +7,28 @@
 
 本規格書定義了 **SoulMD Hub** 從傳統 Web2 SaaS 轉型為 **Web2.5 AgentFi (智能體金融)** 生態系統的完整架構藍圖。
 本次升級融合了兩大顛覆性核心機制：
-1. **BYOK 代理黑盒 (Bring Your Own Key + Proxy Blackbox)**：實現平台算力「零成本無限擴展」，同時 100% 隱藏創作者的 Prompt 知識產權。
+1. **無狀態 BYOK 黑盒代理 (Stateless Bring Your Own Key Proxy)**：實現平台算力「零成本無限擴展」，平台零儲存用戶密鑰，完美卸除法律責任，同時 100% 隱藏創作者的 Prompt 知識產權。
 2. **NEAR 區塊鏈可進化 NFT (Updatable Agent NFT)**：實現智能體的鏈上資產化、去中心化買賣、租用分潤與防篡改存證。
 
 ---
 
-## 2. 核心架構一：BYOK 代理黑盒 (零成本算力與 IP 保護)
+## 2. 核心架構一：無狀態 BYOK 黑盒代理 (Stateless Proxy & Zero Liability)
 
-為了解決平台承擔過多 API 算力成本，同時保障「租用模式」下創作者提示詞不被白嫖，系統引入 **BYOK (Bring Your Own Key) 後端代理機制**。
+為了解決平台承擔過多 API 算力成本，保障創作者提示詞不被白嫖，並徹底消除平台儲存第三方密鑰的駭客風險，系統引入 **純無狀態的 BYOK (Bring Your Own Key) 後端代理機制**。
 
-### 2.1 運作數據流 (Data Flow)
-1. **用戶請求**：租用人（或免費免費用戶）在前端發送對話請求，並在系統中綁定自己的 DeepSeek / Together AI API Key。
-2. **後端攔截 (PHP Proxy)**：請求不直接發往 LLM，而是先送到 SoulMD Hub 後端 (`api/chat.php`)。
+### 2.1 運作數據流 (Stateless Data Flow)
+本平台**絕對不儲存**任何用戶的第三方 API Key。密鑰由用戶瀏覽器的 `LocalStorage` 進行本地保管。
+1. **用戶請求**：租用人（或免費用戶）在前端發送對話請求，前端 JS 會從 `LocalStorage` 提取用戶的 DeepSeek / Together AI Key，並透過專用 HTTP Header（如 `X-Provider-Key`）封裝發送至後端。
+2. **後端攔截 (PHP Proxy)**：請求抵達 SoulMD Hub 後端 (`api/chat.php`)，後端僅作為中繼站（Proxy）。
 3. **機密組裝**：PHP 後端從 MySQL 提取受保護的 `soul.md` (System Prompt)，在伺服器記憶體中與用戶的訊息進行組裝。
-4. **代理發送**：PHP 使用 **租用人提供的自訂 API Key** 向 DeepSeek 發起 cURL 請求。
-5. **回傳與銷毀**：獲取 AI 回覆後傳給前端，記憶體中的 Prompt 立即銷毀。
-* **結果**：租用人完全無法透過 F12 Network Tab 攔截到原始 Prompt，實現完美的「黑盒出租 (Blackbox Leasing)」。
+4. **左手交右手 (Header Forwarding)**：PHP 直接讀取 `$_SERVER['HTTP_X_PROVIDER_KEY']`，將其轉換為 `Authorization: Bearer <User_Key>`，向 DeepSeek 發起 cURL 請求。
+5. **回傳與銷毀**：獲取 AI 回覆後傳給前端。PHP 執行序結束，記憶體中的 Prompt 與 用戶的 API Key **瞬間徹底銷毀**，不留任何日誌。
+* **結果**：租用人無法透過 F12 攔截原始 Prompt（實現黑盒出租），平台也無需承擔保管密鑰的風險，實現 100% Trustless。
 
-### 2.2 伺服器資源防護機制 (Anti-Server Abuse for BYOK)
-雖然 BYOK 免除了平台的 LLM API 算力成本，但高頻對話仍會大量消耗 MySQL 讀寫與後端頻寬。因此，BYOK 將設立以下門檻：
-- **門禁限制**：BYOK 模式僅限活躍的 **VIP/PRO 付費訂閱用戶** 使用，免費沙盒用戶無權接入自訂密鑰，確保伺服器基礎維護成本被訂閱費完全覆蓋。
+### 2.2 伺服器資源防護機制 (Anti-Server Abuse)
+雖然 BYOK 免除了平台的 LLM API 算力成本，但高頻對話仍會大量消耗 MySQL 讀寫與後端頻寬。因此將設立以下門檻：
+- **門禁限制**：BYOK 模式僅限活躍的 **VIP/PRO 付費訂閱用戶** 使用，確保伺服器基礎維護成本被訂閱費完全覆蓋。
 - **租用消耗費**：在黑盒租用模式下，除了代幣結算外，每次對話請求將受限於嚴格的 Rate Limiting，防止惡意腳本耗盡平台資源。
-
-### 2.3 資料庫安全升級 (MySQL)
-必須在資料庫中安全地儲存用戶的自訂 API Key，採用 AES-256 加密防止資料庫外洩導致的災難。
-```sql
-ALTER TABLE users 
-ADD COLUMN custom_deepseek_key VARCHAR(255) NULL DEFAULT NULL COMMENT 'Encrypted DeepSeek Key',
-ADD COLUMN custom_vision_key VARCHAR(255) NULL DEFAULT NULL COMMENT 'Encrypted Together AI Key';
-
-```
 
 ---
 
@@ -45,7 +37,6 @@ ADD COLUMN custom_vision_key VARCHAR(255) NULL DEFAULT NULL COMMENT 'Encrypted T
 平台不強制用戶必須有 Web3 錢包，但提供錢包綁定以解鎖 AgentFi 資產交易功能。
 
 ### 3.1 資料庫變更
-
 ```sql
 ALTER TABLE users 
 ADD COLUMN near_wallet_address VARCHAR(64) NULL DEFAULT NULL AFTER email,
@@ -140,10 +131,11 @@ AI 智能體需要持續優化，合約提供 `update_soul_hash` 接口：
 
 ## 6. 開發與部署路線圖 (Roadmap)
 
-### 6.1 Phase 1: Web2.5 身份與 BYOK 代理 (Month 1)
+### 6.1 Phase 1: Web2.5 身份與無狀態 BYOK 代理 (Month 1)
 
-* 實作 MySQL 資料庫升級 (`near_wallet_address`, `custom_deepseek_key`, `custom_vision_key`)。
-* 實作 BYOK 代理邏輯，重構 `api/chat.php` miniatures 邏輯，實現黑盒推理。
+* 實作 MySQL 資料庫升級 (`near_wallet_address`)。
+* 實作前端 LocalStorage 密鑰管理機制，與 `X-Provider-Key` Header 注入邏輯。
+* 重構 `api/chat.php`，實現左手交右手的無狀態黑盒推理代理。
 * 整合 NEAR Wallet Selector 實現錢包登入與綁定。
 
 ### 6.2 Phase 2: 智能合約與存證上鏈 (Month 2)
