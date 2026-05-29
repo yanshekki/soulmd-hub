@@ -33,6 +33,11 @@ ADD COLUMN custom_vision_key VARCHAR(255) NULL DEFAULT NULL COMMENT 'Encrypted T
 
 ```
 
+### 2.3 伺服器資源防護機制 (Anti-Server Abuse for BYOK)
+雖然 BYOK 免除了平台的 LLM API 算力成本，但高頻對話仍會大量消耗 MySQL 讀寫與後端頻寬。因此，BYOK 將設立以下門檻：
+- **門禁限制**：BYOK 模式僅限活躍的 **VIP/PRO 付費訂閱用戶** 使用，免費沙盒用戶無權接入自訂密鑰，確保伺服器基礎維護成本被訂閱費完全覆蓋。
+- **租用消耗費**：在黑盒租用模式下，除了代幣結算外，每次對話請求將受限於嚴格的 Rate Limiting，防止惡意腳本耗盡平台資源。
+
 ---
 
 ## 3. 核心架構二：Web2.5 混合身份層 (錢包綁定)
@@ -86,6 +91,11 @@ AI 智能體需要持續優化，合約提供 `update_soul_hash` 接口：
 
 租客使用黑盒時，PHP 會計算當前 MySQL 內 Prompt 的 Hash，並與 NEAR 鏈上該 NFT 的 Hash 對比。若不匹配，即觸發熔斷機制，拒絕推理，保證模型沒有被創作者線下惡意篡改。
 
+### 4.4 模組化版稅分潤樹 (Composable Royalty Tree)
+配合本平台獨有的多檔案（`SOUL.md`, `STYLE.md`, `RULES.md`）模組化架構，合約將引入 NEP-199 擴展協議。
+- 若創作者 B 在其 AI 智能體中 Fork 或引用了創作者 A 的模組，合約將記錄此依賴關係 (Dependency Tree)。
+- 當該智能體產生租金或買賣收益時，合約自動執行**樹狀分潤**（例如：10% 給原創者 A，80% 給二次創作者 B，10% 給平台），打造真正互利共贏的開源 AI 經濟圈。
+
 ---
 
 ## 5. 核心架構四：AgentFi 商業模型與極致通縮代幣經濟
@@ -107,6 +117,11 @@ AI 智能體需要持續優化，合約提供 `update_soul_hash` 接口：
 * 將收集到的 NEAR 自動 Swap 買入平台發行的原生代幣 (如 `$SOUL`)。
 * 買入的 `$SOUL` 直接打入黑洞地址 (Burn Address) 永久銷毀。
 * **商業效應**：平台交易越活躍，代幣銷毀越快，流通量持續通縮，為投資者提供極強的價格上漲預期。
+
+### 5.3 動態費率與預言機錨定 (Dynamic Fees & Oracle Pegging)
+為防止加密貨幣市場價格劇烈波動導致平台使用成本失控：
+- 智能合約內所有固定手續費（如 0.1 NEAR 鑄造稅）不作永久硬編碼，平台 Owner 保留 `update_platform_fee` 的動態調整權限。
+- **未來展望**：將接入 Pyth Network 或 NEAR 原生 Oracle，將所有平台稅費錨定為「絕對美元價值」（如 $0.5 USD 等值 NEAR），確保商業模式具備抗風險的防脆弱性 (Anti-fragile)。
 
 ---
 
@@ -130,3 +145,7 @@ AI 智能體需要持續優化，合約提供 `update_soul_hash` 接口：
 * 實作「黑盒出租」的智能合約分潤機制。
 * 對接 Ref Finance AMM，實作平台收益自動回購銷毀邏輯。
 * 正式向 **NEAR Horizon** 提交申請，爭取生態 Grants 支援主網上線。
+
+### Phase 4: 純血去中心化 TEE 黑盒推理 (Future Vision)
+- 將當前的 PHP Backend Proxy 升級為基於 NEAR AI 的 **可信執行環境 (Trusted Execution Environment, TEE)** 推理節點。
+- 屆時 Prompt 將在硬體級隔離的黑盒內進行解密與推理，連平台官方也無法窺探創作者的模型源代碼，實現 100% Trustless 的終極去中心化願景。
