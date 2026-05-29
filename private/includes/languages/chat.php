@@ -56,6 +56,9 @@ return [
         'Fatal Server Error' => 'Fatal Server Error. Please check browser console (F12) for details.',
         'Failed to get response.' => 'Failed to get response.',
         'Network error. Connection failed.' => 'Network error. Connection failed.',
+        
+        // 🚀 Web3 / AgentFi Alerts
+        'Security Interception' => "⚠️ **Security Interception**\nOff-chain AI template mismatch. The creator has modified the prompt without updating the blockchain hash. Access is blocked to protect your rental rights.",
     ],
     
     'zh' => [
@@ -109,5 +112,8 @@ return [
         'Fatal Server Error' => '伺服器發生嚴重錯誤。請檢查瀏覽器控制台 (F12) 了解詳情。',
         'Failed to get response.' => '無法獲取回覆。',
         'Network error. Connection failed.' => '網絡錯誤，連線失敗。',
+        
+        // 🚀 Web3 / AgentFi Alerts
+        'Security Interception' => "⚠️ **安全攔截 (防篡改機制熔斷)**\n鏈下 AI 模板數據不吻合。創作者未有將最新的指令指紋 (Hash) 同步更新至區塊鏈。為保護您的租用權益，系統已自動阻斷此次推理請求。",
     ]
 ];

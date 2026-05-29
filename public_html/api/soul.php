@@ -4,7 +4,7 @@
  * GET    /api/soul/{id} - Get single soul details
  * PUT    /api/soul/{id} - Update a soul (Requires Auth: Session or API Key, with JSON Auto-Fix)
  * DELETE /api/soul/{id} - Delete a soul (Requires Auth: Session or API Key)
- * (100% Dynamic i18n Internationalized Error Stack & UNESCAPED Edition)
+ * (100% Dynamic i18n Internationalized Error Stack & UNESCAPED Edition + Web3 Hash)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
 loadTranslations('api');
 
 $db = Database::getInstance();
@@ -36,9 +35,6 @@ if (!$id) {
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ==========================================
-// 權限助手函數：獲取當前用戶 ID (API Key 或 Session)
-// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -53,9 +49,6 @@ function getAuthUserId($pdo) {
     return null;
 }
 
-// ==========================================
-// 標籤同步助手函數
-// ==========================================
 function syncTags($pdo, $table, $oldStr, $newStr) {
     $oldTags = array_filter(array_map('trim', explode(',', $oldStr)));
     $newTags = array_filter(array_map('trim', explode(',', $newStr)));
@@ -73,11 +66,7 @@ function syncTags($pdo, $table, $oldStr, $newStr) {
     }
 }
 
-// ==========================================
-// 路由處理
-// ==========================================
 if ($method === 'GET') {
-    // 獲取 Soul 詳情
     $userId = getAuthUserId($pdo);
     
     $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ?");
@@ -90,7 +79,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 檢查私有權限
     if (!$soul['is_public'] && $soul['user_id'] !== $userId) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
@@ -100,7 +88,6 @@ if ($method === 'GET') {
     echo json_encode(['success' => true, 'data' => $soul], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } elseif ($method === 'PUT') {
-    // 修改 Soul
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -125,7 +112,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 局部更新 (Partial Update) 沿用資料庫舊值
     $title = isset($input['title']) ? trim($input['title']) : $old['title'];
     $description = isset($input['description']) ? trim($input['description']) : ($old['description'] ?? '');
     $content = isset($input['content']) ? $input['content'] : $old['content'];
@@ -142,7 +128,6 @@ if ($method === 'GET') {
 
     $fileType = strpos(trim($content), '{') === 0 ? 'full_soul_folder' : 'single_md';
 
-    // 🚨 完美 JSON 容錯修復：更新大腦時，同樣清洗 AI 生成的非法單引號，並重新編碼為標準 JSON
     if ($fileType === 'full_soul_folder') {
         $cleanedContent = str_replace("\\'", "'", $content);
         $parsed = json_decode($cleanedContent, true);
@@ -156,23 +141,25 @@ if ($method === 'GET') {
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
+    // 🚀 核心新增：計算新內容的 Hash
+    $contentHash = 'sha256:' . hash('sha256', $content);
+
     try {
         $pdo->beginTransaction();
 
-        // 備份舊版本至 History
         $pdo->prepare("INSERT INTO soul_versions (soul_id, title, content) VALUES (?, ?, ?)")
             ->execute([$id, $old['title'], $old['content']]);
 
-        // 更新當前 Soul
         $updStmt = $pdo->prepare("UPDATE souls SET title = ?, description = ?, content = ?, role = ?, domain = ?, compatibility = ?, is_public = ?, file_type = ? WHERE id = ?");
         $updStmt->execute([$title, $description, $content, $role, $domain, $compatibility, $is_public, $fileType, $id]);
 
-        // 更新標籤統計
         syncTags($pdo, 'tags_domain', $old['domain'], $domain);
         syncTags($pdo, 'tags_compatibility', $old['compatibility'], $compatibility);
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => __('Soul updated successfully')], JSON_UNESCAPED_UNICODE);
+        
+        // 🚀 回傳 Hash 給前端上鏈使用
+        echo json_encode(['success' => true, 'message' => __('Soul updated successfully'), 'hash' => $contentHash], JSON_UNESCAPED_UNICODE);
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
@@ -180,7 +167,6 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'DELETE') {
-    // 刪除 Soul
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -203,7 +189,6 @@ if ($method === 'GET') {
 
         $pdo->prepare("DELETE FROM souls WHERE id = ?")->execute([$id]);
 
-        // 清除標籤統計
         syncTags($pdo, 'tags_domain', $old['domain'], '');
         syncTags($pdo, 'tags_compatibility', $old['compatibility'], '');
 

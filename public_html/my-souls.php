@@ -58,6 +58,8 @@ $pageDesc = __('Manage and edit your uploaded AI personalities');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
+
 <div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-6">
         <div>

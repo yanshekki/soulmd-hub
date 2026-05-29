@@ -48,6 +48,12 @@ return [
         'Loading...' => 'Loading...',
         'Cancel' => 'Cancel',
         'Save Changes' => 'Save Changes',
+
+        // 🚀 Web3 Update Hash Section
+        'Sync to NEAR' => 'Sync to NEAR Blockchain',
+        'Sync Desc' => 'Update the on-chain hash to reflect your latest prompt edits. (Required if already minted)',
+        'Please connect NEAR wallet first' => 'Please bind your NEAR wallet in Developer API Access first.',
+        'Redirecting to Wallet...' => 'Redirecting to Wallet...',
         
         // Add File Modal
         'Add Module File' => 'Add Module File',
@@ -110,6 +116,12 @@ return [
         'Loading...' => '正在載入中...',
         'Cancel' => '取消',
         'Save Changes' => '儲存變更',
+
+        // 🚀 Web3 Update Hash Section
+        'Sync to NEAR' => '同步更新至 NEAR 區塊鏈',
+        'Sync Desc' => '將最新修改的內容指紋 (Hash) 同步上鏈。(若已鑄造為 NFT，必須勾選此項)',
+        'Please connect NEAR wallet first' => '請先前往「開發者 API 存取權限」綁定您的 NEAR 錢包。',
+        'Redirecting to Wallet...' => '正在重導向至錢包...',
         
         // Add File Modal
         'Add Module File' => '新增架構檔案模組',

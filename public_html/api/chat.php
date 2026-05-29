@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub Public API - Web2.5 BYOK Proxy Edition
  * (Stateless API Forwarding, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
+ * 🚀 AgentFi Security Integrity Radar (Two-Way Integrity Check)
  */
 
 set_time_limit(180);
@@ -20,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-// 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -62,15 +62,17 @@ function getCurrentUser($pdo, $apiUserId = null) {
             'id' => null, 
             'tier' => 'free', 
             'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0),
-            'is_expired' => false
+            'is_expired' => false,
+            'near_wallet' => null
         ];
     }
 
-    $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at FROM users WHERE id = ?");
+    // 🚀 撈取 near_wallet_address 作後續權限驗證準備
+    $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
 
-    if (!$user) return ['id' => null, 'tier' => 'free', 'daily_count' => 0, 'is_expired' => false];
+    if (!$user) return ['id' => null, 'tier' => 'free', 'daily_count' => 0, 'is_expired' => false, 'near_wallet' => null];
 
     $isExpired = false;
     if ($user['tier'] !== 'free' && $user['vip_expires_at'] && strtotime($user['vip_expires_at']) < time()) {
@@ -88,7 +90,8 @@ function getCurrentUser($pdo, $apiUserId = null) {
         'id' => $user['id'],
         'tier' => $user['tier'],
         'daily_count' => $user['daily_chat_count'],
-        'is_expired' => $isExpired
+        'is_expired' => $isExpired,
+        'near_wallet' => $user['near_wallet_address']
     ];
 }
 
@@ -158,7 +161,6 @@ if ($method === 'POST') {
     if ($byokDeepSeek || $byokVision) {
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
-            // 此處借用現成的翻譯，亦可使用全新設計的警告字眼
             echo json_encode(['success' => false, 'error' => 'BYOK Proxy Mode is exclusively reserved for VIP/PRO members to prevent server abuse. Please upgrade your plan.', 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
@@ -294,10 +296,69 @@ if ($method === 'POST') {
             exit;
         }
 
-        $stmt = $pdo->prepare("SELECT content, file_type FROM souls WHERE id = ? AND is_public = 1");
+        $stmt = $pdo->prepare("SELECT content, file_type, user_id FROM souls WHERE id = ? AND is_public = 1");
         $stmt->execute([$soulId]);
         $soul = $stmt->fetch();
         if (!$soul) { http_response_code(404); echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE); exit; }
+
+        // =================================================================
+        // 🚀 Phase 3: AgentFi 雙向防篡改機制 (Integrity Radar)
+        // =================================================================
+        $currentDbHash = 'sha256:' . hash('sha256', $soul['content']);
+        $tokenIdStr = "soul_" . $soulId;
+
+        // 僅限當這個模型擁有者有綁定 Web3 錢包時（代表他可能已鑄造），我們才執行 RPC 防護檢查
+        // 這個檢查會向 NEAR 主網查詢該 NFT 當前的 metadata
+        $creatorStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+        $creatorStmt->execute([$soul['user_id']]);
+        $creatorWallet = $creatorStmt->fetchColumn();
+
+        if (!empty($creatorWallet)) {
+            $rpcPayload = json_encode([
+                "jsonrpc" => "2.0",
+                "id" => "dontcare",
+                "method" => "query",
+                "params" => [
+                    "request_type" => "call_function",
+                    "finality" => "final",
+                    "account_id" => "soulmd-hub.near", // 我們的智能合約地址
+                    "method_name" => "get_soul", // 呼叫我們在 contract.ts 寫的 View Method
+                    "args_base64" => base64_encode(json_encode(["token_id" => $tokenIdStr]))
+                ]
+            ]);
+
+            $chRpc = curl_init('https://rpc.mainnet.near.org');
+            curl_setopt($chRpc, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($chRpc, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($chRpc, CURLOPT_POST, true);
+            curl_setopt($chRpc, CURLOPT_POSTFIELDS, $rpcPayload);
+            curl_setopt($chRpc, CURLOPT_TIMEOUT, 3); // 給 3 秒 Timeout 防止卡死
+            $rpcResult = curl_exec($chRpc);
+            curl_close($chRpc);
+
+            if ($rpcResult) {
+                $rpcData = json_decode($rpcResult, true);
+                if (isset($rpcData['result']['result'])) {
+                    $resString = implode(array_map('chr', $rpcData['result']['result']));
+                    $tokenInfo = json_decode($resString, true);
+                    
+                    // 🛡️ 熔斷判定：如果區塊鏈有此 NFT，且鏈上 Hash 與當前數據庫 Hash 不符
+                    if ($tokenInfo && isset($tokenInfo['metadata']['extra'])) {
+                        $onChainHash = $tokenInfo['metadata']['extra'];
+                        if ($onChainHash !== $currentDbHash) {
+                            // 觸發安全攔截，終止對話！
+                            // 這裡不會回傳 JSON Error，而是直接拋出一個防篡改的特殊 Reply，讓前端顯示熔斷訊息
+                            echo json_encode([
+                                'success' => true, 
+                                'reply' => __("Security Interception") // 對應語言包
+                            ], JSON_UNESCAPED_UNICODE);
+                            exit;
+                        }
+                    }
+                }
+            }
+        }
+        // =================================================================
 
         $systemPrompt = "";
         if ($soul['file_type'] === 'full_soul_folder') {
@@ -345,7 +406,6 @@ if ($method === 'POST') {
             }
 
             $compressModel = defined('FREE_MODEL') ? FREE_MODEL : 'deepseek-chat';
-            // 🚀 BYOK Apply to Memory Summarizer as well
             $compressApiKey = $byokDeepSeek ?: DEEPSEEK_API_KEY;
             
             $chSum = curl_init();
@@ -391,7 +451,6 @@ if ($method === 'POST') {
             $apiMessages[] = ["role" => "user", "content" => $userMessageText];
         }
 
-        // 🚀 核心升級：BYOK 金鑰動態路由分配
         $targetApiUrl = DEEPSEEK_API_URL;
         $targetApiKey = $byokDeepSeek ?: DEEPSEEK_API_KEY;
         $targetModel = $tierConfig['model'];

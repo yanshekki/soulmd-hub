@@ -92,6 +92,17 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="p-4 sm:p-5 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
+                    <div>
+                        <h3 class="text-white font-bold text-sm flex items-center gap-2"><i class="fas fa-sync-alt text-emerald-400"></i> <?= __('Sync to NEAR') ?></h3>
+                        <p class="text-[11px] sm:text-xs text-zinc-400 mt-1"><?= __('Sync Desc') ?></p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" id="sync-toggle" class="sr-only peer">
+                        <div class="w-12 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
             </div>
 
             <input type="hidden" id="edit-final-payload" name="content">
@@ -317,6 +328,7 @@
         currentEditId = id;
         document.getElementById('edit-id').value = id;
         document.getElementById('edit-title').value = <?= json_encode(__('Loading...'), JSON_UNESCAPED_UNICODE) ?>;
+        document.getElementById('sync-toggle').checked = false; // Reset toggle
         
         document.body.style.overflow = 'hidden'; 
         
@@ -357,6 +369,20 @@
         const btn = e.target.querySelector('button[type="submit"]');
         const text = btn.querySelector('#save-text');
         const spinner = btn.querySelector('#loading-spinner');
+        
+        const wantSync = document.getElementById('sync-toggle').checked;
+        let wallet = null;
+
+        // 🚀 若啟用 Sync，發送前先利用共用腳本檢查錢包授權
+        if (wantSync) {
+            wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+                window.location.href = "<?= url('/my-api') ?>";
+                return;
+            }
+        }
+
         text.classList.add('hidden'); spinner.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
@@ -379,7 +405,28 @@
             const data = await res.json();
             
             if (data.success) { 
-                closeModal(); location.reload(); 
+                // 🚀 執行 Web3 Hash 同步
+                if (wantSync) {
+                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
+                    text.classList.remove('hidden');
+                    spinner.classList.add('hidden');
+                    
+                    const args = {
+                        token_id: "soul_" + currentEditId,
+                        new_hash: data.hash
+                    };
+                    
+                    // 跳轉至 NEAR Wallet 簽名
+                    await wallet.account().functionCall({
+                        contractId: "soulmd-hub.near",
+                        methodName: "update_soul_hash",
+                        args: args,
+                        gas: "30000000000000", // 30 TGas
+                        attachedDeposit: "0" // Update Hash is free (just gas)
+                    });
+                } else {
+                    closeModal(); location.reload(); 
+                }
             } else { 
                 alert(data.error); 
                 text.classList.remove('hidden'); spinner.classList.add('hidden'); 
