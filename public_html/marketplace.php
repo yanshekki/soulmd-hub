@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
- * 🚀 Fixed: Bulletproof UI Layout & Restored Official NEAR Icon
+ * 🚀 Pure Vanilla JS / Native MyNearWallet Edition
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -32,8 +32,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
         
         <div class="shrink-0" id="wallet-status-container">
-            <button onclick="ensureWalletConnection()" class="px-6 py-3 bg-zinc-950 border border-emerald-500/30 text-emerald-400 rounded-xl font-bold hover:bg-emerald-900/30 transition flex items-center justify-center gap-2 shadow-lg group">
-                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition shrink-0" alt="NEAR">
+            <button onclick="ensureWalletConnection()" class="px-6 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 rounded-xl font-black hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
+                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR">
                 <span id="wallet-btn-text" class="truncate max-w-[200px]"><?= __('Connect Wallet to Trade') ?></span>
             </button>
         </div>
@@ -41,13 +41,11 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <div class="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-        
         <div class="flex-1 min-w-[280px]">
             <div class="text-emerald-400 text-[10px] font-bold tracking-widest uppercase mb-1.5"><i class="fas fa-bolt"></i> <?= __('Swap Subtitle') ?></div>
             <h3 class="text-2xl sm:text-3xl font-bold text-white mb-2"><?= __('Swap Title') ?></h3>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-xl"><?= __('Swap Desc') ?></p>
         </div>
-        
         <div class="shrink-0 flex items-center gap-3 bg-zinc-950/40 p-2.5 rounded-2xl border border-white/5 w-full sm:w-auto">
             <input type="number" id="buy-soul-amount" placeholder="<?= __('Pay Amount') ?>" step="0.1" min="0.1" class="w-full sm:w-48 bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 text-white shadow-inner font-mono">
             <button type="button" onclick="executeBuySoul()" id="buy-soul-btn" class="shrink-0 px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 duration-200 flex items-center gap-2">
@@ -81,7 +79,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         } else {
             if(confirm("Wallet Connected: " + wallet.getAccountId() + "\nDo you want to sign out?")) {
-                await wallet.signOut();
+                wallet.signOut();
                 window.location.reload();
             }
         }
@@ -96,7 +94,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadMarketplace();
     });
 
-    // 🚀 $SOUL 閃兌邏輯
+    // 🚀 $SOUL 閃兌邏輯 (已簡化為純 JSON 對象，交由底層封裝轉換)
     async function executeBuySoul() {
         const btn = document.getElementById('buy-soul-btn');
         const textSpan = document.getElementById('buy-soul-text');
@@ -120,35 +118,32 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         try {
             const amountYocto = nearApi.utils.format.parseNearAmount(amountInput.toString());
-            const encoder = new TextEncoder();
+            const tokenContract = '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>';
 
             const transactions = [
                 {
-                    receiverId: '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>',
+                    receiverId: tokenContract,
                     actions: [
-                        nearApi.transactions.functionCall(
-                            'storage_deposit',
-                            encoder.encode(JSON.stringify({
-                                account_id: wallet.getAccountId(),
-                                registration_only: true
-                            })),
-                            '30000000000000',
-                            nearApi.utils.format.parseNearAmount('0.00125')
-                        )
+                        {
+                            methodName: 'storage_deposit',
+                            args: { account_id: wallet.getAccountId(), registration_only: true },
+                            gas: '30000000000000',
+                            deposit: nearApi.utils.format.parseNearAmount('0.00125')
+                        }
                     ]
                 },
                 {
                     receiverId: 'wrap.near',
                     actions: [
-                        nearApi.transactions.functionCall(
-                            'near_deposit',
-                            encoder.encode(JSON.stringify({})),
-                            '30000000000000',
-                            amountYocto
-                        ),
-                        nearApi.transactions.functionCall(
-                            'ft_transfer_call',
-                            encoder.encode(JSON.stringify({
+                        {
+                            methodName: 'near_deposit',
+                            args: {},
+                            gas: '30000000000000',
+                            deposit: amountYocto
+                        },
+                        {
+                            methodName: 'ft_transfer_call',
+                            args: {
                                 receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>',
                                 amount: amountYocto,
                                 msg: JSON.stringify({
@@ -156,15 +151,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     actions: [{
                                         pool_id: <?= defined('NEAR_POOL_ID') ? NEAR_POOL_ID : 8546 ?>,
                                         token_in: 'wrap.near',
-                                        token_out: '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>',
+                                        token_out: tokenContract,
                                         amount_in: amountYocto,
                                         min_amount_out: '1'
                                     }]
                                 })
-                            })),
-                            '100000000000000',
-                            '1'
-                        )
+                            },
+                            gas: '100000000000000',
+                            deposit: '1'
+                        }
                     ]
                 }
             ];
@@ -182,17 +177,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚀 市集加載與區塊鏈狀態抓取
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
         try {
             const res = await fetch('/api/souls?limit=100&sort=newest');
             const data = await res.json();
-            
             if (!data.success || data.data.length === 0) throw new Error("No data");
 
             const activeListings = [];
-            
             const rpcPromises = data.data.map(async (soul) => {
                 try {
                     const rpcRes = await fetch('https://rpc.mainnet.near.org', {
@@ -212,7 +204,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                 } catch(e) {}
             });
-            
             await Promise.all(rpcPromises);
 
             if (activeListings.length === 0) {
@@ -233,7 +224,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 html += `
                     <div class="bg-zinc-900/80 border border-blue-500/20 rounded-3xl p-6 hover:border-blue-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-                        
                         <div>
                             <div class="flex justify-between items-start gap-3 mb-2">
                                 <a href="${seoUrl}" class="font-bold text-xl text-white hover:text-blue-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
@@ -242,7 +232,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <?= addslashes(__('Owner:')) ?> <span class="text-blue-300">${escapeHTML(soul.market.owner_id)}</span>
                             </div>
                         </div>
-
                         <div class="mt-auto space-y-3 pt-4 border-t border-white/10">
                             ${salePrice ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
@@ -254,7 +243,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
                                 </button>
                             </div>` : ''}
-
                             ${rentPrice ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
                                 <div class="min-w-0 pr-2">
@@ -266,12 +254,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 </button>
                             </div>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
             html += `</div>`;
             container.innerHTML = html;
-
         } catch (e) {
             container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i>Network Error</div>`;
         }

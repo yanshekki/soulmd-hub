@@ -38,7 +38,6 @@ if (!$isPublicApiPage) {
         $nearWallet = $userRow['near_wallet_address'];
         $expiry = $userRow['vip_expires_at'] ? strtotime($userRow['vip_expires_at']) : 0;
         
-        // 判斷是否為預設管理員帳號
         if (in_array(strtolower($userRow['username']), ['yanshekki', 'ysk', 'ysklimited', 'ki'])) {
             $isAdmin = true;
         }
@@ -168,8 +167,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <strong class="text-blue-400 font-bold uppercase tracking-wide block mb-1"><?= __('Important Warning:') ?></strong> <?= __('Wallet one-time warning') ?>
                         </div>
                     </div>
-                    <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full py-3.5 bg-zinc-950 border border-emerald-500/30 text-emerald-400 font-bold text-sm rounded-xl hover:bg-emerald-900/30 transition flex items-center justify-center gap-2 shadow-lg group relative overflow-hidden">
-                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition relative z-10" alt="NEAR"> 
+                    
+                    <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-sm rounded-xl hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200 relative overflow-hidden">
+                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 transition relative z-10" alt="NEAR"> 
                         <span id="bind-wallet-text" class="relative z-10"><?= __('Connect & Bind Wallet') ?></span>
                     </button>
                 <?php endif; ?>
@@ -206,24 +206,17 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     <?php if (!$isPublicApiPage): ?>
-    
-    // 🚀 Web3 錢包一次性綁定邏輯 (相容擴充及網頁跳轉錢包)
     window.addEventListener('DOMContentLoaded', async () => {
         <?php if (!$nearWallet): ?>
             const wallet = await initNearWallet();
-            
-            // 情況 A: 擴充功能錢包 (Meteor, Sender) 登入完成不跳轉，直接透過事件監聽抓取
             if (window.nearHubWalletSelector) {
                 window.nearHubWalletSelector.on("signedIn", async (e) => {
                     const accountId = e.accounts[0].accountId;
                     await executeWalletBind(accountId);
                 });
             }
-
-            // 情況 B: 網頁跳轉錢包 (MyNearWallet) 跳轉回來帶有參數
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('account_id') || urlParams.has('all_keys')) {
-                // 給 Wallet Selector 些微延遲同步狀態
                 setTimeout(async () => {
                     if (wallet.isSignedIn()) {
                         await executeWalletBind(wallet.getAccountId());
@@ -243,8 +236,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
-                wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
-                // 因為是彈窗，如果用戶關閉彈窗，我們恢復按鈕狀態
+                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
                 setTimeout(() => {
                     text.innerText = originalText;
                     btn.classList.remove('opacity-50', 'pointer-events-none');
@@ -269,18 +261,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify({ action: 'bind', wallet: accountId })
             });
             const data = await res.json();
-            
             if (data.success) {
-                // 綁定成功：清洗 URL 上殘留的錢包跳轉參數，然後重新整理頁面顯示鎖定狀態
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                 window.location.reload();
             } else {
                 showFeedbackNotification(false, data.error || 'Failed to bind wallet.');
-                // 綁定失敗 (可能被別人綁定過)，自動強制登出錢包讓用戶可以換錢包再試
                 const wallet = await initNearWallet();
                 await wallet.signOut();
-                
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
                 const btn = document.getElementById('bind-wallet-btn');
                 if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
@@ -293,7 +281,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 原有 API Key 複製與重置邏輯
     function copyKey(btn) {
         const key = document.getElementById('key-display').innerText;
         navigator.clipboard.writeText(key).then(() => {
@@ -305,7 +292,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function rollApiKey() {
         if (!confirm('Are you sure you want to roll your API Key? All applications using the old key will lose access immediately.')) return;
-        
         const btn = document.getElementById('roll-btn');
         const text = document.getElementById('roll-text');
         const loading = document.getElementById('roll-loading');
@@ -321,7 +307,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/regenerate-key', { method: 'POST' });
             const data = await res.json();
-
             if (data.success) {
                 document.getElementById('key-display').innerText = data.new_api_key;
                 showFeedbackNotification(true, data.message);
@@ -337,7 +322,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚀 Phase 4: Admin Auto Buyback Trigger
     <?php if ($isAdmin): ?>
     async function triggerAutoBuyback() {
         const amount = document.getElementById('buyback-amount').value;
@@ -347,31 +331,27 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             return;
         }
 
         try {
-            // 將 NEAR 轉為 YoctoNEAR 格式傳送給合約
             const amountInYocto = nearApi.utils.format.parseNearAmount(amount.toString());
-            
             await wallet.account().functionCall({
-                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                contractId: "<?= NEAR_CONTRACT_ID; ?>",
                 methodName: "auto_buyback_and_burn",
                 args: { amount_in_near: amountInYocto },
-                gas: "100000000000000", // 100 TGas 需要足夠 Gas 執行跨合約 Swap
+                gas: "100000000000000",
                 attachedDeposit: "0", 
                 walletCallbackUrl: window.location.href
             });
         } catch(e) {
-            alert("Blockchain transaction failed. Make sure you are logged in with the official Treasury account (<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>).");
+            alert("Blockchain transaction failed. Make sure you are logged in with the official Treasury account (<?= NEAR_CONTRACT_ID; ?>).");
         }
     }
     <?php endif; ?>
-
     <?php endif; ?>
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/api-postman.php'; ?>
-
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

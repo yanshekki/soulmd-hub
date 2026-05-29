@@ -9,19 +9,16 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('login');
 
-// 如果已經登入（或者 header.php 自動登入成功），直接跳轉到管理後台
 if (isset($_SESSION['user_id'])) {
     header('Location: ' . url('/my-souls'));
     exit;
 }
 
-// 🌍 SEO Meta 多語言化
 $pageTitle = __('Log in');
 $pageDesc = __('Login Desc');
-$hideNavLinks = true; // 隱藏多餘導覽列連結保持畫面簡潔
+$hideNavLinks = true; 
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -61,8 +58,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="mt-6 pt-6 border-t border-white/10 relative">
                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-950 text-zinc-500 text-[10px] px-2 font-bold tracking-widest">WEB3</div>
                 
-                <button type="button" onclick="handleNearLogin()" id="near-login-btn" class="w-full py-4 bg-zinc-950 border border-emerald-500/30 text-emerald-400 font-bold text-base rounded-2xl hover:bg-emerald-900/30 transition flex items-center justify-center gap-3 shadow-lg group">
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition" alt="NEAR"> 
+                <button type="button" onclick="handleNearLogin()" id="near-login-btn" class="w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
+                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition" alt="NEAR"> 
                     <span id="near-btn-text"><?= __('Connect NEAR Wallet') ?></span>
                 </button>
             </div>
@@ -77,7 +74,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
-    // 🚀 Web3 錢包彈窗登入邏輯
     async function handleNearLogin() {
         const btnText = document.getElementById('near-btn-text');
         const originalText = btnText.innerText;
@@ -86,12 +82,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
-                // 喚起精美的 Wallet Selector 選擇視窗
-                wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
-                // 恢復按鈕文字，因為 Modal 彈窗會停留喺目前畫面
+                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
                 setTimeout(() => { btnText.innerText = originalText; }, 1000);
             } else {
-                // 已授權，直接驗證後端
                 await verifyNearWallet(wallet.getAccountId());
             }
         } catch(e) {
@@ -99,13 +92,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 偵測從錢包授權後跳轉返回 (例如 MyNearWallet 網頁版) 或擴充錢包事件觸發
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
-        // 如果網址有 account_id，代表剛從錢包授權成功跳轉回來或擴充事件觸發
         if (urlParams.has('account_id') || urlParams.has('all_keys')) {
             const wallet = await initNearWallet();
-            // 給 Wallet Selector 一點點時間同步狀態
             setTimeout(async () => {
                 if (wallet.isSignedIn()) {
                     await verifyNearWallet(wallet.getAccountId());
@@ -114,7 +104,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    // 呼叫後端 API 驗證錢包並登入
     async function verifyNearWallet(accountId) {
         const errorBox = document.getElementById('error-box');
         const errorMsg = document.getElementById('error-msg');
@@ -129,10 +118,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             const data = await res.json();
             if (data.success) {
-                // 登入成功，跳去 My Souls 儀表板
                 window.location.href = '<?= url("/my-souls") ?>';
             } else {
-                // 如果後端找不到綁定，提示用戶並自動登出 Wallet 讓佢可以再試
                 errorMsg.innerText = data.error || '<?= addslashes(__('Wallet not bound')) ?>';
                 errorBox.classList.remove('hidden');
                 btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
@@ -140,7 +127,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const wallet = await initNearWallet();
                 wallet.signOut();
                 
-                // 移除網址上的 account_id 參數，防止無限重新整理
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
             }
@@ -151,7 +137,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 原有 Web2 表單登入邏輯
     const form = document.getElementById('login-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
