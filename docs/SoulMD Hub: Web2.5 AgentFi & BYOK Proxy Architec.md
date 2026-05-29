@@ -1,5 +1,5 @@
 # SoulMD Hub: Web2.5 AgentFi & BYOK Proxy Architecture Specification
-## 終極 Web2.5 智能體金融與黑盒代理架構升級白皮書 (V2 完整版)
+## 終極 Web2.5 智能體金融與黑盒代理架構升級白皮書 (V3 數字代幣經濟學增強版)
 
 ---
 
@@ -24,7 +24,12 @@
 5. **回傳與銷毀**：獲取 AI 回覆後傳給前端，記憶體中的 Prompt 立即銷毀。
 * **結果**：租用人完全無法透過 F12 Network Tab 攔截到原始 Prompt，實現完美的「黑盒出租 (Blackbox Leasing)」。
 
-### 2.2 資料庫安全升級 (MySQL)
+### 2.2 伺服器資源防護機制 (Anti-Server Abuse for BYOK)
+雖然 BYOK 免除了平台的 LLM API 算力成本，但高頻對話仍會大量消耗 MySQL 讀寫與後端頻寬。因此，BYOK 將設立以下門檻：
+- **門禁限制**：BYOK 模式僅限活躍的 **VIP/PRO 付費訂閱用戶** 使用，免費沙盒用戶無權接入自訂密鑰，確保伺服器基礎維護成本被訂閱費完全覆蓋。
+- **租用消耗費**：在黑盒租用模式下，除了代幣結算外，每次對話請求將受限於嚴格的 Rate Limiting，防止惡意腳本耗盡平台資源。
+
+### 2.3 資料庫安全升級 (MySQL)
 必須在資料庫中安全地儲存用戶的自訂 API Key，採用 AES-256 加密防止資料庫外洩導致的災難。
 ```sql
 ALTER TABLE users 
@@ -32,11 +37,6 @@ ADD COLUMN custom_deepseek_key VARCHAR(255) NULL DEFAULT NULL COMMENT 'Encrypted
 ADD COLUMN custom_vision_key VARCHAR(255) NULL DEFAULT NULL COMMENT 'Encrypted Together AI Key';
 
 ```
-
-### 2.3 伺服器資源防護機制 (Anti-Server Abuse for BYOK)
-雖然 BYOK 免除了平台的 LLM API 算力成本，但高頻對話仍會大量消耗 MySQL 讀寫與後端頻寬。因此，BYOK 將設立以下門檻：
-- **門禁限制**：BYOK 模式僅限活躍的 **VIP/PRO 付費訂閱用戶** 使用，免費沙盒用戶無權接入自訂密鑰，確保伺服器基礎維護成本被訂閱費完全覆蓋。
-- **租用消耗費**：在黑盒租用模式下，除了代幣結算外，每次對話請求將受限於嚴格的 Rate Limiting，防止惡意腳本耗盡平台資源。
 
 ---
 
@@ -92,60 +92,74 @@ AI 智能體需要持續優化，合約提供 `update_soul_hash` 接口：
 租客使用黑盒時，PHP 會計算當前 MySQL 內 Prompt 的 Hash，並與 NEAR 鏈上該 NFT 的 Hash 對比。若不匹配，即觸發熔斷機制，拒絕推理，保證模型沒有被創作者線下惡意篡改。
 
 ### 4.4 模組化版稅分潤樹 (Composable Royalty Tree)
+
 配合本平台獨有的多檔案（`SOUL.md`, `STYLE.md`, `RULES.md`）模組化架構，合約將引入 NEP-199 擴展協議。
-- 若創作者 B 在其 AI 智能體中 Fork 或引用了創作者 A 的模組，合約將記錄此依賴關係 (Dependency Tree)。
-- 當該智能體產生租金或買賣收益時，合約自動執行**樹狀分潤**（例如：10% 給原創者 A，80% 給二次創作者 B，10% 給平台），打造真正互利共贏的開源 AI 經濟圈。
+
+* 若創作者 B 在其 AI 智能體中 Fork 或引用了創作者 A 的模組，合約將記錄此依賴關係 (Dependency Tree)。
+* 當該智能體產生租金或買賣收益時，合約自動執行**樹狀分潤**（例如：10% 給原創者 A，80% 給二次創作者 B，10% 給平台），打造真正互利共贏的開源 AI 經濟圈。
 
 ---
 
-## 5. 核心架構四：AgentFi 商業模型與極致通縮代幣經濟
+## 5. AgentFi 商業模型與原生代幣通縮經濟學
 
-透過智能合約，平台自動在各個生命週期節點捕獲價值 (Value Capture)。
+透過智能合約，平台自動在各個生命週期節點捕獲價值 (Value Capture)。**所有由智能合約自動扣除的平台手續費及稅項，將統一匯入平台指定的官方 NEAR 國庫錢包地址：`soulmd-hub.near`。**
 
-### 5.1 四大抽水引擎 (Revenue Streams)
+### 5.1 原生代幣 ($SOUL) 發行與分配規格
 
-1. **發行稅 (Minting Fee)**：每次鑄造 AI 智能體 NFT，合約強制收取 `0.1 NEAR` 平台稅。
-2. **交易版稅 (Trading Royalty)**：二級市場買賣時，合約自動攔截資金，`5%` 打入平台金庫，保障平台被動收入。並確保僅有平台官方合約發出的 NFT 才能在市集交易 (Contract Whitelisting)。
-3. **黑盒租用稅 (Leasing Tax)**：租用人支付的 NEAR 租金中，`10%` 自動上繳平台，`90%` 即時結算給原創者。
-4. **銷毀手續費 (Burning Fee)**：買家銷毀 (Burn) 不滿意的 NFT 以取回 0.5 NEAR 儲存質押金時，合約扣除 `0.05 NEAR` 作為手續費。
+平台將發行官方原生代幣，用作驅動整個去中心化智能體市集：
 
-### 5.2 自動回購與通縮銷毀 (Deflationary Tokenomics)
+* **代幣名稱**：`$SOUL`
+* **總發行量**：**固定 10 億枚 (1,000,000,000 $SOUL)**，永不增發。
+* **平台基金保留 (50%)**：平台硬性**永久保留 50%（5 億枚）作為「平台基金 (Platform Fund)」**，由 `soulmd-hub.near` 鎖定管理，專門用於未來的生態激勵、開發者補貼 Grants、平台重大升級以及 AMM 初期流動性做市。
+* **市場與社群 (50%)**：其餘 5 億枚用於社群獎勵、創作者貢獻挖礦及公開流動性。
 
-平台金庫收集到的 NEAR 收益將觸發跨合約呼叫 (Cross-Contract Call)：
+### 5.2 四大抽水引擎 (Revenue Streams)
 
-* 自動對接 NEAR 最大的 AMM 去中心化交易所 (如 Ref Finance)。
-* 將收集到的 NEAR 自動 Swap 買入平台發行的原生代幣 (如 `$SOUL`)。
-* 買入的 `$SOUL` 直接打入黑洞地址 (Burn Address) 永久銷毀。
-* **商業效應**：平台交易越活躍，代幣銷毀越快，流通量持續通縮，為投資者提供極強的價格上漲預期。
+1. **發行稅 (Minting Fee)**：每次鑄造 AI 智能體 NFT，合約強制收取 `0.1 NEAR` 平台稅，並轉入 `soulmd-hub.near`。
+2. **交易版稅 (Trading Royalty)**：二級市場買賣時，合約自動攔截資金，`5%` 打入 `soulmd-hub.near` 金庫，保障平台被動收入。並確保僅有平台官方合約發出的 NFT 才能在市集交易 (Contract Whitelisting)。
+3. **黑盒租用稅 (Leasing Tax)**：租用人支付的 NEAR 租金中，`10%` 自動上繳 `soulmd-hub.near`，`95%` 即時結算給原創者。
+4. **銷毀手續費 (Burning Fee)**：買家銷毀 (Burn) 不滿意的 NFT 以取回 0.5 NEAR 儲存質押金時，合約扣除 `0.05 NEAR` 作為手續費截留至 `soulmd-hub.near`，剩餘的 `0.45 NEAR` 退還給當前持有人 (Current Owner)。
 
 ### 5.3 動態費率與預言機錨定 (Dynamic Fees & Oracle Pegging)
+
 為防止加密貨幣市場價格劇烈波動導致平台使用成本失控：
-- 智能合約內所有固定手續費（如 0.1 NEAR 鑄造稅）不作永久硬編碼，平台 Owner 保留 `update_platform_fee` 的動態調整權限。
-- **未來展望**：將接入 Pyth Network 或 NEAR 原生 Oracle，將所有平台稅費錨定為「絕對美元價值」（如 $0.5 USD 等值 NEAR），確保商業模式具備抗風險的防脆弱性 (Anti-fragile)。
+
+* 智能合約內所有固定手續費（如 0.1 NEAR 鑄造稅）不作永久硬編碼，平台 Owner 保留 `update_platform_fee` 的動態調整權限。
+* **未來展望**：將接入 Pyth Network 或 NEAR 原生 Oracle，將所有平台稅費錨定為「絕對美元價值」（如 $0.5 USD 等值 NEAR），確保商業模式具備抗風險的防脆弱性 (Anti-fragile)。
+
+### 5.4 AMM 自動回購與通縮銷毀 (Deflationary Tokenomics)
+
+`soulmd-hub.near` 金庫收集到的 100% NEAR 平台費與稅收收益，將定時自動全數發動跨合約呼叫 (Cross-Contract Call)：
+
+* **池子配置**：自動對接去中心化交易所（如 Ref Finance）上的 **`$SOUL / $NEAR`** 流動性池。
+* **計價規範**：該流動性池內的所有交易、定價與 Swap 運算，**完全統一使用 `$NEAR` 進行計價**。
+* **通縮螺旋**：合約會自動將金庫內的所有 NEAR 收益在池中市價全數買入 `$SOUL`，並直接發送至區塊鏈的黑洞地址（Burn Address）進行永久銷毀。
+* **商業效應**：平台交易越活躍、出租越火熱，代幣銷毀速度就呈幾何級數上升，流通量持續通縮，為外部投資者提供極強的價格上漲預期。
 
 ---
 
 ## 6. 開發與部署路線圖 (Roadmap)
 
-### Phase 1: Web2.5 身份與 BYOK 代理 (Month 1)
+### 6.1 Phase 1: Web2.5 身份與 BYOK 代理 (Month 1)
 
-* 實作 MySQL 資料庫升級 (`near_wallet_address`, `custom_deepseek_key`)。
-* 實作 BYOK 代理邏輯，重構 `api/chat.php`，實現黑盒推理。
+* 實作 MySQL 資料庫升級 (`near_wallet_address`, `custom_deepseek_key`, `custom_vision_key`)。
+* 實作 BYOK 代理邏輯，重構 `api/chat.php` miniatures 邏輯，實現黑盒推理。
 * 整合 NEAR Wallet Selector 實現錢包登入與綁定。
 
-### Phase 2: 智能合約與存證上鏈 (Month 2)
+### 6.2 Phase 2: 智能合約與存證上鏈 (Month 2)
 
 * 開發並部署 NEP-171 擴展版 TypeScript 智能合約至 NEAR Testnet。
-* 實作 `Mint`, `Update Hash`, `Burn` 邏輯。
+* 實作 `Mint`, `Update Hash`, `Burn` 邏輯，確立 10 億枚 `$SOUL` 部署與 50% 國庫鎖定。
 * 平台整合「Mint to NEAR」按鈕，將 Prompt Hash 寫入區塊鏈。
 
-### Phase 3: AgentFi 市集與通縮引擎 (Month 3)
+### 6.3 Phase 3: AgentFi 市集與通縮引擎 (Month 3)
 
 * 開發去中心化市集 (Marketplace Contract)，實作白名單防偽機制。
 * 實作「黑盒出租」的智能合約分潤機制。
-* 對接 Ref Finance AMM，實作平台收益自動回購銷毀邏輯。
+* 完美對接 Ref Finance AMM，實作以 `$NEAR` 計價的 `$SOUL / $NEAR` 池子自動回購銷毀邏輯。
 * 正式向 **NEAR Horizon** 提交申請，爭取生態 Grants 支援主網上線。
 
-### Phase 4: 純血去中心化 TEE 黑盒推理 (Future Vision)
-- 將當前的 PHP Backend Proxy 升級為基於 NEAR AI 的 **可信執行環境 (Trusted Execution Environment, TEE)** 推理節點。
-- 屆時 Prompt 將在硬體級隔離的黑盒內進行解密與推理，連平台官方也無法窺探創作者的模型源代碼，實現 100% Trustless 的終極去中心化願景。
+### 6.4 Phase 4: 純血去中心化 TEE 黑盒推理 (Future Vision)
+
+* 將當前的 PHP Backend Proxy 升級為基於 NEAR AI 的 **可信執行環境 (Trusted Execution Environment, TEE)** 推理節點。
+* 屆時 Prompt 將在硬體級隔離的黑盒內進行解密與推理，連平台官方也無法窺探創作者的模型源代碼，實現 100% Trustless 的終極去中心化願景。
