@@ -3,15 +3,20 @@ require('esbuild').build({
     bundle: true,
     minify: true,
     outfile: '../wallet.bundle.js',
-    inject: ['./node-globals.js'], // 🚨 核心：esbuild 會自動將所有模組找不到的 process 替換成這裡的假 process
     alias: {
         crypto: 'crypto-browserify',
         stream: 'stream-browserify',
         util: 'util',
-        buffer: 'buffer'
+        zlib: 'browserify-zlib'
+    },
+    define: {
+        // 🚨 核彈級替換：將所有隱藏嘅 process 同 Buffer 強制綁定去 window 物件
+        global: 'window',
+        process: 'window.process',
+        Buffer: 'window.Buffer'
     }
 }).then(() => {
-    console.log('✅ 終極 Web3 Wallet Bundle 編譯及墊片注入成功！');
+    console.log('✅ Web3 Wallet Bundle 終極編譯成功！');
 }).catch((e) => {
     console.error('❌ 編譯失敗：', e);
     process.exit(1);
