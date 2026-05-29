@@ -2,8 +2,10 @@
 
 # Node
 /private/contract/node_modules/*
-package-lock.json
 /private/contract/build/*
+/public_html/js/wallet-builder/node_modules/*
+/public_html/js/wallet-builder/build/*
+package-lock.json
 
 # PHP
 /vendor/

@@ -17,6 +17,16 @@ return [
         'Rent (30d)' => 'Rent (30d)',
         'View Asset' => 'View Asset',
         'Connect Wallet to Trade' => 'Connect NEAR Wallet to Trade',
+        
+        // 🚀 Swap Widget
+        'Swap Title' => 'Get $SOUL Instantly 🚀',
+        'Swap Subtitle' => 'Official Zero-Slippage Pool',
+        'Swap Desc' => 'Swap your native NEAR directly for $SOUL tokens via our smart contract routing to Ref/Rhea Finance. Prepare your wallet for marketplace trading and AI rentals in one click.',
+        'Pay Amount' => 'Pay Amount (NEAR)',
+        'Swap Button' => 'Swap $SOUL',
+        'Invalid amount' => 'Please enter a valid NEAR amount!',
+        'Transaction failed' => 'Transaction failed or rejected by user. Please try again.',
+        'Processing' => 'Processing...',
     ],
     
     'zh' => [
@@ -31,5 +41,15 @@ return [
         'Rent (30d)' => '租用 (30日)',
         'View Asset' => '檢視資產',
         'Connect Wallet to Trade' => '連接 NEAR 錢包以進行交易',
+        
+        // 🚀 Swap Widget
+        'Swap Title' => '一鍵獲取 $SOUL 🚀',
+        'Swap Subtitle' => '官方閃兌池 (Zero Slippage)',
+        'Swap Desc' => '透過底層智能合約與 Ref/Rhea Finance 路由，直接用您的 NEAR 免手續費閃兌為 $SOUL 代幣，為在市集租用或購買智能體作準備。',
+        'Pay Amount' => '支付數量 (NEAR)',
+        'Swap Button' => '閃兌 $SOUL',
+        'Invalid amount' => '請輸入有效的 NEAR 數量！',
+        'Transaction failed' => '交易失敗或被拒絕，請重試！',
+        'Processing' => '處理中...',
     ]
 ];

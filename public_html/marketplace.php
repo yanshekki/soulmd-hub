@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - AgentFi Marketplace
- * (Dynamic Blockchain Polling & Web2.5 Integration)
+ * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -38,6 +38,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
+    <div class="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+        <div class="flex-1">
+            <div class="text-emerald-400 text-[10px] font-bold tracking-widest uppercase mb-1.5"><i class="fas fa-bolt"></i> <?= __('Swap Subtitle') ?></div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-white mb-2"><?= __('Swap Title') ?></h3>
+            <p class="text-sm text-zinc-400 leading-relaxed max-w-xl"><?= __('Swap Desc') ?></p>
+        </div>
+        <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3 shrink-0">
+            <input type="number" id="buy-soul-amount" placeholder="<?= __('Pay Amount') ?>" step="0.1" min="0.1" class="w-full sm:w-48 bg-zinc-950 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 text-white shadow-inner font-mono">
+            <button type="button" onclick="executeBuySoul()" id="buy-soul-btn" class="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-exchange-alt"></i> <span id="buy-soul-text"><?= __('Swap Button') ?></span>
+            </button>
+        </div>
+    </div>
+
     <div id="market-container" class="min-h-[400px]">
         <div class="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
@@ -60,7 +75,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function ensureWalletConnection() {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         } else {
             alert(`Wallet Connected: ${wallet.getAccountId()}`);
         }
@@ -75,10 +90,102 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadMarketplace();
     });
 
+    // 🚀 $SOUL 閃兌邏輯 (完美相容 Wallet Selector 批量交易)
+    async function executeBuySoul() {
+        const btn = document.getElementById('buy-soul-btn');
+        const textSpan = document.getElementById('buy-soul-text');
+        const amountInput = document.getElementById('buy-soul-amount').value;
+
+        if (!amountInput || parseFloat(amountInput) <= 0) {
+            alert('<?= addslashes(__('Invalid amount')) ?>');
+            return;
+        }
+
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            wallet.requestSignIn({ contractId: "<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>" });
+            return;
+        }
+
+        const originalText = textSpan.innerHTML;
+        textSpan.innerHTML = '<?= addslashes(__('Processing')) ?>';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        try {
+            const amountYocto = nearApi.utils.format.parseNearAmount(amountInput.toString());
+            const encoder = new TextEncoder(); // 將 JSON 轉為 Uint8Array (API 規定)
+
+            // 構建批量交易 (Batch Transaction)
+            const transactions = [
+                // 交易 1：(安全機制) 確保買家在 $SOUL 合約註冊了儲存空間
+                {
+                    receiverId: '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>',
+                    actions: [
+                        nearApi.transactions.functionCall(
+                            'storage_deposit',
+                            encoder.encode(JSON.stringify({
+                                account_id: wallet.getAccountId(),
+                                registration_only: true
+                            })),
+                            '30000000000000', // 30 TGas
+                            nearApi.utils.format.parseNearAmount('0.00125') // 0.00125 NEAR 標準押金
+                        )
+                    ]
+                },
+                // 交易 2：將 Native NEAR 包裝並射入 Ref Finance 進行 Swap
+                {
+                    receiverId: 'wrap.near',
+                    actions: [
+                        // A. 存入 Native NEAR 變成 wNEAR
+                        nearApi.transactions.functionCall(
+                            'near_deposit',
+                            encoder.encode(JSON.stringify({})),
+                            '30000000000000', // 30 TGas
+                            amountYocto
+                        ),
+                        // B. 將 wNEAR 射入 AMM 觸發 Swap
+                        nearApi.transactions.functionCall(
+                            'ft_transfer_call',
+                            encoder.encode(JSON.stringify({
+                                receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>',
+                                amount: amountYocto,
+                                msg: JSON.stringify({
+                                    force: 0,
+                                    actions: [{
+                                        pool_id: <?= defined('NEAR_POOL_ID') ? NEAR_POOL_ID : 8546 ?>,
+                                        token_in: 'wrap.near',
+                                        token_out: '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>',
+                                        amount_in: amountYocto,
+                                        min_amount_out: '1' // 接受最低 1 粒，防止滑點失敗
+                                    }]
+                                })
+                            })),
+                            '100000000000000', // 100 TGas 確保路由夠氣
+                            '1' // 安全要求：夾帶 1 yoctoNEAR
+                        )
+                    ]
+                }
+            ];
+
+            // 喚起錢包，一次過簽署並執行這兩筆交易！
+            await wallet.requestSignTransactions({
+                transactions: transactions,
+                callbackUrl: window.location.href // 完成後跳回目前頁面
+            });
+
+        } catch(e) {
+            alert('<?= addslashes(__('Transaction failed')) ?>');
+            textSpan.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    }
+
+    // 🚀 市集加載與區塊鏈狀態抓取
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
         try {
-            // 1. 撈取大部份公開的 Souls
             const res = await fetch('/api/souls?limit=100&sort=newest');
             const data = await res.json();
             
@@ -86,7 +193,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             const activeListings = [];
             
-            // 2. 併發查詢區塊鏈，過濾出有掛牌價格的資產
             const rpcPromises = data.data.map(async (soul) => {
                 try {
                     const rpcRes = await fetch('https://rpc.mainnet.near.org', {
@@ -173,18 +279,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function buyMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         await wallet.account().functionCall({
-            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", methodName: "buy_soul", args: { token_id: "soul_" + id },
+            contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + id },
             gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href
         });
     }
 
     async function rentMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         await wallet.account().functionCall({
-            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", methodName: "rent_soul", args: { token_id: "soul_" + id },
+            contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + id },
             gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href
         });
     }
