@@ -1,16 +1,17 @@
 -- SoulMD Hub Full Schema 
--- (Includes Ratings, API Keys, Categories, Tags, Default Users, SEO Indexes, Chat History, Smart Chat Memory, Subscriptions, Private Sessions & Multimodal Vision Support)
+-- (Includes Ratings, API Keys, Categories, Tags, Default Users, SEO Indexes, Chat History, Smart Chat Memory, Subscriptions, Private Sessions, Multimodal Vision Support & Web2.5 AgentFi Expansion)
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
 
 -- ==========================================
--- 1. Users Table (升級：加入會員階級與防破產機制)
+-- 1. Users Table (升級：加入 Web2.5 NEAR 錢包綁定)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100),
+    near_wallet_address VARCHAR(64) UNIQUE DEFAULT NULL COMMENT 'Web3 NEAR Wallet Address',
     password VARCHAR(255) NOT NULL,
     tier ENUM('free', 'vip', 'pro') DEFAULT 'free',
     vip_expires_at TIMESTAMP NULL DEFAULT NULL,
@@ -154,7 +155,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
 );
 
 -- ==========================================
--- 9. Chat Messages Table (🚨 升級：MEDIUMTEXT 支援高達 16MB 的 Base64 圖片)
+-- 9. Chat Messages Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,

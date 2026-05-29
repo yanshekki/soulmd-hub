@@ -1,10 +1,9 @@
 <?php
 /**
  * SoulMD Hub - My API Controller
- * (Clean & Modular Edition)
+ * (Clean, Modular & Web2.5 Stateless BYOK Proxy Edition)
  */
 
-// 如果沒有宣告 $isPublicApiPage，則預設為 false (私人管理模式)
 $isPublicApiPage = $isPublicApiPage ?? false;
 
 require_once __DIR__ . '/../private/config.php';
@@ -16,7 +15,6 @@ $isPremiumActive = false;
 $userTier = 'free';
 $isExpired = false;
 
-// 如果是私人模式，才進行登入驗證及撈取/生成 API Key 與 訂閱狀態
 if (!$isPublicApiPage) {
     session_start();
     if (!isset($_SESSION['user_id'])) {
@@ -28,7 +26,6 @@ if (!$isPublicApiPage) {
     $pdo = $db->getConnection();
     $userId = $_SESSION['user_id'];
 
-    // 獲取 API Key 與 訂閱狀態
     $stmt = $pdo->prepare("SELECT api_key, tier, vip_expires_at FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $userRow = $stmt->fetch();
@@ -42,12 +39,11 @@ if (!$isPublicApiPage) {
             if ($expiry > time()) {
                 $isPremiumActive = true;
             } else {
-                $isExpired = true; // 曾經付費但已過期
+                $isExpired = true; 
             }
         }
     }
 
-    // 如果沒有 API Key，自動生成一個
     if (!$apiKey) {
         $apiKey = bin2hex(random_bytes(32));
         $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$apiKey, $userId]);
@@ -55,8 +51,9 @@ if (!$isPublicApiPage) {
 }
 
 $baseUrl = defined('BASE_URL') ? BASE_URL : ("https://" . $_SERVER['HTTP_HOST']);
+loadTranslations('my-api');
 
-$pageTitle = $isPublicApiPage ? 'Public API Reference' : 'Developer API';
+$pageTitle = $isPublicApiPage ? __('API Reference') : __('Developer API Access');
 $pageDesc = 'Manage your API key and read integration docs for SoulMD Hub.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
@@ -66,16 +63,16 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
         <div>
             <?php if ($isPublicApiPage): ?>
-                <a href="/browse" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
+                <a href="<?= url('/browse') ?>" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
                     <i class="fas fa-arrow-left"></i> Back to Hub
                 </a>
             <?php else: ?>
-                <a href="/my-souls" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
+                <a href="<?= url('/my-souls') ?>" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
                     <i class="fas fa-arrow-left"></i> Back to My Souls
                 </a>
             <?php endif; ?>
             
-            <h1 class="text-4xl font-bold tracking-tighter"><?= $isPublicApiPage ? 'Public API Reference' : 'Developer API' ?></h1>
+            <h1 class="text-4xl font-bold tracking-tighter"><?= $isPublicApiPage ? __('API Reference') : __('Developer API Access') ?></h1>
             <p class="text-zinc-400 mt-2">Integrate SoulMD Hub programmatically. 100% API-Driven Architecture.</p>
         </div>
     </div>
@@ -98,7 +95,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
                 <div class="shrink-0 z-10 w-full md:w-auto">
-                    <a href="/upgrade" class="w-full md:w-auto px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
+                    <a href="<?= url('/upgrade') ?>" class="w-full md:w-auto px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
                         <?= $isExpired ? '<i class="fas fa-sync-alt"></i> Renew Subscription' : '<i class="fas fa-crown"></i> Upgrade to Unlock' ?>
                     </a>
                 </div>
@@ -117,10 +114,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         <?php if (!$isPublicApiPage): ?>
         <div class="xl:col-span-4 space-y-6">
-            <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-sm shadow-xl relative overflow-hidden sticky top-6">
+            
+            <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-sm shadow-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
-                <h3 class="text-lg font-bold mb-1">Your Secret Key</h3>
-                <p class="text-xs text-zinc-400 mb-6 leading-relaxed">This key grants full access to create, edit, and interact with souls on your behalf. Keep it secure.</p>
+                <h3 class="text-lg font-bold mb-1"><?= __('Your Secret API Key') ?></h3>
+                <p class="text-xs text-zinc-400 mb-6 leading-relaxed"><?= __('API Key Warning') ?></p>
                 
                 <div class="bg-zinc-950 border border-white/10 p-4 rounded-2xl flex items-center justify-between gap-3 mb-6">
                     <code id="key-display" class="text-sm text-emerald-400 font-mono truncate select-all"><?= htmlspecialchars($apiKey) ?></code>
@@ -133,19 +131,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <span id="roll-text"><i class="fas fa-redo text-xs"></i> Roll API Key</span>
                     <span id="roll-loading" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
                 </button>
-
+                
                 <button onclick="downloadPostmanCollection()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10">
                     <i class="fas fa-file-download"></i> Download Postman Collection
                 </button>
-
-                <div class="mt-8 pt-6 border-t border-white/10">
-                    <h3 class="text-emerald-400 font-bold mb-2 flex items-center gap-2"><i class="fas fa-shield-alt"></i> Authentication</h3>
-                    <p class="text-xs text-zinc-300 leading-relaxed mb-4">Pass your API key via the HTTP <code>Authorization</code> header for endpoints that require it.</p>
-                    <div class="bg-zinc-950 border border-white/10 p-3 rounded-xl text-xs font-mono text-zinc-400 overflow-x-auto whitespace-nowrap">
-                        Authorization: Bearer <span class="text-emerald-300">YOUR_API_KEY</span>
-                    </div>
-                </div>
             </div>
+
+            <?php require_once __DIR__ . '/../private/includes/my-api-byok.php'; ?>
+
         </div>
         <?php endif; ?>
 
@@ -188,15 +181,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             if (data.success) {
                 document.getElementById('key-display').innerText = data.new_api_key;
-                document.getElementById('success-msg').innerText = data.message;
-                successBox.classList.remove('hidden');
+                showFeedbackNotification(true, data.message);
             } else {
-                document.getElementById('error-msg').innerText = data.error || 'Operation failed';
-                errorBox.classList.remove('hidden');
+                showFeedbackNotification(false, data.error || 'Operation failed');
             }
         } catch(e) {
-            document.getElementById('error-msg').innerText = 'Network error. Please try again.';
-            errorBox.classList.remove('hidden');
+            showFeedbackNotification(false, 'Network error. Please try again.');
         } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');

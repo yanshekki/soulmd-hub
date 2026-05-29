@@ -1,7 +1,7 @@
 <?php
 /**
- * SoulMD Hub Public API - Smart Dual-Engine Routing Edition
- * (Bulletproof Session-Unlock, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
+ * SoulMD Hub Public API - Web2.5 BYOK Proxy Edition
+ * (Stateless API Forwarding, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
  */
 
 set_time_limit(180);
@@ -9,7 +9,8 @@ set_time_limit(180);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization');
+// 🚨 放行 BYOK 專用的自訂 Headers 以通過 CORS 檢查
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, X-Deepseek-Key, X-Vision-Key');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -19,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+// 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -30,9 +31,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
-// ==========================================
-// 🚨 終極修復 1：API Key 認證與無頭存取 (Headless Access) 判定
-// ==========================================
 $isApiCall = false;
 $apiUserId = null;
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
@@ -55,7 +53,6 @@ function getCurrentUser($pdo, $apiUserId = null) {
     $userId = $apiUserId ?? ($_SESSION['user_id'] ?? null);
     $today = date('Y-m-d');
 
-    // 訪客 (Guest) 每日限額防禦機制
     if (!$userId) {
         if (($_SESSION['guest_last_chat_date'] ?? '') !== $today) {
             $_SESSION['guest_daily_count'] = 0;
@@ -75,7 +72,6 @@ function getCurrentUser($pdo, $apiUserId = null) {
 
     if (!$user) return ['id' => null, 'tier' => 'free', 'daily_count' => 0, 'is_expired' => false];
 
-    // 🚨 檢查是否過期並動態降級
     $isExpired = false;
     if ($user['tier'] !== 'free' && $user['vip_expires_at'] && strtotime($user['vip_expires_at']) < time()) {
         $pdo->prepare("UPDATE users SET tier = 'free' WHERE id = ?")->execute([$userId]);
@@ -114,7 +110,6 @@ if ($method === 'GET') {
     $sessionToken = $_GET['session_token'] ?? '';
     $currentUser = getCurrentUser($pdo, $apiUserId);
 
-    // 🚨 API 使用者權限檢查
     if ($isApiCall && $currentUser['tier'] === 'free') {
         http_response_code(403);
         $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('API restricted free');
@@ -156,7 +151,19 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $currentUser = getCurrentUser($pdo, $apiUserId);
 
-    // 🚨 終極修復 2：攔截免費/過期用戶的無頭 API 存取，並驗證前端的 CSRF
+    // 🚀 BYOK 代理：攔截並驗證無狀態密鑰
+    $byokDeepSeek = trim($_SERVER['HTTP_X_DEEPSEEK_KEY'] ?? '');
+    $byokVision = trim($_SERVER['HTTP_X_VISION_KEY'] ?? '');
+
+    if ($byokDeepSeek || $byokVision) {
+        if ($currentUser['tier'] === 'free') {
+            http_response_code(403);
+            // 此處借用現成的翻譯，亦可使用全新設計的警告字眼
+            echo json_encode(['success' => false, 'error' => 'BYOK Proxy Mode is exclusively reserved for VIP/PRO members to prevent server abuse. Please upgrade your plan.', 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
     if ($isApiCall) {
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
@@ -165,7 +172,6 @@ if ($method === 'POST') {
             exit;
         }
     } else {
-        // 如果是經由前端 (非 API Call)，則必須驗證 CSRF (未登入者必定會跌入此處)
         $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (empty($userCsrfToken) && function_exists('getallheaders')) {
             $headers = getallheaders();
@@ -196,7 +202,6 @@ if ($method === 'POST') {
         $chatSession = $sessStmt->fetch();
 
         if ($chatSession) {
-            // 嚴格阻斷 null === null 的 Guest 越權漏洞
             if ($currentUser['id'] !== null && $chatSession['user_id'] === $currentUser['id']) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
@@ -212,7 +217,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    // 防禦炸彈請求 (API 呼叫跳過此防護，依賴外部 Gateway 或 DB Daily Limits)
     if (!$isApiCall) {
         $currentTime = time();
         if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
@@ -341,6 +345,8 @@ if ($method === 'POST') {
             }
 
             $compressModel = defined('FREE_MODEL') ? FREE_MODEL : 'deepseek-chat';
+            // 🚀 BYOK Apply to Memory Summarizer as well
+            $compressApiKey = $byokDeepSeek ?: DEEPSEEK_API_KEY;
             
             $chSum = curl_init();
             curl_setopt_array($chSum, [
@@ -348,7 +354,7 @@ if ($method === 'POST') {
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => json_encode(["model" => $compressModel, "messages" => [["role" => "system", "content" => $sumPrompt]], "max_tokens" => 300, "temperature" => 0.3], JSON_UNESCAPED_UNICODE),
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . DEEPSEEK_API_KEY],
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $compressApiKey],
                 CURLOPT_TIMEOUT => 15
             ]);
             $sumRes = curl_exec($chSum);
@@ -385,14 +391,15 @@ if ($method === 'POST') {
             $apiMessages[] = ["role" => "user", "content" => $userMessageText];
         }
 
+        // 🚀 核心升級：BYOK 金鑰動態路由分配
         $targetApiUrl = DEEPSEEK_API_URL;
-        $targetApiKey = DEEPSEEK_API_KEY;
+        $targetApiKey = $byokDeepSeek ?: DEEPSEEK_API_KEY;
         $targetModel = $tierConfig['model'];
         $finalPayloadMessages = [];
 
         if ($isVisionRequest && defined('VISION_API_URL') && defined('VISION_API_KEY')) {
             $targetApiUrl = VISION_API_URL;
-            $targetApiKey = VISION_API_KEY;
+            $targetApiKey = $byokVision ?: VISION_API_KEY;
             
             if ($currentUser['tier'] === 'pro' && defined('PRO_VISION_MODEL')) {
                 $targetModel = PRO_VISION_MODEL; 

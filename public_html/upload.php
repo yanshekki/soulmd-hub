@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Upload & Publish Dashboard
- * (Decoupled Modals & Dynamic i18n Internationalization Edition)
+ * (Decoupled Modals, DRY Web3 Script & Web2.5 NEAR NFT Minting Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -15,7 +15,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('upload');
 
 $db = Database::getInstance();
@@ -54,6 +53,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-10">
@@ -162,6 +163,18 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
         </div>
 
+        <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-between gap-4 shadow-lg">
+            <div>
+                <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2"><i class="fas fa-cube text-emerald-400"></i> <?= __('Mint to NEAR') ?></h3>
+                <p class="text-xs sm:text-sm text-zinc-400 mt-1"><?= __('Mint Desc') ?></p>
+                <div class="text-[10px] sm:text-xs font-mono font-bold text-emerald-500/70 mt-2"><?= __('Platform Fee') ?></div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" id="mint-toggle" class="sr-only peer">
+                <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+        </div>
+
         <button type="submit" id="submit-btn" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
             <span id="submit-text"><i class="fas fa-cloud-upload-alt mr-2"></i><?= __('Upload Soul') ?></span>
             <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
@@ -169,9 +182,118 @@ require_once __DIR__ . '/../private/includes/header.php';
     </form>
 </div>
 
-<?php 
-// 🚨 動態載入已分拆嘅 Modal 獨立組件
-require_once __DIR__ . '/../private/includes/upload-modals.php'; 
-?>
+<?php require_once __DIR__ . '/../private/includes/upload-modals.php'; ?>
+
+<script>
+    const form = document.getElementById('upload-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById('submit-btn');
+        const text = document.getElementById('submit-text');
+        const loading = document.getElementById('submit-loading');
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+        const successBox = document.getElementById('success-box');
+
+        const wantMint = document.getElementById('mint-toggle').checked;
+        let wallet = null;
+
+        // 🚀 若啟用 Mint，發送前先利用共用腳本檢查錢包授權
+        if (wantMint) {
+            wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+                window.location.href = "<?= url('/my-api') ?>";
+                return;
+            }
+        }
+
+        errorBox.classList.add('hidden');
+        successBox.classList.add('hidden');
+
+        let finalContent = '';
+        if (activeMainTab === 0) finalContent = fileEditor.getPayload();
+        else if (activeMainTab === 1) finalContent = document.getElementById('content-raw').value;
+        else finalContent = uploadedContentStr;
+
+        if (!finalContent || finalContent.trim() === '') {
+            errorMsg.innerText = <?= json_encode(__('Content empty'), JSON_UNESCAPED_UNICODE) ?>;
+            errorBox.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        const payload = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            role: document.getElementById('role').value,
+            domain: document.getElementById('domain').value,
+            compatibility: document.getElementById('compatibility').value,
+            content: finalContent
+        };
+
+        try {
+            const res = await fetch('/api/souls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const seoUrl = data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
+                
+                // 🚀 執行 Web3 鑄造
+                if (wantMint) {
+                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
+                    text.classList.remove('hidden');
+                    loading.classList.add('hidden');
+                    
+                    const deposit = nearApi.utils.format.parseNearAmount("0.6"); // 0.6 NEAR
+                    const args = {
+                        token_id: "soul_" + data.id,
+                        title: payload.title,
+                        description: payload.description || "No description provided",
+                        hash: data.hash, 
+                        reference: data.url
+                    };
+                    
+                    // 跳轉至 NEAR Wallet 簽名
+                    await wallet.account().functionCall({
+                        contractId: "soulmd-hub.near",
+                        methodName: "mint_soul",
+                        args: args,
+                        gas: "30000000000000", // 30 TGas
+                        attachedDeposit: deposit,
+                        walletCallbackUrl: seoUrl // 簽署完成後無縫跳回該模型頁面
+                    });
+                } else {
+                    window.location.href = seoUrl;
+                }
+            } else {
+                errorMsg.innerText = data.error || <?= json_encode(__('Failed to save soul.'), JSON_UNESCAPED_UNICODE) ?>;
+                errorBox.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+        } catch(err) {
+            errorMsg.innerText = <?= json_encode(__('Network Error'), JSON_UNESCAPED_UNICODE) ?>;
+            errorBox.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    });
+</script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

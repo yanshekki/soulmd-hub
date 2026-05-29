@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
- * (100% i18n Internationalized Edition - Syntax Error & Auth Handshake Fixed)
+ * (100% i18n Internationalized & Web2.5 BYOK Proxy Edition)
  */
 ?>
 <script>
@@ -56,13 +56,11 @@
         }
     }
 
-    // 🚨 全新：模型架構與描述資料彈窗控制邏輯
     function openSoulModal() {
         document.body.style.overflow = 'hidden';
         const modal = document.getElementById('soul-info-modal');
         const contentDiv = modal.querySelector('div');
         
-        // 解析並注入隱藏的 Markdown 資料
         const rawContent = document.getElementById('raw-soul-content').value;
         const parsedHTML = marked.parse(rawContent);
         document.getElementById('soul-info-content').innerHTML = DOMPurify.sanitize(parsedHTML);
@@ -387,10 +385,20 @@
 
         removeImage();
 
+        // 🚀 BYOK 代理升級：無狀態注入本地金鑰
+        const localDsKey = localStorage.getItem('soulmd_byok_deepseek') || '';
+        const localVsKey = localStorage.getItem('soulmd_byok_vision') || '';
+        const headersObj = { 
+            'Content-Type': 'application/json', 
+            'X-CSRF-Token': serverCsrfToken 
+        };
+        if (localDsKey) headersObj['X-Deepseek-Key'] = localDsKey;
+        if (localVsKey) headersObj['X-Vision-Key'] = localVsKey;
+
         try {
             const res = await fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': serverCsrfToken },
+                headers: headersObj,
                 body: JSON.stringify(payload)
             });
 

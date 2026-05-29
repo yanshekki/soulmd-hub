@@ -33,6 +33,13 @@ return [
         'Drag & drop' => 'Drag & drop or click to upload',
         'Drag & drop subtext' => 'Supports single .md file or a full configuration .zip bundle',
         
+        // 🚀 Web3 Minting Section
+        'Mint to NEAR' => 'Mint to NEAR Blockchain (Web3)',
+        'Mint Desc' => 'Secure your IP by minting this soul as an Updatable NFT on the NEAR blockchain.',
+        'Platform Fee' => 'Cost: 0.6 NEAR (0.5 Storage Staking + 0.1 Platform Fee)',
+        'Please connect NEAR wallet first' => 'Please bind your NEAR wallet in Developer API Access first.',
+        'Redirecting to Wallet...' => 'Redirecting to Wallet...',
+
         // Modals
         'Add Module File' => 'Add Module File',
         'Suggested Modules' => 'Suggested Modules',
@@ -81,6 +88,13 @@ return [
         'Drag & drop' => '拖曳檔案至此或點擊上傳',
         'Drag & drop subtext' => '支援單一 .md 文件或完整設定的 .zip 打包檔',
         
+        // 🚀 Web3 Minting Section
+        'Mint to NEAR' => '鑄造至 NEAR 區塊鏈 (Web3)',
+        'Mint Desc' => '透過將此模型鑄造為 NEAR 區塊鏈上可進化的 NFT，保護您的原創知識產權。',
+        'Platform Fee' => '鑄造費用：0.6 NEAR (0.5 儲存質押 + 0.1 平台發行稅)',
+        'Please connect NEAR wallet first' => '請先前往「開發者 API 存取權限」綁定您的 NEAR 錢包。',
+        'Redirecting to Wallet...' => '正在重導向至錢包...',
+
         // Modals
         'Add Module File' => '新增架構檔案模組',
         'Suggested Modules' => '系統推薦核心模組',

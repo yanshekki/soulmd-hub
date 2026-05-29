@@ -3,7 +3,7 @@
  * SoulMD Hub Public API
  * GET  /api/souls          - List public souls (Optimized Search, Multi-Keyword, Sorting & Pagination)
  * POST /api/souls          - Create soul (Auth: Session or API Key, with JSON Auto-Fix)
- * (100% Dynamic i18n Internationalized Error Stack Edition)
+ * (100% Dynamic i18n Internationalized & Web3 Hash Provider Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,16 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-// 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ==========================================
-// 權限助手函數 (支援 Session 或 API Key)
-// ==========================================
 function getAuthUserId($pdo) {
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $apiKey = trim(str_replace('Bearer', '', $authHeader));
@@ -43,9 +39,6 @@ function getAuthUserId($pdo) {
     return null;
 }
 
-// ==========================================
-// 標籤統計函數
-// ==========================================
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));
     foreach ($tags as $tag) {
@@ -55,9 +48,6 @@ function incrementTags($pdo, $table, $tagsString) {
     }
 }
 
-// ==========================================
-// SEO URL 友善化助手
-// ==========================================
 function makeSlug($str) {
     if (empty($str)) return 'unassigned';
     $str = mb_strtolower($str, 'UTF-8');
@@ -65,11 +55,7 @@ function makeSlug($str) {
     return rawurlencode(trim($str, '-'));
 }
 
-// ==========================================
-// 路由處理
-// ==========================================
 if ($method === 'GET') {
-    // 支援分頁邏輯 (Pagination)
     $page = max(1, (int)($_GET['page'] ?? 1));
     $limit = min((int)($_GET['limit'] ?? 12), 100); 
     $offset = ($page - 1) * $limit;
@@ -82,7 +68,6 @@ if ($method === 'GET') {
     $whereSql = " WHERE s.is_public = 1";
     $binds = [];
 
-    // 支援多重關鍵字智能拆分搜尋
     if ($q) {
         $keywords = preg_split('/\s+(and|or)\s+|[,|\s]+/i', $q, -1, PREG_SPLIT_NO_EMPTY);
         $keywords = array_unique($keywords);
@@ -150,7 +135,6 @@ if ($method === 'GET') {
         $stmt->execute();
         $souls = $stmt->fetchAll();
 
-        // 💡 補回 JSON_UNESCAPED_UNICODE
         echo json_encode([
             'success' => true,
             'count' => count($souls),
@@ -166,7 +150,6 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
-    // 建立 Soul
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -212,6 +195,9 @@ if ($method === 'GET') {
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
+    // 🚀 核心新增：計算內容指紋 Hash
+    $contentHash = 'sha256:' . hash('sha256', $content);
+
     try {
         $pdo->beginTransaction();
 
@@ -248,7 +234,8 @@ if ($method === 'GET') {
             'success' => true,
             'message' => __('Soul created successfully'),
             'id' => $newId,
-            'url' => $seoUrl
+            'url' => $seoUrl,
+            'hash' => $contentHash // 🚀 回傳 Hash 給前端上鏈使用
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {
@@ -256,7 +243,6 @@ if ($method === 'GET') {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
-
 } else {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
