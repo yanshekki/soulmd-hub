@@ -3,8 +3,6 @@
 # Node
 /private/contract/node_modules/*
 /private/contract/build/*
-/public_html/js/wallet-builder/node_modules/*
-/public_html/js/wallet-builder/build/*
 package-lock.json
 
 # PHP

@@ -2,17 +2,10 @@
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
  * 🚀 PURE VANILLA JS (MyNearWallet ONLY)
- * 100% 防彈版：自帶 Buffer 與 BN.js，徹底消滅「按鈕無反應」嘅靜默崩潰！
+ * 乾淨、零依賴、100% 穩定純淨版
  */
 ?>
-<script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bn.js@5.2.1/lib/bn.min.js"></script>
-<script>
-    window.global = window;
-    window.Buffer = window.Buffer || buffer.Buffer;
-    window.BN = window.BN || bn;
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bn.js@5.2.1/lib/bn.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/near-api-js@1.1.0/dist/near-api-js.min.js"></script>
 
 <script>
@@ -35,12 +28,12 @@
             const near = await connect(config);
             const wallet = new WalletConnection(near, 'soulmd_hub');
 
-            // 🛡️ 完美封裝，確保全站向下相容
+            // 🛡️ 完美封裝，確保全站 Marketplace / Login 向下相容
             window.nearHubWalletWrapper = {
                 isSignedIn: () => wallet.isSignedIn(),
                 getAccountId: () => wallet.getAccountId(),
                 requestSignIn: ({ contractId }) => {
-                    // 原生跳轉模式，保證 100% 觸發網頁跳轉
+                    // 原生跳轉模式，保證 100% 觸發網頁跳轉，再無彈窗煩惱！
                     wallet.requestSignIn({ contractId: contractId });
                 },
                 signOut: () => {
@@ -53,9 +46,8 @@
                                 contractId,
                                 methodName,
                                 args,
-                                // 強制使用 BN.js 轉換數字，防止 BigInt 報錯
-                                gas: new window.BN((gas || "30000000000000").toString()),
-                                attachedDeposit: new window.BN((attachedDeposit || "0").toString()),
+                                gas: gas ? gas.toString() : "30000000000000",
+                                attachedDeposit: attachedDeposit ? attachedDeposit.toString() : "0",
                                 walletCallbackUrl
                             });
                         }
@@ -66,13 +58,15 @@
                     const block = await near.connection.provider.block({ finality: 'final' });
                     const blockHash = utils.serialize.base_decode(block.header.hash);
                     const dummyPublicKey = utils.PublicKey.from('ed25519:11111111111111111111111111111111');
+                    
+                    // 🚀 使用原生 TextEncoder，徹底擺脫 Buffer 依賴
+                    const encoder = new TextEncoder();
 
                     const realTxs = txs.map((tx, index) => {
                         const parsedActions = tx.actions.map(action => {
                             return transactions.functionCall(
                                 action.methodName,
-                                // 強制轉為 Uint8Array 防止序列化崩潰
-                                new Uint8Array(window.Buffer.from(JSON.stringify(action.args))),
+                                encoder.encode(JSON.stringify(action.args || {})),
                                 new window.BN(action.gas.toString()),
                                 new window.BN(action.deposit.toString())
                             );
@@ -99,7 +93,7 @@
             
         } catch (err) {
             console.error("NEAR Wallet Init Error:", err);
-            alert("Web3 核心組件載入失敗，請強制重新整理 (Ctrl+F5) 再試！");
+            alert("Web3 核心組件載入失敗，請重新整理！");
         }
     };
 </script>
