@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
+ * 🚀 Fixed: Bulletproof UI Layout & Restored Official NEAR Icon
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -21,33 +22,35 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
     
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-8">
-        <div>
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-10 border-b border-white/10 pb-8">
+        <div class="flex-1 min-w-[280px]">
             <div class="inline-flex items-center gap-2 bg-blue-900/30 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-3 shadow-sm">
                 <i class="fas fa-gem"></i> Web3 Market
             </div>
-            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tighter text-white"><?= __('AgentFi Marketplace') ?></h1>
-            <p class="text-sm sm:text-base text-zinc-400 mt-2 max-w-2xl leading-relaxed"><?= __('Market Subtitle') ?></p>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tighter text-white break-words"><?= __('AgentFi Marketplace') ?></h1>
+            <p class="text-sm sm:text-base text-zinc-400 mt-2 leading-relaxed break-words"><?= __('Market Subtitle') ?></p>
         </div>
         
         <div class="shrink-0" id="wallet-status-container">
-            <button onclick="ensureWalletConnection()" class="px-6 py-3 bg-zinc-950 border border-emerald-500/30 text-emerald-400 rounded-xl font-bold hover:bg-emerald-900/30 transition flex items-center gap-2 shadow-lg group">
-                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition" alt="NEAR">
-                <span id="wallet-btn-text"><?= __('Connect Wallet to Trade') ?></span>
+            <button onclick="ensureWalletConnection()" class="px-6 py-3 bg-zinc-950 border border-emerald-500/30 text-emerald-400 rounded-xl font-bold hover:bg-emerald-900/30 transition flex items-center justify-center gap-2 shadow-lg group">
+                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition shrink-0" alt="NEAR">
+                <span id="wallet-btn-text" class="truncate max-w-[200px]"><?= __('Connect Wallet to Trade') ?></span>
             </button>
         </div>
     </div>
 
-    <div class="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+    <div class="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-        <div class="flex-1">
+        
+        <div class="flex-1 min-w-[280px]">
             <div class="text-emerald-400 text-[10px] font-bold tracking-widest uppercase mb-1.5"><i class="fas fa-bolt"></i> <?= __('Swap Subtitle') ?></div>
             <h3 class="text-2xl sm:text-3xl font-bold text-white mb-2"><?= __('Swap Title') ?></h3>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-xl"><?= __('Swap Desc') ?></p>
         </div>
-        <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3 shrink-0">
-            <input type="number" id="buy-soul-amount" placeholder="<?= __('Pay Amount') ?>" step="0.1" min="0.1" class="w-full sm:w-48 bg-zinc-950 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 text-white shadow-inner font-mono">
-            <button type="button" onclick="executeBuySoul()" id="buy-soul-btn" class="w-full sm:w-auto px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 duration-200 flex items-center justify-center gap-2">
+        
+        <div class="shrink-0 flex items-center gap-3 bg-zinc-950/40 p-2.5 rounded-2xl border border-white/5 w-full sm:w-auto">
+            <input type="number" id="buy-soul-amount" placeholder="<?= __('Pay Amount') ?>" step="0.1" min="0.1" class="w-full sm:w-48 bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 text-white shadow-inner font-mono">
+            <button type="button" onclick="executeBuySoul()" id="buy-soul-btn" class="shrink-0 px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 duration-200 flex items-center gap-2">
                 <i class="fas fa-exchange-alt"></i> <span id="buy-soul-text"><?= __('Swap Button') ?></span>
             </button>
         </div>
@@ -77,7 +80,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!wallet.isSignedIn()) {
             wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         } else {
-            alert(`Wallet Connected: ${wallet.getAccountId()}`);
+            if(confirm("Wallet Connected: " + wallet.getAccountId() + "\nDo you want to sign out?")) {
+                await wallet.signOut();
+                window.location.reload();
+            }
         }
     }
 
@@ -90,7 +96,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         loadMarketplace();
     });
 
-    // 🚀 $SOUL 閃兌邏輯 (完美相容 Wallet Selector 批量交易)
+    // 🚀 $SOUL 閃兌邏輯
     async function executeBuySoul() {
         const btn = document.getElementById('buy-soul-btn');
         const textSpan = document.getElementById('buy-soul-text');
@@ -114,11 +120,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         try {
             const amountYocto = nearApi.utils.format.parseNearAmount(amountInput.toString());
-            const encoder = new TextEncoder(); // 將 JSON 轉為 Uint8Array (API 規定)
+            const encoder = new TextEncoder();
 
-            // 構建批量交易 (Batch Transaction)
             const transactions = [
-                // 交易 1：(安全機制) 確保買家在 $SOUL 合約註冊了儲存空間
                 {
                     receiverId: '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>',
                     actions: [
@@ -128,23 +132,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 account_id: wallet.getAccountId(),
                                 registration_only: true
                             })),
-                            '30000000000000', // 30 TGas
-                            nearApi.utils.format.parseNearAmount('0.00125') // 0.00125 NEAR 標準押金
+                            '30000000000000',
+                            nearApi.utils.format.parseNearAmount('0.00125')
                         )
                     ]
                 },
-                // 交易 2：將 Native NEAR 包裝並射入 Ref Finance 進行 Swap
                 {
                     receiverId: 'wrap.near',
                     actions: [
-                        // A. 存入 Native NEAR 變成 wNEAR
                         nearApi.transactions.functionCall(
                             'near_deposit',
                             encoder.encode(JSON.stringify({})),
-                            '30000000000000', // 30 TGas
+                            '30000000000000',
                             amountYocto
                         ),
-                        // B. 將 wNEAR 射入 AMM 觸發 Swap
                         nearApi.transactions.functionCall(
                             'ft_transfer_call',
                             encoder.encode(JSON.stringify({
@@ -157,21 +158,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         token_in: 'wrap.near',
                                         token_out: '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>',
                                         amount_in: amountYocto,
-                                        min_amount_out: '1' // 接受最低 1 粒，防止滑點失敗
+                                        min_amount_out: '1'
                                     }]
                                 })
                             })),
-                            '100000000000000', // 100 TGas 確保路由夠氣
-                            '1' // 安全要求：夾帶 1 yoctoNEAR
+                            '100000000000000',
+                            '1'
                         )
                     ]
                 }
             ];
 
-            // 喚起錢包，一次過簽署並執行這兩筆交易！
             await wallet.requestSignTransactions({
                 transactions: transactions,
-                callbackUrl: window.location.href // 完成後跳回目前頁面
+                callbackUrl: window.location.href
             });
 
         } catch(e) {
@@ -246,22 +246,22 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <div class="mt-auto space-y-3 pt-4 border-t border-white/10">
                             ${salePrice ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
-                                <div>
+                                <div class="min-w-0 pr-2">
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
-                                    <div class="text-lg font-black text-white font-mono">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
+                                    <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
                                     <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
                                 </button>
                             </div>` : ''}
 
                             ${rentPrice ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
-                                <div>
+                                <div class="min-w-0 pr-2">
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
-                                    <div class="text-lg font-black text-emerald-400 font-mono">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
+                                    <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
                                     <i class="fas fa-handshake"></i> <?= addslashes(__('Rent Now')) ?>
                                 </button>
                             </div>` : ''}

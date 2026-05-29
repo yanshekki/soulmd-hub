@@ -1,15 +1,3 @@
-// 🚨 1. 核彈級環境墊片 (必須喺第一行，利用 _process 避開衝突)
-import { Buffer as _Buffer } from 'buffer';
-import _process from 'process/browser';
-
-_process.env.NODE_ENV = 'production';
-_process.env.DEFAULT_FINALITY = 'near-final';
-
-window.Buffer = window.Buffer || _Buffer;
-window.process = window.process || _process;
-window.global = window;
-
-// 🚨 2. 引入 NEAR 核心組件
 import { setupWalletSelector } from "@near-wallet-selector/core";
 import { setupModal } from "@near-wallet-selector/modal-ui";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
