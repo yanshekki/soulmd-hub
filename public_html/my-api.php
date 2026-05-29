@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless BYOK Proxy & One-Time Wallet Binding Edition)
- * 🚀 Fixed: Pure MyNearWallet Redirect & Emerald Contrast Button
+ * 🚀 Fixed: Pure MyNearWallet Native Integration & Emerald Contrast UI with RPC Loading (i18n Fixed)
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -170,7 +170,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                     
                     <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200 relative overflow-hidden">
-                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
+                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
                         <span id="bind-wallet-text"><?= __('Connect & Bind Wallet') ?></span>
                     </button>
                 <?php endif; ?>
@@ -209,7 +209,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php if (!$isPublicApiPage): ?>
     window.addEventListener('DOMContentLoaded', async () => {
         <?php if (!$nearWallet): ?>
-            // 🚀 採用與 login.php 完美一致的 URL 監聽回調機制，徹底移走舊版 Selector
             const wallet = await initNearWallet();
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('account_id') || urlParams.has('all_keys')) {
@@ -225,9 +224,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function bindNearWallet() {
         const btn = document.getElementById('bind-wallet-btn');
         const text = document.getElementById('bind-wallet-text');
-        const originalText = text.innerText;
-        text.innerText = '<?= addslashes(__('Connecting...')) ?>';
+        const icon = document.getElementById('bind-wallet-icon');
+        const originalText = text.innerHTML;
+
+        // 🌟 已修正為 i18n 語言包寫法
+        text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
         btn.classList.add('opacity-50', 'pointer-events-none');
+        if(icon) icon.classList.add('hidden');
 
         try {
             const wallet = await initNearWallet();
@@ -237,14 +240,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                 await executeWalletBind(wallet.getAccountId());
             }
         } catch(e) {
-            text.innerText = originalText;
+            text.innerHTML = originalText;
             btn.classList.remove('opacity-50', 'pointer-events-none');
+            if(icon) icon.classList.remove('hidden');
         }
     }
 
     async function executeWalletBind(accountId) {
         const text = document.getElementById('bind-wallet-text');
-        if(text) text.innerText = '<?= addslashes(__('Binding...')) ?>';
+        // 🌟 已修正為 i18n 語言包寫法
+        if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Binding Address...')) ?>';
         
         try {
             const res = await fetch('/api/bind-wallet', {

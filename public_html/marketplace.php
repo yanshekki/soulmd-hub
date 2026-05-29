@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
- * 🚀 Fixed: Pure MyNearWallet Native Integration & Non-Black Contrast UI
+ * 🚀 Fixed: Pure MyNearWallet Native Integration & Emerald Contrast UI with RPC Loading (i18n Fixed)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -32,8 +32,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
         
         <div class="shrink-0" id="wallet-status-container">
-            <button onclick="ensureWalletConnection()" class="px-6 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 rounded-xl font-black hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
-                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR">
+            <button onclick="ensureWalletConnection()" id="marketplace-wallet-btn" class="px-6 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 rounded-xl font-black hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
+                <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="marketplace-btn-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR">
                 <span id="wallet-btn-text" class="truncate max-w-[200px]"><?= __('Connect Wallet to Trade') ?></span>
             </button>
         </div>
@@ -74,9 +74,25 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function ensureWalletConnection() {
+        const btn = document.getElementById('marketplace-wallet-btn');
+        const btnText = document.getElementById('wallet-btn-text');
+        const btnIcon = document.getElementById('marketplace-btn-icon');
+        const originalHTML = btnText.innerHTML;
+
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            // 🌟 已修正為 i18n 語言包寫法
+            btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
+            btn.classList.add('opacity-80', 'pointer-events-none');
+            if(btnIcon) btnIcon.classList.add('hidden');
+
+            try {
+                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            } catch(e) {
+                btnText.innerHTML = originalHTML;
+                btn.classList.remove('opacity-80', 'pointer-events-none');
+                if(btnIcon) btnIcon.classList.remove('hidden');
+            }
         } else {
             if(confirm("Wallet Connected: " + wallet.getAccountId() + "\nDo you want to sign out?")) {
                 wallet.signOut();
@@ -184,9 +200,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (!data.success || data.data.length === 0) throw new Error("No data");
 
             const activeListings = [];
+            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+            
             const rpcPromises = data.data.map(async (soul) => {
                 try {
-                    const rpcRes = await fetch('https://rpc.mainnet.near.org', {
+                    const rpcRes = await fetch(safeRpcUrl, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             jsonrpc: "2.0", id: "dontcare", method: "query",
@@ -201,7 +219,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                             activeListings.push(soul);
                         }
                     }
-                } catch(e) {}
+                } catch(e) {
+                    console.warn("Listing fetch skipped due to RPC limit", e);
+                }
             });
             await Promise.all(rpcPromises);
 

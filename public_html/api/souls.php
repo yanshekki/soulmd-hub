@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/souls          - List public souls (Optimized Search, Multi-Keyword, Sorting & Pagination)
+ * GET  /api/souls          - List public souls (Optimized Search, Multi-Keyword, Sorting, Pagination & User Filter)
  * POST /api/souls          - Create soul (Auth: Session or API Key, with JSON Auto-Fix)
  * (100% Dynamic i18n Internationalized & Web3 Hash Provider Edition)
  */
@@ -64,9 +64,18 @@ if ($method === 'GET') {
     $role = $_GET['role'] ?? '';
     $fileType = $_GET['file_type'] ?? '';
     $sort = $_GET['sort'] ?? 'newest';
+    
+    // 🌟 修復核心：接收 user_id 參數
+    $userIdFilter = $_GET['user_id'] ?? '';
 
     $whereSql = " WHERE s.is_public = 1";
     $binds = [];
+
+    // 🌟 加入 user_id 過濾，確保 Profile 頁面只顯示該創作者的內容
+    if ($userIdFilter !== '') {
+        $whereSql .= " AND s.user_id = ?";
+        $binds[] = [(int)$userIdFilter, PDO::PARAM_INT];
+    }
 
     if ($q) {
         $keywords = preg_split('/\s+(and|or)\s+|[,|\s]+/i', $q, -1, PREG_SPLIT_NO_EMPTY);
@@ -195,7 +204,7 @@ if ($method === 'GET') {
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
-    // 🚀 核心新增：計算內容指紋 Hash
+    // 🚀 計算內容指紋 Hash
     $contentHash = 'sha256:' . hash('sha256', $content);
 
     try {
@@ -235,7 +244,7 @@ if ($method === 'GET') {
             'message' => __('Soul created successfully'),
             'id' => $newId,
             'url' => $seoUrl,
-            'hash' => $contentHash // 🚀 回傳 Hash 給前端上鏈使用
+            'hash' => $contentHash
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {

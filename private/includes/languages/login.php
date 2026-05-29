@@ -22,6 +22,8 @@ return [
         'Connect NEAR Wallet' => 'Connect NEAR Wallet',
         'Wallet not bound' => 'This NEAR wallet is not bound to any account. Please login with your username first, and bind your wallet in the API Settings.',
         'Connecting...' => 'Connecting to Wallet...',
+        'Connecting to RPC...' => 'Connecting to RPC...',
+        'Verifying Session...' => 'Verifying Session...',
     ],
     
     'zh' => [
@@ -41,5 +43,7 @@ return [
         'Connect NEAR Wallet' => '連接 NEAR 錢包免密碼登入',
         'Wallet not bound' => '此 NEAR 錢包尚未綁定任何帳號。請先使用傳統帳號密碼登入，並前往「API 存取權限」設定中綁定您的錢包。',
         'Connecting...' => '正在喚起錢包連線...',
+        'Connecting to RPC...' => '等緊 RPC 連接...',
+        'Verifying Session...' => '正在驗證 Session...',
     ]
 ];

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Login Page
  * (Dynamic i18n Internationalization & Pure Native MyNearWallet Redirect Edition)
- * 🚀 Patched: 100% Pure Redirect Mode & Non-Black Emerald Contrast UI
+ * 🚀 Patched: 100% Pure Redirect Mode & Non-Black Emerald Contrast UI with RPC Loading (i18n Fixed)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -12,7 +12,6 @@ session_start();
 
 loadTranslations('login');
 
-// 如果用戶已經登入，直接跳轉到控制台
 if (isset($_SESSION['user_id'])) {
     header('Location: ' . url('/my-souls'));
     exit;
@@ -20,7 +19,7 @@ if (isset($_SESSION['user_id'])) {
 
 $pageTitle = __('Log in');
 $pageDesc = __('Login Desc');
-$hideNavLinks = true; // 登入頁面隱藏導航欄連結保持純淨
+$hideNavLinks = true;
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -61,7 +60,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-950 text-zinc-500 text-[10px] px-2 font-bold tracking-widest">WEB3</div>
                 
                 <button type="button" onclick="handleNearLogin()" id="near-login-btn" class="w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
+                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="near-btn-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
                     <span id="near-btn-text"><?= __('Connect NEAR Wallet') ?></span>
                 </button>
             </div>
@@ -76,27 +75,31 @@ require_once __DIR__ . '/../private/includes/header.php';
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
-    // 1. 點擊觸發原生 MyNearWallet 授權跳轉
     async function handleNearLogin() {
+        const btn = document.getElementById('near-login-btn');
         const btnText = document.getElementById('near-btn-text');
-        const originalText = btnText.innerText;
-        btnText.innerText = '<?= addslashes(__('Connecting...')) ?>';
+        const btnIcon = document.getElementById('near-btn-icon');
+        const originalText = btnText.innerHTML;
+
+        // 🌟 已修正為 i18n 語言包寫法
+        btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
+        btn.classList.add('opacity-80', 'pointer-events-none');
+        if(btnIcon) btnIcon.classList.add('hidden');
 
         try {
             const wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
-                // 原生純網頁跳轉模式，100% 避開任何彈窗排版問題
                 wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-                setTimeout(() => { btnText.innerText = originalText; }, 1000);
             } else {
                 await verifyNearWallet(wallet.getAccountId());
             }
         } catch(e) {
-            btnText.innerText = originalText;
+            btnText.innerHTML = originalText;
+            btn.classList.remove('opacity-80', 'pointer-events-none');
+            if(btnIcon) btnIcon.classList.remove('hidden');
         }
     }
 
-    // 2. 監聽從 MyNearWallet 授權成功跳轉回來後的 URL 參數
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('account_id') || urlParams.has('all_keys')) {
@@ -109,12 +112,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    // 3. 呼叫後端 API 驗證錢包地址，完成 Web2.5 Session 綁定
     async function verifyNearWallet(accountId) {
         const errorBox = document.getElementById('error-box');
         const errorMsg = document.getElementById('error-msg');
+        const btn = document.getElementById('near-login-btn');
         const btnText = document.getElementById('near-btn-text');
-        btnText.innerText = '<?= addslashes(__('Connecting...')) ?>';
+        
+        // 🌟 已修正為 i18n 語言包寫法
+        if(btnText) btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Verifying Session...')) ?>';
 
         try {
             const res = await fetch('/api/wallet-login', {
@@ -128,24 +133,23 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 errorMsg.innerText = data.error || '<?= addslashes(__('Wallet not bound')) ?>';
                 errorBox.classList.remove('hidden');
-                btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+                if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+                if(btn) btn.classList.remove('opacity-80', 'pointer-events-none');
                 
-                // 驗證失敗則強制清空錢包狀態
                 const wallet = await initNearWallet();
                 wallet.signOut();
                 
-                // 清理網址列殘留的 account_id 參數，防止循環刷頁
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
             }
         } catch (e) {
             errorMsg.innerText = '<?= addslashes(__('Network Error.')) ?>';
             errorBox.classList.remove('hidden');
-            btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+            if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+            if(btn) btn.classList.remove('opacity-80', 'pointer-events-none');
         }
     }
 
-    // 4. 傳統 Web2 密碼登入邏輯
     const form = document.getElementById('login-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();

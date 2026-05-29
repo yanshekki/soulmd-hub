@@ -27,6 +27,7 @@ return [
         'Invalid amount' => 'Please enter a valid NEAR amount!',
         'Transaction failed' => 'Transaction failed or rejected by user. Please try again.',
         'Processing' => 'Processing...',
+        'Connecting to RPC...' => 'Connecting to RPC...',
     ],
     
     'zh' => [
@@ -51,5 +52,6 @@ return [
         'Invalid amount' => '請輸入有效的 NEAR 數量！',
         'Transaction failed' => '交易失敗或被拒絕，請重試！',
         'Processing' => '處理中...',
+        'Connecting to RPC...' => '等緊 RPC 連接...',
     ]
 ];

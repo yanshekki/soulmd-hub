@@ -32,6 +32,8 @@ return [
         'Wallet cannot be changed' => 'Your wallet is permanently bound to this account and cannot be modified.',
         'Connecting...' => 'Connecting...',
         'Binding...' => 'Binding...',
+        'Connecting to RPC...' => 'Connecting to RPC...',
+        'Binding Address...' => 'Binding Address...',
         
         // BYOK Section
         'Bring Your Own Key (BYOK)' => 'Bring Your Own Key (BYOK) 🚀',
@@ -91,6 +93,8 @@ return [
         'Wallet cannot be changed' => '您的錢包已永久綁定至此帳號，無法再作修改。',
         'Connecting...' => '正在喚起錢包...',
         'Binding...' => '正在寫入綁定資料...',
+        'Connecting to RPC...' => '等緊 RPC 連接...',
+        'Binding Address...' => '正在綁定地址...',
         
         // BYOK Section
         'Bring Your Own Key (BYOK)' => '自訂 API 金鑰 (無狀態 BYOK) 🚀',

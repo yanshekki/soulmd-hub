@@ -1,46 +1,74 @@
 <?php
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
- * 🚀 PURE VANILLA JS (MyNearWallet ONLY)
- * 100% FIXED: 換上 Browser 專用 Buffer 墊片，徹底解決靜默死機！
+ * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER
+ * 自動攔截死節點，切換至最快 RPC，永不死機！
  */
 ?>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
-<script>
-    // 綁定全域 Buffer，等 near-api-js 順利搵到佢，唔會再 Crash！
-    window.Buffer = window.Buffer || buffer.Buffer;
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/near-api-js@1.1.0/dist/near-api-js.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js"></script>
 
 <script>
     window.nearHubWalletWrapper = null;
+    window.activeNearRpcUrl = "https://free.rpc.fastnear.com"; // 預設使用最快節點
+
+    // 🌟 核心：自動測試並挑選最快、無 CORS 阻擋的 RPC 節點
+    async function getHealthyRpc() {
+        const rpcNodes = [
+            "https://free.rpc.fastnear.com",   // FastNEAR (極速、無 CORS 限制)
+            "https://near.lava.build",         // Lava Network (去中心化高可用)
+            "https://rpc.mainnet.pagoda.co",   // Pagoda 官方企業節點
+            "https://rpc.mainnet.near.org"     // NEAR 官方預設 (最後備用，易被 Block)
+        ];
+
+        for (const url of rpcNodes) {
+            try {
+                // 設定 2.5 秒超時，唔通即刻飛，唔會卡死個網頁
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), 2500);
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jsonrpc: "2.0", id: "ping", method: "status", params: [] }),
+                    signal: controller.signal
+                });
+                clearTimeout(id);
+
+                if (res.ok) {
+                    console.log("✅ Web3 RPC Connected:", url);
+                    return url;
+                }
+            } catch (e) {
+                console.warn(`⚠️ RPC ${url} blocked or dead. Switching to next...`);
+            }
+        }
+        return rpcNodes[0]; // 如果全部失敗，夾硬用第一個博一博
+    }
 
     window.initNearWallet = async function() {
         if (window.nearHubWalletWrapper) return window.nearHubWalletWrapper;
 
         try {
-            // 從成功載入的 nearApi 中提取必要工具，包含官方內建的 BN 處理器
             const { connect, keyStores, WalletConnection, transactions, utils } = window.nearApi;
             const BN = utils.BN; 
 
-            // 🚀 最原始、最穩定的 MyNearWallet 直連參數
+            // 🚀 執行 RPC 測速
+            window.activeNearRpcUrl = await getHealthyRpc();
+
             const config = {
                 networkId: "mainnet",
                 keyStore: new keyStores.BrowserLocalStorageKeyStore(),
-                nodeUrl: "https://rpc.mainnet.near.org",
+                nodeUrl: window.activeNearRpcUrl,
                 walletUrl: "https://app.mynearwallet.com",
             };
 
             const near = await connect(config);
             const wallet = new WalletConnection(near, 'soulmd_hub');
 
-            // 🛡️ 完美封裝，確保全站 Marketplace / Login 向下相容
             window.nearHubWalletWrapper = {
                 isSignedIn: () => wallet.isSignedIn(),
                 getAccountId: () => wallet.getAccountId(),
                 requestSignIn: ({ contractId }) => {
-                    // 原生跳轉模式，保證 100% 觸發網頁跳轉，再無彈窗煩惱！
                     wallet.requestSignIn({ contractId: contractId });
                 },
                 signOut: () => {
@@ -66,11 +94,13 @@
                     const blockHash = utils.serialize.base_decode(block.header.hash);
                     const dummyPublicKey = utils.PublicKey.from('ed25519:11111111111111111111111111111111');
                     
+                    const encoder = new TextEncoder();
+
                     const realTxs = txs.map((tx, index) => {
                         const parsedActions = tx.actions.map(action => {
                             return transactions.functionCall(
                                 action.methodName,
-                                new Uint8Array(window.Buffer.from(JSON.stringify(action.args || {}))),
+                                encoder.encode(JSON.stringify(action.args || {})),
                                 new BN(action.gas.toString()),
                                 new BN(action.deposit.toString())
                             );
@@ -97,7 +127,7 @@
             
         } catch (err) {
             console.error("NEAR Wallet Init Error:", err);
-            alert("錢包模組載入失敗，請重新整理頁面 (Ctrl+F5)！");
+            alert("RPC 連線失敗，請檢查網絡或重新整理 (Ctrl+F5)！");
         }
     };
 </script>
