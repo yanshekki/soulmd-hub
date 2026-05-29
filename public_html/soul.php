@@ -330,7 +330,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 jsonrpc: "2.0", id: "dontcare", method: "query",
                 params: {
                     request_type: "call_function", finality: "final",
-                    account_id: "<?= NEAR_CONTRACT_ID; ?>",
+                    account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                     method_name: "get_soul",
                     args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulDbId }))
                 }
@@ -369,12 +369,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
             return;
         }
         const price = document.getElementById('btn-buy').dataset.price;
         await wallet.account().functionCall({
-            contractId: "<?= NEAR_CONTRACT_ID; ?>",
+            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
             methodName: "buy_soul",
             args: { token_id: "soul_" + soulDbId },
             gas: "30000000000000",
@@ -387,12 +387,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
             return;
         }
         const price = document.getElementById('btn-rent').dataset.price;
         await wallet.account().functionCall({
-            contractId: "<?= NEAR_CONTRACT_ID; ?>",
+            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
             methodName: "rent_soul",
             args: { token_id: "soul_" + soulDbId },
             gas: "30000000000000",

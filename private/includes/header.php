@@ -157,6 +157,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         <?php if (!isset($hideNavLinks) || !$hideNavLinks): ?>
         <div class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium">
             <a href="<?= url('/browse') ?>" class="text-zinc-400 hover:text-white transition"><?= __('Browse') ?></a>
+            <a href="<?= url('/marketplace') ?>" class="text-zinc-400 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-gem text-blue-400"></i> <?= __('Marketplace') ?></a>
             <a href="<?= url('/my-chats') ?>" class="text-zinc-400 hover:text-white transition"><?= __('My Chats') ?></a>
             <a href="<?= url('/generate') ?>" class="text-zinc-400 hover:text-white transition"><?= __('AI Generator') ?></a>
             <a href="<?= url('/upload') ?>" class="text-zinc-400 hover:text-white transition"><?= __('Upload') ?></a>

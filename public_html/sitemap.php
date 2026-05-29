@@ -53,7 +53,12 @@ echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="h
 $staticPages = [
     '' => ['changefreq' => 'daily', 'priority' => '1.0'],
     'browse' => ['changefreq' => 'daily', 'priority' => '0.9'],
-    'upgrade' => ['changefreq' => 'weekly', 'priority' => '0.9']
+    'marketplace' => ['changefreq' => 'hourly', 'priority' => '0.9'], 
+    'generate' => ['changefreq' => 'weekly', 'priority' => '0.8'],
+    'api-docs' => ['changefreq' => 'monthly', 'priority' => '0.7'],
+    'upgrade' => ['changefreq' => 'weekly', 'priority' => '0.8'],
+    'login' => ['changefreq' => 'monthly', 'priority' => '0.5'],
+    'register' => ['changefreq' => 'monthly', 'priority' => '0.5']
 ];
 
 $today = date('Y-m-d');

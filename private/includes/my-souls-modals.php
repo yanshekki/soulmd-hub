@@ -414,7 +414,7 @@
                 jsonrpc: "2.0", id: "dontcare", method: "query",
                 params: {
                     request_type: "call_function", finality: "final",
-                    account_id: "<?= NEAR_CONTRACT_ID; ?>",
+                    account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                     method_name: "get_soul",
                     args_base64: btoa(JSON.stringify({ token_id: "soul_" + id }))
                 }
@@ -477,7 +477,7 @@
 
         try {
             await wallet.account().functionCall({
-                contractId: "<?= NEAR_CONTRACT_ID; ?>",
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                 methodName: methodName,
                 args: args,
                 gas: "30000000000000",
@@ -540,7 +540,7 @@
                     };
                     
                     await wallet.account().functionCall({
-                        contractId: "<?= NEAR_CONTRACT_ID; ?>",
+                        contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                         methodName: "update_soul_hash",
                         args: args,
                         gas: "30000000000000", 
@@ -587,7 +587,7 @@
             }
 
             await wallet.account().functionCall({
-                contractId: "<?= NEAR_CONTRACT_ID; ?>",
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                 methodName: "burn_soul",
                 args: { token_id: "soul_" + id },
                 gas: "30000000000000", 

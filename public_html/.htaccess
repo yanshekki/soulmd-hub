@@ -42,10 +42,20 @@ ErrorDocument 404 /404.php
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
     
-    # 核心商業、個人紀錄、帳單路由
-    RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
+    # 🌟 核心商業、個人紀錄、帳單與公開頁面路由 (全面補齊)
+    RewriteRule ^marketplace/?$ marketplace.php [L,QSA]
+    RewriteRule ^generate/?$ generate.php [L,QSA]
+    RewriteRule ^upload/?$ upload.php [L,QSA]
+    RewriteRule ^my-souls/?$ my-souls.php [L,QSA]
     RewriteRule ^my-chats/?$ my-chats.php [L,QSA]
+    RewriteRule ^my-api/?$ my-api.php [L,QSA]
     RewriteRule ^billing/?$ billing.php [L,QSA]
+    RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
+    RewriteRule ^login/?$ login.php [L,QSA]
+    RewriteRule ^register/?$ register.php [L,QSA]
+    RewriteRule ^change-password/?$ change-password.php [L,QSA]
+    RewriteRule ^logout/?$ logout.php [L,QSA]
+    
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
 
     # Invoice 乾淨路由規則

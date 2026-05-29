@@ -12,6 +12,7 @@ return [
         'AI Generator' => 'AI Generator',
         'Upload' => 'Upload',
         'Premium' => 'Premium',
+        'Marketplace' => 'Marketplace',
         
         // User Dropdown & Auth
         'My Souls' => 'My Souls',
@@ -32,6 +33,7 @@ return [
         'AI Generator' => 'AI 生成器',
         'Upload' => '上傳發佈',
         'Premium' => '尊貴版',
+        'Marketplace' => 'AgentFi 市集',
         
         // User Dropdown & Auth
         'My Souls' => '我的模型',

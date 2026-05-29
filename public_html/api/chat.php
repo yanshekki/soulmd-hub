@@ -317,7 +317,7 @@ if ($method === 'POST') {
                 "params" => [
                     "request_type" => "call_function",
                     "finality" => "final",
-                    "account_id" => NEAR_CONTRACT_ID, 
+                    "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
                     "method_name" => "get_soul", 
                     "args_base64" => base64_encode(json_encode(["token_id" => $tokenIdStr]))
                 ]

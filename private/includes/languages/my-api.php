@@ -21,6 +21,17 @@ return [
         'Hide Key' => 'Hide Key',
         'Copy Key' => 'Copy',
         'Copied!' => 'Copied!',
+
+        // 🚀 Web3 Wallet Binding Section
+        'Web3 Wallet Binding' => 'Web3 Wallet Binding',
+        'Wallet Binding Desc' => 'Connect your NEAR wallet to unlock AgentFi capabilities (Minting NFTs, Trading, and Renting).',
+        'Important Warning:' => 'Important Warning:',
+        'Wallet one-time warning' => 'For security and asset integrity, you can only bind your wallet ONCE. After binding, you cannot change the wallet address linked to this account.',
+        'Connect & Bind Wallet' => 'Connect & Bind Wallet',
+        'Bound' => 'Bound',
+        'Wallet cannot be changed' => 'Your wallet is permanently bound to this account and cannot be modified.',
+        'Connecting...' => 'Connecting...',
+        'Binding...' => 'Binding...',
         
         // BYOK Section
         'Bring Your Own Key (BYOK)' => 'Bring Your Own Key (BYOK) 🚀',
@@ -69,6 +80,17 @@ return [
         'Hide Key' => '隱藏金鑰',
         'Copy Key' => '複製',
         'Copied!' => '已複製！',
+
+        // 🚀 Web3 Wallet Binding Section
+        'Web3 Wallet Binding' => 'Web3 錢包綁定 (AgentFi)',
+        'Wallet Binding Desc' => '連接您的 NEAR 錢包以解鎖 AgentFi 進階功能 (包含鑄造 NFT、資產交易及黑盒出租)。',
+        'Important Warning:' => '重要警告：',
+        'Wallet one-time warning' => '為保障帳戶安全及鏈上資產完整性，每個帳號只能綁定一次錢包。綁定成功後，日後將【絕對無法修改或解除綁定】。請確認您使用的是正確的常用錢包！',
+        'Connect & Bind Wallet' => '連接並永久綁定錢包',
+        'Bound' => '已綁定',
+        'Wallet cannot be changed' => '您的錢包已永久綁定至此帳號，無法再作修改。',
+        'Connecting...' => '正在喚起錢包...',
+        'Binding...' => '正在寫入綁定資料...',
         
         // BYOK Section
         'Bring Your Own Key (BYOK)' => '自訂 API 金鑰 (無狀態 BYOK) 🚀',
