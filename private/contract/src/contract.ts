@@ -1,6 +1,5 @@
 import { NearBindgen, near, call, view, UnorderedMap, assert } from 'near-sdk-js';
 
-// 1. 定義 NFT Metadata 結構 (只存 Hash，不存明文 Prompt)
 class TokenMetadata {
     title: string;
     description: string;
@@ -17,7 +16,6 @@ class TokenMetadata {
     }
 }
 
-// 2. 定義 NFT Token 實體
 class Token {
     owner_id: string;
     metadata: TokenMetadata;
@@ -37,19 +35,14 @@ class Token {
 @NearBindgen({})
 class SoulMDAgentFi {
     tokens = new UnorderedMap<Token>('t');
-    
-    // 🏦 官方金庫地址
     platform_wallet: string = 'soulmd-hub.near'; 
 
-    // ==========================================
-    // 🚀 1. 鑄造模型 (Minting) - 內置 0.1 NEAR 平台稅
-    // ==========================================
     @call({ payableFunction: true })
     mint_soul({ token_id, title, description, hash, reference }: { token_id: string, title: string, description: string, hash: string, reference: string }) {
         const caller = near.predecessorAccountId();
         const deposit = near.attachedDeposit() as bigint;
 
-        const required_deposit = 600000000000000000000000n; // 0.6 NEAR
+        const required_deposit = 600000000000000000000000n; 
         assert(deposit >= required_deposit, "Error: Minting requires exactly 0.6 NEAR");
         assert(!this.tokens.get(token_id), "Error: Token ID already exists.");
 
@@ -57,16 +50,13 @@ class SoulMDAgentFi {
         const token = new Token(caller, metadata);
         this.tokens.set(token_id, token);
 
-        const platform_fee = 100000000000000000000000n; // 0.1 NEAR
+        const platform_fee = 100000000000000000000000n; 
         const promise = near.promiseBatchCreate(this.platform_wallet);
         near.promiseBatchActionTransfer(promise, platform_fee);
 
         near.log(`Minted Soul [${token_id}] by ${caller}`);
     }
 
-    // ==========================================
-    // 🚀 2. 模型進化 (Update Hash)
-    // ==========================================
     @call({})
     update_soul_hash({ token_id, new_hash }: { token_id: string, new_hash: string }) {
         const caller = near.predecessorAccountId();
@@ -81,9 +71,6 @@ class SoulMDAgentFi {
         near.log(`Soul [${token_id}] evolved to new hash: ${new_hash}`);
     }
 
-    // ==========================================
-    // 🛒 3. 市集買賣 (Marketplace: Listing & Buying)
-    // ==========================================
     @call({})
     list_for_sale({ token_id, price }: { token_id: string, price: string }) {
         const caller = near.predecessorAccountId();
@@ -137,9 +124,6 @@ class SoulMDAgentFi {
         near.log(`[${token_id}] bought by ${buyer} for ${price}`);
     }
 
-    // ==========================================
-    // 💼 4. 黑盒出租 (AgentFi Leasing)
-    // ==========================================
     @call({})
     list_for_rent({ token_id, price }: { token_id: string, price: string }) {
         const caller = near.predecessorAccountId();
@@ -176,6 +160,13 @@ class SoulMDAgentFi {
         const thirty_days_ns = 2592000000000000n;
         const current_time = near.blockTimestamp();
         
+        // 🧹 垃圾回收：清理已過期的舊租客，釋放合約記憶體防止 Storage Leak
+        for (const existing_renter in token.renters) {
+            if (BigInt(token.renters[existing_renter]) < current_time) {
+                delete token.renters[existing_renter];
+            }
+        }
+        
         let current_expiry = token.renters[renter] ? BigInt(token.renters[renter]) : current_time;
         if (current_expiry < current_time) current_expiry = current_time;
         
@@ -185,9 +176,6 @@ class SoulMDAgentFi {
         near.log(`[${token_id}] rented by ${renter}. Expires at ${token.renters[renter]}`);
     }
 
-    // ==========================================
-    // 🔥 5. 銷毀 (Burn) - 內置 0.05 NEAR 手續費
-    // ==========================================
     @call({})
     burn_soul({ token_id }: { token_id: string }) {
         const caller = near.predecessorAccountId();
@@ -210,9 +198,6 @@ class SoulMDAgentFi {
         near.log(`Burned [${token_id}]. Refunded 0.45 NEAR to ${caller}`);
     }
 
-    // ==========================================
-    // 🔍 讀取功能 (View)
-    // ==========================================
     @view({})
     get_soul({ token_id }: { token_id: string }): Token | null {
         return this.tokens.get(token_id);
@@ -241,34 +226,38 @@ class SoulMDAgentFi {
     auto_buyback_and_burn({ amount_in_near }: { amount_in_near: string }) {
         const caller = near.predecessorAccountId();
         
-        // 嚴格門禁：只有官方金庫擁有者才能觸發這個印鈔/銷毀核彈
         assert(caller === this.platform_wallet, "Security Error: Only platform treasury can trigger buyback.");
 
         const amount = BigInt(amount_in_near);
         
-        // Ref Finance 主網合約地址 (AMM Router)
-        const ref_finance_id = "v2.ref-finance.near";
+        // 1. 創建 Batch Promise 目標為 wrap.near (官方包裝合約)
+        const p1 = near.promiseBatchCreate("wrap.near");
+        
+        // 2. 第一步：將夾帶的 Native NEAR 存入 wrap.near 轉換為 wNEAR
+        near.promiseBatchActionFunctionCall(p1, "near_deposit", "", amount, 30000000000000n);
 
-        // 設定 Swap 參數：將國庫的 NEAR 透過流動性池換成 $SOUL
-        // 這裡設定直接打入 "system" 帳號（NEAR 網路的黑洞），完成永久銷毀通縮！
-        const swap_action = {
-            pool_id: 1234, // 這裡填入未來我們在 Ref 建立的 NEAR/SOUL 池 ID
-            token_in: "wrap.near",
-            token_out: "token.soulmd-hub.near", // $SOUL 代幣合約
-            amount_in: amount_in_near,
-            min_amount_out: "1" // 接受市價市價滑點
-        };
+        // 3. 準備發送給 Ref Finance 進行 Swap 的指令結構
+        const swap_msg = JSON.stringify({
+            force: 0,
+            actions: [{
+                pool_id: 8546, 
+                token_in: "wrap.near",
+                token_out: "soul.tkn.near", 
+                amount_in: amount_in_near,
+                min_amount_out: "1" 
+            }]
+        });
 
-        // 發動跨合約呼叫 (Cross-Contract Call) 去 Ref Finance
-        const promise = near.promiseBatchCreate(ref_finance_id);
-        near.promiseBatchActionFunctionCall(
-            promise,
-            "swap",
-            JSON.stringify({ actions: [swap_action] }),
-            amount, // 夾帶要賣掉的 NEAR 資金
-            100000000000000n // 附帶 100 TGas 確保足夠執行複雜交易
-        );
+        const transfer_args = JSON.stringify({
+            receiver_id: "v2.ref-finance.near",
+            amount: amount_in_near,
+            msg: swap_msg
+        });
 
-        near.log(`🌪️ Auto-Buyback triggered! Swapping ${amount_in_near} yoctoNEAR for $SOUL to BURN.`);
+        // 4. 第二步：將剛才轉好的 wNEAR 透過 ft_transfer_call 射入 Ref Finance 觸發交易
+        // 必須夾帶 1 yoctoNEAR 以符合安全規範，並提供充足 Gas (100 TGas)
+        near.promiseBatchActionFunctionCall(p1, "ft_transfer_call", transfer_args, 1n, 100000000000000n);
+        
+        near.log(`🌪️ Auto-Buyback triggered! Wrapped ${amount_in_near} NEAR and routed to Pool 8546 for $SOUL burn.`);
     }
 }

@@ -26,6 +26,7 @@ define('NEAR_NETWORK_ID', 'mainnet');
 define('NEAR_CONTRACT_ID', 'soulmd-hub.near');         // 🚀 剛剛完美部署的主網智能合約地址
 define('NEAR_TOKEN_CONTRACT_ID', 'soul.tkn.near');     // 🚀 剛剛在官方工廠成功建立的 $SOUL 代幣合約地址
 define('NEAR_REF_FINANCE_ID', 'v2.ref-finance.near');  // Ref Finance 主網 AMM Router 地址
+define('NEAR_POOL_ID', 8546);                          // 🚀 Rhea/Ref Finance 真實流動性池 ID！
 define('NEAR_RPC_URL', 'https://rpc.mainnet.near.org'); // 官方主網高併發 RPC 節點
 
 // ==========================================

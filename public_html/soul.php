@@ -330,7 +330,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 jsonrpc: "2.0", id: "dontcare", method: "query",
                 params: {
                     request_type: "call_function", finality: "final",
-                    account_id: "soulmd-hub.near",
+                    account_id: "<?= NEAR_CONTRACT_ID; ?>",
                     method_name: "get_soul",
                     args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulDbId }))
                 }
@@ -369,12 +369,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             return;
         }
         const price = document.getElementById('btn-buy').dataset.price;
         await wallet.account().functionCall({
-            contractId: "soulmd-hub.near",
+            contractId: "<?= NEAR_CONTRACT_ID; ?>",
             methodName: "buy_soul",
             args: { token_id: "soul_" + soulDbId },
             gas: "30000000000000",
@@ -387,12 +387,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             return;
         }
         const price = document.getElementById('btn-rent').dataset.price;
         await wallet.account().functionCall({
-            contractId: "soulmd-hub.near",
+            contractId: "<?= NEAR_CONTRACT_ID; ?>",
             methodName: "rent_soul",
             args: { token_id: "soul_" + soulDbId },
             gas: "30000000000000",

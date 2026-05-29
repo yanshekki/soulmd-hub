@@ -231,7 +231,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             return;
         }
 
@@ -240,7 +240,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const amountInYocto = nearApi.utils.format.parseNearAmount(amount.toString());
             
             await wallet.account().functionCall({
-                contractId: "soulmd-hub.near",
+                contractId: "<?= NEAR_CONTRACT_ID; ?>",
                 methodName: "auto_buyback_and_burn",
                 args: { amount_in_near: amountInYocto },
                 gas: "100000000000000", // 100 TGas 需要足夠 Gas 執行跨合約 Swap
@@ -248,7 +248,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 walletCallbackUrl: window.location.href
             });
         } catch(e) {
-            alert("Blockchain transaction failed. Make sure you are logged in with the official Treasury account (soulmd-hub.near).");
+            alert("Blockchain transaction failed. Make sure you are logged in with the official Treasury account (<?= NEAR_CONTRACT_ID; ?>).");
         }
     }
     <?php endif; ?>

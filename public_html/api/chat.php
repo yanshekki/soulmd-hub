@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub Public API - Web2.5 BYOK Proxy Edition
  * (Stateless API Forwarding, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
- * 🚀 AgentFi Security Integrity Radar (Two-Way Check & Token-Gating)
+ * 🚀 AgentFi Security Integrity Radar (Two-Way Check & Token-Gating) - Patched
  */
 
 set_time_limit(180);
@@ -317,7 +317,7 @@ if ($method === 'POST') {
                 "params" => [
                     "request_type" => "call_function",
                     "finality" => "final",
-                    "account_id" => "soulmd-hub.near", 
+                    "account_id" => NEAR_CONTRACT_ID, 
                     "method_name" => "get_soul", 
                     "args_base64" => base64_encode(json_encode(["token_id" => $tokenIdStr]))
                 ]
@@ -348,13 +348,11 @@ if ($method === 'POST') {
                         }
 
                         // 2. Token-Gating 門禁檢查 (Ownership or Active Rent)
-                        // 如果該 Token 被掛牌出售或出租，且當前使用者不是原創者自己，即啟動門禁
-                        $isMonetized = (!empty($tokenInfo['sale_price']) || !empty($tokenInfo['rent_price']));
-                        
-                        if ($isMonetized && $chatUserWallet !== $creatorWallet) {
+                        // 只要該 Token 在區塊鏈上存在 (被鑄造為 NFT)，即啟動嚴格門禁！
+                        if ($chatUserWallet !== $creatorWallet) {
                             $hasAccess = false;
                             
-                            // 檢查是否為擁有人 (Owner)
+                            // 檢查是否為現任買家/擁有人 (Owner)
                             if ($tokenInfo['owner_id'] === $chatUserWallet) {
                                 $hasAccess = true;
                             } 

@@ -265,7 +265,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     
                     // 跳轉至 NEAR Wallet 簽名
                     await wallet.account().functionCall({
-                        contractId: "soulmd-hub.near",
+                        contractId: "<?= NEAR_CONTRACT_ID; ?>",
                         methodName: "mint_soul",
                         args: args,
                         gas: "30000000000000", // 30 TGas

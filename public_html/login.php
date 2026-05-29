@@ -84,7 +84,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
                 // 導向錢包授權頁面
-                wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             } else {
                 // 已授權，直接驗證後端
                 await verifyNearWallet(wallet.getAccountId());
