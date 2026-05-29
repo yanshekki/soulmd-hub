@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
- * (Dynamic i18n Internationalization, 4-Layer SEO Routing & Perfect Mobile Grid Edition)
+ * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,7 +10,6 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('soul');
 
 $db = Database::getInstance();
@@ -39,7 +38,6 @@ if (!$soul) {
     exit;
 }
 
-// 🚨 PHP 端 SEO 友善助手
 function makeSlug($str) {
     if (empty($str)) return 'unassigned';
     $str = mb_strtolower($str, 'UTF-8');
@@ -51,7 +49,6 @@ $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
 $slugRole = makeSlug($soul['role']);
 $slugTitle = makeSlug($soul['title']);
 
-// 🚨 完美 SEO 301 跳轉機制：若果 URL 是舊版短網址，自動跳轉去完整及正確語系的前綴 SEO Path
 $canonicalUrl = url("/soul/{$encodedUsername}/{$id}/{$slugRole}/{$slugTitle}");
 $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -70,7 +67,6 @@ if (isset($_SESSION['user_id'])) {
 $isFolder = $soul['file_type'] === 'full_soul_folder';
 $contentData = $soul['content'];
 
-// 🚨 完美 JSON 容錯修復機制
 if ($isFolder) {
     $cleanedContent = str_replace("\\'", "'", $contentData);
     $files = json_decode($cleanedContent, true);
@@ -116,6 +112,8 @@ $pageDesc = $soul['description'] ?: __('View this AI soul on SoulMD Hub.');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
+
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
@@ -133,6 +131,24 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
                 <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
+            </button>
+        </div>
+    </div>
+
+    <div id="agentfi-market-block" class="hidden mb-6 bg-zinc-950 border border-emerald-500/30 rounded-3xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg animate-fade-in relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+        <div>
+            <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1"><i class="fas fa-gem"></i> <?= __('AgentFi Marketplace') ?></div>
+            <div class="text-sm text-zinc-300">
+                <span class="text-zinc-500"><?= __('Current Owner') ?>:</span> <span id="market-owner" class="font-mono text-emerald-300 tracking-tight"></span>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2 w-full md:w-auto" id="market-actions">
+            <button id="btn-buy" onclick="buySoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
+                <i class="fas fa-shopping-cart mr-1"></i> <span id="price-buy"></span> NEAR
+            </button>
+            <button id="btn-rent" onclick="rentSoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
+                <i class="fas fa-handshake mr-1"></i> <span id="price-rent"></span> NEAR
             </button>
         </div>
     </div>
@@ -305,8 +321,86 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     const soulDataFiles = <?= json_encode($files, JSON_UNESCAPED_UNICODE) ?>;
     const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
+    const soulDbId = <?= $id ?>;
 
-    // 🚨 完美多語言化：JavaScript 終極 Mega-Prompt 提示詞建構核心
+    // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
+    async function fetchMarketStatus() {
+        try {
+            const rpcPayload = {
+                jsonrpc: "2.0", id: "dontcare", method: "query",
+                params: {
+                    request_type: "call_function", finality: "final",
+                    account_id: "soulmd-hub.near",
+                    method_name: "get_soul",
+                    args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulDbId }))
+                }
+            };
+            const rpcRes = await fetch('https://rpc.mainnet.near.org', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rpcPayload)
+            });
+            const rpcData = await rpcRes.json();
+            if (rpcData.result && rpcData.result.result) {
+                const resString = new TextDecoder().decode(new Uint8Array(rpcData.result.result));
+                const tokenInfo = JSON.parse(resString);
+                
+                if (tokenInfo) {
+                    document.getElementById('agentfi-market-block').classList.remove('hidden');
+                    document.getElementById('market-owner').innerText = tokenInfo.owner_id;
+
+                    if (tokenInfo.sale_price) {
+                        const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                        document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
+                        document.getElementById('btn-buy').classList.remove('hidden');
+                        document.getElementById('btn-buy').dataset.price = tokenInfo.sale_price; // Save raw
+                    }
+                    if (tokenInfo.rent_price) {
+                        const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                        document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
+                        document.getElementById('btn-rent').classList.remove('hidden');
+                        document.getElementById('btn-rent').dataset.price = tokenInfo.rent_price; // Save raw
+                    }
+                }
+            }
+        } catch(e) { console.log('Not an NFT or RPC failed'); }
+    }
+
+    async function buySoul() {
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+            return;
+        }
+        const price = document.getElementById('btn-buy').dataset.price;
+        await wallet.account().functionCall({
+            contractId: "soulmd-hub.near",
+            methodName: "buy_soul",
+            args: { token_id: "soul_" + soulDbId },
+            gas: "30000000000000",
+            attachedDeposit: price,
+            walletCallbackUrl: window.location.href
+        });
+    }
+
+    async function rentSoul() {
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+            return;
+        }
+        const price = document.getElementById('btn-rent').dataset.price;
+        await wallet.account().functionCall({
+            contractId: "soulmd-hub.near",
+            methodName: "rent_soul",
+            args: { token_id: "soul_" + soulDbId },
+            gas: "30000000000000",
+            attachedDeposit: price,
+            walletCallbackUrl: window.location.href
+        });
+    }
+
     function copyMegaPrompt(btn) {
         let megaPrompt = '';
         
@@ -364,6 +458,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             const parsedHTML = marked.parse(rawContent);
             document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
         });
+
+        // 🚀 初始化載入 NFT 市場狀態
+        fetchMarketStatus();
     });
 
     function showFile(n, activeBorder, activeColor) {
@@ -403,7 +500,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php endif; ?>
     }
 
-    // 🚨 完美多語言化：社交與評分異步控制台提示詞
     async function rateSoul(stars) {
         const btns = document.querySelectorAll('#rating-stars i');
         btns.forEach(btn => btn.style.pointerEvents = 'none');

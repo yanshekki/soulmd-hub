@@ -1,12 +1,11 @@
 <?php
 /**
  * SoulMD Hub - i18n Translation Dictionary
- * Target: soul.php (Model Detail Page)
+ * Target: soul.php (Model Detail Page & AgentFi Marketplace)
  */
 
 return [
     'en' => [
-        // Headers & UI Buttons
         'Back to Hub' => 'Back to Hub',
         'Copy Full Prompt' => 'Copy Full Prompt',
         'Modular Folder' => 'Modular Folder',
@@ -30,7 +29,16 @@ return [
         'MegaPrompt Outro' => "If you understand these instructions and have fully adopted the persona, acknowledge briefly and await my first prompt.",
         'MegaPrompt Success' => "✨ Mega-Prompt compiled and copied!\n\nYou can now paste it directly into ChatGPT, Claude, or any LLM interface.",
         
-        // Errors & Alerts
+        // 🚀 Phase 3: AgentFi Marketplace UI
+        'AgentFi Marketplace' => 'AgentFi Marketplace',
+        'Current Owner' => 'Current Owner',
+        'Buy Ownership' => 'Buy Ownership',
+        'Rent (30 Days)' => 'Rent (30 Days)',
+        'Not for sale' => 'Not for sale',
+        'Not for rent' => 'Not for rent',
+        'Please connect NEAR wallet first' => 'Please connect your NEAR wallet to interact with the marketplace.',
+        
+        // Errors
         'Parse Error' => 'Parse Error',
         'Failed to parse JSON folder structure.' => 'Failed to parse JSON folder structure. The AI generated a malformed JSON.',
         'Error Details:' => 'Error Details:',
@@ -44,7 +52,6 @@ return [
     ],
     
     'zh' => [
-        // Headers & UI Buttons
         'Back to Hub' => '返回探索',
         'Copy Full Prompt' => '複製完整提示詞',
         'Modular Folder' => '模組化結構 (Modular)',
@@ -68,7 +75,16 @@ return [
         'MegaPrompt Outro' => "如果你清楚明白上述指示，並已完全代入該角色，請簡短回覆確認，並等待我的第一個輸入指令。",
         'MegaPrompt Success' => "✨ 終極提示詞 (Mega-Prompt) 已成功編譯及複製！\n\n你現在可以直接將它貼上到 ChatGPT、Claude 或任何大語言模型的對話框中使用。",
         
-        // Errors & Alerts
+        // 🚀 Phase 3: AgentFi Marketplace UI
+        'AgentFi Marketplace' => 'AgentFi 去中心化市集',
+        'Current Owner' => '目前擁有者',
+        'Buy Ownership' => '買斷擁有權',
+        'Rent (30 Days)' => '租用黑盒 (30日)',
+        'Not for sale' => '未掛牌出售',
+        'Not for rent' => '未開放租用',
+        'Please connect NEAR wallet first' => '請先連線您的 NEAR 錢包以進入市集。',
+        
+        // Errors
         'Parse Error' => '解析錯誤',
         'Failed to parse JSON folder structure.' => '無法解析 JSON 資料夾結構，AI 可能生成了格式錯誤的 JSON。',
         'Error Details:' => '錯誤詳情：',

@@ -6,7 +6,7 @@
 
 return [
     'en' => [
-        // Headers & Basic UI
+        // ... (保留前面所有內容，直至末端新增 Web3 Alerts)
         'Chat Session' => 'Chat Session - :title',
         'Live interaction with this specialized AI persona architecture.' => 'Live interaction with this specialized AI persona architecture.',
         'Active Persona Session' => 'Active Persona Session',
@@ -21,7 +21,6 @@ return [
         'Type your message...' => 'Type your message, Ctrl+V to paste image, Ctrl+Enter to send...',
         'Copied!' => 'Copied!',
         
-        // Paywall Modal
         'Your Premium Subscription has Expired! ⚠️' => 'Your Premium Subscription has Expired! ⚠️',
         'Unlock Full AI Power 🚀' => 'Unlock Full AI Power 🚀',
         'Your access window has closed. Please renew your plan to restore active token clusters.' => 'Your access window has closed. Please renew your plan to restore active token clusters.',
@@ -45,7 +44,6 @@ return [
         'Renew PRO Pass' => 'Renew PRO Pass',
         'Get PRO Access' => 'Get PRO Access',
 
-        // JavaScript Chat Interactions & Alerts
         'Init message' => 'Hello! I am initialized and ready. What would you like to discuss?',
         'Private Session warning' => "⚠️ **Private Session**\nYou do not have permission to view this chat history.",
         'Failed to load conversation history.' => 'Failed to load conversation history.',
@@ -59,10 +57,10 @@ return [
         
         // 🚀 Web3 / AgentFi Alerts
         'Security Interception' => "⚠️ **Security Interception**\nOff-chain AI template mismatch. The creator has modified the prompt without updating the blockchain hash. Access is blocked to protect your rental rights.",
+        'Access Denied Web3' => "⛔ **Access Denied (Token-Gating)**\nThis AI Agent is an exclusive on-chain asset (NFT). You must purchase ownership or rent this model via the marketplace to interact with it.",
     ],
     
     'zh' => [
-        // Headers & Basic UI
         'Chat Session' => '對話工作階段 - :title',
         'Live interaction with this specialized AI persona architecture.' => '與這個專屬的 AI 角色架構進行實時互動。',
         'Active Persona Session' => '活躍的角色對話',
@@ -77,7 +75,6 @@ return [
         'Type your message...' => '輸入您的訊息，可按 Ctrl+V 貼上圖片，Ctrl+Enter 快速發送...',
         'Copied!' => '已複製！',
         
-        // Paywall Modal
         'Your Premium Subscription has Expired! ⚠️' => '您的尊貴會員訂閱已過期！ ⚠️',
         'Unlock Full AI Power 🚀' => '解鎖完整 AI 算力 🚀',
         'Your access window has closed. Please renew your plan to restore active token clusters.' => '您的訪問權限已關閉。請續期您的計劃以恢復算力與模型存取。',
@@ -101,7 +98,6 @@ return [
         'Renew PRO Pass' => '續期 PRO 通行證',
         'Get PRO Access' => '獲取 PRO 存取權',
 
-        // JavaScript Chat Interactions & Alerts
         'Init message' => '你好！我已經初始化準備就緒。今天想討論甚麼？',
         'Private Session warning' => "⚠️ **私密對話**\n您沒有權限查看此對話紀錄。",
         'Failed to load conversation history.' => '載入對話紀錄失敗。',
@@ -115,5 +111,6 @@ return [
         
         // 🚀 Web3 / AgentFi Alerts
         'Security Interception' => "⚠️ **安全攔截 (防篡改機制熔斷)**\n鏈下 AI 模板數據不吻合。創作者未有將最新的指令指紋 (Hash) 同步更新至區塊鏈。為保護您的租用權益，系統已自動阻斷此次推理請求。",
+        'Access Denied Web3' => "⛔ **存取被拒 (Token-Gating 門禁)**\n此 AI 模型已綁定為區塊鏈資產 (NFT)。您必須成為其擁有者，或者在市集支付租金才能與其對話。",
     ]
 ];

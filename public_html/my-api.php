@@ -14,6 +14,7 @@ $apiKey = 'YOUR_API_KEY';
 $isPremiumActive = false;
 $userTier = 'free';
 $isExpired = false;
+$isAdmin = false;
 
 if (!$isPublicApiPage) {
     session_start();
@@ -26,7 +27,7 @@ if (!$isPublicApiPage) {
     $pdo = $db->getConnection();
     $userId = $_SESSION['user_id'];
 
-    $stmt = $pdo->prepare("SELECT api_key, tier, vip_expires_at FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT username, api_key, tier, vip_expires_at FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $userRow = $stmt->fetch();
     
@@ -34,6 +35,11 @@ if (!$isPublicApiPage) {
         $apiKey = $userRow['api_key'];
         $userTier = $userRow['tier'];
         $expiry = $userRow['vip_expires_at'] ? strtotime($userRow['vip_expires_at']) : 0;
+        
+        // 判斷是否為預設管理員帳號
+        if (in_array(strtolower($userRow['username']), ['yanshekki', 'ysk', 'ysklimited', 'ki'])) {
+            $isAdmin = true;
+        }
         
         if ($userTier !== 'free') {
             if ($expiry > time()) {
@@ -57,6 +63,8 @@ $pageTitle = $isPublicApiPage ? __('API Reference') : __('Developer API Access')
 $pageDesc = 'Manage your API key and read integration docs for SoulMD Hub.';
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
+
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
     
@@ -139,6 +147,25 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <?php require_once __DIR__ . '/../private/includes/my-api-byok.php'; ?>
 
+            <?php if ($isAdmin): ?>
+            <div class="bg-zinc-900/60 border border-amber-500/30 rounded-3xl p-6 backdrop-blur-sm shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                <h3 class="text-lg font-bold mb-1 text-white"><i class="fas fa-university text-amber-400 mr-2"></i><?= __('Platform Treasury') ?></h3>
+                <p class="text-xs text-zinc-400 mb-6 leading-relaxed"><?= __('Treasury Desc') ?></p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-1.5"><?= __('Amount to Swap (NEAR)') ?></label>
+                        <input type="number" id="buyback-amount" placeholder="e.g. 50" step="0.1" class="w-full bg-zinc-950 border border-amber-500/20 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 text-white shadow-inner">
+                    </div>
+                    
+                    <button type="button" onclick="triggerAutoBuyback()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
+                        <i class="fas fa-fire"></i> <?= __('Trigger Buyback & Burn') ?>
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
+
         </div>
         <?php endif; ?>
 
@@ -193,6 +220,39 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
+
+    // 🚀 Phase 4: Admin Auto Buyback Trigger
+    <?php if ($isAdmin): ?>
+    async function triggerAutoBuyback() {
+        const amount = document.getElementById('buyback-amount').value;
+        if (!amount || amount <= 0) return alert('Please enter a valid NEAR amount.');
+        if (!confirm(`Are you absolutely sure you want to trigger the Deflationary Spiral? \n\nThis will take ${amount} NEAR from the treasury and swap it into $SOUL to burn forever!`)) return;
+
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            wallet.requestSignIn({ contractId: "soulmd-hub.near" });
+            return;
+        }
+
+        try {
+            // 將 NEAR 轉為 YoctoNEAR 格式傳送給合約
+            const amountInYocto = nearApi.utils.format.parseNearAmount(amount.toString());
+            
+            await wallet.account().functionCall({
+                contractId: "soulmd-hub.near",
+                methodName: "auto_buyback_and_burn",
+                args: { amount_in_near: amountInYocto },
+                gas: "100000000000000", // 100 TGas 需要足夠 Gas 執行跨合約 Swap
+                attachedDeposit: "0", 
+                walletCallbackUrl: window.location.href
+            });
+        } catch(e) {
+            alert("Blockchain transaction failed. Make sure you are logged in with the official Treasury account (soulmd-hub.near).");
+        }
+    }
+    <?php endif; ?>
+
     <?php endif; ?>
 </script>
 

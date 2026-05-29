@@ -22,7 +22,7 @@ return [
         'Copy Key' => 'Copy',
         'Copied!' => 'Copied!',
         
-        // 🚀 BYOK Section
+        // BYOK Section
         'Bring Your Own Key (BYOK)' => 'Bring Your Own Key (BYOK) 🚀',
         'BYOK Subtitle' => 'Save your third-party provider keys locally in this browser. They will be sent via stateless secure headers for chat routing and are <b>NEVER</b> stored on our servers.',
         'DeepSeek API Key' => 'DeepSeek API Key',
@@ -31,6 +31,12 @@ return [
         'Clear Local Keys' => 'Clear Local Keys',
         'Keys saved successfully!' => '✨ Local keys successfully securely cached in this browser!',
         'Keys cleared successfully!' => '🗑️ Local keys wiped from browser cache.',
+        
+        // 🚀 Admin Treasury Section
+        'Platform Treasury' => 'Platform Treasury & Tokenomics (Admin Only)',
+        'Treasury Desc' => 'Execute the Deflationary Spiral. Inject platform NEAR revenues into Ref Finance AMM to auto-buyback and burn $SOUL tokens.',
+        'Trigger Buyback & Burn' => 'Trigger Buyback & Burn ($SOUL)',
+        'Amount to Swap (NEAR)' => 'Amount to Swap (NEAR)',
         
         // Usage & Limits Section
         'API Usage & Tier Limits' => 'API Usage & Tier Limits',
@@ -64,7 +70,7 @@ return [
         'Copy Key' => '複製',
         'Copied!' => '已複製！',
         
-        // 🚀 BYOK Section
+        // BYOK Section
         'Bring Your Own Key (BYOK)' => '自訂 API 金鑰 (無狀態 BYOK) 🚀',
         'BYOK Subtitle' => '將你嘅大模型金鑰本地儲存喺呢個瀏覽器度。金鑰會以無狀態安全 Header 形式發送進行對話調度，<b>平台絕對唔會將其儲存到伺服器</b>，安全零風險。',
         'DeepSeek API Key' => 'DeepSeek API 金鑰',
@@ -73,6 +79,12 @@ return [
         'Clear Local Keys' => '清除本地金鑰',
         'Keys saved successfully!' => '✨ 金鑰已成功安全儲存至瀏覽器本地快取！',
         'Keys cleared successfully!' => '🗑️ 本地金鑰已從瀏覽器中徹底清除清空。',
+        
+        // 🚀 Admin Treasury Section
+        'Platform Treasury' => '平台金庫與代幣經濟學 (僅限管理員)',
+        'Treasury Desc' => '觸發通縮螺旋機制。將平台累積的 NEAR 收益投入 Ref Finance AMM 進行自動回購，並永久銷毀 $SOUL 代幣。',
+        'Trigger Buyback & Burn' => '啟動回購與銷毀核彈 ($SOUL)',
+        'Amount to Swap (NEAR)' => '投入回購金額 (NEAR)',
         
         // Usage & Limits Section
         'API Usage & Tier Limits' => 'API 使用量與階級限制',

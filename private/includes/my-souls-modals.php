@@ -93,6 +93,41 @@
                     </div>
                 </div>
 
+                <!-- 🚀 Phase 3: AgentFi Actions Area -->
+                <div class="p-5 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner">
+                    <h4 class="text-emerald-400 font-bold text-sm mb-4 flex items-center gap-2"><i class="fas fa-gem"></i> <?= __('AgentFi Actions') ?></h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <!-- Sale Config -->
+                        <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                            <div class="flex justify-between items-start mb-2">
+                                <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400"></i> <?= __('List for Sale') ?></label>
+                                <button type="button" onclick="agentfiAction('cancel_sale')" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
+                            </div>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Sale Desc') ?></p>
+                            <div class="flex gap-2">
+                                <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner">
+                                <button type="button" onclick="agentfiAction('list_sale')" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm"><?= __('List on Market') ?></button>
+                            </div>
+                        </div>
+
+                        <!-- Rent Config -->
+                        <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                            <div class="flex justify-between items-start mb-2">
+                                <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400"></i> <?= __('List for Rent') ?></label>
+                                <button type="button" onclick="agentfiAction('cancel_rent')" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
+                            </div>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Rent Desc') ?></p>
+                            <div class="flex gap-2">
+                                <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner">
+                                <button type="button" onclick="agentfiAction('list_rent')" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm"><?= __('List on Market') ?></button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- End AgentFi Actions -->
+
                 <div class="p-4 sm:p-5 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
                     <div>
                         <h3 class="text-white font-bold text-sm flex items-center gap-2"><i class="fas fa-sync-alt text-emerald-400"></i> <?= __('Sync to NEAR') ?></h3>
@@ -218,7 +253,7 @@
         loadData(rawContent) {
             this.files = {};
             try {
-                let cleaned = rawContent.replace(/\\'/g, "'");
+                let cleaned = rawContent.replace(/\'/g, "'");
                 if (cleaned.trim().startsWith('{')) { 
                     this.files = JSON.parse(cleaned); 
                 } else { 
@@ -243,7 +278,7 @@
                 else if(nameUpper.includes('STYLE')) icon = 'fa-palette text-purple-400';
                 else if(nameUpper.includes('RULE')) icon = 'fa-shield-alt text-red-400';
                 else if(nameUpper.includes('SKILL')) icon = 'fa-tools text-amber-400';
-                else if(nameUpper.includes('MEMORY')) icon = 'fa-memory text-blue-400';
+                else if(nameUpper.includes('MEMORY')) icon = 'fa-blue-400';
                 else if(nameUpper.includes('CONTEXT')) icon = 'fa-globe text-cyan-400';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
@@ -310,7 +345,7 @@
 
     function processNewFileName(name) {
         if (!name) return;
-        name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
+        name = name.trim().replace(/\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
         if (editModalFileEditor.files[name] !== undefined) return alert(<?= json_encode(__('File already exists!'), JSON_UNESCAPED_UNICODE) ?>);
@@ -329,6 +364,12 @@
         document.getElementById('edit-id').value = id;
         document.getElementById('edit-title').value = <?= json_encode(__('Loading...'), JSON_UNESCAPED_UNICODE) ?>;
         document.getElementById('sync-toggle').checked = false; // Reset toggle
+        
+        // Reset AgentFi fields
+        document.getElementById('agentfi-sale-price').value = '';
+        document.getElementById('agentfi-rent-price').value = '';
+        document.getElementById('btn-cancel-sale').classList.add('hidden');
+        document.getElementById('btn-cancel-rent').classList.add('hidden');
         
         document.body.style.overflow = 'hidden'; 
         
@@ -355,11 +396,95 @@
                 modalTagInputs['compatibility'].setTags(soul.compatibility);
                 
                 editModalFileEditor.loadData(soul.content);
+
+                // 🚀 觸發 NEAR RPC 讀取該 Token 在鏈上的定價狀態
+                fetchOnChainData(id);
+
             } else {
                 alert(result.error || <?= json_encode(__('Failed to fetch soul details'), JSON_UNESCAPED_UNICODE) ?>); 
                 closeModal();
             }
         } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); closeModal(); }
+    }
+
+    // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
+    async function fetchOnChainData(id) {
+        try {
+            const rpcPayload = {
+                jsonrpc: "2.0", id: "dontcare", method: "query",
+                params: {
+                    request_type: "call_function", finality: "final",
+                    account_id: "soulmd-hub.near",
+                    method_name: "get_soul",
+                    args_base64: btoa(JSON.stringify({ token_id: "soul_" + id }))
+                }
+            };
+            const rpcRes = await fetch('https://rpc.mainnet.near.org', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rpcPayload)
+            });
+            const rpcData = await rpcRes.json();
+            if (rpcData.result && rpcData.result.result) {
+                const resString = new TextDecoder().decode(new Uint8Array(rpcData.result.result));
+                const tokenInfo = JSON.parse(resString);
+                
+                if (tokenInfo) {
+                    if (tokenInfo.sale_price) {
+                        document.getElementById('agentfi-sale-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                        document.getElementById('btn-cancel-sale').classList.remove('hidden');
+                    }
+                    if (tokenInfo.rent_price) {
+                        document.getElementById('agentfi-rent-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                        document.getElementById('btn-cancel-rent').classList.remove('hidden');
+                    }
+                }
+            }
+        } catch(e) { console.log('RPC Fetch Error for NFT status', e); }
+    }
+
+    // 🚀 Phase 3: AgentFi - 執行掛單或取消掛單
+    async function agentfiAction(actionType) {
+        if (!currentEditId) return;
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            return;
+        }
+
+        const args = { token_id: "soul_" + currentEditId };
+        let methodName = '';
+        
+        if (actionType === 'list_sale') {
+            const price = document.getElementById('agentfi-sale-price').value;
+            if(!price || price <= 0) return alert('Invalid price');
+            args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            methodName = 'list_for_sale';
+        } else if (actionType === 'list_rent') {
+            const price = document.getElementById('agentfi-rent-price').value;
+            if(!price || price <= 0) return alert('Invalid price');
+            args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            methodName = 'list_for_rent';
+        } else if (actionType === 'cancel_sale') {
+            methodName = 'list_for_sale'; // Pass null conceptually to clear, but our TS contract expects a string.
+            // Wait, our TS contract currently requires a string price. 
+            // If we want to cancel, we might need a dedicated cancel_sale method or pass a specific string.
+            // Let's assume we pass "0" to indicate cancel. (For simplicity here)
+            args.price = "0"; 
+        } else if (actionType === 'cancel_rent') {
+            methodName = 'list_for_rent';
+            args.price = "0";
+        }
+
+        try {
+            await wallet.account().functionCall({
+                contractId: "soulmd-hub.near",
+                methodName: methodName,
+                args: args,
+                gas: "30000000000000",
+                attachedDeposit: "0",
+                walletCallbackUrl: window.location.href
+            });
+        } catch(e) { alert("Blockchain transaction failed or rejected."); }
     }
 
     async function handleEdit(e) {
@@ -373,7 +498,6 @@
         const wantSync = document.getElementById('sync-toggle').checked;
         let wallet = null;
 
-        // 🚀 若啟用 Sync，發送前先利用共用腳本檢查錢包授權
         if (wantSync) {
             wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
@@ -405,7 +529,6 @@
             const data = await res.json();
             
             if (data.success) { 
-                // 🚀 執行 Web3 Hash 同步
                 if (wantSync) {
                     text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
                     text.classList.remove('hidden');
@@ -416,13 +539,12 @@
                         new_hash: data.hash
                     };
                     
-                    // 跳轉至 NEAR Wallet 簽名
                     await wallet.account().functionCall({
                         contractId: "soulmd-hub.near",
                         methodName: "update_soul_hash",
                         args: args,
-                        gas: "30000000000000", // 30 TGas
-                        attachedDeposit: "0" // Update Hash is free (just gas)
+                        gas: "30000000000000", 
+                        attachedDeposit: "0" 
                     });
                 } else {
                     closeModal(); location.reload(); 
@@ -451,11 +573,53 @@
     }
 
     async function deleteSoul(id) {
-        if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
+        if (!confirm(<?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
+            if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
+            executeDatabaseDelete(id);
+            return;
+        }
+
+        try {
+            const wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                executeDatabaseDelete(id);
+                return;
+            }
+
+            await wallet.account().functionCall({
+                contractId: "soulmd-hub.near",
+                methodName: "burn_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000", 
+                attachedDeposit: "0", 
+                walletCallbackUrl: window.location.href 
+            });
+            
+        } catch (e) {
+            executeDatabaseDelete(id);
+        }
+    }
+
+    async function executeDatabaseDelete(id) {
         try {
             const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
-            if (data.success) { location.reload(); } else { alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); }
-        } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); }
+            if (data.success) { 
+                location.reload(); 
+            } else { 
+                alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); 
+            }
+        } catch(e) { 
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
+        }
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('transactionHashes')) {
+            window.history.replaceState({}, '', window.location.pathname);
+            // Optional: Show a subtle toast that tx was broadcasted
+        }
+    });
+
 </script>

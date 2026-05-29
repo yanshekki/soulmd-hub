@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub Public API - Web2.5 BYOK Proxy Edition
  * (Stateless API Forwarding, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
- * 🚀 AgentFi Security Integrity Radar (Two-Way Integrity Check)
+ * 🚀 AgentFi Security Integrity Radar (Two-Way Check & Token-Gating)
  */
 
 set_time_limit(180);
@@ -10,7 +10,6 @@ set_time_limit(180);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-// 🚨 放行 BYOK 專用的自訂 Headers 以通過 CORS 檢查
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, X-Deepseek-Key, X-Vision-Key');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -67,7 +66,6 @@ function getCurrentUser($pdo, $apiUserId = null) {
         ];
     }
 
-    // 🚀 撈取 near_wallet_address 作後續權限驗證準備
     $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
@@ -154,7 +152,6 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $currentUser = getCurrentUser($pdo, $apiUserId);
 
-    // 🚀 BYOK 代理：攔截並驗證無狀態密鑰
     $byokDeepSeek = trim($_SERVER['HTTP_X_DEEPSEEK_KEY'] ?? '');
     $byokVision = trim($_SERVER['HTTP_X_VISION_KEY'] ?? '');
 
@@ -302,13 +299,12 @@ if ($method === 'POST') {
         if (!$soul) { http_response_code(404); echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE); exit; }
 
         // =================================================================
-        // 🚀 Phase 3: AgentFi 雙向防篡改機制 (Integrity Radar)
+        // 🚀 Phase 3: AgentFi Token-Gating & Integrity Radar
         // =================================================================
         $currentDbHash = 'sha256:' . hash('sha256', $soul['content']);
         $tokenIdStr = "soul_" . $soulId;
+        $chatUserWallet = $currentUser['near_wallet'] ?? '';
 
-        // 僅限當這個模型擁有者有綁定 Web3 錢包時（代表他可能已鑄造），我們才執行 RPC 防護檢查
-        // 這個檢查會向 NEAR 主網查詢該 NFT 當前的 metadata
         $creatorStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
         $creatorStmt->execute([$soul['user_id']]);
         $creatorWallet = $creatorStmt->fetchColumn();
@@ -321,8 +317,8 @@ if ($method === 'POST') {
                 "params" => [
                     "request_type" => "call_function",
                     "finality" => "final",
-                    "account_id" => "soulmd-hub.near", // 我們的智能合約地址
-                    "method_name" => "get_soul", // 呼叫我們在 contract.ts 寫的 View Method
+                    "account_id" => "soulmd-hub.near", 
+                    "method_name" => "get_soul", 
                     "args_base64" => base64_encode(json_encode(["token_id" => $tokenIdStr]))
                 ]
             ]);
@@ -332,7 +328,7 @@ if ($method === 'POST') {
             curl_setopt($chRpc, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
             curl_setopt($chRpc, CURLOPT_POST, true);
             curl_setopt($chRpc, CURLOPT_POSTFIELDS, $rpcPayload);
-            curl_setopt($chRpc, CURLOPT_TIMEOUT, 3); // 給 3 秒 Timeout 防止卡死
+            curl_setopt($chRpc, CURLOPT_TIMEOUT, 3);
             $rpcResult = curl_exec($chRpc);
             curl_close($chRpc);
 
@@ -342,17 +338,39 @@ if ($method === 'POST') {
                     $resString = implode(array_map('chr', $rpcData['result']['result']));
                     $tokenInfo = json_decode($resString, true);
                     
-                    // 🛡️ 熔斷判定：如果區塊鏈有此 NFT，且鏈上 Hash 與當前數據庫 Hash 不符
-                    if ($tokenInfo && isset($tokenInfo['metadata']['extra'])) {
-                        $onChainHash = $tokenInfo['metadata']['extra'];
-                        if ($onChainHash !== $currentDbHash) {
-                            // 觸發安全攔截，終止對話！
-                            // 這裡不會回傳 JSON Error，而是直接拋出一個防篡改的特殊 Reply，讓前端顯示熔斷訊息
-                            echo json_encode([
-                                'success' => true, 
-                                'reply' => __("Security Interception") // 對應語言包
-                            ], JSON_UNESCAPED_UNICODE);
-                            exit;
+                    if ($tokenInfo) {
+                        // 1. 防篡改檢查 (Integrity Radar)
+                        if (isset($tokenInfo['metadata']['extra'])) {
+                            if ($tokenInfo['metadata']['extra'] !== $currentDbHash) {
+                                echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE);
+                                exit;
+                            }
+                        }
+
+                        // 2. Token-Gating 門禁檢查 (Ownership or Active Rent)
+                        // 如果該 Token 被掛牌出售或出租，且當前使用者不是原創者自己，即啟動門禁
+                        $isMonetized = (!empty($tokenInfo['sale_price']) || !empty($tokenInfo['rent_price']));
+                        
+                        if ($isMonetized && $chatUserWallet !== $creatorWallet) {
+                            $hasAccess = false;
+                            
+                            // 檢查是否為擁有人 (Owner)
+                            if ($tokenInfo['owner_id'] === $chatUserWallet) {
+                                $hasAccess = true;
+                            } 
+                            // 檢查是否為有效租客 (Renter)
+                            elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
+                                $expiryNano = (int)$tokenInfo['renters'][$chatUserWallet];
+                                $currentNano = time() * 1000000000;
+                                if ($expiryNano > $currentNano) {
+                                    $hasAccess = true;
+                                }
+                            }
+
+                            if (!$hasAccess) {
+                                echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE);
+                                exit;
+                            }
                         }
                     }
                 }
