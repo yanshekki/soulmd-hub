@@ -23,8 +23,12 @@ return [
         'desc_register' => 'Register a new user and generate an API key. Enforces secure alpha-numeric URL constraints.',
         'desc_login' => 'Authenticate user. Returns API Key and sets a secure 30-day web session if requested.',
         'desc_change_password' => 'Change the current logged-in user\'s password securely.',
+        'desc_bind_wallet' => 'Bind a Web3 NEAR wallet to the current session account. Required to unlock AgentFi capabilities. This action is permanent and irreversible.',
+        
         'desc_chat_get' => 'Headless API access to retrieve conversation history. Strict permission controls prevent accessing private sessions.',
         'desc_chat_post' => 'Headless API access to interact with the core routing engine. Send messages, optionally attach base64 images (Vision AI), and receive responses. Free tier requests to this endpoint will be strictly rejected with a 403 Forbidden status.',
+        'desc_self_chat' => 'Headless BYOK proxy endpoint. Uses the user\'s custom encrypted keys stored in the database. Bypasses platform daily limits but enforces Web3 NFT token-gating.',
+        
         'desc_categories' => 'Fetch the complete white-list of roles/categories including their corresponding slug names and emoji icons.',
         'desc_souls_get' => 'List, search and filter public souls. Optimized with strict DB select limits.',
         'desc_soul_single' => 'Retrieve raw architecture files, tags, and stats of a single public or owned soul.',
@@ -45,9 +49,13 @@ return [
         'CRITICAL CONSTRAINT:' => 'CRITICAL CONSTRAINT:',
         'constraint_text' => 'The <code>role</code> field inside the request body MUST strictly use one of the <code>slug</code> values provided by the <code>/api/categories</code> API. Invalid roles will be forcefully fallbacked to \'Other\'.',
         'internal_utils_notice' => 'Note: The following endpoints rely on browser Session Cookies and cannot be authenticated via API Keys. They are excluded from the Postman Collection.',
+        
+        'desc_settings_get' => 'Retrieve the current user\'s custom AI engine preferences and encrypted BYOK API keys (masked for security).',
+        'desc_settings_post' => 'Update the user\'s AI engine preferences and securely encrypt BYOK API keys into the database using AES-256-CBC.',
         'desc_logout' => 'Clear session and remember me tokens for the current browser session.',
         'desc_regen_key' => 'Invalidates the current API key and issues a new 32-byte hex key securely to the logged-in user.',
         'desc_save_preset' => 'Internal endpoint to temporarily save generated AI layouts into current user\'s session cache memory.',
+        
         'View Response Sample (file_type: single_md)' => 'View Response Sample (file_type: single_md)',
         'View Response Sample (file_type: full_soul_folder)' => 'View Response Sample (file_type: full_soul_folder)',
     ],
@@ -70,8 +78,12 @@ return [
         'desc_register' => '註冊新創作者帳號並自動發配 Secret API Key。內部強化網址安全規範校驗。',
         'desc_login' => '使用者身份驗證。成功後回傳開發者金鑰，並可依要求自動綁定 30 天 Cookie 保持登入狀態。',
         'desc_change_password' => '安全地變更當前登入使用者的系統密碼。',
+        'desc_bind_wallet' => '將 Web3 NEAR 錢包綁定至當前帳號。解鎖 AgentFi 資產交易與黑盒租用功能所需。此綁定操作為永久性且不可逆。',
+        
         'desc_chat_get' => '以無頭（Headless）端遠端查詢指定對話工作階段的歷史紀錄訊息陣列。受權限隔離安全機制保護。',
         'desc_chat_post' => '遠端發送對話呼叫。系統會自動調度智能雙引擎（純文字投遞 DeepSeek，帶圖片投遞 Together AI 視覺模態）並自動刷新滑動內存。免費或過期帳戶直接阻斷並回傳 403 Forbidden。',
+        'desc_self_chat' => '無狀態 BYOK 代理端點。使用用戶儲存於資料庫的加密專屬金鑰。此端點不扣除平台每日額度，但嚴格執行 Web3 NFT 門禁檢查。',
+        
         'desc_categories' => '拉取目前系統白名單允許的所有 AI 適用角色分類、對應的 Slug 別名及前端 Emoji 圖標。',
         'desc_souls_get' => '分頁撈取、檢索大廳中公開的靈魂模型列表。內部經過極致索引優化。',
         'desc_soul_single' => '獲取單一模型代碼庫的完整結構、原創內容、知識領域標籤、相容性及社群統計指標。',
@@ -92,9 +104,13 @@ return [
         'CRITICAL CONSTRAINT:' => '重大約束條件：',
         'constraint_text' => '請求體中的 <code>role</code> 欄位必須嚴格匹配 <code>/api/categories</code> 所回傳的 <code>slug</code> 鍵值。不合規的命名將被系統強制歸類為 \'Other\'。',
         'internal_utils_notice' => '重要提示：以下端點完全依賴瀏覽器的會話 Cookie 進行安全鑑權，無法使用 Authorization Bearer 金鑰認證，故其被排除在 Postman 測試集之外。',
+        
+        'desc_settings_get' => '讀取當前使用者自訂的 AI 引擎偏好設定，以及經過安全脫敏 (Masked) 處理的 BYOK 加密金鑰。',
+        'desc_settings_post' => '更新使用者的 AI 引擎設定，並使用 AES-256-CBC 演算法將 BYOK 金鑰安全加密寫入資料庫。',
         'desc_logout' => '清除當前瀏覽器的 Session 會話與記住我 Remember-Me 自動登入權杖。',
         'desc_regen_key' => '註銷舊的金鑰，並重新為目前登入者簽發一組全新、隨機的 32 位元安全十六進制 API 密鑰。',
         'desc_save_preset' => '前端內部緩存公用程式，用作暫存生成器組合出來的 AI 設定封包到 Session 緩衝記憶體中。',
+        
         'View Response Sample (file_type: single_md)' => '檢視回應範例 (單一 .md 文件 模式)',
         'View Response Sample (file_type: full_soul_folder)' => '檢視回應範例 (模組化資料夾 JSON 模式)',
     ]

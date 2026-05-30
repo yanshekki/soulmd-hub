@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Postman Collection Generator
  * Included by my-api.php and api-docs.php
+ * (Web2.5 AgentFi & BYOK Proxy Edition)
  */
 ?>
 <script>
@@ -82,6 +83,29 @@
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": JSON.stringify({"success": true, "message": "Password successfully updated!"}, null, 2)
                             }]
+                        },
+                        {
+                            "name": "Bind Web3 Wallet",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Content-Type", "value": "application/json"},
+                                    {"key": "Authorization", "value": "Bearer {{apiKey}}"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": JSON.stringify({"action": "bind", "wallet": "yanshekki.near"}, null, 2)
+                                },
+                                "url": { "raw": "{{baseUrl}}/api/bind-wallet", "host": ["{{baseUrl}}"], "path": ["api", "bind-wallet"] }
+                            },
+                            "response": [{
+                                "name": "Wallet Bound Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "message": "Wallet bound successfully!"}, null, 2)
+                            }]
                         }
                     ]
                 },
@@ -113,7 +137,7 @@
                             }]
                         },
                         {
-                            "name": "Send Chat Message (Headless)",
+                            "name": "Send Chat Message (Official Engine)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -133,6 +157,29 @@
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": JSON.stringify({"success": true, "reply": "Based on the provided architecture..."}, null, 2)
+                            }]
+                        },
+                        {
+                            "name": "Send Chat Message (BYOK Proxy Engine)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Content-Type", "value": "application/json"},
+                                    {"key": "Authorization", "value": "Bearer {{apiKey}}"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": JSON.stringify({"soul_id": 2, "session_token": "byok_session_token_xyz", "content": "Execute high-concurrency trace optimization patterns.", "is_private": true}, null, 2)
+                                },
+                                "url": { "raw": "{{baseUrl}}/api/self-chat", "host": ["{{baseUrl}}"], "path": ["api", "self-chat"] }
+                            },
+                            "response": [{
+                                "name": "BYOK Reply Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "reply": "Optimizing memory structures using stateless concurrent relays..."}, null, 2)
                             }]
                         }
                     ]
@@ -430,7 +477,7 @@
                 }
             ],
             "variable": [
-                { "key": "baseUrl", "value": "<?= $baseUrl ?? 'https://soulmd-hub.ysk.hk' ?>", "type": "string" },
+                { "key": "baseUrl", "value": "<?= defined('BASE_URL') ? BASE_URL : 'https://soulmd-hub.ysk.hk' ?>", "type": "string" },
                 { "key": "apiKey", "value": currentApiKey, "type": "string" }
             ]
         };

@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - i18n Translation Dictionary
- * Target: my-api.php (Developer API Settings & BYOK Proxy)
+ * Target: my-api.php (Developer API Settings)
  */
 
 return [
@@ -34,16 +34,6 @@ return [
         'Binding...' => 'Binding...',
         'Connecting to RPC...' => 'Connecting to RPC...',
         'Binding Address...' => 'Binding Address...',
-        
-        // BYOK Section
-        'Bring Your Own Key (BYOK)' => 'Bring Your Own Key (BYOK) 🚀',
-        'BYOK Subtitle' => 'Save your third-party provider keys locally in this browser. They will be sent via stateless secure headers for chat routing and are <b>NEVER</b> stored on our servers.',
-        'DeepSeek API Key' => 'DeepSeek API Key',
-        'Together AI (Vision) Key' => 'Together AI (Vision) Key',
-        'Save Keys Locally' => 'Save Keys Locally',
-        'Clear Local Keys' => 'Clear Local Keys',
-        'Keys saved successfully!' => '✨ Local keys successfully securely cached in this browser!',
-        'Keys cleared successfully!' => '🗑️ Local keys wiped from browser cache.',
         
         // 🚀 Admin Treasury Section
         'Platform Treasury' => 'Platform Treasury & Tokenomics (Admin Only)',
@@ -95,16 +85,6 @@ return [
         'Binding...' => '正在寫入綁定資料...',
         'Connecting to RPC...' => '等緊 RPC 連接...',
         'Binding Address...' => '正在綁定地址...',
-        
-        // BYOK Section
-        'Bring Your Own Key (BYOK)' => '自訂 API 金鑰 (無狀態 BYOK) 🚀',
-        'BYOK Subtitle' => '將你嘅大模型金鑰本地儲存喺呢個瀏覽器度。金鑰會以無狀態安全 Header 形式發送進行對話調度，<b>平台絕對唔會將其儲存到伺服器</b>，安全零風險。',
-        'DeepSeek API Key' => 'DeepSeek API 金鑰',
-        'Together AI (Vision) Key' => 'Together AI (視覺) 金鑰',
-        'Save Keys Locally' => '儲存本地金鑰',
-        'Clear Local Keys' => '清除本地金鑰',
-        'Keys saved successfully!' => '✨ 金鑰已成功安全儲存至瀏覽器本地快取！',
-        'Keys cleared successfully!' => '🗑️ 本地金鑰已從瀏覽器中徹底清除清空。',
         
         // 🚀 Admin Treasury Section
         'Platform Treasury' => '平台金庫與代幣經濟學 (僅限管理員)',

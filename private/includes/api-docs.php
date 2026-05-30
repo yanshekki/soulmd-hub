@@ -2,28 +2,28 @@
 /**
  * SoulMD Hub - API Reference Documentation UI Component
  * Included by my-api.php and api-docs.php
- * (Dynamic i18n Internationalization & Fully Fluid Schema Edition)
+ * (Dynamic i18n Internationalization & Fully Fluid Schema Edition - Full Unredacted Version)
  */
 
-// 🌍 增量載入 API 說明文檔組件的專屬獨立語言包
+// 🌍 載入 API 說明文檔組件的專屬獨立語言包
 loadTranslations('api-docs');
 ?>
 
-<div class="<?= $isPublicApiPage ? 'xl:col-span-12 max-w-5xl mx-auto w-full' : 'xl:col-span-8' ?> space-y-8">
+<div class="<?= $isPublicApiPage ? 'xl:col-span-12 max-w-5xl mx-auto w-full' : 'xl:col-span-8' ?> space-y-8 animate-fade-in">
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-sm shadow-xl">
         
         <?php if ($isPublicApiPage): ?>
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8 border-b border-white/10 pb-4">
-                <h2 class="text-2xl font-bold"><?= __('API Reference') ?></h2>
+                <h2 class="text-2xl font-bold text-white"><?= __('API Reference') ?></h2>
                 <button onclick="downloadPostmanCollection()" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10">
                     <i class="fas fa-file-download"></i> <?= __('Download Postman Collection') ?>
                 </button>
             </div>
         <?php else: ?>
-            <h2 class="text-2xl font-bold mb-8 border-b border-white/10 pb-4"><?= __('API Reference') ?></h2>
+            <h2 class="text-2xl font-bold text-white mb-8 border-b border-white/10 pb-4"><?= __('API Reference') ?></h2>
         <?php endif; ?>
 
-        <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-10"><i class="fas fa-user-shield mr-2"></i> <?= __('Authentication & Account') ?></h3>
+        <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-10 flex items-center gap-2"><i class="fas fa-user-shield"></i> <?= __('Authentication & Account') ?></h3>
         
         <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
             <div class="flex items-center gap-3">
@@ -97,7 +97,30 @@ loadTranslations('api-docs');
             </div>
         </div>
 
-        <h3 class="text-xl font-bold text-amber-400 mb-6 mt-12"><i class="fas fa-comments mr-2"></i> <?= __('Interaction & Chat Engine') ?></h3>
+        <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                <code class="text-base font-bold text-white">/api/bind-wallet</code>
+                <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded ml-2 border border-red-500/20"><?= __('Auth Required') ?></span>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_bind_wallet') ?></p>
+            <div class="pt-1 flex flex-col gap-2">
+                <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Request Body Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
+  "action": "bind",
+  "wallet": "yanshekki.near"
+}</pre>
+                </details>
+                <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "message": "Wallet bound successfully!"
+}</pre>
+                </details>
+            </div>
+        </div>
+
+        <h3 class="text-xl font-bold text-amber-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-comments"></i> <?= __('Interaction & Chat Engine') ?></h3>
 
         <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
             <div class="flex items-center flex-wrap gap-2">
@@ -142,7 +165,7 @@ loadTranslations('api-docs');
   "soul_id": 1,
   "session_token": "unique_session_id_123",
   "content": "Can you analyze this architecture diagram?",
-  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...", // Optional Base64 Image
+  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...", 
   "is_private": false
 }</pre>
                 </details>
@@ -155,7 +178,35 @@ loadTranslations('api-docs');
             </div>
         </div>
 
-        <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-12"><i class="fas fa-brain mr-2"></i> <?= __('Core Souls Hub') ?></h3>
+        <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                <code class="text-base font-bold text-white">/api/self-chat</code>
+                <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20"><?= __('Auth Required') ?></span>
+                <span class="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20"><i class="fas fa-bolt mr-1"></i>BYOK Active</span>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_self_chat') ?></p>
+            
+            <div class="pt-1 flex flex-col gap-2">
+                <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Request Body Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
+  "soul_id": 2,
+  "session_token": "byok_session_token_xyz",
+  "content": "Execute high-concurrency trace optimization patterns.",
+  "image": null,
+  "is_private": true
+}</pre>
+                </details>
+                <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "reply": "Optimizing memory structures using stateless concurrent relays..."
+}</pre>
+                </details>
+            </div>
+        </div>
+
+        <h3 class="text-xl font-bold text-purple-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-brain"></i> <?= __('Core Souls Hub') ?></h3>
 
         <div class="mb-10 border-l-2 border-purple-500 pl-6 space-y-2">
             <div class="flex items-center gap-3">
@@ -328,7 +379,7 @@ loadTranslations('api-docs');
             </details>
         </div>
 
-        <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-12"><i class="fas fa-code-branch mr-2"></i> <?= __('Profiles & Social Interactions') ?></h3>
+        <h3 class="text-xl font-bold text-blue-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-code-branch"></i> <?= __('Profiles & Social Interactions') ?></h3>
 
         <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-2">
             <div class="flex items-center gap-3">
@@ -487,8 +538,26 @@ loadTranslations('api-docs');
         </div>
 
         <?php if (!$isPublicApiPage): ?>
-        <h3 class="text-xl font-bold text-emerald-400 mb-6 mt-12"><i class="fas fa-tools mr-2"></i> <?= __('Internal Web Utilities') ?></h3>
+        <h3 class="text-xl font-bold text-zinc-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-tools"></i> <?= __('Internal Web Utilities') ?></h3>
         <p class="text-sm text-zinc-500 mb-6 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-amber-200"><i class="fas fa-exclamation-triangle"></i> <?= __('internal_utils_notice') ?></p>
+
+        <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
+                <code class="text-base font-bold text-white">/api/settings</code>
+                <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded ml-2 border border-amber-500/20">Session Cookie Required</span>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_settings_get') ?></p>
+        </div>
+
+        <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                <code class="text-base font-bold text-white">/api/settings</code>
+                <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded ml-2 border border-amber-500/20">Session Cookie Required</span>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_settings_post') ?></p>
+        </div>
 
         <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
             <div class="flex items-center gap-3">

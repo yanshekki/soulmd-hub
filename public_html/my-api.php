@@ -1,8 +1,7 @@
 <?php
 /**
  * SoulMD Hub - My API Controller
- * (Clean, Modular, Web2.5 Stateless BYOK Proxy & One-Time Wallet Binding Edition)
- * 🚀 Fixed: Pure MyNearWallet Native Integration & Emerald Contrast UI with RPC Loading (i18n Fixed)
+ * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -176,8 +175,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <?php endif; ?>
             </div>
 
-            <?php require_once __DIR__ . '/../private/includes/my-api-byok.php'; ?>
-
             <?php if ($isAdmin): ?>
             <div class="bg-zinc-900/60 border border-amber-500/30 rounded-3xl p-6 backdrop-blur-sm shadow-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
@@ -227,7 +224,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const icon = document.getElementById('bind-wallet-icon');
         const originalText = text.innerHTML;
 
-        // 🌟 已修正為 i18n 語言包寫法
         text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
         btn.classList.add('opacity-50', 'pointer-events-none');
         if(icon) icon.classList.add('hidden');
@@ -248,7 +244,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function executeWalletBind(accountId) {
         const text = document.getElementById('bind-wallet-text');
-        // 🌟 已修正為 i18n 語言包寫法
         if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Binding Address...')) ?>';
         
         try {
@@ -316,6 +311,24 @@ require_once __DIR__ . '/../private/includes/header.php';
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function showFeedbackNotification(isSuccess, message) {
+        const successBox = document.getElementById('success-box');
+        const errorBox = document.getElementById('error-box');
+        
+        if (isSuccess && successBox) {
+            document.getElementById('success-msg').innerText = message;
+            successBox.classList.remove('hidden');
+            errorBox.classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => successBox.classList.add('hidden'), 4000);
+        } else if (!isSuccess && errorBox) {
+            document.getElementById('error-msg').innerText = message;
+            errorBox.classList.remove('hidden');
+            successBox.classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
 
