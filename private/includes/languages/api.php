@@ -77,6 +77,15 @@ return [
         'Gateway Error' => 'Gateway Error: :error',
         'Gross amount mismatch' => 'Gross amount mismatch. Transaction halted for security.',
         'Entitlement error' => 'Internal cluster sync error during entitlement allocation.',
+        'Auth returned status' => 'Authorization returned status: :status. No charges were made.',
+        
+        // Wallet Binding
+        'Wallet address missing' => 'Wallet address missing.',
+        'Wallet already bound' => 'Wallet is already permanently bound to this account and cannot be modified.',
+        'Wallet bound successfully' => 'Wallet bound successfully!',
+        'Invalid action' => 'Invalid action or action not permitted.',
+        'Wallet in use' => 'This wallet address is already in use by another account.',
+        'RPC Connection Failed' => 'RPC Connection Failed. Please check your network or refresh (Ctrl+F5).',
         
         // Downloads
         'Invalid request parameters' => 'Invalid request parameters.',
@@ -180,6 +189,15 @@ return [
         'Gateway Error' => '支付網關錯誤：:error',
         'Gross amount mismatch' => '訂單總金額不符。為確保安全，交易已被終止。',
         'Entitlement error' => '分配訂閱權限時發生內部叢集同步錯誤。',
+        'Auth returned status' => '授權網關回傳狀態：:status。系統並未進行任何扣款。',
+        
+        // Wallet Binding
+        'Wallet address missing' => '缺少錢包地址參數。',
+        'Wallet already bound' => '您的帳號已永久綁定過錢包，無法進行修改。',
+        'Wallet bound successfully' => '錢包綁定成功！',
+        'Invalid action' => '無效的操作或不被允許。',
+        'Wallet in use' => '此 Web3 錢包地址已被其他帳號綁定。',
+        'RPC Connection Failed' => 'RPC 連線失敗，請檢查網絡或重新整理 (Ctrl+F5)！',
         
         // Downloads
         'Invalid request parameters' => '無效的請求參數。',

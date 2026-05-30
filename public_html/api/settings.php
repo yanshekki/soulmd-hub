@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Unified Settings API (LLM & BYOK)
- * Handles encrypted storage of API Keys. (CSRF Patched Edition)
+ * Handles encrypted storage of API Keys. (i18n Fully Patched)
  */
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../private/config.php';
@@ -9,9 +9,11 @@ require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
 
 session_start();
+loadTranslations('api'); // 🚨 載入全域 API 語言包
+
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401); 
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']); 
+    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
     exit;
 }
 
@@ -55,7 +57,6 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    // 🚨 嚴格補回 CSRF 驗證牆
     $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
     if (empty($userCsrfToken) && function_exists('getallheaders')) {
         $headers = getallheaders();
@@ -65,7 +66,7 @@ if ($method === 'POST') {
 
     if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
         http_response_code(403); 
-        echo json_encode(['success' => false, 'error' => 'Security validation failed (CSRF).'], JSON_UNESCAPED_UNICODE); 
+        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
 
@@ -109,7 +110,7 @@ if ($method === 'POST') {
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
         http_response_code(500); 
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
 }
 ?>

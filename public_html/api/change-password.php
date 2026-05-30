@@ -1,9 +1,8 @@
 <?php
 /**
  * SoulMD Hub Public API
- * POST /api/change-password - Update user password
+ * POST /api/change-password - Update user password (i18n Fixed)
  */
-
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -17,9 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
+loadTranslations('api'); // 🚨 載入語言包
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -45,11 +46,10 @@ if (!empty($apiKey)) {
 
 if (!$userId) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Unauthorized. Valid Session or API Key required.']);
+    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// 🚨 完美安全修復：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $current_password = $input['current_password'] ?? '';
@@ -58,7 +58,7 @@ $confirm_password = $input['confirm_password'] ?? '';
 
 if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'All fields are required.']);
+    echo json_encode(['success' => false, 'error' => __('All fields required')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -68,32 +68,28 @@ $user = $stmt->fetch();
 
 if (!$user || !password_verify($current_password, $user['password'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Incorrect current password.']);
+    echo json_encode(['success' => false, 'error' => __('Incorrect current password')], JSON_UNESCAPED_UNICODE);
     exit;
 } 
 
 if (strlen($new_password) < 6) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'New password must be at least 6 characters.']);
+    echo json_encode(['success' => false, 'error' => __('Password min chars')], JSON_UNESCAPED_UNICODE);
     exit;
 } 
 
 if ($new_password !== $confirm_password) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'New passwords do not match.']);
+    echo json_encode(['success' => false, 'error' => __('Passwords do not match')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 try {
     $hash = password_hash($new_password, PASSWORD_DEFAULT);
-    $updateStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-    $updateStmt->execute([$hash, $userId]);
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Password successfully updated!'
-    ], JSON_UNESCAPED_UNICODE);
+    $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$hash, $userId]);
+    echo json_encode(['success' => true, 'message' => __('Password successfully updated')], JSON_UNESCAPED_UNICODE);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Internal server error while updating password.']);
+    echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
 }
+?>
