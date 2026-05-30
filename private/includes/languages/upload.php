@@ -44,7 +44,12 @@ return [
         'Sync to NEAR' => 'Sync Hash to NEAR',
         'Sync Desc' => 'Update the on-chain hash to reflect your latest prompt edits.',
         'Platform Fee' => 'Cost: 0.6 NEAR (0.5 Storage Staking + 0.1 Platform Fee)',
-        'Please connect NEAR wallet first' => 'Please bind your NEAR wallet in Developer API Access first.',
+        
+        // 🚨 Web3 錢包提示與鎖定
+        'Please connect NEAR wallet first' => 'You must bind a Web3 wallet to unlock AgentFi capabilities.',
+        'Go to Bind Wallet' => 'Go to Settings to Bind',
+        'NFT Edit Lock Warning' => 'This AI model is an on-chain NFT. You must bind your NEAR wallet to authorize any modifications.',
+        'Wallet Required to Edit NFT' => 'Wallet Required to Edit NFT',
         'Redirecting to Wallet...' => 'Redirecting to Wallet...',
 
         // 🚀 AgentFi Actions
@@ -121,7 +126,12 @@ return [
         'Sync to NEAR' => '同步 Hash 至 NEAR 區塊鏈',
         'Sync Desc' => '將最新修改的內容指紋 (Hash) 同步上鏈，保障租客權益。',
         'Platform Fee' => '鑄造費用：0.6 NEAR (0.5 儲存質押 + 0.1 平台發行稅)',
-        'Please connect NEAR wallet first' => '請先前往「開發者 API 存取權限」綁定您的 NEAR 錢包。',
+        
+        // 🚨 Web3 錢包提示與鎖定
+        'Please connect NEAR wallet first' => '請先綁定 Web3 錢包以解鎖 AgentFi 功能。',
+        'Go to Bind Wallet' => '前往設定綁定',
+        'NFT Edit Lock Warning' => '此 AI 模型已鑄造為鏈上 NFT 資產。您必須先綁定 NEAR 錢包才能簽署並授權任何內容修改。',
+        'Wallet Required to Edit NFT' => '需綁定錢包以授權編輯 NFT',
         'Redirecting to Wallet...' => '正在重導向至錢包...',
 
         // 🚀 AgentFi Actions

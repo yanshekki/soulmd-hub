@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
+ * 🚀 Patched: Web3 Wallet Requirement UI & NFT Edit Lock
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -44,6 +45,9 @@ if (!$isEditMode) {
     $presetDomain = $soulData['domain'];
     $presetCompat = $soulData['compatibility'];
 }
+
+// 🚨 核心 Web3 鎖定變數：若為 NFT 且無錢包，徹底鎖死提交按鈕
+$isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 ?>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -68,7 +72,7 @@ if (!$isEditMode) {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div class="<?= ($isEditMode && $soulData['is_nft'] == 0) ? 'md:col-span-2' : 'md:col-span-3' ?>">
                 <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Soul Title') ?> <span class="text-red-400">*</span></label>
-                <input type="text" id="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-emerald-400 shadow-inner">
+                <input type="text" id="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-emerald-400 shadow-inner" <?= $isNftLocked ? 'disabled' : '' ?>>
             </div>
             
             <?php if ($isEditMode && $soulData['is_nft'] == 0): ?>
@@ -84,13 +88,13 @@ if (!$isEditMode) {
 
         <div>
             <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Short Description') ?></label>
-            <textarea id="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner"><?= htmlspecialchars($isEditMode ? $soulData['description'] : '') ?></textarea>
+            <textarea id="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner" <?= $isNftLocked ? 'disabled' : '' ?>><?= htmlspecialchars($isEditMode ? $soulData['description'] : '') ?></textarea>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Role') ?></label>
-                <select id="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none cursor-pointer">
+                <select id="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer' ?>" <?= $isNftLocked ? 'disabled' : '' ?>>
                     <option value=""><?= __('Select role') ?></option>
                     <?php foreach ($categories as $cat): ?>
                         <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $presetRole === $cat['slug'] ? 'selected' : '' ?>>
@@ -102,9 +106,9 @@ if (!$isEditMode) {
             </div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Domain Tags') ?></label>
-                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('domain-input').focus()">
+                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition shadow-inner <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-text' ?>" onclick="if(!<?= $isNftLocked ? 'true' : 'false' ?>) document.getElementById('domain-input').focus()">
                     <div id="domain-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
-                    <input type="text" id="domain-input" list="domain-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white">
+                    <input type="text" id="domain-input" list="domain-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white" <?= $isNftLocked ? 'disabled' : '' ?>>
                     <input type="hidden" id="domain" value="<?= htmlspecialchars($presetDomain) ?>">
                 </div>
                 <datalist id="domain-options">
@@ -113,9 +117,9 @@ if (!$isEditMode) {
             </div>
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Compatibility') ?></label>
-                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition cursor-text shadow-inner" onclick="document.getElementById('compatibility-input').focus()">
+                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition shadow-inner <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-text' ?>" onclick="if(!<?= $isNftLocked ? 'true' : 'false' ?>) document.getElementById('compatibility-input').focus()">
                     <div id="compatibility-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
-                    <input type="text" id="compatibility-input" list="compatibility-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white">
+                    <input type="text" id="compatibility-input" list="compatibility-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white" <?= $isNftLocked ? 'disabled' : '' ?>>
                     <input type="hidden" id="compatibility" value="<?= htmlspecialchars($presetCompat) ?>">
                 </div>
                 <datalist id="compatibility-options">
@@ -124,7 +128,7 @@ if (!$isEditMode) {
             </div>
         </div>
 
-        <div>
+        <div class="<?= $isNftLocked ? 'opacity-70 pointer-events-none' : '' ?>">
             <label class="block text-sm font-medium mb-3 text-zinc-300"><?= __('Content') ?> <span class="text-red-400">*</span></label>
             
             <div class="flex border-b border-white/20 mb-4 sm:mb-6 overflow-x-auto custom-scrollbar">
@@ -166,7 +170,7 @@ if (!$isEditMode) {
         </div>
 
         <?php if ($isEditMode && $soulData['is_nft'] == 1): ?>
-        <div class="mb-6 p-5 sm:p-6 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner">
+        <div class="mb-6 p-5 sm:p-6 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner <?= empty($nearWallet) ? 'opacity-50 pointer-events-none' : '' ?>">
             <h4 class="text-emerald-400 font-bold text-sm mb-4 flex items-center gap-2"><i class="fas fa-gem"></i> <?= __('AgentFi Actions') ?></h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
@@ -195,28 +199,63 @@ if (!$isEditMode) {
         </div>
         <?php endif; ?>
 
-        <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'from-emerald-900/20 to-teal-900/20 border-emerald-500/30' : 'from-purple-900/20 to-indigo-900/20 border-purple-500/30' ?> border rounded-2xl sm:rounded-3xl flex items-center justify-between gap-4 shadow-lg relative overflow-hidden">
+        <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'from-emerald-900/20 to-teal-900/20 border-emerald-500/30' : 'from-purple-900/20 to-indigo-900/20 border-purple-500/30' ?> border rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1 h-full <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'bg-emerald-500' : 'bg-purple-500' ?>"></div>
             <div class="flex-1">
-                <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2"><i class="fas <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'fa-sync-alt text-emerald-400' : 'fa-cube text-purple-400' ?>"></i> <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync to NEAR') : __('Mint to NEAR') ?></h3>
-                <p class="text-xs sm:text-sm text-zinc-400 mt-1"><?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync Desc') : __('Mint Desc') ?></p>
+                <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2">
+                    <i class="fas <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'fa-sync-alt text-emerald-400' : 'fa-cube text-purple-400' ?>"></i> 
+                    <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync to NEAR') : __('Mint to NEAR') ?>
+                </h3>
+                <p class="text-xs sm:text-sm text-zinc-400 mt-1">
+                    <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync Desc') : __('Mint Desc') ?>
+                </p>
                 <?php if (!($isEditMode && $soulData['is_nft'] == 1)): ?>
                     <div class="text-[10px] sm:text-xs font-mono font-bold text-purple-400/80 mt-2"><?= __('Platform Fee') ?></div>
                 <?php endif; ?>
+
                 <?php if (empty($nearWallet)): ?>
-                    <div class="text-xs text-red-400 font-bold mt-2 flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> <?= __('Please connect NEAR wallet first') ?></div>
+                    <div class="mt-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-start gap-2 text-red-400 text-xs font-medium">
+                            <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
+                            <p><?= ($isEditMode && $soulData['is_nft'] == 1) ? __('NFT Edit Lock Warning') : __('Please connect NEAR wallet first') ?></p>
+                        </div>
+                        <a href="<?= url('/my-setting') ?>" class="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap text-center">
+                            <i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?>
+                        </a>
+                    </div>
                 <?php endif; ?>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                <input type="checkbox" id="mint-toggle" class="sr-only peer" <?= empty($nearWallet) ? 'disabled' : '' ?>>
-                <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'peer-checked:bg-emerald-500' : 'peer-checked:bg-purple-500' ?> <?= empty($nearWallet) ? 'opacity-40 cursor-not-allowed' : '' ?>"></div>
-            </label>
+            
+            <?php if (!empty($nearWallet)): ?>
+                <?php if ($isEditMode && $soulData['is_nft'] == 1): ?>
+                    <label class="relative inline-flex items-center cursor-not-allowed shrink-0" title="Required for NFT updates">
+                        <input type="checkbox" id="mint-toggle" class="sr-only peer" checked disabled>
+                        <div class="w-14 h-7 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 opacity-70"></div>
+                    </label>
+                <?php else: ?>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" id="mint-toggle" class="sr-only peer">
+                        <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
+                    </label>
+                <?php endif; ?>
+            <?php else: ?>
+                <label class="relative inline-flex items-center cursor-not-allowed shrink-0 opacity-40">
+                    <input type="checkbox" id="mint-toggle" class="sr-only peer" disabled <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'checked' : '' ?>>
+                    <div class="w-14 h-7 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'peer-checked:bg-emerald-500' : 'peer-checked:bg-purple-500' ?>"></div>
+                </label>
+            <?php endif; ?>
         </div>
 
-        <button type="submit" id="submit-btn" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
-            <span id="submit-text"><i class="fas <?= $isEditMode ? 'fa-save' : 'fa-cloud-upload-alt' ?> mr-2"></i><?= $isEditMode ? __('Save Changes') : __('Upload Soul') ?></span>
-            <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
-        </button>
+        <?php if ($isNftLocked): ?>
+            <button type="button" disabled class="w-full py-4 sm:py-5 bg-zinc-800 text-zinc-500 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl cursor-not-allowed border border-white/5 flex items-center justify-center gap-3 shadow-lg mt-4">
+                <i class="fas fa-lock mr-2"></i> <?= __('Wallet Required to Edit NFT') ?>
+            </button>
+        <?php else: ?>
+            <button type="submit" id="submit-btn" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
+                <span id="submit-text"><i class="fas <?= $isEditMode ? 'fa-save' : 'fa-cloud-upload-alt' ?> mr-2"></i><?= $isEditMode ? __('Save Changes') : __('Upload Soul') ?></span>
+                <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
+            </button>
+        <?php endif; ?>
     </form>
 </div>
 
@@ -304,102 +343,106 @@ if (!$isEditMode) {
     }
 
     const form = document.getElementById('soul-form');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        const btn = document.getElementById('submit-btn');
-        const text = document.getElementById('submit-text');
-        const loading = document.getElementById('submit-loading');
-        const errorBox = document.getElementById('error-box');
-        const errorMsg = document.getElementById('error-msg');
+            const btn = document.getElementById('submit-btn');
+            const text = document.getElementById('submit-text');
+            const loading = document.getElementById('submit-loading');
+            const errorBox = document.getElementById('error-box');
+            const errorMsg = document.getElementById('error-msg');
 
-        const mintToggle = document.getElementById('mint-toggle');
-        const wantMintOrSync = mintToggle ? mintToggle.checked : false;
-        let wallet = null;
+            const mintToggle = document.getElementById('mint-toggle');
+            
+            // 🚨 強制 NFT 進行區塊鏈 Hash 同步 (如果已綁定錢包)
+            const wantMintOrSync = (isEditMode && isNft && "<?= $nearWallet ?>") ? true : (mintToggle ? mintToggle.checked : false);
+            let wallet = null;
 
-        if (wantMintOrSync) {
-            wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
-                alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-                window.location.href = "<?= url('/my-api') ?>";
-                return;
+            if (wantMintOrSync) {
+                wallet = await initNearWallet();
+                if (!wallet.isSignedIn()) {
+                    alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+                    window.location.href = "<?= url('/my-api') ?>";
+                    return;
+                }
             }
-        }
 
-        errorBox.classList.add('hidden');
-        let finalContent = '';
-        if (activeMainTab === 0) finalContent = fileEditor.getPayload();
-        else if (activeMainTab === 1) finalContent = document.getElementById('content-raw').value;
-        else finalContent = uploadedContentStr;
+            errorBox.classList.add('hidden');
+            let finalContent = '';
+            if (activeMainTab === 0) finalContent = fileEditor.getPayload();
+            else if (activeMainTab === 1) finalContent = document.getElementById('content-raw').value;
+            else finalContent = uploadedContentStr;
 
-        if (!finalContent || finalContent.trim() === '') {
-            errorMsg.innerText = "<?= addslashes(__('Content empty')) ?>";
-            errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
-        }
+            if (!finalContent || finalContent.trim() === '') {
+                errorMsg.innerText = "<?= addslashes(__('Content empty')) ?>";
+                errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+            }
 
-        text.classList.add('hidden'); loading.classList.remove('hidden'); btn.classList.add('opacity-80', 'cursor-not-allowed');
+            text.classList.add('hidden'); loading.classList.remove('hidden'); btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        const payload = {
-            title: document.getElementById('title').value,
-            description: document.getElementById('description').value,
-            role: document.getElementById('role').value,
-            domain: document.getElementById('domain').value,
-            compatibility: document.getElementById('compatibility').value,
-            content: finalContent
-        };
+            const payload = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                role: document.getElementById('role').value,
+                domain: document.getElementById('domain').value,
+                compatibility: document.getElementById('compatibility').value,
+                content: finalContent
+            };
 
-        if (isEditMode) {
-            const pubNode = document.getElementById('is_public');
-            payload.is_public = pubNode ? parseInt(pubNode.value) : <?= $soulData['is_public'] ?? 0 ?>;
-            if (wantMintOrSync && !isNft) payload.is_minting = 1;
-        } else {
-            payload.is_minting = wantMintOrSync ? 1 : 0;
-        }
+            if (isEditMode) {
+                const pubNode = document.getElementById('is_public');
+                payload.is_public = pubNode ? parseInt(pubNode.value) : <?= $soulData['is_public'] ?? 0 ?>;
+                if (wantMintOrSync && !isNft) payload.is_minting = 1;
+            } else {
+                payload.is_minting = wantMintOrSync ? 1 : 0;
+            }
 
-        const method = isEditMode ? 'PUT' : 'POST';
-        const endpoint = isEditMode ? `/api/soul/${soulId}` : '/api/souls';
+            const method = isEditMode ? 'PUT' : 'POST';
+            const endpoint = isEditMode ? `/api/soul/${soulId}` : '/api/souls';
 
-        try {
-            const res = await fetch(endpoint, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const data = await res.json();
+            try {
+                const res = await fetch(endpoint, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await res.json();
 
-            if (data.success) {
-                const targetUrl = isEditMode ? "<?= url('/my-souls') ?>" : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
-                
-                if (wantMintOrSync) {
-                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>"; text.classList.remove('hidden'); loading.classList.add('hidden');
+                if (data.success) {
+                    const targetUrl = isEditMode ? "<?= url('/my-souls') ?>" : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                     
-                    if (isEditMode && isNft) {
-                        await wallet.account().functionCall({
-                            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                            methodName: "update_soul_hash",
-                            args: { token_id: "soul_" + soulId, new_hash: data.hash },
-                            gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: targetUrl
-                        });
-                    } else {
-                        const deposit = nearApi.utils.format.parseNearAmount("0.6");
-                        const newId = isEditMode ? soulId : data.id;
-                        const refUrl = "<?= url('/soul/') ?>" + "<?= rawurlencode($sessionUsername) ?>/" + newId;
+                    if (wantMintOrSync) {
+                        text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>"; text.classList.remove('hidden'); loading.classList.add('hidden');
                         
-                        await wallet.account().functionCall({
-                            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                            methodName: "mint_soul",
-                            args: { token_id: "soul_" + newId, title: payload.title, description: payload.description || "<?= addslashes(__('No description provided')) ?>", hash: data.hash, reference: refUrl },
-                            gas: "30000000000000", attachedDeposit: deposit, walletCallbackUrl: targetUrl
-                        });
+                        if (isEditMode && isNft) {
+                            await wallet.account().functionCall({
+                                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                                methodName: "update_soul_hash",
+                                args: { token_id: "soul_" + soulId, new_hash: data.hash },
+                                gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: targetUrl
+                            });
+                        } else {
+                            const deposit = nearApi.utils.format.parseNearAmount("0.6");
+                            const newId = isEditMode ? soulId : data.id;
+                            const refUrl = "<?= url('/soul/') ?>" + "<?= rawurlencode($sessionUsername) ?>/" + newId;
+                            
+                            await wallet.account().functionCall({
+                                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                                methodName: "mint_soul",
+                                args: { token_id: "soul_" + newId, title: payload.title, description: payload.description || "<?= addslashes(__('No description provided')) ?>", hash: data.hash, reference: refUrl },
+                                gas: "30000000000000", attachedDeposit: deposit, walletCallbackUrl: targetUrl
+                            });
+                        }
+                    } else {
+                        window.location.href = targetUrl;
                     }
                 } else {
-                    window.location.href = targetUrl;
+                    errorMsg.innerText = data.error || "<?= addslashes(__('Failed to save soul.')) ?>";
+                    errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
+                    text.classList.remove('hidden'); loading.classList.add('hidden'); btn.classList.remove('opacity-80', 'cursor-not-allowed');
                 }
-            } else {
-                errorMsg.innerText = data.error || "<?= addslashes(__('Failed to save soul.')) ?>";
+            } catch(err) {
+                errorMsg.innerText = "<?= addslashes(__('Network Error')) ?>";
                 errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
                 text.classList.remove('hidden'); loading.classList.add('hidden'); btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
-        } catch(err) {
-            errorMsg.innerText = "<?= addslashes(__('Network Error')) ?>";
-            errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
-            text.classList.remove('hidden'); loading.classList.add('hidden'); btn.classList.remove('opacity-80', 'cursor-not-allowed');
-        }
-    });
+        });
+    }
 </script>
