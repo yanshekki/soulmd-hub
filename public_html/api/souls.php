@@ -68,17 +68,17 @@ if ($method === 'GET') {
     $fileType = $_GET['file_type'] ?? '';
     $sort = $_GET['sort'] ?? 'newest';
     $userIdFilter = $_GET['user_id'] ?? '';
-    $isNftFilter = $_GET['is_nft'] ?? '0'; // 預設撈取 Web2
+    $isNftFilter = $_GET['is_nft'] ?? '0'; // 預設撈取 Web2 原型
 
     $whereSql = " WHERE 1=1";
     $binds = [];
 
-    // 🚀 V5 架構：嚴格分流
+    // 🚀 V5 核心架構：大廳與市集隔離分流守衛
     if ($isNftFilter === '1') {
-        // Marketplace：只顯示 NFT，無視 is_public
+        // 市集呼叫：無視 Web2 可見度，強制只拉取標記為 NFT 的鏈上模型
         $whereSql .= " AND s.is_nft = 1";
     } else {
-        // Web2 Browse / Profile：只顯示公開且非 NFT 的模型
+        // Browse大廳/個人主頁呼句：強制只拉取已公開且【未鑄造】的 Web2 指令原型
         $whereSql .= " AND s.is_public = 1 AND s.is_nft = 0";
     }
 
@@ -169,7 +169,7 @@ if ($method === 'GET') {
     }
 
 // ==========================================
-// POST 路由：V5 鑄造與 Hash 生成引擎
+// POST 路由：V5 鑄造與 Salt 內容指紋指引
 // ==========================================
 } elseif ($method === 'POST') {
     $userId = getAuthUserId($pdo);
@@ -190,7 +190,7 @@ if ($method === 'GET') {
     
     $is_minting = !empty($input['is_minting']) ? 1 : 0;
     
-    // 獲取當前用戶的 Web3 錢包
+    // 獲取當前用戶已永久綁定的錢包地址
     $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
     $walletStmt->execute([$userId]);
     $nearWallet = $walletStmt->fetchColumn();
@@ -229,18 +229,18 @@ if ($method === 'GET') {
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
-    // 🚀 核心 V5 防護與 Hash 邏輯
+    // 🚀 核心 V5：安全雜湊指紋引擎組裝
     $nft_salt = null;
     $nft_hash = null;
     $nft_owner_wallet = null;
-    $legacy_hash = 'sha256:' . hash('sha256', $content); // 供非 Minting 回傳用
+    $legacy_hash = 'sha256:' . hash('sha256', $content); 
 
     if ($is_minting) {
-        $is_public = 0; // NFT 必須強制私密防白嫖
+        $is_public = 0; // 已加密資產硬性鎖死 Web2 私密狀態，嚴防繞過白嫖
         $is_nft = 1;
-        $nft_salt = bin2hex(random_bytes(16));
+        $nft_salt = bin2hex(random_bytes(16)); // 生成獨一無二隨機防爆破鹽
         $nft_hash = 'sha256:' . hash('sha256', $content . $nft_salt);
-        $nft_owner_wallet = $nearWallet;
+        $nft_owner_wallet = $nearWallet; // 先行寫入緩存地址，完美抵禦網絡中斷悲劇
     } else {
         $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 1;
         $is_nft = 0;

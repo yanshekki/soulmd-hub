@@ -3,7 +3,7 @@
  * SoulMD Hub - BYOK Proxy API (self-chat.php)
  * 100% 左手交右手無狀態代理，不扣除平台 Daily Limit (Fallback 例外)。
  * 包含 Web3 Token-Gating, 自訂記憶壓縮, 及 Vision Fallback。
- * (100% Dynamic i18n Internationalized Edition + 完美過期與跨日重置引擎)
+ * (V5 Web2.5 AgentFi Architecture: Centralized RPC Failover, Lazy Sync & Self-Healing Edition)
  */
 
 set_time_limit(180);
@@ -22,6 +22,7 @@ require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
 
+// 🌍 載入全域 API 語言包
 loadTranslations('api');
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -45,7 +46,7 @@ if (!$userId) {
 }
 
 // ==========================================
-// 🚀 核心防白嫖引擎：過期降級與跨日重置 (與 chat.php 完全同步)
+// 🚀 核心防白嫖引擎：過期降級與跨日重置 (Fallback 扣費所需)
 // ==========================================
 function getCurrentUser($pdo) {
     $userId = $_SESSION['user_id'];
@@ -58,14 +59,12 @@ function getCurrentUser($pdo) {
     if (!$user) return null;
 
     $isExpired = false;
-    // 嚴格過期降級判定
     if ($user['tier'] !== 'free' && $user['vip_expires_at'] && strtotime($user['vip_expires_at']) < time()) {
         $pdo->prepare("UPDATE users SET tier = 'free' WHERE id = ?")->execute([$userId]);
         $user['tier'] = 'free';
         $isExpired = true;
     }
 
-    // 跨日 Daily Limit 重置
     if ($user['last_chat_date'] !== $today) {
         $pdo->prepare("UPDATE users SET daily_chat_count = 0, last_chat_date = ? WHERE id = ?")->execute([$today, $userId]);
         $user['daily_chat_count'] = 0;
@@ -104,7 +103,7 @@ if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrf
 }
 
 // ==========================================
-// 2. 接收參數與檢查
+// 2. 接收參數與 BYOK 檢查
 // ==========================================
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $soulId = (int)($input['soul_id'] ?? 0);
@@ -119,7 +118,6 @@ if (!$soulId || empty($sessionToken) || (empty($userMessageText) && empty($image
     exit;
 }
 
-// 獲取 BYOK 設定
 $setStmt = $pdo->prepare("SELECT * FROM user_llm_settings WHERE user_id = ?");
 $setStmt->execute([$userId]);
 $settings = $setStmt->fetch();
@@ -141,15 +139,14 @@ $targetModel = '';
 
 if ($isVisionRequest) {
     if (empty($settings['vision_api_key'])) {
-        // 🚨 嚴格攔截：如果用戶過期，絕對不能借用平台的 Vision 額度！
+        // 🚨 嚴格攔截：若無自備 Vision Key 且平台配額不符，立即擋下
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
             $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('Vision AI exclusive');
-            echo json_encode(['success' => false, 'error' => '您的自訂 Vision 金鑰未設定，且您的平台等級無權使用視覺分析。請升級計劃或補全您的金鑰。', 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => __('Vision BYOK fallback error'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        // 🌟 Fallback 機制: 用戶無設定 Vision Key，降級使用平台配額
         $tierPrefix = strtoupper($currentUser['tier']);
         $dailyLimit = defined("{$tierPrefix}_DAILY_LIMIT") ? constant("{$tierPrefix}_DAILY_LIMIT") : 10;
         
@@ -159,11 +156,11 @@ if ($isVisionRequest) {
             exit;
         }
         
+        // 觸發 Fallback 降級為平台官方 Vision 模型 (準備扣費)
         $isVisionFallback = true;
         $targetApiUrl = defined('VISION_API_URL') ? VISION_API_URL : 'https://api.openai.com/v1/chat/completions';
         $targetApiKey = defined('VISION_API_KEY') ? VISION_API_KEY : '';
         
-        // 嚴格跟隨平台等級分配視覺模型
         if ($currentUser['tier'] === 'pro' && defined('PRO_VISION_MODEL')) {
             $targetModel = PRO_VISION_MODEL; 
         } else {
@@ -188,7 +185,7 @@ if ($isVisionRequest) {
 }
 
 // ==========================================
-// 4. Session 管理與 Web3 Token-Gating 門禁
+// 4. Session 管理與 Web3/Web2 混合門禁 (V5)
 // ==========================================
 $sessStmt = $pdo->prepare("SELECT user_id, is_private FROM chat_sessions WHERE session_token = ?");
 $sessStmt->execute([$sessionToken]);
@@ -200,7 +197,6 @@ if ($chatSession) {
         echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
-    // 同步更新 Privacy 狀態
     if ($currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
         $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
     }
@@ -209,7 +205,8 @@ if ($chatSession) {
         ->execute([$sessionToken, $soulId, $currentUser['id'], (int)$isPrivate]);
 }
 
-$soulStmt = $pdo->prepare("SELECT content, file_type, user_id FROM souls WHERE id = ? AND is_public = 1");
+// 🚨 V5：取消 is_public = 1 限制，由後端拉出資料後依據 is_nft 進行分流判定
+$soulStmt = $pdo->prepare("SELECT * FROM souls WHERE id = ?");
 $soulStmt->execute([$soulId]);
 $soul = $soulStmt->fetch();
 if (!$soul) { 
@@ -218,14 +215,21 @@ if (!$soul) {
     exit; 
 }
 
-// 🌟 Web3 防盜門禁
-$currentDbHash = 'sha256:' . hash('sha256', $soul['content']);
 $chatUserWallet = $currentUser['near_wallet'] ?? '';
-$creatorStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
-$creatorStmt->execute([$soul['user_id']]);
-$creatorWallet = $creatorStmt->fetchColumn();
+$hasAccess = false;
 
-if (!empty($creatorWallet) && $chatUserWallet !== $creatorWallet) {
+if ($soul['is_nft'] == 1) {
+    // 🚀 Web3 AgentFi 權威門禁：Lazy Sync + Failover + Integrity Radar
+    $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : [
+        "https://free.rpc.fastnear.com",
+        "https://near.lava.build",
+        "https://rpc.mainnet.pagoda.co",
+        "https://rpc.mainnet.near.org"
+    ];
+    
+    $rpcStatus = 'timeout';
+    $tokenInfo = null;
+
     $rpcPayload = json_encode([
         "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
         "params" => [
@@ -236,38 +240,86 @@ if (!empty($creatorWallet) && $chatUserWallet !== $creatorWallet) {
         ]
     ]);
 
-    $chRpc = curl_init('https://rpc.mainnet.near.org');
-    curl_setopt_array($chRpc, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_POST => true, CURLOPT_POSTFIELDS => $rpcPayload, CURLOPT_TIMEOUT => 3
-    ]);
-    $rpcResult = curl_exec($chRpc);
-    curl_close($chRpc);
-
-    if ($rpcResult) {
-        $rpcData = json_decode($rpcResult, true);
-        if (isset($rpcData['result']['result'])) {
-            $resString = implode(array_map('chr', $rpcData['result']['result']));
-            $tokenInfo = json_decode($resString, true);
-            if ($tokenInfo) {
-                // Integrity Radar
-                if (isset($tokenInfo['metadata']['extra']) && $tokenInfo['metadata']['extra'] !== $currentDbHash) {
-                    echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); exit;
+    foreach ($rpcNodes as $url) {
+        $chRpc = curl_init($url);
+        curl_setopt_array($chRpc, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $rpcPayload,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_TIMEOUT => 3 // 極速超時切換
+        ]);
+        $res = curl_exec($chRpc);
+        $httpCode = curl_getinfo($chRpc, CURLINFO_HTTP_CODE);
+        curl_close($chRpc);
+        
+        if ($httpCode === 200 && $res) {
+            $data = json_decode($res, true);
+            if (isset($data['result']['result'])) {
+                $resString = implode(array_map('chr', $data['result']['result']));
+                if (trim($resString) === 'null') {
+                    $rpcStatus = 'not_found';
+                    break;
                 }
-                // Token Gating
-                $hasAccess = false;
-                if ($tokenInfo['owner_id'] === $chatUserWallet) {
-                    $hasAccess = true;
-                } elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
-                    $expiryNano = (int)$tokenInfo['renters'][$chatUserWallet];
-                    if ($expiryNano > time() * 1000000000) $hasAccess = true;
-                }
-                if (!$hasAccess) {
-                    echo json_encode(['success' => true, 'reply' => "🔒 **Web3 Access Denied:** You must purchase or rent this AI Soul on the AgentFi Marketplace to interact with it."], JSON_UNESCAPED_UNICODE); 
-                    exit;
-                }
+                $tokenInfo = json_decode($resString, true);
+                $rpcStatus = 'success';
+                break;
             }
         }
+    }
+
+    if ($rpcStatus === 'not_found') {
+        // 🚨 自癒降級：鏈上找不到，剝奪 NFT 狀態，交還 Web2 持有者
+        $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?")->execute([$soulId]);
+        $soul['is_nft'] = 0;
+        $soul['is_public'] = 0;
+    } elseif ($rpcStatus === 'success' && $tokenInfo) {
+        // 🛡️ 防篡改指紋核對 (結合 Server 獨家 Salt)
+        $currentDbHash = 'sha256:' . hash('sha256', $soul['content'] . $soul['nft_salt']);
+        if (isset($tokenInfo['metadata']['extra']) && $tokenInfo['metadata']['extra'] !== $currentDbHash) {
+            echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); exit;
+        }
+
+        // 🔄 Lazy Sync 擁有權移交
+        $chainOwner = $tokenInfo['owner_id'];
+        if ($chainOwner !== $soul['nft_owner_wallet']) {
+            $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
+            $userStmt->execute([$chainOwner]);
+            $newOwnerId = $userStmt->fetchColumn() ?: null; 
+            
+            $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ? WHERE id = ?")->execute([$newOwnerId, $chainOwner, $soulId]);
+            $soul['user_id'] = $newOwnerId;
+            $soul['nft_owner_wallet'] = $chainOwner;
+        }
+
+        // 🔑 Token-Gating 存取權校驗 (買家或租約生效中之租客)
+        if ($chainOwner === $chatUserWallet) {
+            $hasAccess = true;
+        } elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
+            $expiryNano = (int)$tokenInfo['renters'][$chatUserWallet];
+            if ($expiryNano > time() * 1000000000) $hasAccess = true;
+        }
+        
+        if (!$hasAccess) {
+            echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE); 
+            exit;
+        }
+    } elseif ($rpcStatus === 'timeout') {
+        // ⚠️ 區塊鏈 RPC 節點全數塞車，依賴資料庫中的 nft_owner_wallet 緩存作最後放行判斷
+        if ($chatUserWallet === $soul['nft_owner_wallet']) {
+            $hasAccess = true;
+        } else {
+            echo json_encode(['success' => true, 'reply' => "🔒 **RPC Timeout:** 無法連線至區塊鏈驗證您的存取權限。若您是模型擁有者，請確保 Web3 錢包已正確綁定。"], JSON_UNESCAPED_UNICODE); 
+            exit;
+        }
+    }
+}
+
+// 🛡️ Web2 權限判定 (處理普通模型，或剛被降級回 Web2 狀態的模型)
+if ($soul['is_nft'] == 0) {
+    if ($soul['is_public'] == 1 || ($currentUser['id'] !== null && $soul['user_id'] === $currentUser['id'])) {
+        $hasAccess = true;
+    }
+    if (!$hasAccess) {
+        echo json_encode(['success' => true, 'reply' => __("Access Denied Private")], JSON_UNESCAPED_UNICODE); 
+        exit;
     }
 }
 
@@ -372,7 +424,7 @@ if ($isVisionRequest) {
 // ==========================================
 // 7. 發送請求至 OpenAI-Compatible API (BYOK)
 // ==========================================
-session_write_close(); // 解鎖 Session，避免卡死其他頁面
+session_write_close(); // 解鎖 Session，避免卡死其他分頁
 
 $ch = curl_init();
 curl_setopt_array($ch, [
@@ -420,7 +472,7 @@ try {
     $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
     $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
     
-    // 🌟 僅在觸發 Vision Fallback 的情況下，才扣除平台每日額度
+    // 🌟 僅在觸發 Vision Fallback 的情況下，才扣除平台每日官方配額
     if ($isVisionFallback && $currentUser['id']) {
         $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
     }

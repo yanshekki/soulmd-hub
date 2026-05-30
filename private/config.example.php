@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Core Configuration Matrix
  * (Includes Multi-Tier Permissions, PayPal SDK, DeepSeek Core & Dynamic i18n Engine)
- * 🚀 Web2.5 Mainnet AgentFi Production Edition
+ * 🚀 Web2.5 Mainnet AgentFi Production Edition (RPC Nodes Centralized)
  */
 
 // 🚨 系統級安全加密金鑰 (請務必將下面堆亂碼換成你自己專屬的 32 位元強密碼)
@@ -27,11 +27,21 @@ define('GOOGLE_ANALYTICS_ID', 'YOUR_GOOGLE_ANALYTICS_ID_HERE');
 // 🌐 Web3 & AgentFi Mainnet Network Matrix
 // ==========================================
 define('NEAR_NETWORK_ID', 'mainnet');
-define('NEAR_CONTRACT_ID', 'soulmd-hub.near');         // 🚀 剛剛完美部署的主網智能合約地址
-define('NEAR_TOKEN_CONTRACT_ID', 'soul.tkn.near');     // 🚀 剛剛在官方工廠成功建立的 $SOUL 代幣合約地址
+define('NEAR_CONTRACT_ID', 'soulmd-hub.near');         // 🚀 主網智能合約地址
+define('NEAR_TOKEN_CONTRACT_ID', 'soul.tkn.near');     // 🚀 $SOUL 代幣合約地址
 define('NEAR_REF_FINANCE_ID', 'v2.ref-finance.near');  // Ref Finance 主網 AMM Router 地址
-define('NEAR_POOL_ID', 8546);                          // 🚀 Rhea/Ref Finance 真實流動性池 ID！
-define('NEAR_RPC_URL', 'https://rpc.mainnet.near.org'); // 官方主網高併發 RPC 節點
+define('NEAR_POOL_ID', 8546);                          // 🚀 流動性池 ID
+
+// 🌟 全域高可用 RPC 備援池 (Failover Nodes)
+define('NEAR_RPC_NODES', [
+    "https://free.rpc.fastnear.com",   // 極速、無 CORS 限制
+    "https://near.lava.build",         // 去中心化高可用
+    "https://rpc.mainnet.pagoda.co",   // 官方企業節點
+    "https://rpc.mainnet.near.org"     // 官方預設 (最後備用)
+]);
+
+// 保留單一 URL 供舊有單節點調用向後相容
+define('NEAR_RPC_URL', NEAR_RPC_NODES[0]);
 
 // ==========================================
 // 🌍 i18n Multi-Language Engine (全域動態擴充架構)
@@ -71,7 +81,7 @@ define('CURRENT_LANG', $current_lang);
 $GLOBALS['i18n_strings'] = [];
 
 /**
- * 載入指定頁面的翻譯檔 (例如: browse)
+ * 載入指定頁面的翻譯檔
  */
 function loadTranslations($pageName) {
     $langFile = __DIR__ . "/includes/languages/{$pageName}.php";
