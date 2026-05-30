@@ -1,8 +1,7 @@
 <?php
 /**
- * SoulMD Hub Public API - Web2.5 BYOK Proxy Edition
- * (Stateless API Forwarding, Anti-Timeout DB Reconnect, Exponential Backoff & 100% i18n Error Matrix)
- * 🚀 AgentFi Security Integrity Radar (Two-Way Check & Token-Gating) - Patched
+ * SoulMD Hub Public API - Platform Official Channel (chat.php)
+ * 官方計費通道：嚴格執行 Tier 限制、扣除 Daily Limit、Web3 門禁及平台官方金鑰調用。
  */
 
 set_time_limit(180);
@@ -10,7 +9,7 @@ set_time_limit(180);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, X-Deepseek-Key, X-Vision-Key');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -30,6 +29,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
+// ==========================================
+// 1. API Key Auth (Headless API Access)
+// ==========================================
 $isApiCall = false;
 $apiUserId = null;
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
@@ -57,13 +59,7 @@ function getCurrentUser($pdo, $apiUserId = null) {
             $_SESSION['guest_daily_count'] = 0;
             $_SESSION['guest_last_chat_date'] = $today;
         }
-        return [
-            'id' => null, 
-            'tier' => 'free', 
-            'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0),
-            'is_expired' => false,
-            'near_wallet' => null
-        ];
+        return ['id' => null, 'tier' => 'free', 'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0), 'is_expired' => false, 'near_wallet' => null];
     }
 
     $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
@@ -106,6 +102,9 @@ function getTierConfig($tier) {
     ];
 }
 
+// ==========================================
+// GET: 載入歷史紀錄
+// ==========================================
 if ($method === 'GET') {
     $soulId = (int)($_GET['soul_id'] ?? 0);
     $sessionToken = $_GET['session_token'] ?? '';
@@ -114,13 +113,13 @@ if ($method === 'GET') {
     if ($isApiCall && $currentUser['tier'] === 'free') {
         http_response_code(403);
         $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('API restricted free');
-        echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE); 
         exit;
     }
 
     if (!$soulId || empty($sessionToken)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE);
+        http_response_code(400); 
+        echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
 
@@ -130,8 +129,8 @@ if ($method === 'GET') {
 
     if ($chatSession && $chatSession['is_private']) {
         if ($currentUser['id'] === null || $currentUser['id'] !== $chatSession['user_id']) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
+            http_response_code(403); 
+            echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE); 
             exit;
         }
     }
@@ -139,38 +138,30 @@ if ($method === 'GET') {
     try {
         $stmt = $pdo->prepare("SELECT role, content FROM chat_messages WHERE soul_id = ? AND session_token = ? ORDER BY id ASC");
         $stmt->execute([$soulId, $sessionToken]); 
-        $messages = $stmt->fetchAll();
-
-        echo json_encode(['success' => true, 'messages' => $messages], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => true, 'messages' => $stmt->fetchAll()], JSON_UNESCAPED_UNICODE);
     } catch (Throwable $e) { 
-        http_response_code(500);
+        http_response_code(500); 
         echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
     }
     exit;
 }
 
+// ==========================================
+// POST: 發送訊息 (官方平台扣費通道)
+// ==========================================
 if ($method === 'POST') {
     $currentUser = getCurrentUser($pdo, $apiUserId);
 
-    $byokDeepSeek = trim($_SERVER['HTTP_X_DEEPSEEK_KEY'] ?? '');
-    $byokVision = trim($_SERVER['HTTP_X_VISION_KEY'] ?? '');
-
-    if ($byokDeepSeek || $byokVision) {
-        if ($currentUser['tier'] === 'free') {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'BYOK Proxy Mode is exclusively reserved for VIP/PRO members to prevent server abuse. Please upgrade your plan.', 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-    }
-
+    // Headless API Auth Check
     if ($isApiCall) {
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
             $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('API restricted free');
-            echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => $msg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE); 
             exit;
         }
     } else {
+        // CSRF Check for Web UI
         $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (empty($userCsrfToken) && function_exists('getallheaders')) {
             $headers = getallheaders();
@@ -179,8 +170,8 @@ if ($method === 'POST') {
         $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
 
         if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE);
+            http_response_code(403); 
+            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
             exit;
         }
     }
@@ -190,10 +181,11 @@ if ($method === 'POST') {
     $soulId = (int)($input['soul_id'] ?? 0);
     $sessionToken = trim($input['session_token'] ?? '');
 
+    // Action: Update Privacy Toggle
     if ($action === 'update_privacy') {
         $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
-        if (!$soulId || empty($sessionToken)) {
-            http_response_code(400); echo json_encode(['success' => false]); exit;
+        if (!$soulId || empty($sessionToken)) { 
+            http_response_code(400); echo json_encode(['success' => false]); exit; 
         }
         
         $sessStmt = $pdo->prepare("SELECT user_id FROM chat_sessions WHERE session_token = ?");
@@ -205,7 +197,8 @@ if ($method === 'POST') {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
             } else {
-                http_response_code(403); echo json_encode(['success' => false, 'error' => __('Not the session owner')], JSON_UNESCAPED_UNICODE);
+                http_response_code(403); 
+                echo json_encode(['success' => false, 'error' => __('Not the session owner')], JSON_UNESCAPED_UNICODE);
             }
         } else {
             $actualPrivate = ($currentUser['tier'] !== 'free') ? (int)$isPrivate : 0;
@@ -216,11 +209,12 @@ if ($method === 'POST') {
         exit;
     }
 
+    // Rate Limiting
     if (!$isApiCall) {
         $currentTime = time();
         if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
             http_response_code(429); 
-            echo json_encode(['success' => false, 'error' => __('Sending too fast')], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => __('Sending too fast')], JSON_UNESCAPED_UNICODE); 
             exit;
         }
     }
@@ -230,13 +224,14 @@ if ($method === 'POST') {
     $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
 
     if (!$soulId || empty($sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE);
+        http_response_code(400); 
+        echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
 
     $tierConfig = getTierConfig($currentUser['tier']);
 
+    // 🌟 平台 Daily Limit 嚴格攔截
     if ($currentUser['daily_count'] >= $tierConfig['daily_limit']) {
         http_response_code(403);
         $upgradeMsg = $currentUser['tier'] === 'free' ? __('Upgrade suffix') : "";
@@ -245,32 +240,35 @@ if ($method === 'POST') {
         exit;
     }
 
+    // 輸入長度攔截
     if (mb_strlen($userMessageText, 'UTF-8') > $tierConfig['max_input']) {
         http_response_code(400);
         $errorMsg = __('Message exceeds chars', ['limit' => $tierConfig['max_input']]);
-        echo json_encode(['success' => false, 'error' => $errorMsg], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'error' => $errorMsg], JSON_UNESCAPED_UNICODE); 
         exit;
     }
 
+    // 🌟 視覺模型權限攔截
     $isVisionRequest = false;
     if ($imageBase64) {
         if (!$tierConfig['allow_image']) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => __('Vision AI exclusive'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => __('Vision AI exclusive'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE); 
             exit;
         }
         $isVisionRequest = true;
     }
 
     try {
+        // Chat Session & Privacy Sync
         $sessStmt = $pdo->prepare("SELECT user_id, is_private FROM chat_sessions WHERE session_token = ?");
         $sessStmt->execute([$sessionToken]);
         $chatSession = $sessStmt->fetch();
 
         if ($chatSession) {
             if ($chatSession['is_private'] && $currentUser['id'] !== $chatSession['user_id']) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
+                http_response_code(403); 
+                echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE); 
                 exit;
             }
             if ($currentUser['id'] !== null && $currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
@@ -282,6 +280,7 @@ if ($method === 'POST') {
                 ->execute([$sessionToken, $soulId, $currentUser['id'], $actualPrivate]);
         }
 
+        // 🌟 平台 Max Turns (免費輪數) 嚴格攔截
         $countStmt = $pdo->prepare("SELECT COUNT(*) FROM chat_messages WHERE soul_id = ? AND session_token = ? AND role = 'user'");
         $countStmt->execute([$soulId, $sessionToken]);
         $userMsgCount = (int)$countStmt->fetchColumn();
@@ -289,17 +288,22 @@ if ($method === 'POST') {
         if ($userMsgCount >= $tierConfig['max_turns']) {
             http_response_code(403);
             $errorMsg = __('Free preview capacity reached', ['limit' => $tierConfig['max_turns']]);
-            echo json_encode(['success' => false, 'error' => $errorMsg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => $errorMsg, 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE); 
             exit;
         }
 
+        // 取得 Soul 資料
         $stmt = $pdo->prepare("SELECT content, file_type, user_id FROM souls WHERE id = ? AND is_public = 1");
         $stmt->execute([$soulId]);
         $soul = $stmt->fetch();
-        if (!$soul) { http_response_code(404); echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE); exit; }
+        if (!$soul) { 
+            http_response_code(404); 
+            echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE); 
+            exit; 
+        }
 
         // =================================================================
-        // 🚀 Phase 3: AgentFi Token-Gating & Integrity Radar
+        // 🚀 AgentFi Token-Gating (Web3 門禁檢查)
         // =================================================================
         $currentDbHash = 'sha256:' . hash('sha256', $soul['content']);
         $tokenIdStr = "soul_" . $soulId;
@@ -309,14 +313,11 @@ if ($method === 'POST') {
         $creatorStmt->execute([$soul['user_id']]);
         $creatorWallet = $creatorStmt->fetchColumn();
 
-        if (!empty($creatorWallet)) {
+        if (!empty($creatorWallet) && $chatUserWallet !== $creatorWallet) {
             $rpcPayload = json_encode([
-                "jsonrpc" => "2.0",
-                "id" => "dontcare",
-                "method" => "query",
+                "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
                 "params" => [
-                    "request_type" => "call_function",
-                    "finality" => "final",
+                    "request_type" => "call_function", "finality" => "final",
                     "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
                     "method_name" => "get_soul", 
                     "args_base64" => base64_encode(json_encode(["token_id" => $tokenIdStr]))
@@ -324,11 +325,13 @@ if ($method === 'POST') {
             ]);
 
             $chRpc = curl_init('https://rpc.mainnet.near.org');
-            curl_setopt($chRpc, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($chRpc, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            curl_setopt($chRpc, CURLOPT_POST, true);
-            curl_setopt($chRpc, CURLOPT_POSTFIELDS, $rpcPayload);
-            curl_setopt($chRpc, CURLOPT_TIMEOUT, 3);
+            curl_setopt_array($chRpc, [
+                CURLOPT_RETURNTRANSFER => true, 
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POST => true, 
+                CURLOPT_POSTFIELDS => $rpcPayload, 
+                CURLOPT_TIMEOUT => 3
+            ]);
             $rpcResult = curl_exec($chRpc);
             curl_close($chRpc);
 
@@ -339,36 +342,21 @@ if ($method === 'POST') {
                     $tokenInfo = json_decode($resString, true);
                     
                     if ($tokenInfo) {
-                        // 1. 防篡改檢查 (Integrity Radar)
-                        if (isset($tokenInfo['metadata']['extra'])) {
-                            if ($tokenInfo['metadata']['extra'] !== $currentDbHash) {
-                                echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE);
-                                exit;
-                            }
+                        if (isset($tokenInfo['metadata']['extra']) && $tokenInfo['metadata']['extra'] !== $currentDbHash) {
+                            echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); 
+                            exit;
                         }
-
-                        // 2. Token-Gating 門禁檢查 (Ownership or Active Rent)
-                        // 只要該 Token 在區塊鏈上存在 (被鑄造為 NFT)，即啟動嚴格門禁！
-                        if ($chatUserWallet !== $creatorWallet) {
-                            $hasAccess = false;
-                            
-                            // 檢查是否為現任買家/擁有人 (Owner)
-                            if ($tokenInfo['owner_id'] === $chatUserWallet) {
-                                $hasAccess = true;
-                            } 
-                            // 檢查是否為有效租客 (Renter)
-                            elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
-                                $expiryNano = (int)$tokenInfo['renters'][$chatUserWallet];
-                                $currentNano = time() * 1000000000;
-                                if ($expiryNano > $currentNano) {
-                                    $hasAccess = true;
-                                }
-                            }
-
-                            if (!$hasAccess) {
-                                echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE);
-                                exit;
-                            }
+                        
+                        $hasAccess = false;
+                        if ($tokenInfo['owner_id'] === $chatUserWallet) {
+                            $hasAccess = true;
+                        } elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
+                            $expiryNano = (int)$tokenInfo['renters'][$chatUserWallet];
+                            if ($expiryNano > time() * 1000000000) $hasAccess = true;
+                        }
+                        if (!$hasAccess) {
+                            echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE); 
+                            exit;
                         }
                     }
                 }
@@ -376,6 +364,7 @@ if ($method === 'POST') {
         }
         // =================================================================
 
+        // 組合 System Prompt (Modular JSON 支援)
         $systemPrompt = "";
         if ($soul['file_type'] === 'full_soul_folder') {
             $systemPrompt .= "Please adopt the following modular AI persona:\n\n";
@@ -393,6 +382,7 @@ if ($method === 'POST') {
         $maxWords = max(50, floor($tierConfig['max_tokens'] * 0.6));
         $systemPrompt .= "\n\n[CRITICAL DIRECTIVE: Keep responses extremely concise and under {$maxWords} words.]";
 
+        // 🌟 平台智能記憶體壓縮邏輯 (扣除平台官方 Key)
         $memStmt = $pdo->prepare("SELECT summary, last_message_id FROM chat_memory WHERE session_token = ?");
         $memStmt->execute([$sessionToken]);
         $memoryRow = $memStmt->fetch();
@@ -408,29 +398,30 @@ if ($method === 'POST') {
         if (count($unsummarized) >= $tierConfig['memory_threshold']) {
             $toSummarize = array_slice($unsummarized, 0, -2);
             $keptMessages = array_slice($unsummarized, -2);
-            $sumPrompt = "Compress the following chat log into a short summary under 150 words focus on facts.\n[OLD MEMORY]\n{$chatMemory}\n[NEW LOGS]\n";
+            $sumPrompt = "Compress the following chat log into a short summary focus on facts.\n[OLD MEMORY]\n{$chatMemory}\n[NEW LOGS]\n";
             foreach ($toSummarize as $m) {
                 $txt = $m['content'];
                 $parsedTxt = json_decode($txt, true);
                 if (is_array($parsedTxt)) {
                     $txt = '';
-                    foreach ($parsedTxt as $part) {
-                        if (isset($part['type']) && $part['type'] === 'text') $txt .= $part['text'];
-                    }
+                    foreach ($parsedTxt as $part) if (isset($part['type']) && $part['type'] === 'text') $txt .= $part['text'];
                 }
                 $sumPrompt .= strtoupper($m['role']) . ": " . $txt . "\n";
             }
 
             $compressModel = defined('FREE_MODEL') ? FREE_MODEL : 'deepseek-chat';
-            $compressApiKey = $byokDeepSeek ?: DEEPSEEK_API_KEY;
-            
             $chSum = curl_init();
             curl_setopt_array($chSum, [
                 CURLOPT_URL => DEEPSEEK_API_URL,
-                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_RETURNTRANSFER => true, 
                 CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => json_encode(["model" => $compressModel, "messages" => [["role" => "system", "content" => $sumPrompt]], "max_tokens" => 300, "temperature" => 0.3], JSON_UNESCAPED_UNICODE),
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $compressApiKey],
+                CURLOPT_POSTFIELDS => json_encode([
+                    "model" => $compressModel, 
+                    "messages" => [["role" => "system", "content" => $sumPrompt]], 
+                    "max_tokens" => 300, 
+                    "temperature" => 0.3
+                ], JSON_UNESCAPED_UNICODE),
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . DEEPSEEK_API_KEY],
                 CURLOPT_TIMEOUT => 15
             ]);
             $sumRes = curl_exec($chSum);
@@ -467,35 +458,27 @@ if ($method === 'POST') {
             $apiMessages[] = ["role" => "user", "content" => $userMessageText];
         }
 
+        // 🌟 決定官方平台金鑰與端點
         $targetApiUrl = DEEPSEEK_API_URL;
-        $targetApiKey = $byokDeepSeek ?: DEEPSEEK_API_KEY;
+        $targetApiKey = DEEPSEEK_API_KEY;
         $targetModel = $tierConfig['model'];
         $finalPayloadMessages = [];
 
         if ($isVisionRequest && defined('VISION_API_URL') && defined('VISION_API_KEY')) {
             $targetApiUrl = VISION_API_URL;
-            $targetApiKey = $byokVision ?: VISION_API_KEY;
-            
-            if ($currentUser['tier'] === 'pro' && defined('PRO_VISION_MODEL')) {
-                $targetModel = PRO_VISION_MODEL; 
-            } else {
-                $targetModel = defined('VIP_VISION_MODEL') ? VIP_VISION_MODEL : 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo';
-            }
+            $targetApiKey = VISION_API_KEY;
+            $targetModel = ($currentUser['tier'] === 'pro' && defined('PRO_VISION_MODEL')) ? PRO_VISION_MODEL : (defined('VIP_VISION_MODEL') ? VIP_VISION_MODEL : 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo');
             $finalPayloadMessages = $apiMessages; 
         } else {
             foreach ($apiMessages as $msg) {
                 $role = $msg['role'];
                 $content = $msg['content'];
-                
                 if (is_array($content)) {
                     $textPayloadStr = "";
                     foreach ($content as $part) {
                         if (isset($part['type'])) {
-                            if ($part['type'] === 'text') {
-                                $textPayloadStr .= $part['text'];
-                            } elseif ($part['type'] === 'image_url') {
-                                $textPayloadStr .= "\n[System Notice: The user has attached an image template file at this position.]\n";
-                            }
+                            if ($part['type'] === 'text') $textPayloadStr .= $part['text'];
+                            elseif ($part['type'] === 'image_url') $textPayloadStr .= "\n[System Notice: User attached an image.]\n";
                         }
                     }
                     $finalPayloadMessages[] = ["role" => $role, "content" => trim($textPayloadStr)];
@@ -505,17 +488,16 @@ if ($method === 'POST') {
             }
         }
 
-        if (!$isApiCall) {
-            $_SESSION['last_chat_time'] = time();
+        if (!$isApiCall) { 
+            $_SESSION['last_chat_time'] = time(); 
         }
+        
+        // 🌟 Session 解鎖，避免 cURL 阻塞
         session_write_close(); 
 
-        $pdo = null;
-        $db = null;
-
+        // 🌟 呼叫官方 AI 引擎
         $maxRetries = 3;      
         $retryDelay = 2;      
-
         $response = '';
         $httpCode = 0;
         
@@ -531,10 +513,10 @@ if ($method === 'POST') {
 
             curl_setopt_array($ch, [
                 CURLOPT_URL => $targetApiUrl,
-                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_RETURNTRANSFER => true, 
                 CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_POSTFIELDS => $payload, 
+                CURLOPT_CONNECTTIMEOUT => 10, 
                 CURLOPT_TIMEOUT => 120,
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $targetApiKey]
             ]);
@@ -549,11 +531,9 @@ if ($method === 'POST') {
                 echo json_encode(['success' => false, 'error' => __('AI Service timeout')], JSON_UNESCAPED_UNICODE); 
                 exit; 
             }
-
             if ($httpCode !== 429) break;
-
-            if ($attempt < $maxRetries - 1) {
-                sleep($retryDelay);
+            if ($attempt < $maxRetries - 1) { 
+                sleep($retryDelay); 
                 $retryDelay *= 2; 
             }
         }
@@ -562,16 +542,17 @@ if ($method === 'POST') {
         if ($httpCode !== 200 || !empty($responseData['error'])) {
             http_response_code(400);
             $errorDetail = $responseData['error']['message'] ?? 'Unknown Connection Failure';
-            echo json_encode(['success' => false, 'error' => __('Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => __('Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE); 
             exit;
         }
 
         $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 
+        // 🌟 儲存歷史紀錄及扣除平台額度
         try {
             $freshPdo = new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset='.DB_CHARSET, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, 
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, 
                 PDO::ATTR_TIMEOUT => 15
             ]);
             
@@ -581,6 +562,7 @@ if ($method === 'POST') {
             $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
             $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
             
+            // 扣除額度
             if ($currentUser['id']) {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
             } else {
@@ -591,13 +573,13 @@ if ($method === 'POST') {
                 }
             }
 
+            // 更新壓縮記憶體
             if ($updateMemory) {
                 $freshPdo->prepare("INSERT INTO chat_memory (session_token, summary, last_message_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE summary = VALUES(summary), last_message_id = VALUES(last_message_id)")
                          ->execute([$sessionToken, $chatMemory, $lastMessageId]);
             }
 
             $freshPdo->commit();
-
             echo json_encode(['success' => true, 'reply' => $aiReply], JSON_UNESCAPED_UNICODE);
 
         } catch (Throwable $e) {
@@ -610,5 +592,7 @@ if ($method === 'POST') {
         echo json_encode(['success' => false, 'error' => __('Fatal Server Exception', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
     }
 } else {
-    http_response_code(405); echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
+    http_response_code(405); 
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }
+?>

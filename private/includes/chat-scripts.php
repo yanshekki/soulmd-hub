@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
- * (100% i18n Internationalized & Web2.5 BYOK Proxy Edition)
+ * (Web2.5 BYOK Dual-Track Router Edition - 100% Full Unredacted Version)
  */
 ?>
 <script>
@@ -23,7 +23,9 @@
     const IMG_QUALITY = <?= defined('IMAGE_QUALITY') ? IMAGE_QUALITY : 0.6 ?>;
 
     let currentImageBase64 = null;
+    let isByokMode = false; // 🌟 雙軌制核心 Flag
 
+    // --- 免責聲明 Modal ---
     const agreementKey = `soulmd_agreement_${soulId}_${sessionToken}`;
     if (!localStorage.getItem(agreementKey)) {
         document.getElementById('disclaimer-modal').classList.remove('hidden');
@@ -36,12 +38,14 @@
         window.location.href = '<?= url("/browse") ?>';
     }
 
+    // --- 捲動到底部 ---
     function scrollToBottom() {
         if (chatBox) {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
     }
 
+    // --- Markdown 解析 ---
     if (typeof marked.use === 'function') {
         marked.use({ breaks: true, gfm: true });
     } else if (typeof marked.setOptions === 'function') {
@@ -56,6 +60,7 @@
         }
     }
 
+    // --- UI Modals (Soul Info, Image Viewer, Paywall) ---
     function openSoulModal() {
         document.body.style.overflow = 'hidden';
         const modal = document.getElementById('soul-info-modal');
@@ -105,6 +110,25 @@
         setTimeout(() => { modal.classList.add('hidden'); img.src = ''; }, 300);
     }
 
+    function showPaywall() {
+        const modal = document.getElementById('paywall-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => { 
+            modal.classList.remove('opacity-0'); 
+            modal.firstElementChild.classList.remove('scale-95'); 
+            modal.firstElementChild.classList.add('scale-100'); 
+        }, 10);
+    }
+
+    function closePaywall() {
+        const modal = document.getElementById('paywall-modal');
+        modal.classList.add('opacity-0'); 
+        modal.firstElementChild.classList.remove('scale-100'); 
+        modal.firstElementChild.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
+    // --- Privacy Toggle (公私切換) ---
     async function updatePrivacyUI() {
         const toggle = document.getElementById('privacy-toggle');
         if(!toggle) return;
@@ -143,6 +167,7 @@
         } catch(e) { console.error('Privacy sync failed'); }
     }
 
+    // --- Image Processing (上傳與縮放) ---
     function triggerImageUpload() {
         if (!ALLOW_IMAGE) {
             showPaywall();
@@ -198,6 +223,7 @@
         if (file) processImageFile(file);
     }
 
+    // --- Event Listeners (Paste & Keyboard) ---
     chatInput.addEventListener('paste', (e) => {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let item of items) {
@@ -222,18 +248,7 @@
         }
     });
 
-    function showPaywall() {
-        const modal = document.getElementById('paywall-modal');
-        modal.classList.remove('hidden');
-        setTimeout(() => { modal.classList.remove('opacity-0'); modal.firstElementChild.classList.remove('scale-95'); modal.firstElementChild.classList.add('scale-100'); }, 10);
-    }
-
-    function closePaywall() {
-        const modal = document.getElementById('paywall-modal');
-        modal.classList.add('opacity-0'); modal.firstElementChild.classList.remove('scale-100'); modal.firstElementChild.classList.add('scale-95');
-        setTimeout(() => { modal.classList.add('hidden'); }, 300);
-    }
-
+    // --- Char Count & Share ---
     function updateCharCount(el) {
         const len = el.value.length;
         charCount.innerText = `${len}/${MAX_INPUT_CHARS}`;
@@ -255,6 +270,7 @@
         });
     }
 
+    // --- 訊息渲染 ---
     function appendMessage(role, content) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
@@ -299,6 +315,27 @@
         return bubble;
     }
 
+    // 🌟 1. BYOK 雙軌制初始化：判定用戶是否處於 BYOK 模式
+    async function initChatEnvironment() {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if (data.success && data.data.use_byok == 1) {
+                isByokMode = true;
+                // 在畫面上方注入 BYOK 模式提示
+                const header = document.querySelector('header');
+                const badge = document.createElement('div');
+                badge.className = 'w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold text-center py-1.5 tracking-widest shadow-md flex items-center justify-center gap-2';
+                badge.innerHTML = '<i class="fas fa-bolt text-yellow-300"></i> BYOK 無限暢聊模式已啟用 (使用自訂 AI 引擎)';
+                header.parentNode.insertBefore(badge, header.nextSibling);
+            }
+        } catch(e) {}
+        
+        // 環境判定完畢後才載入歷史紀錄
+        loadChatHistory();
+    }
+
+    // 🌟 2. 載入歷史紀錄
     async function loadChatHistory() {
         const loading = document.getElementById('loading-history');
         try {
@@ -318,7 +355,8 @@
                     setTimeout(scrollToBottom, 50);
                     setTimeout(scrollToBottom, 250);
 
-                    if (userMessageCount >= MAX_TURNS) {
+                    // 如果不是 BYOK 模式，且超過輪數，則彈出付費牆
+                    if (!isByokMode && userMessageCount >= MAX_TURNS) {
                         showPaywall();
                     }
                 } else {
@@ -342,10 +380,12 @@
         }
     }
 
+    // 🌟 3. 發送訊息與智能路由分發 (Router)
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        if (userMessageCount >= MAX_TURNS) {
+        // 如果不是 BYOK 模式，嚴格攔截次數
+        if (!isByokMode && userMessageCount >= MAX_TURNS) {
             showPaywall();
             return;
         }
@@ -385,20 +425,16 @@
 
         removeImage();
 
-        // 🚀 BYOK 代理升級：無狀態注入本地金鑰
-        const localDsKey = localStorage.getItem('soulmd_byok_deepseek') || '';
-        const localVsKey = localStorage.getItem('soulmd_byok_vision') || '';
-        const headersObj = { 
-            'Content-Type': 'application/json', 
-            'X-CSRF-Token': serverCsrfToken 
-        };
-        if (localDsKey) headersObj['X-Deepseek-Key'] = localDsKey;
-        if (localVsKey) headersObj['X-Vision-Key'] = localVsKey;
+        // 🎯 決定目標 API (使用平台配額 還是 左手交右手)
+        const targetApiEndpoint = isByokMode ? '/api/self-chat' : '/api/chat';
 
         try {
-            const res = await fetch('/api/chat', {
+            const res = await fetch(targetApiEndpoint, {
                 method: 'POST',
-                headers: headersObj,
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRF-Token': serverCsrfToken 
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -435,7 +471,7 @@
             
             chatInput.style.height = '48px'; 
             
-            if (userMessageCount >= MAX_TURNS) {
+            if (!isByokMode && userMessageCount >= MAX_TURNS) {
                 showPaywall();
             } else {
                 chatInput.focus();
@@ -445,5 +481,6 @@
         }
     });
 
-    window.onload = loadChatHistory;
+    // 啟動入口
+    window.onload = initChatEnvironment;
 </script>

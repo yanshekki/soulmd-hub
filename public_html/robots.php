@@ -13,10 +13,14 @@ $baseUrl = defined('BASE_URL') ? BASE_URL : 'https://soulmd-hub.ysk.hk';
 echo "User-agent: *\n";
 echo "Allow: /\n";
 
-// 🚨 Prevent search engines from indexing chat histories, bills, invoices and private pages
+// 🚨 Prevent search engines from indexing private areas & APIs
 echo "Disallow: /chat/\n";
 echo "Disallow: /my-chats\n";
+echo "Disallow: /my-souls\n";
+echo "Disallow: /my-setting\n";
+echo "Disallow: /my-api\n";
 echo "Disallow: /billing\n";
-echo "Disallow: /invoice\n\n";
+echo "Disallow: /invoice\n";
+echo "Disallow: /api/\n\n";
 
 echo "Sitemap: " . $baseUrl . "/sitemap.xml\n";

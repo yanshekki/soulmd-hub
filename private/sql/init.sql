@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS soul_likes (
 );
 
 -- ==========================================
--- 8. Chat Sessions Table (管理對話私隱與擁有權)
+-- 8. Chat Sessions Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_sessions (
     session_token VARCHAR(64) PRIMARY KEY,
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 -- ==========================================
--- 10. Chat Memory Table (智能記憶壓縮層)
+-- 10. Chat Memory Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_memory (
     session_token VARCHAR(64) PRIMARY KEY,
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS chat_memory (
 );
 
 -- ==========================================
--- 11. Payments Table (PayPal 訂單紀錄)
+-- 11. Payments Table
 -- ==========================================
 CREATE TABLE IF NOT EXISTS payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -191,3 +191,27 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- ==========================================
+-- 12. User LLM Settings (BYOK Engine Settings)
+-- 🚀 修正：user_id 型態改為 INT，完美對齊 users.id
+-- ==========================================
+CREATE TABLE IF NOT EXISTS `user_llm_settings` (
+  `user_id` INT NOT NULL,
+  `use_byok` tinyint(1) DEFAULT 0,
+  `memory_compress_threshold` int(11) DEFAULT 10,
+  
+  `text_provider` varchar(50) DEFAULT 'openai',
+  `text_model` varchar(100) DEFAULT 'gpt-4o',
+  `text_api_url` varchar(255) DEFAULT 'https://api.openai.com/v1/chat/completions',
+  `text_api_key` text DEFAULT NULL,
+  
+  `vision_provider` varchar(50) DEFAULT 'openai',
+  `vision_model` varchar(100) DEFAULT 'gpt-4o',
+  `vision_api_url` varchar(255) DEFAULT 'https://api.openai.com/v1/chat/completions',
+  `vision_api_key` text DEFAULT NULL,
+  
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_user_llm` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

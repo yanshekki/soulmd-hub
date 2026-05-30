@@ -50,6 +50,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 // 🚨 必須在根節點宣告 xhtml 命名空間，否則 Google Search Console 會報錯
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
 
+// ⚠️ 只允許公開頁面進入 Sitemap！絕對不可包含 my-setting 等後台頁面
 $staticPages = [
     '' => ['changefreq' => 'daily', 'priority' => '1.0'],
     'browse' => ['changefreq' => 'daily', 'priority' => '0.9'],
