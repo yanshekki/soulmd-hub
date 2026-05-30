@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - i18n Translation Dictionary
- * Target: upload.php (Upload & Publish Page)
+ * Target: upload.php & edit.php (Shared Form)
  */
 
 return [
@@ -9,10 +9,15 @@ return [
         // Headers & Basic UI
         'Upload Soul' => 'Upload Soul',
         'Upload Subtitle' => 'Publish single prompts or modular agent architectures.',
+        'Edit Soul' => 'Edit AI Soul',
+        'Edit Subtitle' => 'Update your AI agent layout and settings.',
         'Back to My Souls' => 'My Souls',
         
         // Form Labels & Placeholders
         'Soul Title' => 'Soul Title',
+        'Visibility' => 'Visibility',
+        '🌐 Public (Hub)' => '🌐 Public (Hub)',
+        '🔒 Private' => '🔒 Private',
         'Short Description' => 'Short Description',
         'Role' => 'Role',
         'Select role' => 'Select role',
@@ -36,9 +41,22 @@ return [
         // 🚀 Web3 Minting Section
         'Mint to NEAR' => 'Mint to NEAR Blockchain (Web3)',
         'Mint Desc' => 'Secure your IP by minting this soul as an Updatable NFT on the NEAR blockchain.',
+        'Sync to NEAR' => 'Sync Hash to NEAR',
+        'Sync Desc' => 'Update the on-chain hash to reflect your latest prompt edits.',
         'Platform Fee' => 'Cost: 0.6 NEAR (0.5 Storage Staking + 0.1 Platform Fee)',
         'Please connect NEAR wallet first' => 'Please bind your NEAR wallet in Developer API Access first.',
         'Redirecting to Wallet...' => 'Redirecting to Wallet...',
+
+        // 🚀 AgentFi Actions
+        'AgentFi Actions' => 'AgentFi Actions',
+        'List for Sale' => 'List for Sale',
+        'Sale Desc' => 'Sell full ownership and royalty rights of this AI model. (5% platform fee)',
+        'Price (NEAR)' => 'Price (NEAR)',
+        'List on Market' => 'List on Market',
+        'Cancel Listing' => 'Cancel Listing',
+        'List for Rent' => 'List for Rent',
+        'Rent Desc' => 'Allow users to rent this AI blackbox for 30 days. You retain full ownership. (10% platform fee)',
+        'Rent Price (NEAR / 30 Days)' => 'Rent Price (NEAR / 30 Days)',
 
         // Modals
         'Add Module File' => 'Add Module File',
@@ -49,6 +67,7 @@ return [
         'e.g. docs/guide.md' => 'e.g. docs/guide.md',
         
         // JavaScript Alerts & Dynamic Texts
+        'Save Changes' => 'Save Changes',
         'Ready to upload' => 'Ready to upload',
         'File already exists!' => 'File already exists!',
         'You must have at least one file.' => 'You must have at least one file.',
@@ -58,7 +77,8 @@ return [
         'Content empty' => 'Soul Content is empty or hasn\'t loaded yet.',
         'Failed to save soul.' => 'Failed to save soul.',
         'Network Error' => 'Network Error. Please try again.',
-
+        'Invalid price' => 'Invalid price. Must be greater than 0.',
+        'Blockchain transaction failed or rejected.' => 'Blockchain transaction failed or rejected by user.',
         'No description provided' => 'No description provided',
     ],
     
@@ -66,10 +86,15 @@ return [
         // Headers & Basic UI
         'Upload Soul' => '上傳靈魂模型',
         'Upload Subtitle' => '發佈單一提示詞或模組化智能體架構。',
+        'Edit Soul' => '編輯靈魂模型',
+        'Edit Subtitle' => '更新您的 AI 智能體架構與設定。',
         'Back to My Souls' => '我的模型',
         
         // Form Labels & Placeholders
         'Soul Title' => '模型標題',
+        'Visibility' => '權限狀態',
+        '🌐 Public (Hub)' => '🌐 公開 (發佈至大廳)',
+        '🔒 Private' => '🔒 私密 (僅限自己)',
         'Short Description' => '簡短描述',
         'Role' => '角色分類',
         'Select role' => '請選擇分類',
@@ -93,9 +118,22 @@ return [
         // 🚀 Web3 Minting Section
         'Mint to NEAR' => '鑄造至 NEAR 區塊鏈 (Web3)',
         'Mint Desc' => '透過將此模型鑄造為 NEAR 區塊鏈上可進化的 NFT，保護您的原創知識產權。',
+        'Sync to NEAR' => '同步 Hash 至 NEAR 區塊鏈',
+        'Sync Desc' => '將最新修改的內容指紋 (Hash) 同步上鏈，保障租客權益。',
         'Platform Fee' => '鑄造費用：0.6 NEAR (0.5 儲存質押 + 0.1 平台發行稅)',
         'Please connect NEAR wallet first' => '請先前往「開發者 API 存取權限」綁定您的 NEAR 錢包。',
         'Redirecting to Wallet...' => '正在重導向至錢包...',
+
+        // 🚀 AgentFi Actions
+        'AgentFi Actions' => 'AgentFi 區塊鏈操作',
+        'List for Sale' => '掛牌出售 (賣斷)',
+        'Sale Desc' => '出售此 AI 模型的完整擁有權及後續版稅權益。(扣除 5% 平台稅, 5% 原創者版稅)',
+        'Price (NEAR)' => '售價 (NEAR)',
+        'List on Market' => '確認掛牌',
+        'Cancel Listing' => '取消掛牌',
+        'List for Rent' => '設定黑盒出租',
+        'Rent Desc' => '允許租客透過 Chat 引擎租用此 AI 模型 30 天，但不洩露原始 Prompt，您保留擁有權。(扣除 10% 平台服務稅)',
+        'Rent Price (NEAR / 30 Days)' => '租金 (NEAR / 30日)',
 
         // Modals
         'Add Module File' => '新增架構檔案模組',
@@ -106,6 +144,7 @@ return [
         'e.g. docs/guide.md' => '例如：docs/guide.md',
         
         // JavaScript Alerts & Dynamic Texts
+        'Save Changes' => '儲存變更',
         'Ready to upload' => '準備好上傳',
         'File already exists!' => '該檔案路徑已存在！',
         'You must have at least one file.' => '模組化結構內必須包含至少一個架構檔案。',
@@ -115,7 +154,8 @@ return [
         'Content empty' => '模型內容為空或尚未載入完成。',
         'Failed to save soul.' => '儲存模型失敗。',
         'Network Error' => '網絡連線錯誤，請檢查連線後重試。',
-        
+        'Invalid price' => '無效的價格，必須大於 0。',
+        'Blockchain transaction failed or rejected.' => '區塊鏈交易失敗，或已被用戶拒絕。',
         'No description provided' => '沒有提供描述',
     ]
 ];

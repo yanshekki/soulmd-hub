@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
+ * 🚀 Patched: Edit Button using dedicated edit.php route
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -93,10 +94,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
-<?php 
-require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; 
-require_once __DIR__ . '/../private/includes/my-souls-modals.php'; 
-?>
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
     // 🌍 動態 i18n 變數注入
@@ -107,18 +105,19 @@ require_once __DIR__ . '/../private/includes/my-souls-modals.php';
     const lang_Unassigned = <?= json_encode(__('Unassigned'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Forks = <?= json_encode(__('Forks'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Likes = <?= json_encode(__('Likes'), JSON_UNESCAPED_UNICODE) ?>;
-    const lang_MintNFT = <?= json_encode(__('Mint NFT'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Edit = <?= json_encode(__('Edit'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_VersionHistory = <?= json_encode(__('Version History'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_View = <?= json_encode(__('View'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_AgentNFTAsset = <?= json_encode(__('Agent NFT Asset'), JSON_UNESCAPED_UNICODE) ?>;
-    const lang_ListRentMarket = <?= json_encode(__('List / Rent Market'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_BurnAndRefund = <?= json_encode(__('Burn and Refund'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Page = <?= json_encode(__('Page'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoSouls = <?= json_encode(__('No souls shared yet'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoNFTs = <?= json_encode(__('No NFT assets'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_BurnConfirm = <?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_PermDelete = <?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>;
     
     const url_soul_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
+    const url_edit_prefix = <?= json_encode(url('/edit/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_versions = <?= json_encode(url('/soul-versions/'), JSON_UNESCAPED_UNICODE) ?>;
     const currentUsername = <?= json_encode($username, JSON_UNESCAPED_UNICODE) ?>;
     const hasWallet = <?= !empty($nearWallet) ? 'true' : 'false' ?>;
@@ -234,8 +233,7 @@ require_once __DIR__ . '/../private/includes/my-souls-modals.php';
                                 <span title="${lang_Likes}"><i class="fas fa-heart mr-1 text-red-500"></i><b class="text-zinc-300">${soul.like_count}</b></span>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                ${hasWallet ? `<button onclick="mintExistingSoul(${soul.id})" class="px-4 py-2.5 sm:py-2 text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-bold rounded-xl transition flex-1 sm:flex-auto text-center shadow-lg"><i class="fas fa-cube mr-1"></i> ${lang_MintNFT}</button>` : ''}
-                                <button onclick="editSoul(${soul.id})" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center">${lang_Edit}</button>
+                                <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
                                 <a href="${url_versions}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center" title="${lang_VersionHistory}"><i class="fas fa-history"></i></a>
                                 <button onclick="deleteSoul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center"><i class="far fa-trash-alt sm:text-base"></i></button>
                                 <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
@@ -312,7 +310,7 @@ require_once __DIR__ . '/../private/includes/my-souls-modals.php';
                                 <span><i class="fas fa-heart mr-1 text-red-500"></i><b>${soul.like_count}</b></span>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <button onclick="editSoul(${soul.id})" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/20 rounded-xl transition flex-1 sm:flex-auto text-center"><i class="fas fa-store-alt mr-1"></i> ${lang_ListRentMarket}</button>
+                                <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/20 rounded-xl transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
                                 <button onclick="deleteSoul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base"></i></button>
                                 <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
                             </div>
@@ -333,6 +331,48 @@ require_once __DIR__ . '/../private/includes/my-souls-modals.php';
             }
         } catch(e) {
             container.innerHTML = `<div class="text-red-400 text-center py-12">Network Error</div>`;
+        }
+    }
+
+    async function deleteSoul(id) {
+        if (!confirm(lang_BurnConfirm)) {
+            if (!confirm(lang_PermDelete)) return;
+            executeDatabaseDelete(id);
+            return;
+        }
+
+        try {
+            if (typeof initNearWallet !== 'function') { executeDatabaseDelete(id); return; }
+            const wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                executeDatabaseDelete(id);
+                return;
+            }
+
+            await wallet.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "burn_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000", 
+                attachedDeposit: "0", 
+                walletCallbackUrl: window.location.href 
+            });
+        } catch (e) {
+            executeDatabaseDelete(id);
+        }
+    }
+
+    async function executeDatabaseDelete(id) {
+        try {
+            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { 
+                location.reload(); 
+            } else { 
+                alert(data.error || "Delete failed"); 
+            }
+        } catch(e) { 
+            alert("Network Error"); 
         }
     }
 
