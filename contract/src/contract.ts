@@ -118,10 +118,11 @@ class SoulMDAgentFi {
         token.owner_id = buyer;
         token.sale_price = null;
         token.rent_price = null;
-        token.renters = {}; 
+        // 🚨 漏洞修復 1：移除了 token.renters = {}，讓新買家繼承現有租約，保障租客權益！
+        
         this.tokens.set(token_id, token);
 
-        near.log(`[${token_id}] bought by ${buyer} for ${price}`);
+        near.log(`[${token_id}] bought by ${buyer} for ${price}. Active rentals preserved.`);
     }
 
     @call({})
@@ -184,6 +185,12 @@ class SoulMDAgentFi {
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Security Error: Only the owner can burn.");
 
+        // 🚨 漏洞修復 2：銷毀前必須確保所有租約已經過期！
+        const current_time = near.blockTimestamp();
+        for (const renter in token.renters) {
+            assert(BigInt(token.renters[renter]) < current_time, "Rug Pull Prevention: Cannot burn NFT while there are active renters.");
+        }
+
         this.tokens.remove(token_id);
 
         const refund_amount = 450000000000000000000000n; 
@@ -230,13 +237,9 @@ class SoulMDAgentFi {
 
         const amount = BigInt(amount_in_near);
         
-        // 1. 創建 Batch Promise 目標為 wrap.near (官方包裝合約)
         const p1 = near.promiseBatchCreate("wrap.near");
-        
-        // 2. 第一步：將夾帶的 Native NEAR 存入 wrap.near 轉換為 wNEAR
         near.promiseBatchActionFunctionCall(p1, "near_deposit", "", amount, 30000000000000n);
 
-        // 3. 準備發送給 Ref Finance 進行 Swap 的指令結構
         const swap_msg = JSON.stringify({
             force: 0,
             actions: [{
@@ -254,8 +257,6 @@ class SoulMDAgentFi {
             msg: swap_msg
         });
 
-        // 4. 第二步：將剛才轉好的 wNEAR 透過 ft_transfer_call 射入 Ref Finance 觸發交易
-        // 必須夾帶 1 yoctoNEAR 以符合安全規範，並提供充足 Gas (100 TGas)
         near.promiseBatchActionFunctionCall(p1, "ft_transfer_call", transfer_args, 1n, 100000000000000n);
         
         near.log(`🌪️ Auto-Buyback triggered! Wrapped ${amount_in_near} NEAR and routed to Pool 8546 for $SOUL burn.`);
