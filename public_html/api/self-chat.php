@@ -3,6 +3,7 @@
  * SoulMD Hub - BYOK Proxy API (self-chat.php)
  * 100% 左手交右手無狀態代理，不扣除平台 Daily Limit (Fallback 例外)。
  * 包含 Web3 Token-Gating, 自訂記憶壓縮, 及 Vision Fallback。
+ * (100% Dynamic i18n Internationalized Edition + 完美過期與跨日重置引擎)
  */
 
 set_time_limit(180);
@@ -44,6 +45,49 @@ if (!$userId) {
 }
 
 // ==========================================
+// 🚀 核心防白嫖引擎：過期降級與跨日重置 (與 chat.php 完全同步)
+// ==========================================
+function getCurrentUser($pdo) {
+    $userId = $_SESSION['user_id'];
+    $today = date('Y-m-d');
+
+    $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch();
+
+    if (!$user) return null;
+
+    $isExpired = false;
+    // 嚴格過期降級判定
+    if ($user['tier'] !== 'free' && $user['vip_expires_at'] && strtotime($user['vip_expires_at']) < time()) {
+        $pdo->prepare("UPDATE users SET tier = 'free' WHERE id = ?")->execute([$userId]);
+        $user['tier'] = 'free';
+        $isExpired = true;
+    }
+
+    // 跨日 Daily Limit 重置
+    if ($user['last_chat_date'] !== $today) {
+        $pdo->prepare("UPDATE users SET daily_chat_count = 0, last_chat_date = ? WHERE id = ?")->execute([$today, $userId]);
+        $user['daily_chat_count'] = 0;
+    }
+
+    return [
+        'id' => $user['id'],
+        'tier' => $user['tier'],
+        'daily_count' => $user['daily_chat_count'],
+        'is_expired' => $isExpired,
+        'near_wallet' => $user['near_wallet_address']
+    ];
+}
+
+$currentUser = getCurrentUser($pdo);
+if (!$currentUser) {
+    http_response_code(401); 
+    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
+    exit;
+}
+
+// ==========================================
 // 1. CSRF 安全檢查
 // ==========================================
 $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -75,18 +119,14 @@ if (!$soulId || empty($sessionToken) || (empty($userMessageText) && empty($image
     exit;
 }
 
-// 獲取用戶資料與 BYOK 設定
-$stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, near_wallet_address FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$currentUser = $stmt->fetch();
-
+// 獲取 BYOK 設定
 $setStmt = $pdo->prepare("SELECT * FROM user_llm_settings WHERE user_id = ?");
 $setStmt->execute([$userId]);
 $settings = $setStmt->fetch();
 
 if (!$settings || $settings['use_byok'] != 1) {
     http_response_code(403); 
-    echo json_encode(['success' => false, 'error' => 'BYOK mode is not enabled on your account.'], JSON_UNESCAPED_UNICODE); 
+    echo json_encode(['success' => false, 'error' => __('BYOK mode is not enabled on your account.')], JSON_UNESCAPED_UNICODE); 
     exit;
 }
 
@@ -101,13 +141,21 @@ $targetModel = '';
 
 if ($isVisionRequest) {
     if (empty($settings['vision_api_key'])) {
+        // 🚨 嚴格攔截：如果用戶過期，絕對不能借用平台的 Vision 額度！
+        if ($currentUser['tier'] === 'free') {
+            http_response_code(403);
+            $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('Vision AI exclusive');
+            echo json_encode(['success' => false, 'error' => '您的自訂 Vision 金鑰未設定，且您的平台等級無權使用視覺分析。請升級計劃或補全您的金鑰。', 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         // 🌟 Fallback 機制: 用戶無設定 Vision Key，降級使用平台配額
         $tierPrefix = strtoupper($currentUser['tier']);
         $dailyLimit = defined("{$tierPrefix}_DAILY_LIMIT") ? constant("{$tierPrefix}_DAILY_LIMIT") : 10;
         
-        if ($currentUser['daily_chat_count'] >= $dailyLimit) {
+        if ($currentUser['daily_count'] >= $dailyLimit) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => '您的自訂 Vision 金鑰未設定，且平台視覺額度已耗盡，請前往設定頁補全或升級計劃。', 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => __('Vision BYOK fallback error'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
         
@@ -131,7 +179,7 @@ if ($isVisionRequest) {
     // 🌟 純文字 LLM
     if (empty($settings['text_api_key'])) {
         http_response_code(403); 
-        echo json_encode(['success' => false, 'error' => 'Text API Key is not set in your BYOK settings.'], JSON_UNESCAPED_UNICODE); 
+        echo json_encode(['success' => false, 'error' => __('Text API Key is not set in your BYOK settings.')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
     $targetApiUrl = $settings['text_api_url'];
@@ -170,9 +218,9 @@ if (!$soul) {
     exit; 
 }
 
-// 🌟 Web3 防盜門禁 (與 chat.php 完全一致)
+// 🌟 Web3 防盜門禁
 $currentDbHash = 'sha256:' . hash('sha256', $soul['content']);
-$chatUserWallet = $currentUser['near_wallet_address'] ?? '';
+$chatUserWallet = $currentUser['near_wallet'] ?? '';
 $creatorStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
 $creatorStmt->execute([$soul['user_id']]);
 $creatorWallet = $creatorStmt->fetchColumn();
@@ -324,6 +372,8 @@ if ($isVisionRequest) {
 // ==========================================
 // 7. 發送請求至 OpenAI-Compatible API (BYOK)
 // ==========================================
+session_write_close(); // 解鎖 Session，避免卡死其他頁面
+
 $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => $targetApiUrl,
@@ -347,7 +397,7 @@ curl_close($ch);
 $responseData = json_decode($response, true);
 if ($httpCode !== 200 || !empty($responseData['error'])) {
     http_response_code(400);
-    $errorDetail = $responseData['error']['message'] ?? 'Unknown Connection Failure';
+    $errorDetail = $responseData['error']['message'] ?? __('Unknown Connection Failure');
     echo json_encode(['success' => false, 'error' => "自訂 API 引擎錯誤: " . $errorDetail], JSON_UNESCAPED_UNICODE);
     exit;
 }

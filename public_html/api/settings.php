@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Unified Settings API (LLM & BYOK)
- * Handles encrypted storage of API Keys.
+ * Handles encrypted storage of API Keys. (CSRF Patched Edition)
  */
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../private/config.php';
@@ -26,7 +26,6 @@ if ($method === 'GET') {
     $settings = $stmt->fetch();
     
     if (!$settings) {
-        // 如果無紀錄，回傳預設值
         echo json_encode(['success' => true, 'data' => [
             'use_byok' => 0, 
             'memory_compress_threshold' => 10, 
@@ -42,7 +41,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 將真實 API Key 替換為脫敏版本 (Masking)，例如 sk-a...3d9f
     if (!empty($settings['text_api_key'])) {
         $realKey = decryptData($settings['text_api_key']);
         $settings['text_api_key'] = substr($realKey, 0, 4) . '...' . substr($realKey, -4);
@@ -57,9 +55,22 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    // 🚨 嚴格補回 CSRF 驗證牆
+    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (empty($userCsrfToken) && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+    }
+    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+
+    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+        http_response_code(403); 
+        echo json_encode(['success' => false, 'error' => 'Security validation failed (CSRF).'], JSON_UNESCAPED_UNICODE); 
+        exit;
+    }
+
     $input = json_decode(file_get_contents('php://input'), true);
     
-    // 先攞返舊資料，以便比對
     $stmt = $pdo->prepare("SELECT text_api_key, vision_api_key FROM user_llm_settings WHERE user_id = ?");
     $stmt->execute([$userId]);
     $oldData = $stmt->fetch();
@@ -72,7 +83,6 @@ if ($method === 'POST') {
     $t_url = $input['text_api_url'] ?? '';
     $t_key_input = $input['text_api_key'] ?? '';
     
-    // 如果輸入包含 '...'，代表用戶冇改過 Key，沿用舊有加密 Key；否則加密新 Key
     $t_key_final = (strpos($t_key_input, '...') !== false && $oldData) ? $oldData['text_api_key'] : encryptData($t_key_input);
 
     $v_provider = $input['vision_provider'] ?? 'openai';
@@ -82,7 +92,6 @@ if ($method === 'POST') {
     
     $v_key_final = (strpos($v_key_input, '...') !== false && $oldData) ? $oldData['vision_api_key'] : encryptData($v_key_input);
 
-    // 寫入資料庫
     $sql = "INSERT INTO user_llm_settings 
             (user_id, use_byok, memory_compress_threshold, text_provider, text_model, text_api_url, text_api_key, vision_provider, vision_model, vision_api_url, vision_api_key) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

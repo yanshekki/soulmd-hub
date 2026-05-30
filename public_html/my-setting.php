@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Grand Unified Settings Hub
- * (Account, Web3, Platform API, Encrypted BYOK Engine)
+ * (Account, Web3, Platform API, Encrypted BYOK Engine - CSRF Patched)
  */
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
@@ -9,6 +9,12 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: /login'); exit; }
+
+// 🚨 補回 CSRF Token 生成機制
+if (empty($_SESSION['chat_csrf_token'])) {
+    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['chat_csrf_token'];
 
 $userId = $_SESSION['user_id'];
 $db = Database::getInstance();
@@ -161,10 +167,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="bg-zinc-950/50 border border-amber-500/20 rounded-2xl p-5 shadow-inner relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-amber-400 font-bold uppercase tracking-widest text-xs flex items-center"><i class="fas fa-compress-arrows-alt mr-2"></i>上下文記憶體壓縮頻率 (Memory Compression)</h3>
+                        <h3 class="text-amber-400 font-bold uppercase tracking-widest text-xs flex items-center"><i class="fas fa-compress-arrows-alt mr-2"></i>上下文記憶體壓縮頻率</h3>
                         <span class="text-xl font-black text-white bg-zinc-800 px-3 py-1 rounded-lg font-mono border border-white/5 shadow" id="compress_val_display">10</span>
                     </div>
-                    <p class="text-[11px] sm:text-xs text-zinc-400 mb-5 leading-relaxed">為了防止 Context 過長燒乾您的 API 額度，系統會在對話達到特定輪數時，呼叫您的金鑰將舊紀錄壓縮成摘要。建議設定為 10-20 輪，節省 Token 花費。</p>
+                    <p class="text-[11px] sm:text-xs text-zinc-400 mb-5 leading-relaxed">為了防止 Context 過長燒乾您的 API 額度，系統會在對話達到特定輪數時，呼叫您的金鑰將舊紀錄壓縮成摘要。</p>
                     <input type="range" id="memory_compress_threshold" min="4" max="50" step="2" class="w-full accent-amber-400 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer outline-none" oninput="document.getElementById('compress_val_display').innerText = this.value">
                 </div>
 
@@ -180,7 +186,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
-    // --- UI Tabs 邏輯 ---
+    const serverCsrfToken = "<?= $csrfToken ?>"; // 🚨 輸出給 JS 使用
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.tab-btn').forEach(el => {
@@ -194,7 +201,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         activeBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
     }
 
-    // --- LLM Providers 預設數據 ---
     const PRESETS = {
         'openai': { textUrl: 'https://api.openai.com/v1/chat/completions', textModel: 'gpt-4o', visUrl: 'https://api.openai.com/v1/chat/completions', visModel: 'gpt-4o' },
         'deepseek': { textUrl: 'https://api.deepseek.com/chat/completions', textModel: 'deepseek-chat', visUrl: '', visModel: '' },
@@ -218,7 +224,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // --- 載入與儲存 BYOK 設定 ---
     const useByokToggle = document.getElementById('use_byok');
     const byokPanel = document.getElementById('byok-settings-panel');
 
@@ -278,7 +283,15 @@ require_once __DIR__ . '/../private/includes/header.php';
         };
 
         try {
-            const res = await fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            // 🚨 補回 CSRF Token Header
+            const res = await fetch('/api/settings', { 
+                method: 'POST', 
+                headers: {
+                    'Content-Type':'application/json',
+                    'X-CSRF-Token': serverCsrfToken
+                }, 
+                body: JSON.stringify(payload) 
+            });
             const data = await res.json();
             if(data.success) {
                 btn.innerHTML = '<i class="fas fa-check mr-2"></i> 設定已儲存';
@@ -299,7 +312,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // --- 其他舊有功能移植 ---
     document.getElementById('pwd-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
@@ -309,7 +321,16 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const oldp = document.getElementById('old-pwd').value;
         const newp = document.getElementById('new-pwd').value;
-        const res = await fetch('/api/change-password', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({old_password:oldp, new_password:newp}) });
+        
+        // 🚨 補回 CSRF Token Header (同時 /api/change-password 也需安全防護)
+        const res = await fetch('/api/change-password', { 
+            method: 'POST', 
+            headers: {
+                'Content-Type':'application/json',
+                'X-CSRF-Token': serverCsrfToken
+            }, 
+            body: JSON.stringify({current_password:oldp, new_password:newp, confirm_password:newp}) 
+        });
         const data = await res.json();
         
         btn.disabled = false;
@@ -352,9 +373,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> 正在綁定地址...';
         
         try {
+            // 🚨 API Call 補回 CSRF
             const res = await fetch('/api/bind-wallet', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': serverCsrfToken
+                },
                 body: JSON.stringify({ action: 'bind', wallet: accountId })
             });
             const data = await res.json();
@@ -380,7 +405,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function rollApiKey() {
         if(!confirm('確定要重新生成平台 API 金鑰嗎？舊金鑰將立即失效！')) return;
-        const res = await fetch('/api/regenerate-key', { method: 'POST' });
+        
+        // 🚨 補回 CSRF
+        const res = await fetch('/api/regenerate-key', { 
+            method: 'POST',
+            headers: { 'X-CSRF-Token': serverCsrfToken }
+        });
         const data = await res.json();
         if(data.success) { document.getElementById('key-display').innerText = data.new_api_key; alert('生成成功！'); }
     }
