@@ -24,12 +24,10 @@ return [
         'Rendering Markdown...' => 'Rendering Markdown...',
         'Unassigned' => 'Unassigned',
         
-        // Mega Prompt Injection
         'MegaPrompt Intro' => "Please adopt the following modular AI persona. The persona is defined across several modules below. Read and internalize all rules, styles, and context before interacting with me.",
         'MegaPrompt Outro' => "If you understand these instructions and have fully adopted the persona, acknowledge briefly and await my first prompt.",
         'MegaPrompt Success' => "✨ Mega-Prompt compiled and copied!\n\nYou can now paste it directly into ChatGPT, Claude, or any LLM interface.",
         
-        // 🚀 Phase 3: AgentFi Marketplace UI
         'AgentFi Marketplace' => 'AgentFi Marketplace',
         'Current Owner' => 'Current Owner',
         'Buy Ownership' => 'Buy Ownership',
@@ -38,11 +36,9 @@ return [
         'Not for rent' => 'Not for rent',
         'Please connect NEAR wallet first' => 'Please connect your NEAR wallet to interact with the marketplace.',
         
-        // 🚨 IP Protection (Anti-Peeping)
         'Protected' => 'Protected Asset',
         'Protected NFT Msg' => 'This AI Agent is an on-chain NFT asset. The core prompt is protected to preserve the creator\'s IP. You can interact with this agent via the Chat Engine, or purchase ownership to reveal its architecture.',
 
-        // Errors
         'Parse Error' => 'Parse Error',
         'Failed to parse JSON folder structure.' => 'Failed to parse JSON folder structure. The AI generated a malformed JSON.',
         'Error Details:' => 'Error Details:',
@@ -53,6 +49,10 @@ return [
         'Login required' => 'Login required',
         'Forking...' => 'Forking...',
         'Fork failed' => 'Fork failed',
+
+        // 🚨 新增：保底地板價
+        'Floor Price' => 'Floor Price',
+        'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
     ],
     
     'zh' => [
@@ -74,12 +74,10 @@ return [
         'Rendering Markdown...' => '正在渲染 Markdown 畫面...',
         'Unassigned' => '未分類',
         
-        // Mega Prompt Injection
         'MegaPrompt Intro' => "請你扮演並代入以下由多個模組組成的 AI 角色。在與我進行互動前，請先仔細閱讀並內化所有規則、風格與上下文設定。",
         'MegaPrompt Outro' => "如果你清楚明白上述指示，並已完全代入該角色，請簡短回覆確認，並等待我的第一個輸入指令。",
         'MegaPrompt Success' => "✨ 終極提示詞 (Mega-Prompt) 已成功編譯及複製！\n\n你現在可以直接將它貼上到 ChatGPT、Claude 或任何大語言模型的對話框中使用。",
         
-        // 🚀 Phase 3: AgentFi Marketplace UI
         'AgentFi Marketplace' => 'AgentFi 去中心化市集',
         'Current Owner' => '目前擁有者',
         'Buy Ownership' => '買斷擁有權',
@@ -88,11 +86,9 @@ return [
         'Not for rent' => '未開放租用',
         'Please connect NEAR wallet first' => '請先連線您的 NEAR 錢包以進入市集。',
 
-        // 🚨 IP Protection (Anti-Peeping)
         'Protected' => '受保護的資產',
         'Protected NFT Msg' => '此 AI 智能體為鏈上 NFT 資產。其核心系統指令 (Prompt) 已被隱藏以保護創作者的知識產權 (IP)。您可以透過 Chat 引擎與其對話，或在市集購買其擁有權以解鎖並檢視底層架構。',
         
-        // Errors
         'Parse Error' => '解析錯誤',
         'Failed to parse JSON folder structure.' => '無法解析 JSON 資料夾結構，AI 可能生成了格式錯誤的 JSON。',
         'Error Details:' => '錯誤詳情：',
@@ -103,5 +99,9 @@ return [
         'Login required' => '請先登入',
         'Forking...' => '正在分叉...',
         'Fork failed' => '分叉失敗',
+
+        // 🚨 新增：保底地板價
+        'Floor Price' => '保底地板價',
+        'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
     ]
 ];

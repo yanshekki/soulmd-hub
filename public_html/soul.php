@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Disabled Buy/Rent buttons for the actual NFT Owner!
+ * 🚀 Patched: Disabled Buy/Rent buttons for Owner + Floor Price indicator
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -172,8 +172,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div id="agentfi-market-block" class="hidden mb-6 bg-zinc-950 border border-emerald-500/30 rounded-3xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg animate-fade-in relative overflow-hidden">
         <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
         <div>
-            <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1"><i class="fas fa-gem"></i> <?= __('AgentFi Marketplace') ?></div>
-            <div class="text-sm text-zinc-300">
+            <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                <span><i class="fas fa-gem"></i> <?= __('AgentFi Marketplace') ?></span>
+                <span class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 cursor-help" title="<?= __('Floor Desc') ?>">
+                    <?= __('Floor Price') ?>: 0.45 NEAR
+                </span>
+            </div>
+            <div class="text-sm text-zinc-300 mt-1">
                 <span class="text-zinc-500"><?= __('Current Owner') ?>:</span> <span id="market-owner" class="font-mono text-emerald-300 tracking-tight"></span>
             </div>
         </div>
@@ -408,7 +413,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         if (isOwner) {
                             btnBuy.disabled = true;
                             btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
-                            btnBuy.classList.remove('hover:bg-blue-500');
+                            btnBuy.classList.remove('hover:bg-blue-600');
                             btnBuy.removeAttribute('onclick');
                         }
                     }
@@ -423,7 +428,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         if (isOwner) {
                             btnRent.disabled = true;
                             btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
-                            btnRent.classList.remove('hover:bg-purple-500');
+                            btnRent.classList.remove('hover:bg-purple-600');
                             btnRent.removeAttribute('onclick');
                         }
                     }

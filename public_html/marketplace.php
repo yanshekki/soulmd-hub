@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Disabled Buy/Rent buttons for the actual NFT Owner!
+ * 🚀 Patched: Added 0.45 NEAR Floor Price display
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,8 +10,6 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-
-// 🌍 載入市集專屬語言包
 loadTranslations('marketplace');
 
 $pageTitle = __('SEO Title');
@@ -130,20 +128,17 @@ require_once __DIR__ . '/../private/includes/header.php';
         const amountInput = document.getElementById('buy-soul-amount').value;
 
         if (!amountInput || parseFloat(amountInput) <= 0) {
-            alert('<?= addslashes(__('Invalid amount')) ?>');
-            return;
+            alert('<?= addslashes(__('Invalid amount')) ?>'); return;
         }
 
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>" });
-            return;
+            wallet.requestSignIn({ contractId: "<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>" }); return;
         }
 
         const originalText = textSpan.innerHTML;
         textSpan.innerHTML = '<i class="fas fa-spinner animate-spin"></i> <?= addslashes(__('Processing')) ?>';
-        btn.disabled = true;
-        btn.classList.add('opacity-80', 'cursor-not-allowed');
+        btn.disabled = true; btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         try {
             const amountYocto = nearApi.utils.format.parseNearAmount(amountInput.toString());
@@ -152,64 +147,28 @@ require_once __DIR__ . '/../private/includes/header.php';
             const transactions = [
                 {
                     receiverId: tokenContract,
-                    actions: [
-                        {
-                            methodName: 'storage_deposit',
-                            args: { account_id: wallet.getAccountId(), registration_only: true },
-                            gas: '30000000000000',
-                            deposit: nearApi.utils.format.parseNearAmount('0.00125')
-                        }
-                    ]
+                    actions: [{ methodName: 'storage_deposit', args: { account_id: wallet.getAccountId(), registration_only: true }, gas: '30000000000000', deposit: nearApi.utils.format.parseNearAmount('0.00125') }]
                 },
                 {
                     receiverId: 'wrap.near',
                     actions: [
-                        {
-                            methodName: 'storage_deposit',
-                            args: { account_id: wallet.getAccountId(), registration_only: true },
-                            gas: '30000000000000',
-                            deposit: nearApi.utils.format.parseNearAmount('0.00125')
-                        },
-                        {
-                            methodName: 'near_deposit',
-                            args: {},
-                            gas: '30000000000000',
-                            deposit: amountYocto
-                        },
+                        { methodName: 'storage_deposit', args: { account_id: wallet.getAccountId(), registration_only: true }, gas: '30000000000000', deposit: nearApi.utils.format.parseNearAmount('0.00125') },
+                        { methodName: 'near_deposit', args: {}, gas: '30000000000000', deposit: amountYocto },
                         {
                             methodName: 'ft_transfer_call',
                             args: {
-                                receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>',
-                                amount: amountYocto,
-                                msg: JSON.stringify({
-                                    force: 0,
-                                    actions: [{
-                                        pool_id: <?= defined('NEAR_POOL_ID') ? NEAR_POOL_ID : 8546 ?>,
-                                        token_in: 'wrap.near',
-                                        token_out: tokenContract,
-                                        amount_in: amountYocto,
-                                        min_amount_out: '1'
-                                    }]
-                                })
+                                receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>', amount: amountYocto,
+                                msg: JSON.stringify({ force: 0, actions: [{ pool_id: <?= defined('NEAR_POOL_ID') ? NEAR_POOL_ID : 8546 ?>, token_in: 'wrap.near', token_out: tokenContract, amount_in: amountYocto, min_amount_out: '1' }] })
                             },
-                            gas: '100000000000000',
-                            deposit: '1'
+                            gas: '100000000000000', deposit: '1'
                         }
                     ]
                 }
             ];
-
-            await wallet.requestSignTransactions({
-                transactions: transactions,
-                callbackUrl: window.location.href
-            });
-
+            await wallet.requestSignTransactions({ transactions: transactions, callbackUrl: window.location.href });
         } catch(e) {
-            console.error("BuySoul Error:", e);
-            alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
-            textSpan.innerHTML = originalText;
-            btn.disabled = false;
-            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+            console.error("BuySoul Error:", e); alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
+            textSpan.innerHTML = originalText; btn.disabled = false; btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
 
@@ -250,7 +209,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
         html += `</div>`;
-
         container.innerHTML = html;
     }
 
@@ -266,7 +224,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         pagination.innerHTML = '';
 
         try {
-            // 🚨 取得目前綁定的錢包 (用於判斷是否為 Owner)
             const wallet = await initNearWallet();
             const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
 
@@ -303,9 +260,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             activeListings.push(soul);
                         }
                     }
-                } catch(e) {
-                    console.warn("Listing fetch skipped", e);
-                }
+                } catch(e) { console.warn("Listing fetch skipped", e); }
             });
             await Promise.all(rpcPromises);
 
@@ -321,13 +276,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
             activeListings.forEach(soul => {
-                // 🚨 核心判斷：是否為擁有人
                 const isOwner = myWallet && soul.market.owner_id === myWallet;
-                
                 const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                 const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                 const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
+                // 🚨 注入 Floor Price 保底價顯示
                 html += `
                     <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
@@ -335,8 +289,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <div class="flex justify-between items-start gap-3 mb-2">
                                 <a href="${seoUrl}" class="font-bold text-xl text-white group-hover:text-purple-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
                             </div>
-                            <div class="text-[10px] text-zinc-500 mb-4 font-mono truncate">
-                                <?= addslashes(__('Owner:')) ?> <span class="text-purple-300 font-bold">${escapeHTML(soul.market.owner_id)}</span>
+                            <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
+                                <div class="text-[10px] text-zinc-500 font-mono truncate">
+                                    <?= addslashes(__('Owner:')) ?> <span class="text-purple-300 font-bold">${escapeHTML(soul.market.owner_id)}</span>
+                                </div>
+                                <div class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold cursor-help shadow-sm" title="<?= addslashes(__('Floor Desc')) ?>">
+                                    <?= addslashes(__('Floor Price')) ?>: <span class="text-white">0.45</span> N
+                                </div>
                             </div>
                             ${soul.description ? `<p class="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                         </div>
@@ -378,19 +337,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function buyMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-        await wallet.account().functionCall({
-            contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + id },
-            gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href
-        });
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + id }, gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
     }
 
     async function rentMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-        await wallet.account().functionCall({
-            contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + id },
-            gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href
-        });
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + id }, gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
     }
 </script>
 

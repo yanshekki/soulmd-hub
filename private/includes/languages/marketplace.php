@@ -18,7 +18,6 @@ return [
         'View Asset' => 'View Asset',
         'Connect Wallet to Trade' => 'Connect NEAR Wallet to Trade',
         
-        // 🚀 Swap Widget
         'Swap Title' => 'Get $SOUL Instantly 🚀',
         'Swap Subtitle' => 'Official Zero-Slippage Pool',
         'Swap Desc' => 'Swap your native NEAR directly for $SOUL tokens via our smart contract routing to Ref/Rhea Finance. Prepare your wallet for marketplace trading and AI rentals in one click.',
@@ -29,15 +28,16 @@ return [
         'Processing' => 'Processing...',
         'Connecting to RPC...' => 'Connecting to RPC...',
         
-        // 🚀 Pagination & Card Badges
         'Page' => 'Page',
         'Sale' => 'Sale',
         'Rent' => 'Rent',
         'Network Error' => 'Network Error. Please try again.',
-
-        // 🚨 新增：交易完成通知
         'Swap success' => 'Swap Transaction Successfully Submitted! Your $SOUL tokens will arrive shortly.',
         'Swap fail' => 'Transaction Failed: ',
+
+        // 🚨 新增：保底地板價
+        'Floor Price' => 'Floor Price',
+        'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
     ],
     
     'zh' => [
@@ -53,7 +53,6 @@ return [
         'View Asset' => '檢視資產',
         'Connect Wallet to Trade' => '連接 NEAR 錢包以進行交易',
         
-        // 🚀 Swap Widget
         'Swap Title' => '一鍵獲取 $SOUL 🚀',
         'Swap Subtitle' => '官方閃兌池 (Zero Slippage)',
         'Swap Desc' => '透過底層智能合約與 Ref/Rhea Finance 路由，直接用您的 NEAR 免手續費閃兌為 $SOUL 代幣，為在市集租用或購買智能體作準備。',
@@ -64,14 +63,15 @@ return [
         'Processing' => '處理中...',
         'Connecting to RPC...' => '等緊 RPC 連接...',
         
-        // 🚀 Pagination & Card Badges
         'Page' => '頁數',
         'Sale' => '出售',
         'Rent' => '出租',
         'Network Error' => '網絡異常，請檢查連線。',
-
-        // 🚨 新增：交易完成通知
         'Swap success' => '交易成功！您的 $SOUL 代幣已順利兌換並存入您的錢包。',
         'Swap fail' => '區塊鏈交易失敗：',
+
+        // 🚨 新增：保底地板價
+        'Floor Price' => '保底地板價',
+        'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
     ]
 ];

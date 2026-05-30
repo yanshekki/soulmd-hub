@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Edit Button using dedicated edit.php route
+ * 🚀 Patched: Added Floor Price indicator
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -97,7 +97,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
-    // 🌍 動態 i18n 變數注入
     const lang_PrivateOnlyMe = <?= json_encode(__('Private Only Me'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Public = <?= json_encode(__('Public'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Modular = <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>;
@@ -115,6 +114,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_NoNFTs = <?= json_encode(__('No NFT assets'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_BurnConfirm = <?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_PermDelete = <?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_FloorPrice = <?= json_encode(__('Floor Price'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_FloorDesc = <?= json_encode(__('Floor Desc'), JSON_UNESCAPED_UNICODE) ?>;
     
     const url_soul_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_edit_prefix = <?= json_encode(url('/edit/'), JSON_UNESCAPED_UNICODE) ?>;
@@ -281,6 +282,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
+                    // 🚨 注入 Floor Price 保底價顯示
                     html += `
                     <div class="soul-card bg-zinc-900/60 border border-purple-500/20 rounded-3xl p-5 sm:p-6 hover:border-purple-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg relative overflow-hidden" data-id="${soul.id}">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-transparent"></div>
@@ -296,8 +298,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <span class="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-sm">
                                         <i class="fas fa-cube mr-1"></i>${lang_AgentNFTAsset}
                                     </span>
-                                    <span class="text-[9px] px-2 py-0.5 rounded font-medium border ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'} shadow-sm">
-                                        ${soul.file_type === 'full_soul_folder' ? lang_Modular : lang_SingleMd}
+                                    <span class="text-[9px] px-2 py-0.5 rounded font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-sm cursor-help" title="${lang_FloorDesc}">
+                                        ${lang_FloorPrice}: 0.45 N
                                     </span>
                                 </div>
                             </div>
