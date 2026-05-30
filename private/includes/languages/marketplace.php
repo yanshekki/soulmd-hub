@@ -25,7 +25,7 @@ return [
         'Pay Amount' => 'Pay Amount (NEAR)',
         'Swap Button' => 'Swap $SOUL',
         'Invalid amount' => 'Please enter a valid NEAR amount!',
-        'Transaction failed' => 'Transaction failed or rejected by user. Please try again.',
+        'Transaction failed' => 'Transaction preparation failed. ',
         'Processing' => 'Processing...',
         'Connecting to RPC...' => 'Connecting to RPC...',
         
@@ -36,7 +36,7 @@ return [
         'Network Error' => 'Network Error. Please try again.',
 
         // 🚨 新增：交易完成通知
-        'Swap success' => 'Swap Transaction Successfully Submitted!',
+        'Swap success' => 'Swap Transaction Successfully Submitted! Your $SOUL tokens will arrive shortly.',
         'Swap fail' => 'Transaction Failed: ',
     ],
     
@@ -60,7 +60,7 @@ return [
         'Pay Amount' => '支付數量 (NEAR)',
         'Swap Button' => '閃兌 $SOUL',
         'Invalid amount' => '請輸入有效的 NEAR 數量！',
-        'Transaction failed' => '交易前置失敗，或者您拒絕了簽署。',
+        'Transaction failed' => '交易前置失敗或您拒絕了簽署：',
         'Processing' => '處理中...',
         'Connecting to RPC...' => '等緊 RPC 連接...',
         

@@ -3,9 +3,10 @@
  * SoulMD Hub - Shared NEAR Wallet Connection Script
  * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER (V5 Centralized Config Edition)
  * 自動攔截死節點，讀取 config.php 的全域 RPC 池，切換至最快 RPC，永不死機！
+ * 🚨 Patched: Fixed BN constructor TypeError (using BigInt) & FullAccess Key extraction
  */
 ?>
-<script src="https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/near-api-js@2.0.4/dist/near-api-js.min.js"></script>
 
 <script>
     window.nearHubWalletWrapper = null;
@@ -18,7 +19,6 @@
     async function getHealthyRpc() {
         for (const url of window.rpcNodesPool) {
             try {
-                // 設定 2.5 秒超時，唔通即刻飛，唔會卡死個網頁
                 const controller = new AbortController();
                 const id = setTimeout(() => controller.abort(), 2500);
 
@@ -37,7 +37,7 @@
                 console.warn(`⚠️ RPC ${url} blocked or dead. Switching to next...`);
             }
         }
-        return window.rpcNodesPool[0]; // 如果全部失敗，夾硬用第一個博一博
+        return window.rpcNodesPool[0]; 
     }
 
     window.initNearWallet = async function() {
@@ -45,7 +45,6 @@
 
         try {
             const { connect, keyStores, WalletConnection, transactions, utils } = window.nearApi;
-            const BN = utils.BN; 
 
             // 🚀 執行 RPC 測速
             window.activeNearRpcUrl = await getHealthyRpc();
@@ -72,56 +71,83 @@
                 account: () => {
                     return {
                         functionCall: async ({ contractId, methodName, args, gas, attachedDeposit, walletCallbackUrl }) => {
+                            // 🚨 修正：使用 BN (若存在) 或原生 BigInt，避免 TypeError
+                            const gasVal = typeof utils.BN !== 'undefined' ? new utils.BN((gas || "30000000000000").toString()) : BigInt((gas || "30000000000000").toString());
+                            const depVal = typeof utils.BN !== 'undefined' ? new utils.BN((attachedDeposit || "0").toString()) : BigInt((attachedDeposit || "0").toString());
+                            
                             return wallet.account().functionCall({
                                 contractId,
                                 methodName,
                                 args,
-                                gas: new BN((gas || "30000000000000").toString()),
-                                attachedDeposit: new BN((attachedDeposit || "0").toString()),
+                                gas: gasVal,
+                                attachedDeposit: depVal,
                                 walletCallbackUrl
                             });
                         }
                     };
                 },
                 requestSignTransactions: async ({ transactions: txs, callbackUrl }) => {
-                    const accountId = wallet.getAccountId();
-                    const block = await near.connection.provider.block({ finality: 'final' });
-                    const blockHash = utils.serialize.base_decode(block.header.hash);
-                    
-                    // 🚨 終極修復：即時獲取用戶真正的 Access Key，捨棄舊版的假 Dummy Key，徹底解決打包報錯崩潰！
-                    const accessKeys = await near.connection.provider.query({
-                        request_type: 'view_access_key_list',
-                        account_id: accountId,
-                        finality: 'final'
-                    });
-                    const realPublicKey = utils.PublicKey.from(accessKeys.keys[0].public_key);
-                    
-                    const encoder = new TextEncoder();
+                    try {
+                        const accountId = wallet.getAccountId();
+                        const block = await near.connection.provider.block({ finality: 'final' });
+                        const blockHash = utils.serialize.base_decode(block.header.hash);
+                        
+                        // 🚨 終極修復：即時向區塊鏈索取 FullAccess Key 嚟構建交易！
+                        const accessKeys = await near.connection.provider.query({
+                            request_type: 'view_access_key_list',
+                            account_id: accountId,
+                            finality: 'final'
+                        });
+                        
+                        const fullAccessKey = accessKeys.keys.find(k => k.access_key.permission === 'FullAccess');
+                        if (!fullAccessKey) {
+                            alert("No FullAccess key found for your wallet. Please re-login.");
+                            wallet.signOut();
+                            window.location.reload();
+                            return;
+                        }
 
-                    const realTxs = txs.map((tx, index) => {
-                        const parsedActions = tx.actions.map(action => {
-                            return transactions.functionCall(
-                                action.methodName,
-                                encoder.encode(JSON.stringify(action.args || {})),
-                                new BN(action.gas.toString()),
-                                new BN(action.deposit.toString())
+                        const keyStr = fullAccessKey.public_key;
+                        const realPublicKey = utils.PublicKey.from(keyStr);
+                        
+                        const encoder = new TextEncoder();
+
+                        const realTxs = txs.map((tx, index) => {
+                            const parsedActions = tx.actions.map(action => {
+                                const argsData = (!action.args || Object.keys(action.args).length === 0) 
+                                    ? new Uint8Array(0) 
+                                    : encoder.encode(JSON.stringify(action.args));
+
+                                // 🚨 修正：相容新舊版本 near-api-js 的 BigInt / BN 處理
+                                const actionGas = typeof utils.BN !== 'undefined' ? new utils.BN(action.gas.toString()) : BigInt(action.gas.toString());
+                                const actionDep = typeof utils.BN !== 'undefined' ? new utils.BN(action.deposit.toString()) : BigInt(action.deposit.toString());
+
+                                return transactions.functionCall(
+                                    action.methodName,
+                                    argsData,
+                                    actionGas,
+                                    actionDep
+                                );
+                            });
+
+                            return transactions.createTransaction(
+                                accountId,
+                                realPublicKey, 
+                                tx.receiverId,
+                                index + 1, 
+                                parsedActions,
+                                blockHash
                             );
                         });
 
-                        return transactions.createTransaction(
-                            accountId,
-                            realPublicKey, // 🎯 放入真的 Public Key
-                            tx.receiverId,
-                            index + 1, 
-                            parsedActions,
-                            blockHash
-                        );
-                    });
-
-                    return wallet.requestSignTransactions({
-                        transactions: realTxs,
-                        callbackUrl: callbackUrl
-                    });
+                        return wallet.requestSignTransactions({
+                            transactions: realTxs,
+                            callbackUrl: callbackUrl
+                        });
+                    } catch (err) {
+                        console.error("requestSignTransactions error:", err);
+                        throw err; 
+                    }
                 }
             };
 

@@ -207,7 +207,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
 
         } catch(e) {
-            alert('<?= addslashes(__('Transaction failed')) ?>');
+            console.error("BuySoul Error:", e);
+            alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
             textSpan.innerHTML = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
