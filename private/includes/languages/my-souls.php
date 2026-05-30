@@ -31,23 +31,23 @@ return [
         'View' => 'View',
         'Version History' => 'Version History',
         
-        // 🚀 V5 Section Headers & Labels
+        // V5 Section Headers & Labels
         'Web2 Prototype Box' => '🛠️ My Original Models (Web2 Prototype Box)',
         'Private Only Me' => '🔒 Private (Only visible to you)',
         'AgentFi NFT Asset Inventory' => '💎 My On-Chain Agents (AgentFi NFT Asset Inventory)',
         'Agent NFT Asset' => 'Agent NFT Asset',
         
-        // 🚀 V5 Empty Wallet & NFT States
+        // V5 Empty Wallet & NFT States
         'No Web3 Wallet Detected' => 'No bound Web3 wallet detected',
         'Wallet bind prompt' => 'Please go to settings to bind your NEAR mainnet wallet first. Once bound, the system will automatically sync and load your AgentFi NFT assets.',
         'Go to Bind Wallet' => 'Go to Settings to Bind',
         'No NFT assets' => 'You currently hold no AgentFi NFTs in your wallet. Go to the Hub and mint a creator\'s model!',
         
-        // 🚀 V5 Card Buttons
+        // V5 Card Buttons
         'List / Rent Market' => 'List / Rent on Market',
         'Burn and Refund' => 'Burn NFT and Refund Deposit',
         
-        // 🚀 V5: 一鍵 Mint Existing Soul
+        // V5: 一鍵 Mint Existing Soul
         'Mint NFT' => 'Mint NFT',
         'Mint Confirm' => 'Minting an NFT requires a 0.6 NEAR deposit. Do you want to upgrade this soul into an exclusive Web3 asset?',
 
@@ -76,7 +76,7 @@ return [
         'Redirecting to Wallet...' => 'Redirecting to Wallet...',
         'Burn Confirm' => "Are you sure you want to permanently delete this AI soul?\n\nIf this soul was minted as an NFT on NEAR, do you want to BURN it on the blockchain to reclaim your ~0.45 NEAR storage deposit?\n\nPress [OK] to Delete + Burn NFT.\nPress [Cancel] to just delete from database.",
         
-        // 🚀 Phase 3: AgentFi Marketplace Modals
+        // Phase 3: AgentFi Marketplace Modals
         'AgentFi Actions' => 'AgentFi Actions',
         'List for Sale' => 'List for Sale',
         'Sale Desc' => 'Sell full ownership and royalty rights of this AI model. (5% platform fee, 5% creator royalty)',
@@ -104,6 +104,11 @@ return [
         'Network error.' => 'Network error. Please try again.',
         'Delete file check' => 'Are you sure you want to delete ',
         'No description provided' => 'No description provided',
+        
+        // 🚨 新增：漏網的 JavaScript Alert 翻譯
+        'Failed to prepare minting.' => 'Failed to prepare minting.',
+        'Invalid price' => 'Invalid price. Must be greater than 0.',
+        'Blockchain transaction failed or rejected.' => 'Blockchain transaction failed or rejected by user.',
     ],
     
     'zh' => [
@@ -132,23 +137,23 @@ return [
         'View' => '瀏覽',
         'Version History' => '版本歷史',
         
-        // 🚀 V5 Section Headers & Labels
+        // V5 Section Headers & Labels
         'Web2 Prototype Box' => '🛠️ 我的原創模型庫 (Web2 Prototype Box)',
         'Private Only Me' => '🔒 Private (僅自己可見)',
         'AgentFi NFT Asset Inventory' => '💎 我的鏈上智能體資產 (AgentFi NFT Asset Inventory)',
         'Agent NFT Asset' => 'Agent NFT Asset',
         
-        // 🚀 V5 Empty Wallet & NFT States
+        // V5 Empty Wallet & NFT States
         'No Web3 Wallet Detected' => '未檢測到綁定的 Web3 錢包',
         'Wallet bind prompt' => '請先前往控制台設定綁定您的 NEAR 主網錢包。綁定後，系統將自動同步並加載您在鏈上持有的 AI 智能體 NFT 資產。',
         'Go to Bind Wallet' => '前往設定綁定',
         'No NFT assets' => '您的錢包名下暫無持有的 AI 智能體 NFT。前往模型庫選擇一個創作者模型鑄造吧！',
         
-        // 🚀 V5 Card Buttons
+        // V5 Card Buttons
         'List / Rent Market' => '市集上架 / 租務',
         'Burn and Refund' => '銷毀 NFT 並退還質押金',
         
-        // 🚀 V5: 一鍵 Mint Existing Soul
+        // V5: 一鍵 Mint Existing Soul
         'Mint NFT' => '鑄造 NFT',
         'Mint Confirm' => '將模型鑄造為 NFT 需要 0.6 NEAR 的發行質押金。確定要將此模型升級為 Web3 鏈上資產嗎？',
 
@@ -177,7 +182,7 @@ return [
         'Redirecting to Wallet...' => '正在重導向至錢包...',
         'Burn Confirm' => "您確定要永久刪除這個 AI 靈魂模型嗎？\n\n如果此模型已經鑄造為 NEAR 上的 NFT，您是否要同時在區塊鏈上「銷毀 (Burn)」它，以取回約 0.45 NEAR 的儲存質押金退款？\n\n點擊 [確定]：刪除資料庫並喚起錢包銷毀 NFT\n點擊 [取消]：僅刪除資料庫（不退款）",
         
-        // 🚀 Phase 3: AgentFi Marketplace Modals
+        // Phase 3: AgentFi Marketplace Modals
         'AgentFi Actions' => 'AgentFi 區塊鏈操作',
         'List for Sale' => '掛牌出售 (賣斷)',
         'Sale Desc' => '出售此 AI 模型的完整擁有權及後續版稅權益。(扣除 5% 平台稅, 5% 原創者版稅)',
@@ -205,5 +210,10 @@ return [
         'Network error.' => '網絡連線錯誤，請檢查連線後重試。',
         'Delete file check' => '您確定要刪除此檔案模組嗎：',
         'No description provided' => '沒有提供描述',
+        
+        // 🚨 新增：漏網的 JavaScript Alert 翻譯
+        'Failed to prepare minting.' => '準備鑄造失敗。',
+        'Invalid price' => '無效的價格，必須大於 0。',
+        'Blockchain transaction failed or rejected.' => '區塊鏈交易失敗，或已被用戶拒絕。',
     ]
 ];

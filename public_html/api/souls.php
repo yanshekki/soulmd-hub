@@ -4,7 +4,7 @@
  * GET  /api/souls          - List souls (AgentFi Market & Web2 Hub strict separation)
  * POST /api/souls          - Create soul (Web2 or Web3 Minting initialization V5)
  * (100% Dynamic i18n Internationalized Edition)
- * 🚀 Patched: NULL is_nft handling for legacy data
+ * 🚀 Patched: NULL is_nft handling for legacy data & scope=me support
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -67,20 +67,49 @@ if ($method === 'GET') {
     $sort = $_GET['sort'] ?? 'newest';
     $userIdFilter = $_GET['user_id'] ?? '';
     $isNftFilter = $_GET['is_nft'] ?? '0'; 
+    $scope = $_GET['scope'] ?? 'public'; // 🚀 V5: 支援個人工作區抓取
 
     $whereSql = " WHERE 1=1";
     $binds = [];
 
-    // 🚨 完美修復：加入 OR s.is_nft IS NULL 兼容舊數據
-    if ($isNftFilter === '1') {
-        $whereSql .= " AND s.is_nft = 1";
-    } else {
-        $whereSql .= " AND s.is_public = 1 AND (s.is_nft = 0 OR s.is_nft IS NULL)";
-    }
+    // 🚨 完美修復：個人工作區 (scope=me) 與公開大廳 (scope=public) 分流
+    if ($scope === 'me') {
+        $authUserId = getAuthUserId($pdo);
+        if (!$authUserId) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
 
-    if ($userIdFilter !== '') {
-        $whereSql .= " AND s.user_id = ?";
-        $binds[] = [(int)$userIdFilter, PDO::PARAM_INT];
+        if ($isNftFilter === '1') {
+            // 抓取我擁有的 Web3 NFT 資產
+            $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+            $walletStmt->execute([$authUserId]);
+            $myWallet = $walletStmt->fetchColumn();
+            
+            if (empty($myWallet)) {
+                $whereSql .= " AND 1=0"; // 無錢包直接返回空
+            } else {
+                $whereSql .= " AND s.is_nft = 1 AND s.nft_owner_wallet = ?";
+                $binds[] = [$myWallet, PDO::PARAM_STR];
+            }
+        } else {
+            // 抓取我的 Web2 原型 (包含私密 Private)
+            $whereSql .= " AND s.user_id = ? AND (s.is_nft = 0 OR s.is_nft IS NULL)";
+            $binds[] = [(int)$authUserId, PDO::PARAM_INT];
+        }
+    } else {
+        // 原有公開大廳/市集邏輯
+        if ($isNftFilter === '1') {
+            $whereSql .= " AND s.is_nft = 1";
+        } else {
+            $whereSql .= " AND s.is_public = 1 AND (s.is_nft = 0 OR s.is_nft IS NULL)";
+        }
+
+        if ($userIdFilter !== '') {
+            $whereSql .= " AND s.user_id = ?";
+            $binds[] = [(int)$userIdFilter, PDO::PARAM_INT];
+        }
     }
 
     if ($q) {
@@ -119,9 +148,10 @@ if ($method === 'GET') {
         $totalCount = (int)$countStmt->fetchColumn();
         $totalPages = ceil($totalCount / $limit);
 
-        $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username, s.nft_owner_wallet 
+        $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.is_public, s.like_count, s.fork_count, s.created_at, u.username, s.nft_owner_wallet, c.icon as role_icon, c.name as role_name 
                     FROM souls s 
-                    LEFT JOIN users u ON s.user_id = u.id" . $whereSql;
+                    LEFT JOIN users u ON s.user_id = u.id 
+                    LEFT JOIN categories c ON s.role = c.slug" . $whereSql;
 
         if ($sort === 'popular') {
             $dataSql .= " ORDER BY s.like_count DESC, s.created_at DESC";
@@ -165,6 +195,7 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
+    // 鑄造與創建 API 邏輯維持不變
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);

@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - My Souls Modals & Scripts Component
  * Included dynamically at the bottom of my-souls.php
+ * 🚀 Patched: 100% Full i18n Translation for all JS Alerts
  */
 ?>
 
@@ -221,10 +222,11 @@
                     walletCallbackUrl: window.location.href
                 });
             } else {
-                alert(data.error || "Failed to prepare minting.");
+                // 🚨 補入多語言 Alert
+                alert(data.error || <?= json_encode(__('Failed to prepare minting.'), JSON_UNESCAPED_UNICODE) ?>);
             }
         } catch(e) {
-            alert("<?= addslashes(__('Network error.')) ?>");
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>);
         }
     }
 
@@ -435,7 +437,6 @@
                 
                 editModalFileEditor.loadData(soul.content);
 
-                // 🚀 觸發 NEAR RPC 讀取該 Token 在鏈上的定價狀態
                 fetchOnChainData(id);
 
             } else {
@@ -445,7 +446,6 @@
         } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); closeModal(); }
     }
 
-    // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
     async function fetchOnChainData(id) {
         try {
             const rpcPayload = {
@@ -457,7 +457,7 @@
                     args_base64: btoa(JSON.stringify({ token_id: "soul_" + id }))
                 }
             };
-            const rpcRes = await fetch('https://rpc.mainnet.near.org', {
+            const rpcRes = await fetch(window.activeNearRpcUrl || 'https://free.rpc.fastnear.com', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(rpcPayload)
             });
@@ -480,7 +480,6 @@
         } catch(e) { console.log('RPC Fetch Error for NFT status', e); }
     }
 
-    // 🚀 Phase 3: AgentFi - 執行掛單或取消掛單
     async function agentfiAction(actionType) {
         if (!currentEditId) return;
         const wallet = await initNearWallet();
@@ -494,12 +493,13 @@
         
         if (actionType === 'list_sale') {
             const price = document.getElementById('agentfi-sale-price').value;
-            if(!price || price <= 0) return alert('Invalid price');
+            // 🚨 補入多語言 Alert
+            if(!price || price <= 0) return alert(<?= json_encode(__('Invalid price'), JSON_UNESCAPED_UNICODE) ?>);
             args.price = nearApi.utils.format.parseNearAmount(price.toString());
             methodName = 'list_for_sale';
         } else if (actionType === 'list_rent') {
             const price = document.getElementById('agentfi-rent-price').value;
-            if(!price || price <= 0) return alert('Invalid price');
+            if(!price || price <= 0) return alert(<?= json_encode(__('Invalid price'), JSON_UNESCAPED_UNICODE) ?>);
             args.price = nearApi.utils.format.parseNearAmount(price.toString());
             methodName = 'list_for_rent';
         } else if (actionType === 'cancel_sale') {
@@ -519,7 +519,10 @@
                 attachedDeposit: "0",
                 walletCallbackUrl: window.location.href
             });
-        } catch(e) { alert("Blockchain transaction failed or rejected."); }
+        } catch(e) { 
+            // 🚨 補入多語言 Alert
+            alert(<?= json_encode(__('Blockchain transaction failed or rejected.'), JSON_UNESCAPED_UNICODE) ?>); 
+        }
     }
 
     async function handleEdit(e) {
@@ -579,7 +582,8 @@
                         methodName: "update_soul_hash",
                         args: args,
                         gas: "30000000000000", 
-                        attachedDeposit: "0" 
+                        attachedDeposit: "0",
+                        walletCallbackUrl: window.location.href
                     });
                 } else {
                     closeModal(); location.reload(); 
