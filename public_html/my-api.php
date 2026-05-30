@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
+ * 🚀 Patched: Fixed URL Race Condition & Full i18n
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -205,10 +206,14 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     <?php if (!$isPublicApiPage): ?>
     window.addEventListener('DOMContentLoaded', async () => {
+        // 🚨 完美修復：必須在 initNearWallet() 執行前先讀取網址參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
+
         <?php if (!$nearWallet): ?>
-            const wallet = await initNearWallet();
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('account_id') || urlParams.has('all_keys')) {
+            // 若為 Wallet 簽名返回，執行綁定邏輯
+            if (hasWalletCallback) {
+                const wallet = await initNearWallet();
                 setTimeout(async () => {
                     if (wallet.isSignedIn()) {
                         await executeWalletBind(wallet.getAccountId());
@@ -258,7 +263,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                 window.location.reload();
             } else {
-                showFeedbackNotification(false, data.error || 'Failed to bind wallet.');
+                showFeedbackNotification(false, '<?= addslashes(__('Bind Failed')) ?>' + (data.error || ''));
                 const wallet = await initNearWallet();
                 wallet.signOut();
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
@@ -266,7 +271,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
             }
         } catch(e) {
-            showFeedbackNotification(false, 'Network error while binding.');
+            showFeedbackNotification(false, '<?= addslashes(__('Network Error')) ?>');
             if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
             const btn = document.getElementById('bind-wallet-btn');
             if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
@@ -283,7 +288,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function rollApiKey() {
-        if (!confirm('Are you sure you want to roll your API Key? All applications using the old key will lose access immediately.')) return;
+        if (!confirm('<?= addslashes(__('Key Regen Confirm')) ?>')) return;
         const btn = document.getElementById('roll-btn');
         const text = document.getElementById('roll-text');
         const loading = document.getElementById('roll-loading');
@@ -301,12 +306,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             if (data.success) {
                 document.getElementById('key-display').innerText = data.new_api_key;
-                showFeedbackNotification(true, data.message);
+                showFeedbackNotification(true, '<?= addslashes(__('Key generated successfully!')) ?>');
             } else {
                 showFeedbackNotification(false, data.error || 'Operation failed');
             }
         } catch(e) {
-            showFeedbackNotification(false, 'Network error. Please try again.');
+            showFeedbackNotification(false, '<?= addslashes(__('Network Error')) ?>');
         } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');
@@ -335,8 +340,10 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php if ($isAdmin): ?>
     async function triggerAutoBuyback() {
         const amount = document.getElementById('buyback-amount').value;
-        if (!amount || amount <= 0) return alert('Please enter a valid NEAR amount.');
-        if (!confirm(`Are you absolutely sure you want to trigger the Deflationary Spiral? \n\nThis will take ${amount} NEAR from the treasury and swap it into $SOUL to burn forever!`)) return;
+        if (!amount || amount <= 0) return alert('<?= addslashes(__('Please enter a valid NEAR amount.')) ?>');
+        
+        let confirmText = `<?= addslashes(__('Buyback Confirm')) ?>`.replace(':amount', amount);
+        if (!confirm(confirmText)) return;
 
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
@@ -356,7 +363,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 walletCallbackUrl: window.location.href
             });
         } catch(e) {
-            alert("Blockchain transaction failed. Make sure you are logged in with the official Treasury account (<?= NEAR_CONTRACT_ID; ?>).");
+            let errorText = `<?= addslashes(__('Buyback Failed')) ?>`.replace(':contract', '<?= NEAR_CONTRACT_ID; ?>');
+            alert(errorText);
         }
     }
     <?php endif; ?>

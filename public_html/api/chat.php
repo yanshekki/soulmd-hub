@@ -137,7 +137,17 @@ if ($method === 'GET') {
     }
 
     try {
-        $stmt = $pdo->prepare("SELECT role, content FROM chat_messages WHERE soul_id = ? AND session_token = ? ORDER BY id ASC");
+        // 🚨 終極安全修復：只拉取最新 300 條對話，防止無限增長的 Base64 圖片塞爆伺服器 RAM (OOM)
+        $stmt = $pdo->prepare("
+            SELECT role, content FROM (
+                SELECT id, role, content 
+                FROM chat_messages 
+                WHERE soul_id = ? AND session_token = ? 
+                ORDER BY id DESC 
+                LIMIT 300
+            ) sub
+            ORDER BY id ASC
+        ");
         $stmt->execute([$soulId, $sessionToken]); 
         echo json_encode(['success' => true, 'messages' => $stmt->fetchAll()], JSON_UNESCAPED_UNICODE);
     } catch (Throwable $e) { 

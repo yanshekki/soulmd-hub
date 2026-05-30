@@ -322,11 +322,11 @@
             const data = await res.json();
             if (data.success && data.data.use_byok == 1) {
                 isByokMode = true;
-                // 在畫面上方注入 BYOK 模式提示
+                // 🚨 完美多語言修復：BYOK 動態標籤
                 const header = document.querySelector('header');
                 const badge = document.createElement('div');
                 badge.className = 'w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold text-center py-1.5 tracking-widest shadow-md flex items-center justify-center gap-2';
-                badge.innerHTML = '<i class="fas fa-bolt text-yellow-300"></i> BYOK 無限暢聊模式已啟用 (使用自訂 AI 引擎)';
+                badge.innerHTML = '<i class="fas fa-bolt text-yellow-300"></i> <?= addslashes(__('BYOK Active Notice')) ?>';
                 header.parentNode.insertBefore(badge, header.nextSibling);
             }
         } catch(e) {}

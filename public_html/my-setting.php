@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Grand Unified Settings Hub
  * (Account, Web3, Platform API, Encrypted BYOK Engine - 100% i18n Edition)
+ * 🚀 Patched: Fixed Wallet Callback URL Parsing Race Condition Bug
  */
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
@@ -76,7 +77,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
             <?php else: ?>
-                <button onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3">
+                <div class="bg-blue-900/10 border border-blue-500/30 p-4 rounded-2xl mb-4 text-[11px] sm:text-xs text-blue-300 leading-relaxed flex items-start gap-2 shadow-inner">
+                    <i class="fas fa-exclamation-triangle text-blue-400 mt-0.5 shrink-0"></i>
+                    <div>
+                        <strong class="text-blue-400 font-bold uppercase tracking-wide block mb-1"><?= __('Important Warning:') ?></strong> <?= __('Wallet one-time warning') ?>
+                    </div>
+                </div>
+                
+                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3">
                     <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90"> 
                     <span id="bind-wallet-text"><?= __('Connect & Bind NEAR Wallet') ?></span>
                 </button>
@@ -247,6 +255,16 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
+        
+        // 🚨 完美修復：必須在 initNearWallet() 執行前先讀取網址參數
+        // 因為 near-api-js 會自動將 URL 中的 account_id 洗走！
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
+        
+        if (hasWalletCallback) {
+            switchTab('web3'); // 自動跳去 Web3 頁籤
+        }
+
         try {
             const res = await fetch('/api/settings');
             const resData = await res.json();
@@ -268,6 +286,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                 }
             }
         } catch(e) {}
+
+        <?php if (!$nearWallet): ?>
+            // 若為 Wallet 簽名返回，執行綁定邏輯
+            if (hasWalletCallback) {
+                const wallet = await initNearWallet();
+                setTimeout(async () => {
+                    if (wallet.isSignedIn()) {
+                        await executeWalletBind(wallet.getAccountId());
+                    }
+                }, 500);
+            }
+        <?php endif; ?>
     });
 
     async function saveLLMSettings() {
@@ -387,13 +417,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             const data = await res.json();
             if (data.success) {
+                // 綁定成功後，清除網址參數並重整畫面
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                 window.location.reload();
             } else {
                 alert('<?= addslashes(__('Bind Failed')) ?>' + (data.error || ''));
                 const wallet = await initNearWallet();
-                wallet.signOut();
+                wallet.signOut(); // 踢走本地緩存
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
                 const btn = document.getElementById('bind-wallet-btn');
                 if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
