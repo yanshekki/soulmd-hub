@@ -31,7 +31,6 @@
                 clearTimeout(id);
 
                 if (res.ok) {
-                    console.log("✅ Web3 RPC Connected:", url);
                     return url;
                 }
             } catch (e) {
@@ -88,7 +87,14 @@
                     const accountId = wallet.getAccountId();
                     const block = await near.connection.provider.block({ finality: 'final' });
                     const blockHash = utils.serialize.base_decode(block.header.hash);
-                    const dummyPublicKey = utils.PublicKey.from('ed25519:11111111111111111111111111111111');
+                    
+                    // 🚨 終極修復：即時獲取用戶真正的 Access Key，捨棄舊版的假 Dummy Key，徹底解決打包報錯崩潰！
+                    const accessKeys = await near.connection.provider.query({
+                        request_type: 'view_access_key_list',
+                        account_id: accountId,
+                        finality: 'final'
+                    });
+                    const realPublicKey = utils.PublicKey.from(accessKeys.keys[0].public_key);
                     
                     const encoder = new TextEncoder();
 
@@ -104,7 +110,7 @@
 
                         return transactions.createTransaction(
                             accountId,
-                            dummyPublicKey,
+                            realPublicKey, // 🎯 放入真的 Public Key
                             tx.receiverId,
                             index + 1, 
                             parsedActions,

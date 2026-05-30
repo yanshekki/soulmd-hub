@@ -105,6 +105,18 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+        // 🚨 完美修復：攔截錢包回傳結果，彈出成功或失敗提示！
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('transactionHashes')) {
+            alert('<?= addslashes(__('Swap success')) ?>');
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        } else if (urlParams.has('errorMessage')) {
+            alert('<?= addslashes(__('Swap fail')) ?>' + decodeURIComponent(urlParams.get('errorMessage')));
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        }
+
         const wallet = await initNearWallet();
         if (wallet.isSignedIn()) {
             document.getElementById('wallet-btn-text').innerText = wallet.getAccountId();
@@ -130,7 +142,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         const originalText = textSpan.innerHTML;
-        textSpan.innerHTML = '<?= addslashes(__('Processing')) ?>';
+        textSpan.innerHTML = '<i class="fas fa-spinner animate-spin"></i> <?= addslashes(__('Processing')) ?>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
@@ -153,6 +165,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                 {
                     receiverId: 'wrap.near',
                     actions: [
+                        // 🚨 核心防崩潰：為新用戶支付 wrap.near 註冊費，否則 near_deposit 會直接 Panic！
+                        {
+                            methodName: 'storage_deposit',
+                            args: { account_id: wallet.getAccountId(), registration_only: true },
+                            gas: '30000000000000',
+                            deposit: nearApi.utils.format.parseNearAmount('0.00125')
+                        },
                         {
                             methodName: 'near_deposit',
                             args: {},

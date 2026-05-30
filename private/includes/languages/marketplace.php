@@ -34,6 +34,10 @@ return [
         'Sale' => 'Sale',
         'Rent' => 'Rent',
         'Network Error' => 'Network Error. Please try again.',
+
+        // 🚨 新增：交易完成通知
+        'Swap success' => 'Swap Transaction Successfully Submitted!',
+        'Swap fail' => 'Transaction Failed: ',
     ],
     
     'zh' => [
@@ -56,7 +60,7 @@ return [
         'Pay Amount' => '支付數量 (NEAR)',
         'Swap Button' => '閃兌 $SOUL',
         'Invalid amount' => '請輸入有效的 NEAR 數量！',
-        'Transaction failed' => '交易失敗或被拒絕，請重試！',
+        'Transaction failed' => '交易前置失敗，或者您拒絕了簽署。',
         'Processing' => '處理中...',
         'Connecting to RPC...' => '等緊 RPC 連接...',
         
@@ -65,5 +69,9 @@ return [
         'Sale' => '出售',
         'Rent' => '出租',
         'Network Error' => '網絡異常，請檢查連線。',
+
+        // 🚨 新增：交易完成通知
+        'Swap success' => '交易成功！您的 $SOUL 代幣已順利兌換並存入您的錢包。',
+        'Swap fail' => '區塊鏈交易失敗：',
     ]
 ];
