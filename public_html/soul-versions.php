@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub - Model Version History Archive
- * (Dynamic i18n Internationalization & Secure Parsing Edition)
+ * (Dynamic i18n Internationalization, Secure Parsing & SSR Pagination Edition)
+ * 🚀 Patched: PHP Native Pagination to prevent OOM on massive histories
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -42,9 +43,29 @@ if (!$soul) {
 
 $isOwner = ($soul['user_id'] === $userId);
 
-$versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
-$versionsStmt->execute([$soulId]);
+// =========================================================
+// 🚀 分頁計算與查詢版本紀錄 (OOM 防護)
+// =========================================================
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM soul_versions WHERE soul_id = ?");
+$countStmt->execute([$soulId]);
+$totalVersions = (int)$countStmt->fetchColumn();
+
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = 10; // 每次只載入 10 個版本，保護 PHP 記憶體
+$totalPages = max(1, ceil($totalVersions / $limit));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $limit;
+
+$versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC LIMIT ? OFFSET ?");
+$versionsStmt->bindValue(1, $soulId, PDO::PARAM_INT);
+$versionsStmt->bindValue(2, $limit, PDO::PARAM_INT);
+$versionsStmt->bindValue(3, $offset, PDO::PARAM_INT);
+$versionsStmt->execute();
 $versions = $versionsStmt->fetchAll();
+
+function getPageUrl($newPage) {
+    return '?page=' . $newPage;
+}
 
 // 🚨 PHP 端 SEO 友善助手
 function makeSlug($str) {
@@ -106,6 +127,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php else: ?>
         <div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
             
+            <?php if ($page === 1): ?>
             <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active mb-12">
                 <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-zinc-950 bg-emerald-500 text-zinc-950 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
                     <i class="fas fa-check text-xs"></i>
@@ -114,9 +136,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <?= __('Currently Active Version') ?>
                 </div>
             </div>
+            <?php endif; ?>
 
             <?php foreach ($versions as $index => $version): 
-                $versionNumber = count($versions) - $index;
+                // 🚀 精準計算跨頁面版本號 (例如總共 45 個，第 1 頁係 45-36)
+                $versionNumber = $totalVersions - $offset - $index;
                 $isVersionFolder = strpos(trim($version['content']), '{') === 0;
                 
                 // 🚨 完美 JSON 容錯修復機制
@@ -224,6 +248,37 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <?php if ($totalPages > 1): ?>
+            <div class="mt-16 flex justify-center select-none">
+                <div class="flex sm:hidden w-full max-w-sm items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">
+                    <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left"></i></a>
+                    <span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= __('Page') ?> <span class="text-white text-sm font-mono"><?= $page ?></span> / <?= $totalPages ?></span>
+                    <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="hidden sm:flex items-center gap-1.5 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">
+                    <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left text-xs"></i></a>
+                    <?php
+                    $window = 2; 
+                    $start = max(1, $page - $window);
+                    $end = min($totalPages, $page + $window);
+                    if ($start > 1) {
+                        echo '<a href="' . getPageUrl(1) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">1</a>';
+                        if ($start > 2) echo '<span class="w-9 h-9 flex items-center justify-center text-zinc-600 select-none">...</span>';
+                    }
+                    for ($i = $start; $i <= $end; $i++) {
+                        if ($i === $page) echo '<span class="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black font-mono shadow-md">' . $i . '</span>';
+                        else echo '<a href="' . getPageUrl($i) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">' . $i . '</a>';
+                    }
+                    if ($end < $totalPages) {
+                        if ($end < $totalPages - 1) echo '<span class="w-9 h-9 flex items-center justify-center text-zinc-600 select-none">...</span>';
+                        echo '<a href="' . getPageUrl($totalPages) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">' . $totalPages . '</a>';
+                    }
+                    ?>
+                    <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right text-xs"></i></a>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 
@@ -280,6 +335,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             icon.classList.add('fa-eye-slash');
             btnSpan.innerText = lang_HideContent;
 
+            // 懶加載 (Lazy Render)：當打開面板時才將 Markdown 轉 HTML
             const textareas = document.querySelectorAll(`.raw-v${versionId}`);
             textareas.forEach(ta => {
                 const idx = ta.dataset.idx;

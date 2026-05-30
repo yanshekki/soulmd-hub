@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET /api/profile?username={username}&sort={sort} - Get public profile data & public souls
+ * GET /api/profile?username={username}&sort={sort}&page={page}&limit={limit}
+ * 🚀 Patched: Pagination added to prevent memory exhaustion and DDoS vectors
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -26,6 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 $username = trim($_GET['username'] ?? '');
 $sort = $_GET['sort'] ?? 'newest';
 
+// 🚀 加入分頁參數與安全邊界限制 (預設每頁 12 筆，最高 100 筆)
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = min((int)($_GET['limit'] ?? 12), 100);
+
 if (empty($username)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Username parameter is required']);
@@ -48,18 +53,23 @@ if (!$user) {
 
 $userId = $user['id'];
 
-// 2. 彙整並統計該用戶的社交數據
+// 2. 彙整並統計該用戶的社交數據 (包含 Web2 與 Web3 的公開資產)
 $statsStmt = $pdo->prepare("
     SELECT COUNT(*) as total_souls, 
            COALESCE(SUM(like_count), 0) as total_likes, 
            COALESCE(SUM(fork_count), 0) as total_forks 
     FROM souls 
-    WHERE user_id = ? AND is_public = 1
+    WHERE user_id = ? AND is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)
 ");
 $statsStmt->execute([$userId]);
 $stats = $statsStmt->fetch();
 
-// 🚨 完美升級：支援外部傳入 Sort 參數
+$totalSouls = (int)$stats['total_souls'];
+$totalPages = max(1, ceil($totalSouls / $limit));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $limit;
+
+// 3. 處理排序條件
 $orderSql = "ORDER BY created_at DESC";
 if ($sort === 'popular') {
     $orderSql = "ORDER BY like_count DESC, created_at DESC";
@@ -73,25 +83,32 @@ if ($sort === 'popular') {
     $orderSql = "ORDER BY title DESC, created_at DESC";
 }
 
-// 3. 獲取該用戶所有的公開 Souls 列表 (套用排序)
+// 4. 獲取該用戶所有的公開 Souls 列表 (套用分頁與排序)
 $soulsStmt = $pdo->prepare("
     SELECT id, title, description, role, domain, compatibility, file_type, like_count, fork_count, created_at 
     FROM souls 
-    WHERE user_id = ? AND is_public = 1 
+    WHERE user_id = ? AND is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)
     $orderSql
+    LIMIT ? OFFSET ?
 ");
-$soulsStmt->execute([$userId]);
+
+$soulsStmt->bindValue(1, $userId, PDO::PARAM_INT);
+$soulsStmt->bindValue(2, $limit, PDO::PARAM_INT);
+$soulsStmt->bindValue(3, $offset, PDO::PARAM_INT);
+$soulsStmt->execute();
 $publicSouls = $soulsStmt->fetchAll();
 
-// 4. 回傳精準架構的 JSON 數據
+// 5. 回傳精準架構的 JSON 數據 (加入分頁指標)
 echo json_encode([
     'success' => true,
+    'current_page' => $page,
+    'total_pages' => $totalPages,
     'user' => [
         'username' => $user['username'],
         'joined_at' => $user['created_at']
     ],
     'stats' => [
-        'total_souls' => (int)$stats['total_souls'],
+        'total_souls' => $totalSouls,
         'total_likes' => (int)$stats['total_likes'],
         'total_forks' => (int)$stats['total_forks']
     ],

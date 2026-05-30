@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - My Chats Page
- * (Hybrid Edition: Dynamic i18n Internationalization & Safari Fixed)
+ * (V5: 100% SPA Async Fetch API, Dual-Track Pagination Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -9,79 +9,10 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('my-chats');
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
-// ==========================================
-// 🛡️ API 模式：處理前端 JS 送來的 LocalStorage Token 查詢
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json; charset=utf-8');
-    
-    $input = json_decode(file_get_contents('php://input'), true);
-    $tokens = $input['tokens'] ?? [];
-
-    if (empty($tokens) || !is_array($tokens)) {
-        echo json_encode(['success' => true, 'data' => []]);
-        exit;
-    }
-
-    $tokens = array_slice($tokens, 0, 50); // 限制最多查詢 50 個
-    $inQuery = implode(',', array_fill(0, count($tokens), '?'));
-
-    $stmt = $pdo->prepare("
-        SELECT cs.session_token, cs.soul_id, cs.created_at, s.title, s.role, u.username as owner_username
-        FROM chat_sessions cs
-        JOIN souls s ON cs.soul_id = s.id
-        LEFT JOIN users u ON s.user_id = u.id
-        WHERE cs.session_token IN ($inQuery)
-        ORDER BY cs.created_at DESC
-    ");
-    $stmt->execute($tokens);
-    $guestChats = $stmt->fetchAll();
-
-    echo json_encode(['success' => true, 'data' => $guestChats], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ==========================================
-// 🖥️ UI 渲染模式
-// ==========================================
 $isLoggedIn = isset($_SESSION['user_id']);
-$myChats = [];
-$ownedTokens = [];
 
-if ($isLoggedIn) {
-    // 獲取自己創建/擁有的對話
-    $stmt = $pdo->prepare("
-        SELECT cs.session_token, cs.soul_id, cs.is_private, cs.created_at, s.title, s.role
-        FROM chat_sessions cs
-        JOIN souls s ON cs.soul_id = s.id
-        WHERE cs.user_id = ?
-        ORDER BY cs.created_at DESC
-    ");
-    $stmt->execute([$_SESSION['user_id']]);
-    $myChats = $stmt->fetchAll();
-    
-    // 抽出 Token 供前端過濾使用，避免與 LocalStorage 重複顯示
-    $ownedTokens = array_column($myChats, 'session_token');
-}
-
-function getRoleIcon($roleSlug) {
-    global $pdo;
-    static $icons = [];
-    if (empty($icons)) {
-        $catStmt = $pdo->query("SELECT slug, icon FROM categories");
-        while ($row = $catStmt->fetch()) { $icons[$row['slug']] = $row['icon']; }
-    }
-    return $icons[$roleSlug] ?? '✨';
-}
-
-// 🌍 SEO Meta 多語言化
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
@@ -105,48 +36,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             <i class="fas fa-user-circle text-emerald-400"></i> <?= __('My Personal Sessions') ?>
         </h2>
         
-        <?php if (empty($myChats)): ?>
-            <div class="text-center py-16 bg-zinc-900/20 border border-white/5 rounded-3xl mb-12">
-                <div class="mx-auto w-16 h-16 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-4 text-zinc-500"><i class="fas fa-comments text-2xl"></i></div>
-                <p class="text-zinc-400 text-sm mb-4"><?= __('No personal chats') ?></p>
-                <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 text-white rounded-xl font-bold hover:bg-zinc-700 transition"><?= __('Start a Chat') ?></a>
-            </div>
-        <?php else: ?>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                <?php foreach ($myChats as $chat): ?>
-                    <div class="bg-zinc-900/60 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-xl hover:-translate-y-1 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/50 to-transparent"></div>
-                        <div>
-                            <div class="flex justify-between items-start gap-4 mb-4">
-                                <div>
-                                    <div class="font-bold text-xl text-white tracking-tight mb-1 line-clamp-1" title="<?= htmlspecialchars($chat['title']) ?>"><?= htmlspecialchars($chat['title']) ?></div>
-                                    <div class="text-xs text-zinc-500 flex items-center gap-1.5">
-                                        <span><?= getRoleIcon($chat['role']) ?> <?= htmlspecialchars($chat['role'] ?: __('Unassigned')) ?></span>
-                                        <span>•</span>
-                                        <span><?= date('M j, H:i', strtotime($chat['created_at'])) ?></span>
-                                    </div>
-                                </div>
-                                <div class="shrink-0">
-                                    <?php if ($chat['is_private']): ?>
-                                        <span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20" title="<?= __('Private Tooltip') ?>"><i class="fas fa-lock mr-1"></i><?= __('Private') ?></span>
-                                    <?php else: ?>
-                                        <span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-400 border-white/5" title="<?= __('Public Tooltip') ?>"><i class="fas fa-globe mr-1"></i><?= __('Public') ?></span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div class="text-[10px] font-mono text-emerald-500/70 mb-6 bg-black/20 p-2 rounded-lg border border-emerald-500/10 truncate">
-                                <i class="fas fa-link mr-1"></i> <?= htmlspecialchars($chat['session_token']) ?>
-                            </div>
-                        </div>
-                        <div class="pt-4 border-t border-white/5 mt-auto">
-                            <a href="<?= url('/chat/' . $chat['soul_id'] . '/' . $chat['session_token']) ?>" class="w-full py-3 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
-                                <?= __('Continue Chat') ?> <i class="fas fa-arrow-right text-xs"></i>
-                            </a>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
+        <div id="personal-container" class="min-h-[250px] mb-6"></div>
+        <div id="personal-pagination" class="mb-12 flex justify-center items-center w-full"></div>
     <?php endif; ?>
 
     <div id="visited-section" class="hidden flex-grow flex-col">
@@ -174,7 +65,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <script>
-    const ownedTokens = <?= json_encode($ownedTokens) ?>;
     const isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
 
     // 🌍 JavaScript 動態語言變數
@@ -185,9 +75,131 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_Recent = "<?= addslashes(__('Recent')) ?>";
     const lang_ConnError = "<?= addslashes(__('Connection Error')) ?>";
     const lang_ConnErrorDesc = "<?= addslashes(__('Connection Error Desc')) ?>";
+    const lang_Page = "<?= addslashes(__('Page')) ?>";
+    const lang_Private = "<?= addslashes(__('Private')) ?>";
+    const lang_Public = "<?= addslashes(__('Public')) ?>";
+    const lang_PrivateTooltip = "<?= addslashes(__('Private Tooltip')) ?>";
+    const lang_PublicTooltip = "<?= addslashes(__('Public Tooltip')) ?>";
+    const lang_ContinueChat = "<?= addslashes(__('Continue Chat')) ?>";
+    
     const url_chat_prefix = "<?= url('/chat/') ?>";
+    let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
-    // 從 LocalStorage 抽取 Token，並自動過濾掉已登入用戶擁有的對話
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
+    // 🚀 分頁器渲染
+    function changePage(p) {
+        currentPage = p;
+        const newUrl = window.location.pathname + '?page=' + currentPage;
+        window.history.replaceState({}, '', newUrl);
+        loadPersonalChats();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderPagination(current, totalPages) {
+        const container = document.getElementById('personal-pagination');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
+        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left"></i></button>`;
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right"></i></button>`;
+        html += `</div>`;
+
+        html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
+        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left text-xs"></i></button>`;
+
+        const windowSize = 2; 
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
+                if (i === current) {
+                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
+                }
+            } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+            }
+        }
+
+        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += `</div>`;
+
+        container.innerHTML = html;
+    }
+
+    // 🚀 非同步載入個人對話
+    async function loadPersonalChats() {
+        if (!isLoggedIn) return;
+        const container = document.getElementById('personal-container');
+        const pagination = document.getElementById('personal-pagination');
+        
+        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        pagination.innerHTML = '';
+
+        try {
+            const res = await fetch(`/api/my-chats?page=${currentPage}`);
+            const data = await res.json();
+            
+            if (data.success && data.data.length > 0) {
+                let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+                data.data.forEach(chat => {
+                    const dateObj = new Date(chat.created_at.replace(/-/g, '/'));
+                    const dateStr = isNaN(dateObj) ? lang_Recent : dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const roleLabel = chat.role ? escapeHTML(chat.role) : lang_Unassigned;
+                    
+                    const privacyBadge = chat.is_private == 1
+                        ? `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20" title="${lang_PrivateTooltip}"><i class="fas fa-lock mr-1"></i>${lang_Private}</span>`
+                        : `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-400 border-white/5" title="${lang_PublicTooltip}"><i class="fas fa-globe mr-1"></i>${lang_Public}</span>`;
+
+                    html += `
+                        <div class="bg-zinc-900/60 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-xl hover:-translate-y-1 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/50 to-transparent"></div>
+                            <div>
+                                <div class="flex justify-between items-start gap-4 mb-4">
+                                    <div>
+                                        <div class="font-bold text-xl text-white tracking-tight mb-1 line-clamp-1" title="${escapeHTML(chat.title)}">${escapeHTML(chat.title)}</div>
+                                        <div class="text-xs text-zinc-500 flex items-center gap-1.5">
+                                            <span>${escapeHTML(chat.role_icon || '✨')} ${roleLabel}</span>
+                                            <span>•</span>
+                                            <span>${dateStr}</span>
+                                        </div>
+                                    </div>
+                                    <div class="shrink-0">${privacyBadge}</div>
+                                </div>
+                                <div class="text-[10px] font-mono text-emerald-500/70 mb-6 bg-black/20 p-2 rounded-lg border border-emerald-500/10 truncate">
+                                    <i class="fas fa-link mr-1"></i> ${escapeHTML(chat.session_token)}
+                                </div>
+                            </div>
+                            <div class="pt-4 border-t border-white/5 mt-auto">
+                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" class="w-full py-3 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
+                                    ${lang_ContinueChat} <i class="fas fa-arrow-right text-xs"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                container.innerHTML = html;
+                renderPagination(data.current_page, data.total_pages);
+            } else {
+                 container.innerHTML = `
+                    <div class="text-center py-16 bg-zinc-900/20 border border-white/5 rounded-3xl">
+                        <div class="mx-auto w-16 h-16 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-4 text-zinc-500"><i class="fas fa-comments text-2xl"></i></div>
+                        <p class="text-zinc-400 text-sm mb-4"><?= addslashes(__('No personal chats')) ?></p>
+                        <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 text-white rounded-xl font-bold hover:bg-zinc-700 transition shadow"><?= addslashes(__('Start a Chat')) ?></a>
+                    </div>
+                `;
+            }
+        } catch(e) {
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> ${lang_ConnError}</div>`;
+        }
+    }
+
     function getGuestTokens() {
         const tokens = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -196,18 +208,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const parts = key.split('_');
                 if (parts.length >= 4) {
                     const token = parts.slice(3).join('_');
-                    if (token && !tokens.includes(token) && !ownedTokens.includes(token)) {
-                        tokens.push(token);
-                    }
+                    if (token && !tokens.includes(token)) tokens.push(token);
                 }
             }
         }
         return tokens;
-    }
-
-    function escapeHTML(str) {
-        if (!str) return '';
-        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
 
     async function loadGuestChats() {
@@ -224,8 +229,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         try {
-            // 🚨 請求帶入 url() 確保正確路由
-            const res = await fetch('<?= url("/my-chats") ?>', {
+            const res = await fetch('/api/my-chats', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tokens: tokens })
@@ -242,7 +246,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 result.data.forEach(chat => {
                     const safeDateString = (chat.created_at || '').replace(/-/g, '/');
                     const dateObj = new Date(safeDateString);
-                    // 🌍 動態替換 Invalid Date (NaN) 備用字眼
                     const dateStr = isNaN(dateObj) ? lang_Recent : dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
                     const ownerText = chat.owner_username ? `@${escapeHTML(chat.owner_username)}` : lang_GuestUser;
@@ -284,15 +287,16 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (loading) loading.classList.add('hidden');
             if (empty && !isLoggedIn) {
                 empty.classList.remove('hidden');
-                // 🌍 網絡錯誤提示多語言化
                 empty.querySelector('h2').innerText = lang_ConnError;
                 empty.querySelector('p').innerText = lang_ConnErrorDesc;
             }
         }
     }
 
-    // 無論有冇登入，都會自動執行呢個函數去合併 LocalStorage 嘅對話
-    window.onload = loadGuestChats;
+    window.onload = function() {
+        if (isLoggedIn) loadPersonalChats();
+        loadGuestChats();
+    };
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

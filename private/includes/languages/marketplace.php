@@ -28,6 +28,12 @@ return [
         'Transaction failed' => 'Transaction failed or rejected by user. Please try again.',
         'Processing' => 'Processing...',
         'Connecting to RPC...' => 'Connecting to RPC...',
+        
+        // 🚀 Pagination & Card Badges
+        'Page' => 'Page',
+        'Sale' => 'Sale',
+        'Rent' => 'Rent',
+        'Network Error' => 'Network Error. Please try again.',
     ],
     
     'zh' => [
@@ -53,5 +59,11 @@ return [
         'Transaction failed' => '交易失敗或被拒絕，請重試！',
         'Processing' => '處理中...',
         'Connecting to RPC...' => '等緊 RPC 連接...',
+        
+        // 🚀 Pagination & Card Badges
+        'Page' => '頁數',
+        'Sale' => '出售',
+        'Rent' => '出租',
+        'Network Error' => '網絡異常，請檢查連線。',
     ]
 ];

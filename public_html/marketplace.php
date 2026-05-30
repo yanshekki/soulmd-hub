@@ -1,8 +1,8 @@
 <?php
 /**
  * SoulMD Hub - AgentFi Marketplace
- * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
- * 🚀 V5 規格完美版：強制定向 API 拉取 is_nft=1 資產，結合多節點 RPC 權威校驗
+ * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
+ * 🚀 V5 規格完美版：強制定向 API 拉取 is_nft=1 資產，結合多節點 RPC 權威校驗與分頁
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -61,9 +61,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-zinc-400 font-medium animate-pulse"><?= __('Scanning...') ?></p>
         </div>
     </div>
+    <div id="pagination-container" class="mt-12 flex justify-center items-center w-full"></div>
 </div>
 
 <script>
+    let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
+
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
@@ -192,13 +195,68 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚀 V5 核心：透過多節點 RPC 校驗隻拉取 is_nft=1 的真鏈上模型
+    // 🚀 V5 核心：分頁器與換頁邏輯 (Marketplace 紫色風格)
+    function changePage(p) {
+        currentPage = p;
+        const newUrl = window.location.pathname + '?page=' + currentPage;
+        window.history.replaceState({}, '', newUrl);
+        loadMarketplace();
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
+
+    function renderPagination(current, totalPages) {
+        const container = document.getElementById('pagination-container');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        
+        // Mobile UI
+        html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
+        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-left"></i></button>`;
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= addslashes(__('Page')) ?> <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-right"></i></button>`;
+        html += `</div>`;
+
+        // Desktop UI
+        html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
+        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-left text-xs"></i></button>`;
+
+        const windowSize = 2; 
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
+                if (i === current) {
+                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-purple-500 text-white font-bold shadow-md transform scale-105 transition">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition font-medium text-sm shadow">${i}</button>`;
+                }
+            } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+            }
+        }
+
+        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += `</div>`;
+
+        container.innerHTML = html;
+    }
+
+    // 🚀 V5 核心：結合分頁並透過 RPC 拉取掛售狀態
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
+        const pagination = document.getElementById('pagination-container');
+        
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mb-4"></div>
+                <p class="text-zinc-400 font-medium animate-pulse"><?= addslashes(__('Scanning...')) ?></p>
+            </div>`;
+        pagination.innerHTML = '';
+
         try {
-            // 🌟 修正：明細拉取加上 &is_nft=1，完成大廳與市集數據徹底分流
-            const res = await fetch('/api/souls?limit=100&sort=newest&is_nft=1');
+            // 🌟 加入分頁參數 limit=12 & page=X
+            const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);
             const data = await res.json();
+            
             if (!data.success || data.data.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
@@ -211,7 +269,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             const activeListings = [];
             const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             
-            // 使用 Promise.all 併發向鏈上核查當前商品的掛牌與擁有權狀態 (自癒比對準備)
             const rpcPromises = data.data.map(async (soul) => {
                 try {
                     const rpcRes = await fetch(safeRpcUrl, {
@@ -225,14 +282,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                     if (rpcData.result && rpcData.result.result) {
                         const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
                         
-                        // 🌟 V5 特性：只有當鏈上確實存在且處於掛售(sale)或掛租(rent)狀態時，才允許出現在市集大廳
                         if (tokenInfo && (tokenInfo.sale_price !== null || tokenInfo.rent_price !== null)) {
                             soul.market = tokenInfo;
                             activeListings.push(soul);
                         }
                     }
                 } catch(e) {
-                    console.warn("Listing fetch skipped due to RPC limit, downgraded to safe mode", e);
+                    console.warn("Listing fetch skipped", e);
                 }
             });
             await Promise.all(rpcPromises);
@@ -243,6 +299,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <i class="fas fa-store-slash text-4xl text-zinc-600 mb-4"></i>
                         <p class="text-zinc-400 font-medium"><?= addslashes(__('No listings')) ?></p>
                     </div>`;
+                
+                // 若這頁全都是未上架的，仍然需要渲染分頁器供用戶切換
+                renderPagination(data.current_page, data.total_pages);
                 return;
             }
 
@@ -250,7 +309,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             activeListings.forEach(soul => {
                 const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                 
-                // 計算 yoctoNEAR 轉換
                 const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                 const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
@@ -293,8 +351,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             html += `</div>`;
             container.innerHTML = html;
+            
+            // 渲染分頁
+            renderPagination(data.current_page, data.total_pages);
+
         } catch (e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i>Network Error</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium"><i class="fas fa-wifi mr-2"></i><?= addslashes(__('Network Error')) ?></div>`;
         }
     }
 
