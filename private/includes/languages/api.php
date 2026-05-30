@@ -110,11 +110,15 @@ return [
         'Transaction COMPLETED' => 'Transaction COMPLETED. Premium cluster assets successfully provisioned.',
         'Transaction PENDING' => 'Transaction PENDING. Funds are clearing via PayPal. Assets will provision automatically upon successful settlement.',
 
-        // Self Chat
+        // Self Chat & Web3
         'BYOK mode is not enabled on your account.' => 'BYOK mode is not enabled on your account.',
         'Vision BYOK fallback error' => 'Your custom Vision Key is not set, and your platform Vision allowance is exhausted. Please update your settings or upgrade your plan.',
         'Text API Key is not set in your BYOK settings.' => 'Text API Key is not set in your BYOK settings.',
         'Unknown Connection Failure' => 'Unknown Connection Failure',
+        'Security Interception' => "⚠️ **Security Interception**\nOff-chain AI template mismatch. The creator has modified the prompt without updating the blockchain hash. Access is blocked to protect your rental rights.",
+        'Access Denied Web3' => "⛔ **Access Denied (Token-Gating)**\nThis AI Agent is an exclusive on-chain asset (NFT). You must purchase ownership or rent this model via the marketplace to interact with it.",
+        'RPC Pool Blocked' => "🔒 **RPC Timeout:** Unable to connect to the blockchain to verify your access rights. If you are the owner, please ensure your Web3 wallet is properly bound.",
+        'Custom API Engine Error' => "Custom API Engine Error: :error",
     ],
     
     'zh' => [
@@ -222,10 +226,14 @@ return [
         'Transaction COMPLETED' => '交易已完成 (COMPLETED)。您的尊貴會員資產已成功配發生效。',
         'Transaction PENDING' => '交易處理中 (PENDING)。資金正透過 PayPal 結算，成功結算後將自動配發權限。',
 
-        // Self Chat
+        // Self Chat & Web3
         'BYOK mode is not enabled on your account.' => '您的帳號尚未啟用自訂金鑰 (BYOK) 模式。',
         'Vision BYOK fallback error' => '您的自訂 Vision 金鑰未設定，且平台視覺額度已耗盡，請前往設定頁補全或升級計劃。',
         'Text API Key is not set in your BYOK settings.' => '您尚未在 BYOK 設定中填寫純文字模型的 API 金鑰。',
         'Unknown Connection Failure' => '未知的連線錯誤',
+        'Security Interception' => "⚠️ **安全攔截 (防篡改機制熔斷)**\n鏈下 AI 模板數據不吻合。創作者未有將最新的指令指紋 (Hash) 同步更新至區塊鏈。為保護您的租用權益，系統已自動阻斷此次推理請求。",
+        'Access Denied Web3' => "⛔ **存取被拒 (Token-Gating 門禁)**\n此 AI 模型已綁定為區塊鏈資產 (NFT)。您必須成為其擁有者，或者在市集支付租金才能與其對話。",
+        'RPC Pool Blocked' => "🔒 **RPC 連線逾時:** 所有網絡節點連線逾時，無法驗證您的區塊鏈存取權限。若您是模型擁有者，請確認您的 Web3 錢包已正確綁定。",
+        'Custom API Engine Error' => "自訂 API 引擎錯誤：:error",
     ]
 ];

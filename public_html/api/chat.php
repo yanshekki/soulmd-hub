@@ -392,7 +392,7 @@ if ($method === 'POST') {
                 if ($chatUserWallet === $soul['nft_owner_wallet']) {
                     $hasAccess = true;
                 } else {
-                    echo json_encode(['success' => true, 'reply' => "🔒 **RPC Pool Blocked:** 所有網絡節點連線逾時。請確認您的 Web3 錢包已正確登入綁定。"], JSON_UNESCAPED_UNICODE); 
+                    echo json_encode(['success' => true, 'reply' => __("RPC Pool Blocked")], JSON_UNESCAPED_UNICODE); 
                     exit;
                 }
             }
@@ -586,7 +586,7 @@ if ($method === 'POST') {
         $responseData = json_decode($response, true);
         if ($httpCode !== 200 || !empty($responseData['error'])) {
             http_response_code(400);
-            $errorDetail = $responseData['error']['message'] ?? 'Unknown Connection Failure';
+            $errorDetail = $responseData['error']['message'] ?? __('Unknown Connection Failure');
             echo json_encode(['success' => false, 'error' => __('Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE); 
             exit;
         }

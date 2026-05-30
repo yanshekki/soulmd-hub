@@ -306,7 +306,7 @@ if ($soul['is_nft'] == 1) {
         if ($chatUserWallet === $soul['nft_owner_wallet']) {
             $hasAccess = true;
         } else {
-            echo json_encode(['success' => true, 'reply' => "🔒 **RPC Timeout:** 無法連線至區塊鏈驗證您的存取權限。若您是模型擁有者，請確保 Web3 錢包已正確綁定。"], JSON_UNESCAPED_UNICODE); 
+            echo json_encode(['success' => true, 'reply' => __("RPC Pool Blocked")], JSON_UNESCAPED_UNICODE); 
             exit;
         }
     }
@@ -450,7 +450,7 @@ $responseData = json_decode($response, true);
 if ($httpCode !== 200 || !empty($responseData['error'])) {
     http_response_code(400);
     $errorDetail = $responseData['error']['message'] ?? __('Unknown Connection Failure');
-    echo json_encode(['success' => false, 'error' => "自訂 API 引擎錯誤: " . $errorDetail], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'error' => __('Custom API Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
