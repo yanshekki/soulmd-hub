@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & Robust Mobile-First Grid Edition - Fixed)
+ * 🚀 Patched: NULL is_nft handling for legacy data in STATS query
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,7 +11,6 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('profile');
 
 $db = Database::getInstance();
@@ -18,7 +18,6 @@ $pdo = $db->getConnection();
 
 $usernameParam = $_GET['username'] ?? '';
 
-// 1. 撈取目標用戶基本資料與全局統計數據
 $userStmt = $pdo->prepare("SELECT id, username, created_at FROM users WHERE username = ?");
 $userStmt->execute([$usernameParam]);
 $profileUser = $userStmt->fetch();
@@ -43,8 +42,14 @@ if (!$profileUser) {
 $profileUserId = (int)$profileUser['id'];
 $safeUsername = htmlspecialchars($profileUser['username']);
 
-// 彙整該創作者獲得的讚好與分叉總數
-$statsStmt = $pdo->prepare("SELECT COUNT(*) as total_souls, SUM(like_count) as total_likes, SUM(fork_count) as total_forks FROM souls WHERE user_id = ? AND is_public = 1");
+// 🚨 完美修復：加入 AND (is_nft = 0 OR is_nft IS NULL) 確保只統計未被鑄造成 NFT 的公開資產
+$statsStmt = $pdo->prepare("
+    SELECT COUNT(*) as total_souls, 
+           COALESCE(SUM(like_count), 0) as total_likes, 
+           COALESCE(SUM(fork_count), 0) as total_forks 
+    FROM souls 
+    WHERE user_id = ? AND is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)
+");
 $statsStmt->execute([$profileUserId]);
 $stats = $statsStmt->fetch();
 
@@ -52,7 +57,6 @@ $totalSouls = (int)($stats['total_souls'] ?? 0);
 $totalLikes = (int)($stats['total_likes'] ?? 0);
 $totalForks = (int)($stats['total_forks'] ?? 0);
 
-// 🌍 雙語 SEO 動態注入
 $pageTitle = __('SEO Title', ['username' => $safeUsername]);
 $pageDesc = __('SEO Desc', ['username' => $safeUsername]);
 require_once __DIR__ . '/../private/includes/header.php';
@@ -110,7 +114,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     const profileUserId = <?= $profileUserId ?>;
     const safeUsername = <?= json_encode($safeUsername, JSON_UNESCAPED_UNICODE) ?>;
 
-    // 💡 安全修復：使用 json_encode 防止任何語法報錯斷行，確保純淨 UTF-8 中文
     const lang_Modular = <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_SingleMd = <?= json_encode(__('Single .md'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Public = <?= json_encode(__('Public'), JSON_UNESCAPED_UNICODE) ?>;
@@ -155,14 +158,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         let html = '';
         
-        // 📱 手機版 UI (sm:hidden)
         html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
         if (current > 1) {
             html += `<button onclick="changePage(${current - 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left"></i></button>`;
         } else {
             html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
         }
-        // 💡 套用多語言 `PAGE` 變數
         html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
         if (current < totalPages) {
             html += `<button onclick="changePage(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
@@ -171,7 +172,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
         html += `</div>`;
 
-        // 💻 桌面版 UI (hidden sm:flex)
         html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
         if (current > 1) {
             html += `<button onclick="changePage(${current - 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left text-xs"></i></button>`;
@@ -262,7 +262,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 `;
             } else {
-                // 💡 若 API 回傳失敗 (例如傳入無效請求等)，精準捕捉 data.error 雙語輸出
                 container.innerHTML = `<div class="text-red-400 text-center py-20 font-medium flex-grow flex items-center justify-center"><i class="fas fa-exclamation-circle mr-2"></i> ${escapeHTML(data.error || lang_ErrorLoading)}</div>`;
             }
         } catch (e) {

@@ -31,7 +31,23 @@ return [
         'View' => 'View',
         'Version History' => 'Version History',
         
-        // 🚀 新增：一鍵 Mint Existing Soul
+        // 🚀 V5 Section Headers & Labels
+        'Web2 Prototype Box' => '🛠️ My Original Models (Web2 Prototype Box)',
+        'Private Only Me' => '🔒 Private (Only visible to you)',
+        'AgentFi NFT Asset Inventory' => '💎 My On-Chain Agents (AgentFi NFT Asset Inventory)',
+        'Agent NFT Asset' => 'Agent NFT Asset',
+        
+        // 🚀 V5 Empty Wallet & NFT States
+        'No Web3 Wallet Detected' => 'No bound Web3 wallet detected',
+        'Wallet bind prompt' => 'Please go to settings to bind your NEAR mainnet wallet first. Once bound, the system will automatically sync and load your AgentFi NFT assets.',
+        'Go to Bind Wallet' => 'Go to Settings to Bind',
+        'No NFT assets' => 'You currently hold no AgentFi NFTs in your wallet. Go to the Hub and mint a creator\'s model!',
+        
+        // 🚀 V5 Card Buttons
+        'List / Rent Market' => 'List / Rent on Market',
+        'Burn and Refund' => 'Burn NFT and Refund Deposit',
+        
+        // 🚀 V5: 一鍵 Mint Existing Soul
         'Mint NFT' => 'Mint NFT',
         'Mint Confirm' => 'Minting an NFT requires a 0.6 NEAR deposit. Do you want to upgrade this soul into an exclusive Web3 asset?',
 
@@ -87,7 +103,6 @@ return [
         'Failed to delete' => 'Failed to delete soul.',
         'Network error.' => 'Network error. Please try again.',
         'Delete file check' => 'Are you sure you want to delete ',
-
         'No description provided' => 'No description provided',
     ],
     
@@ -117,7 +132,23 @@ return [
         'View' => '瀏覽',
         'Version History' => '版本歷史',
         
-        // 🚀 新增：一鍵 Mint Existing Soul
+        // 🚀 V5 Section Headers & Labels
+        'Web2 Prototype Box' => '🛠️ 我的原創模型庫 (Web2 Prototype Box)',
+        'Private Only Me' => '🔒 Private (僅自己可見)',
+        'AgentFi NFT Asset Inventory' => '💎 我的鏈上智能體資產 (AgentFi NFT Asset Inventory)',
+        'Agent NFT Asset' => 'Agent NFT Asset',
+        
+        // 🚀 V5 Empty Wallet & NFT States
+        'No Web3 Wallet Detected' => '未檢測到綁定的 Web3 錢包',
+        'Wallet bind prompt' => '請先前往控制台設定綁定您的 NEAR 主網錢包。綁定後，系統將自動同步並加載您在鏈上持有的 AI 智能體 NFT 資產。',
+        'Go to Bind Wallet' => '前往設定綁定',
+        'No NFT assets' => '您的錢包名下暫無持有的 AI 智能體 NFT。前往模型庫選擇一個創作者模型鑄造吧！',
+        
+        // 🚀 V5 Card Buttons
+        'List / Rent Market' => '市集上架 / 租務',
+        'Burn and Refund' => '銷毀 NFT 並退還質押金',
+        
+        // 🚀 V5: 一鍵 Mint Existing Soul
         'Mint NFT' => '鑄造 NFT',
         'Mint Confirm' => '將模型鑄造為 NFT 需要 0.6 NEAR 的發行質押金。確定要將此模型升級為 Web3 鏈上資產嗎？',
 
@@ -173,7 +204,6 @@ return [
         'Failed to delete' => '刪除失敗。',
         'Network error.' => '網絡連線錯誤，請檢查連線後重試。',
         'Delete file check' => '您確定要刪除此檔案模組嗎：',
-
         'No description provided' => '沒有提供描述',
     ]
 ];
