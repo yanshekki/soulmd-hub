@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
+ * 🚀 Patched: Allowed is_nft access with dynamic Anti-Peeping prompt protection!
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -16,26 +17,57 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 $id = (int)($_GET['id'] ?? 0);
+$userId = $_SESSION['user_id'] ?? 0;
 
 if (!$id) {
     header('Location: ' . url('/browse'));
     exit;
 }
 
+// 🚨 解除 is_public 限制：允許 NFT (is_nft=1) 進入頁面
 $stmt = $pdo->prepare("
     SELECT s.*, u.username, c.icon as role_icon, c.name as role_name 
     FROM souls s 
     LEFT JOIN users u ON s.user_id = u.id 
     LEFT JOIN categories c ON s.role = c.slug 
-    WHERE s.id = ? AND s.is_public = 1
+    WHERE s.id = ? AND (s.is_public = 1 OR s.is_nft = 1 OR s.user_id = ?)
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $userId]);
 $soul = $stmt->fetch();
 
 if (!$soul) {
     http_response_code(404);
     include __DIR__ . '/404.php';
     exit;
+}
+
+// 🛡️ Web3 權限核對與防偷睇機制 (Anti-Peeping)
+$isOwner = ($userId > 0 && $userId === $soul['user_id']);
+$currentUserWallet = null;
+if ($userId > 0) {
+    $wStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $wStmt->execute([$userId]);
+    $currentUserWallet = $wStmt->fetchColumn();
+}
+$isChainOwner = (!empty($currentUserWallet) && $currentUserWallet === $soul['nft_owner_wallet']);
+
+// 若為 NFT，必須是擁有人才能看見源代碼！否則自動將內容加上「加密鎖定」馬賽克
+$canViewContent = ($soul['is_public'] == 1 || $isOwner || $isChainOwner);
+
+if (!$canViewContent) {
+    $protectedMsg = "🔒 **" . __('Protected') . "**\n\n" . __('Protected NFT Msg');
+    
+    if ($soul['file_type'] === 'full_soul_folder') {
+        $contentData = json_encode([
+            'SOUL.md' => $protectedMsg,
+            'STYLE.md' => "🔒 " . __('Protected'),
+            'RULES.md' => "🔒 " . __('Protected')
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        $contentData = $protectedMsg;
+    }
+} else {
+    $contentData = $soul['content'];
 }
 
 function makeSlug($str) {
@@ -65,7 +97,6 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $isFolder = $soul['file_type'] === 'full_soul_folder';
-$contentData = $soul['content'];
 
 if ($isFolder) {
     $cleanedContent = str_replace("\\'", "'", $contentData);
@@ -129,9 +160,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-code-branch text-emerald-400"></i> <?= __('Fork') ?>
             </button>
             
-            <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
-                <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
-            </button>
+            <?php if ($canViewContent): ?>
+                <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
+                    <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
+                </button>
+            <?php else: ?>
+                <button disabled class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-800 text-zinc-500 rounded-xl font-bold cursor-not-allowed border border-white/5 transition shadow-sm">
+                    <i class="fas fa-lock"></i> <?= __('Protected') ?>
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -277,12 +314,18 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             <div class="flex items-center justify-end gap-2 p-3 md:py-2 md:px-4 bg-zinc-900/30 md:bg-transparent border-t border-white/5 md:border-t-0 shrink-0">
                 <?php if ($isFolder): ?>
-                    <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-file-archive text-amber-400"></i> .zip
-                    </a>
-                    <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-copy"></i> <?= __('JSON') ?>
-                    </button>
+                    <?php if ($canViewContent): ?>
+                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-file-archive text-amber-400"></i> .zip
+                        </a>
+                        <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-copy"></i> <?= __('JSON') ?>
+                        </button>
+                    <?php else: ?>
+                        <button disabled class="px-4 py-2 text-xs font-bold bg-zinc-800 text-zinc-500 border border-white/5 rounded-lg cursor-not-allowed flex items-center gap-2">
+                            <i class="fas fa-lock"></i> .zip
+                        </button>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -298,9 +341,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
                         
-                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
-                        </a>
+                        <?php if ($canViewContent): ?>
+                            <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
+                            </a>
+                        <?php endif; ?>
                         
                         <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
                             <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
@@ -352,13 +397,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                         const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
                         document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
                         document.getElementById('btn-buy').classList.remove('hidden');
-                        document.getElementById('btn-buy').dataset.price = tokenInfo.sale_price; // Save raw
+                        document.getElementById('btn-buy').dataset.price = tokenInfo.sale_price; 
                     }
                     if (tokenInfo.rent_price) {
                         const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
                         document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
                         document.getElementById('btn-rent').classList.remove('hidden');
-                        document.getElementById('btn-rent').dataset.price = tokenInfo.rent_price; // Save raw
+                        document.getElementById('btn-rent').dataset.price = tokenInfo.rent_price; 
                     }
                 }
             }

@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Core Intelligent Chat Interface
  * (Slim & Modular Master Controller Edition with Dynamic i18n Support)
+ * 🚀 Patched: Allowed is_nft access with dynamic Anti-Peeping modal masking!
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,10 +11,8 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('chat');
 
-// 雙重防護機制：生成專屬 CSRF Token 防止 API 被盜用
 if (empty($_SESSION['chat_csrf_token'])) {
     $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -24,16 +23,16 @@ $pdo = $db->getConnection();
 
 $soulId = (int)($_GET['soul_id'] ?? 0);
 $sessionToken = $_GET['session_token'] ?? '';
+$userId = $_SESSION['user_id'] ?? 0;
 
-// 如果沒有指定 Soul，跳回首頁
 if (!$soulId) {
     header('Location: ' . url('/browse'));
     exit;
 }
 
-// 🚨 修改 SQL 查詢：加入 description 欄位
-$stmt = $pdo->prepare("SELECT title, role, content, file_type, description FROM souls WHERE id = ? AND is_public = 1");
-$stmt->execute([$soulId]);
+// 🚨 解除 is_public 限制：允許 NFT (is_nft=1) 進入頁面
+$stmt = $pdo->prepare("SELECT title, role, content, file_type, description, is_nft, user_id FROM souls WHERE id = ? AND (is_public = 1 OR is_nft = 1 OR user_id = ?)");
+$stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
 
 if (!$soul) {
@@ -42,30 +41,29 @@ if (!$soul) {
     exit;
 }
 
-// 核心邏輯：如果是第一次進入 (沒有 Session Token)，自動生成並跳轉到專屬 URL
 if (empty($sessionToken)) {
     $newToken = bin2hex(random_bytes(16)); 
     header("Location: " . url("/chat/{$soulId}/{$newToken}"), true, 302);
     exit;
 }
 
-// ==========================================
-// 🛡️ 獲取當前用戶階級與動態過期掃描 (Expiration Scan)
-// ==========================================
+// 🛡️ Web3 權限核對與防偷睇機制 (Anti-Peeping)
+$isOwner = ($userId > 0 && $userId === $soul['user_id']);
+$maskContent = ($soul['is_nft'] == 1 && !$isOwner); 
+
 $userTier = 'free';
 $isSessionOwner = false;
 $isPrivate = false;
 $isExpired = false; 
 
-if (isset($_SESSION['user_id'])) {
+if ($userId > 0) {
     $userStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
-    $userStmt->execute([$_SESSION['user_id']]);
+    $userStmt->execute([$userId]);
     $uData = $userStmt->fetch();
     if ($uData) {
         $userTier = $uData['tier'];
         $expiryTime = $uData['vip_expires_at'] ? strtotime($uData['vip_expires_at']) : 0;
         
-        // 自動過期降級與標記保護
         if ($expiryTime > 0 && $expiryTime < time()) {
             $isExpired = true;
             $userTier = 'free'; 
@@ -73,52 +71,49 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
-// 判斷私隱狀態與擁有權
 $sessStmt = $pdo->prepare("SELECT user_id, is_private FROM chat_sessions WHERE session_token = ?");
 $sessStmt->execute([$sessionToken]);
 if ($chatSession = $sessStmt->fetch()) {
     $isPrivate = (bool)$chatSession['is_private'];
-    if (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $chatSession['user_id']) {
+    if ($userId > 0 && $userId === $chatSession['user_id']) {
         $isSessionOwner = true;
     }
 } else {
-    $isSessionOwner = isset($_SESSION['user_id']);
+    $isSessionOwner = ($userId > 0);
 }
 
-// 動態載入 Config 限制 (嚴格控制前端狀態)
 $tierPrefix = strtoupper($userTier);
 $maxTurns = constant("{$tierPrefix}_MAX_TURNS");
 $maxInputChars = constant("{$tierPrefix}_MAX_INPUT_CHARS");
 $allowImage = constant("{$tierPrefix}_ALLOW_IMAGE") ? 'true' : 'false';
 
-// 🌍 多語言動態編譯專屬 SEO Titles 與分頁 Meta 資訊
 $pageTitle = __('Chat Session', ['title' => htmlspecialchars($soul['title'])]);
 $pageDesc = __('Live interaction with this specialized AI persona architecture.');
 $hideNavLinks = true; 
 require_once __DIR__ . '/../private/includes/header.php';
-
-// 引入獨立的法律免責聲明彈窗
 require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
-
-// 🌟 引入分拆出來的圖片放大與智慧手機版 Paywall 彈窗組件
 require_once __DIR__ . '/../private/includes/chat-modals.php';
 
-// 🚨 預先格式化要放入 Popup 內的 Soul 原生架構內容
-$rawContentForModal = '';
-if ($soul['file_type'] === 'full_soul_folder') {
-    $cleaned = str_replace("\\'", "'", $soul['content']);
-    $parsed = json_decode($cleaned, true);
-    if (is_array($parsed)) {
-        foreach ($parsed as $fname => $fcontent) {
-            if (strpos($fname, 'ERROR.md') !== false) continue;
-            $fcontentStr = is_string($fcontent) ? $fcontent : json_encode($fcontent, JSON_UNESCAPED_UNICODE);
-            $rawContentForModal .= "### 📄 {$fname}\n\n{$fcontentStr}\n\n---\n\n";
+// 🚨 Apply Masking for non-owners of NFTs
+if ($maskContent) {
+    $rawContentForModal = "🔒 **" . __('Protected') . "**\n\n" . __('Protected NFT Msg');
+} else {
+    $rawContentForModal = '';
+    if ($soul['file_type'] === 'full_soul_folder') {
+        $cleaned = str_replace("\\'", "'", $soul['content']);
+        $parsed = json_decode($cleaned, true);
+        if (is_array($parsed)) {
+            foreach ($parsed as $fname => $fcontent) {
+                if (strpos($fname, 'ERROR.md') !== false) continue;
+                $fcontentStr = is_string($fcontent) ? $fcontent : json_encode($fcontent, JSON_UNESCAPED_UNICODE);
+                $rawContentForModal .= "### 📄 {$fname}\n\n{$fcontentStr}\n\n---\n\n";
+            }
+        } else {
+            $rawContentForModal = $soul['content'];
         }
     } else {
         $rawContentForModal = $soul['content'];
     }
-} else {
-    $rawContentForModal = $soul['content'];
 }
 ?>
 
@@ -207,5 +202,4 @@ if ($soul['file_type'] === 'full_soul_folder') {
 </div>
 
 <?php require_once __DIR__ . '/../private/includes/chat-scripts.php'; ?>
-
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

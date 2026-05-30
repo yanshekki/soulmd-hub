@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: Web3 Wallet Requirement UI & NFT Edit Lock
+ * 🚀 Patched: Web3 Callback URL Interception & UX Alerts
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -46,7 +46,6 @@ if (!$isEditMode) {
     $presetCompat = $soulData['compatibility'];
 }
 
-// 🚨 核心 Web3 鎖定變數：若為 NFT 且無錢包，徹底鎖死提交按鈕
 $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 ?>
 
@@ -267,14 +266,27 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
     const isNft = <?= ($soulData['is_nft'] ?? 0) == 1 ? 'true' : 'false' ?>;
     const initialContent = <?= json_encode($presetContent ?? '', JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
-    if (isEditMode && initialContent) {
-        document.getElementById('content-raw').value = initialContent;
-        fileEditor.loadData(initialContent);
-    }
+    window.addEventListener('DOMContentLoaded', async () => {
+        // 🚨 攔截交易返回錯誤通知並清洗網址
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('errorMessage') || urlParams.has('errorCode')) {
+            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (urlParams.get('errorMessage') || urlParams.get('errorCode')));
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        } else if (urlParams.has('transactionHashes')) {
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        }
 
-    if (isEditMode && isNft && "<?= $nearWallet ?>") {
-        fetchOnChainData();
-    }
+        if (isEditMode && initialContent) {
+            document.getElementById('content-raw').value = initialContent;
+            fileEditor.loadData(initialContent);
+        }
+
+        if (isEditMode && isNft && "<?= $nearWallet ?>") {
+            fetchOnChainData();
+        }
+    });
 
     async function fetchOnChainData() {
         try {
@@ -406,7 +418,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 const data = await res.json();
 
                 if (data.success) {
-                    const targetUrl = isEditMode ? "<?= url('/my-souls') ?>" : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
+                    // 🚨 完美修復 Redirect：若為編輯模式，Callback URL 鎖定為當前的 edit.php 頁面
+                    const targetUrl = isEditMode ? window.location.href : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                     
                     if (wantMintOrSync) {
                         text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>"; text.classList.remove('hidden'); loading.classList.add('hidden');
@@ -431,7 +444,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                             });
                         }
                     } else {
-                        window.location.href = targetUrl;
+                        window.location.href = isEditMode ? "<?= url('/my-souls') ?>" : targetUrl;
                     }
                 } else {
                     errorMsg.innerText = data.error || "<?= addslashes(__('Failed to save soul.')) ?>";

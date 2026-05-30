@@ -38,6 +38,10 @@ return [
         'Not for rent' => 'Not for rent',
         'Please connect NEAR wallet first' => 'Please connect your NEAR wallet to interact with the marketplace.',
         
+        // 🚨 IP Protection (Anti-Peeping)
+        'Protected' => 'Protected Asset',
+        'Protected NFT Msg' => 'This AI Agent is an on-chain NFT asset. The core prompt is protected to preserve the creator\'s IP. You can interact with this agent via the Chat Engine, or purchase ownership to reveal its architecture.',
+
         // Errors
         'Parse Error' => 'Parse Error',
         'Failed to parse JSON folder structure.' => 'Failed to parse JSON folder structure. The AI generated a malformed JSON.',
@@ -83,6 +87,10 @@ return [
         'Not for sale' => '未掛牌出售',
         'Not for rent' => '未開放租用',
         'Please connect NEAR wallet first' => '請先連線您的 NEAR 錢包以進入市集。',
+
+        // 🚨 IP Protection (Anti-Peeping)
+        'Protected' => '受保護的資產',
+        'Protected NFT Msg' => '此 AI 智能體為鏈上 NFT 資產。其核心系統指令 (Prompt) 已被隱藏以保護創作者的知識產權 (IP)。您可以透過 Chat 引擎與其對話，或在市集購買其擁有權以解鎖並檢視底層架構。',
         
         // Errors
         'Parse Error' => '解析錯誤',

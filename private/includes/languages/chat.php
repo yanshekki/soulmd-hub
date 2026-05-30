@@ -58,6 +58,10 @@ return [
         'Security Interception' => "⚠️ **Security Interception**\nOff-chain AI template mismatch. The creator has modified the prompt without updating the blockchain hash. Access is blocked to protect your rental rights.",
         'Access Denied Web3' => "⛔ **Access Denied (Token-Gating)**\nThis AI Agent is an exclusive on-chain asset (NFT). You must purchase ownership or rent this model via the marketplace to interact with it.",
         'BYOK Active Notice' => 'BYOK Unlimited Chat Mode Enabled (Custom AI Engine)',
+        
+        // 🚨 IP Protection (Anti-Peeping)
+        'Protected' => 'Protected Asset',
+        'Protected NFT Msg' => 'This AI Agent is an on-chain NFT asset. The core prompt is protected to preserve the creator\'s IP.',
     ],
     
     'zh' => [
@@ -113,5 +117,9 @@ return [
         'Security Interception' => "⚠️ **安全攔截 (防篡改機制熔斷)**\n鏈下 AI 模板數據不吻合。創作者未有將最新的指令指紋 (Hash) 同步更新至區塊鏈。為保護您的租用權益，系統已自動阻斷此次推理請求。",
         'Access Denied Web3' => "⛔ **存取被拒 (Token-Gating 門禁)**\n此 AI 模型已綁定為區塊鏈資產 (NFT)。您必須成為其擁有者，或者在市集支付租金才能與其對話。",
         'BYOK Active Notice' => 'BYOK 無限暢聊模式已啟用 (使用自訂 AI 引擎)',
+        
+        // 🚨 IP Protection (Anti-Peeping)
+        'Protected' => '受保護的資產',
+        'Protected NFT Msg' => '此 AI 智能體為鏈上 NFT 資產。其核心系統指令 (Prompt) 已被隱藏以保護創作者的知識產權 (IP)。',
     ]
 ];
