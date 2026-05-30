@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 V5 規格完美版：強制定向 API 拉取 is_nft=1 資產，結合多節點 RPC 權威校驗與分頁
+ * 🚀 Patched: Disabled Buy/Rent buttons for the actual NFT Owner!
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -105,7 +105,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-        // 🚨 完美修復：攔截錢包回傳結果，彈出成功或失敗提示！
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('transactionHashes')) {
             alert('<?= addslashes(__('Swap success')) ?>');
@@ -165,7 +164,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 {
                     receiverId: 'wrap.near',
                     actions: [
-                        // 🚨 核心防崩潰：為新用戶支付 wrap.near 註冊費，否則 near_deposit 會直接 Panic！
                         {
                             methodName: 'storage_deposit',
                             args: { account_id: wallet.getAccountId(), registration_only: true },
@@ -215,7 +213,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚀 V5 核心：分頁器與換頁邏輯 (Marketplace 紫色風格)
     function changePage(p) {
         currentPage = p;
         const newUrl = window.location.pathname + '?page=' + currentPage;
@@ -229,15 +226,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (totalPages <= 1) { container.innerHTML = ''; return; }
 
         let html = '';
-        
-        // Mobile UI
         html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
         html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-left"></i></button>`;
         html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= addslashes(__('Page')) ?> <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
         html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-right"></i></button>`;
         html += `</div>`;
 
-        // Desktop UI
         html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
         html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-left text-xs"></i></button>`;
 
@@ -260,7 +254,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = html;
     }
 
-    // 🚀 V5 核心：結合分頁並透過 RPC 拉取掛售狀態
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
         const pagination = document.getElementById('pagination-container');
@@ -273,7 +266,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         pagination.innerHTML = '';
 
         try {
-            // 🌟 加入分頁參數 limit=12 & page=X
+            // 🚨 取得目前綁定的錢包 (用於判斷是否為 Owner)
+            const wallet = await initNearWallet();
+            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
+
             const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);
             const data = await res.json();
             
@@ -319,16 +315,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <i class="fas fa-store-slash text-4xl text-zinc-600 mb-4"></i>
                         <p class="text-zinc-400 font-medium"><?= addslashes(__('No listings')) ?></p>
                     </div>`;
-                
-                // 若這頁全都是未上架的，仍然需要渲染分頁器供用戶切換
                 renderPagination(data.current_page, data.total_pages);
                 return;
             }
 
             let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
             activeListings.forEach(soul => {
-                const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                // 🚨 核心判斷：是否為擁有人
+                const isOwner = myWallet && soul.market.owner_id === myWallet;
                 
+                const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                 const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                 const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
@@ -351,7 +347,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
                                     <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none">
+                                <button ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none">
                                     <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
                                 </button>
                             </div>` : ''}
@@ -362,7 +358,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
                                     <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="shrink-0 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                <button ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
                                     <i class="fas fa-handshake"></i> <?= addslashes(__('Rent (30d)')) ?>
                                 </button>
                             </div>` : ''}
@@ -372,7 +368,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             html += `</div>`;
             container.innerHTML = html;
             
-            // 渲染分頁
             renderPagination(data.current_page, data.total_pages);
 
         } catch (e) {

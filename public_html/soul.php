@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Allowed is_nft access with dynamic Anti-Peeping prompt protection!
+ * 🚀 Patched: Disabled Buy/Rent buttons for the actual NFT Owner!
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -24,7 +24,6 @@ if (!$id) {
     exit;
 }
 
-// 🚨 解除 is_public 限制：允許 NFT (is_nft=1) 進入頁面
 $stmt = $pdo->prepare("
     SELECT s.*, u.username, c.icon as role_icon, c.name as role_name 
     FROM souls s 
@@ -41,7 +40,6 @@ if (!$soul) {
     exit;
 }
 
-// 🛡️ Web3 權限核對與防偷睇機制 (Anti-Peeping)
 $isOwner = ($userId > 0 && $userId === $soul['user_id']);
 $currentUserWallet = null;
 if ($userId > 0) {
@@ -51,7 +49,6 @@ if ($userId > 0) {
 }
 $isChainOwner = (!empty($currentUserWallet) && $currentUserWallet === $soul['nft_owner_wallet']);
 
-// 若為 NFT，必須是擁有人才能看見源代碼！否則自動將內容加上「加密鎖定」馬賽克
 $canViewContent = ($soul['is_public'] == 1 || $isOwner || $isChainOwner);
 
 if (!$canViewContent) {
@@ -371,6 +368,10 @@ require_once __DIR__ . '/../private/includes/header.php';
     // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
     async function fetchMarketStatus() {
         try {
+            // 🚨 取得目前綁定的錢包 (用於判斷是否為 Owner)
+            const wallet = await initNearWallet();
+            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
+
             const rpcPayload = {
                 jsonrpc: "2.0", id: "dontcare", method: "query",
                 params: {
@@ -380,7 +381,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulDbId }))
                 }
             };
-            const rpcRes = await fetch('https://rpc.mainnet.near.org', {
+            const rpcRes = await fetch(window.activeNearRpcUrl || 'https://free.rpc.fastnear.com', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(rpcPayload)
             });
@@ -393,17 +394,38 @@ require_once __DIR__ . '/../private/includes/header.php';
                     document.getElementById('agentfi-market-block').classList.remove('hidden');
                     document.getElementById('market-owner').innerText = tokenInfo.owner_id;
 
+                    // 🚨 核心判斷：是否為擁有人
+                    const isOwner = myWallet && tokenInfo.owner_id === myWallet;
+
                     if (tokenInfo.sale_price) {
                         const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
                         document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
-                        document.getElementById('btn-buy').classList.remove('hidden');
-                        document.getElementById('btn-buy').dataset.price = tokenInfo.sale_price; 
+                        const btnBuy = document.getElementById('btn-buy');
+                        btnBuy.classList.remove('hidden');
+                        btnBuy.dataset.price = tokenInfo.sale_price; 
+                        
+                        // 🔒 鎖死擁有人的購買按鈕
+                        if (isOwner) {
+                            btnBuy.disabled = true;
+                            btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
+                            btnBuy.classList.remove('hover:bg-blue-500');
+                            btnBuy.removeAttribute('onclick');
+                        }
                     }
                     if (tokenInfo.rent_price) {
                         const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
                         document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
-                        document.getElementById('btn-rent').classList.remove('hidden');
-                        document.getElementById('btn-rent').dataset.price = tokenInfo.rent_price; 
+                        const btnRent = document.getElementById('btn-rent');
+                        btnRent.classList.remove('hidden');
+                        btnRent.dataset.price = tokenInfo.rent_price; 
+                        
+                        // 🔒 鎖死擁有人的租用按鈕
+                        if (isOwner) {
+                            btnRent.disabled = true;
+                            btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
+                            btnRent.classList.remove('hover:bg-purple-500');
+                            btnRent.removeAttribute('onclick');
+                        }
                     }
                 }
             }
