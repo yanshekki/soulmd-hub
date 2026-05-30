@@ -66,19 +66,19 @@ return [
         'Please connect NEAR wallet first' => 'Please bind your NEAR wallet in Developer API Access first.',
         'Redirecting to Wallet...' => 'Redirecting to Wallet...',
 
-        // 🚨 更新：明確提到保底退款
         'Burn Confirm' => "Are you sure you want to permanently delete this AI soul?\n\nIf this soul was minted as an NFT on NEAR, do you want to BURN it on the blockchain to reclaim the 0.45 NEAR Floor Price?\n\nPress [OK] to Delete + Burn NFT.\nPress [Cancel] to just delete from database.",
         'Floor Price' => 'Floor Price',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
 
+        // 🚨 更新提示
         'AgentFi Actions' => 'AgentFi Actions',
         'List for Sale' => 'List for Sale',
-        'Sale Desc' => 'Sell full ownership and royalty rights of this AI model. (5% platform fee, 5% creator royalty)',
+        'Sale Desc' => 'Sell full ownership and royalty rights of this AI model. (5% platform fee) Set price to 0 or leave empty to disable sale.',
         'Price (NEAR)' => 'Price (NEAR)',
-        'List on Market' => 'List on Market',
+        'List on Market' => 'Set on Market',
         'Cancel Listing' => 'Cancel Listing',
         'List for Rent' => 'List for Rent',
-        'Rent Desc' => 'Allow users to rent this AI blackbox via the Chat Engine for 30 days. You retain full ownership. (10% platform fee)',
+        'Rent Desc' => 'Allow users to rent this AI blackbox via the Chat Engine for 30 days. You retain full ownership. (10% platform fee) Set price to 0 or leave empty to disable rent.',
         'Rent Price (NEAR / 30 Days)' => 'Rent Price (NEAR / 30 Days)',
         
         'Add Module File' => 'Add Module File',
@@ -163,19 +163,19 @@ return [
         'Please connect NEAR wallet first' => '請先前往「開發者 API 存取權限」綁定您的 NEAR 錢包。',
         'Redirecting to Wallet...' => '正在重導向至錢包...',
 
-        // 🚨 更新：明確提到保底退款
         'Burn Confirm' => "您確定要永久刪除這個 AI 靈魂模型嗎？\n\n如果此模型已經鑄造為 NEAR 上的 NFT，您是否要同時在區塊鏈上「銷毀 (Burn)」它，以取回 0.45 NEAR 的保底地板價退款？\n\n點擊 [確定]：刪除資料庫並喚起錢包銷毀 NFT\n點擊 [取消]：僅刪除資料庫（不退款）",
         'Floor Price' => '保底地板價',
         'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
 
+        // 🚨 更新提示
         'AgentFi Actions' => 'AgentFi 區塊鏈操作',
         'List for Sale' => '掛牌出售 (賣斷)',
-        'Sale Desc' => '出售此 AI 模型的完整擁有權及後續版稅權益。(扣除 5% 平台稅, 5% 原創者版稅)',
+        'Sale Desc' => '出售此 AI 模型的完整擁有權及後續版稅權益。(扣除 5% 平台稅)。將價格設定為 0 或留白即可取消掛售。',
         'Price (NEAR)' => '售價 (NEAR)',
-        'List on Market' => '確認掛牌',
+        'List on Market' => '確認設定',
         'Cancel Listing' => '取消掛牌',
         'List for Rent' => '設定黑盒出租',
-        'Rent Desc' => '允許租客透過 Chat 引擎租用此 AI 模型 30 天，但不洩露原始 Prompt，您保留擁有權。(扣除 10% 平台服務稅)',
+        'Rent Desc' => '允許租客透過 Chat 引擎租用此 AI 模型 30 天，您保留擁有權。(扣除 10% 平台服務稅)。將價格設定為 0 或留白即可取消出租。',
         'Rent Price (NEAR / 30 Days)' => '租金 (NEAR / 30日)',
 
         'Add Module File' => '新增架構檔案模組',

@@ -78,9 +78,16 @@ class SoulMDAgentFi {
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Error: Only owner can list for sale.");
         
-        token.sale_price = price;
+        // 🚨 終極漏洞修復：當價格為 0 時，設定為 null (非賣品)
+        if (price === "0" || price === "") {
+            token.sale_price = null;
+            near.log(`[${token_id}] sale listing cancelled.`);
+        } else {
+            token.sale_price = price;
+            near.log(`[${token_id}] listed for sale at ${price} yoctoNEAR`);
+        }
+        
         this.tokens.set(token_id, token);
-        near.log(`[${token_id}] listed for sale at ${price} yoctoNEAR`);
     }
 
     @call({ payableFunction: true })
@@ -118,7 +125,6 @@ class SoulMDAgentFi {
         token.owner_id = buyer;
         token.sale_price = null;
         token.rent_price = null;
-        // 🚨 漏洞修復 1：移除了 token.renters = {}，讓新買家繼承現有租約，保障租客權益！
         
         this.tokens.set(token_id, token);
 
@@ -132,9 +138,16 @@ class SoulMDAgentFi {
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Error: Only owner can list for rent.");
         
-        token.rent_price = price;
+        // 🚨 終極漏洞修復：當租金為 0 時，設定為 null (不予出租)
+        if (price === "0" || price === "") {
+            token.rent_price = null;
+            near.log(`[${token_id}] rent listing cancelled.`);
+        } else {
+            token.rent_price = price;
+            near.log(`[${token_id}] listed for rent at ${price} yoctoNEAR / 30 Days`);
+        }
+        
         this.tokens.set(token_id, token);
-        near.log(`[${token_id}] listed for rent at ${price} yoctoNEAR / 30 Days`);
     }
 
     @call({ payableFunction: true })
@@ -161,7 +174,6 @@ class SoulMDAgentFi {
         const thirty_days_ns = 2592000000000000n;
         const current_time = near.blockTimestamp();
         
-        // 🧹 垃圾回收：清理已過期的舊租客，釋放合約記憶體防止 Storage Leak
         for (const existing_renter in token.renters) {
             if (BigInt(token.renters[existing_renter]) < current_time) {
                 delete token.renters[existing_renter];
@@ -185,7 +197,6 @@ class SoulMDAgentFi {
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Security Error: Only the owner can burn.");
 
-        // 🚨 漏洞修復 2：銷毀前必須確保所有租約已經過期！
         const current_time = near.blockTimestamp();
         for (const renter in token.renters) {
             assert(BigInt(token.renters[renter]) < current_time, "Rug Pull Prevention: Cannot burn NFT while there are active renters.");
@@ -226,9 +237,6 @@ class SoulMDAgentFi {
         return false;
     }
 
-    // ==========================================
-    // 🌪️ 6. 通縮螺旋：AMM 自動回購與銷毀 ($SOUL Burn)
-    // ==========================================
     @call({})
     auto_buyback_and_burn({ amount_in_near }: { amount_in_near: string }) {
         const caller = near.predecessorAccountId();

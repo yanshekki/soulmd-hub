@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: Web3 Callback URL Interception & UX Alerts
+ * 🚀 Patched: 0-Price Input Handler for Cancellation
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -267,7 +267,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
     const initialContent = <?= json_encode($presetContent ?? '', JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
     window.addEventListener('DOMContentLoaded', async () => {
-        // 🚨 攔截交易返回錯誤通知並清洗網址
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('errorMessage') || urlParams.has('errorCode')) {
             alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (urlParams.get('errorMessage') || urlParams.get('errorCode')));
@@ -328,15 +327,22 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         const args = { token_id: "soul_" + soulId };
         let methodName = '';
         
+        // 🚨 更新邏輯：若價格為 0 則改為取消
         if (actionType === 'list_sale') {
             const price = document.getElementById('agentfi-sale-price').value;
-            if(!price || price <= 0) return alert("<?= addslashes(__('Invalid price')) ?>");
-            args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            if(!price || parseFloat(price) <= 0) {
+                args.price = "0";
+            } else {
+                args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            }
             methodName = 'list_for_sale';
         } else if (actionType === 'list_rent') {
             const price = document.getElementById('agentfi-rent-price').value;
-            if(!price || price <= 0) return alert("<?= addslashes(__('Invalid price')) ?>");
-            args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            if(!price || parseFloat(price) <= 0) {
+                args.price = "0";
+            } else {
+                args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            }
             methodName = 'list_for_rent';
         } else if (actionType === 'cancel_sale') {
             methodName = 'list_for_sale'; args.price = "0"; 
@@ -367,7 +373,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 
             const mintToggle = document.getElementById('mint-toggle');
             
-            // 🚨 強制 NFT 進行區塊鏈 Hash 同步 (如果已綁定錢包)
             const wantMintOrSync = (isEditMode && isNft && "<?= $nearWallet ?>") ? true : (mintToggle ? mintToggle.checked : false);
             let wallet = null;
 
@@ -418,7 +423,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 const data = await res.json();
 
                 if (data.success) {
-                    // 🚨 完美修復 Redirect：若為編輯模式，Callback URL 鎖定為當前的 edit.php 頁面
                     const targetUrl = isEditMode ? window.location.href : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                     
                     if (wantMintOrSync) {

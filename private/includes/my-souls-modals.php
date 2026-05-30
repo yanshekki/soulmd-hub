@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My Souls Modals & Scripts Component
  * Included dynamically at the bottom of my-souls.php
- * 🚀 Patched: 100% Full i18n Translation for all JS Alerts
+ * 🚀 Patched: 0-Price Input Handler for Cancellation
  */
 ?>
 
@@ -185,7 +185,6 @@
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
 
-    // 🌟 核心 V5：加入一鍵 Mint 現有模型函式
     async function mintExistingSoul(id) {
         if (!confirm("<?= addslashes(__('Mint Confirm')) ?>")) return;
 
@@ -222,7 +221,6 @@
                     walletCallbackUrl: window.location.href
                 });
             } else {
-                // 🚨 補入多語言 Alert
                 alert(data.error || <?= json_encode(__('Failed to prepare minting.'), JSON_UNESCAPED_UNICODE) ?>);
             }
         } catch(e) {
@@ -491,23 +489,27 @@
         const args = { token_id: "soul_" + currentEditId };
         let methodName = '';
         
+        // 🚨 更新邏輯：若價格為 0 則改為取消
         if (actionType === 'list_sale') {
             const price = document.getElementById('agentfi-sale-price').value;
-            // 🚨 補入多語言 Alert
-            if(!price || price <= 0) return alert(<?= json_encode(__('Invalid price'), JSON_UNESCAPED_UNICODE) ?>);
-            args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            if(!price || parseFloat(price) <= 0) {
+                args.price = "0";
+            } else {
+                args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            }
             methodName = 'list_for_sale';
         } else if (actionType === 'list_rent') {
             const price = document.getElementById('agentfi-rent-price').value;
-            if(!price || price <= 0) return alert(<?= json_encode(__('Invalid price'), JSON_UNESCAPED_UNICODE) ?>);
-            args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            if(!price || parseFloat(price) <= 0) {
+                args.price = "0";
+            } else {
+                args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            }
             methodName = 'list_for_rent';
         } else if (actionType === 'cancel_sale') {
-            methodName = 'list_for_sale'; 
-            args.price = "0"; 
+            methodName = 'list_for_sale'; args.price = "0"; 
         } else if (actionType === 'cancel_rent') {
-            methodName = 'list_for_rent';
-            args.price = "0";
+            methodName = 'list_for_rent'; args.price = "0";
         }
 
         try {
@@ -520,7 +522,6 @@
                 walletCallbackUrl: window.location.href
             });
         } catch(e) { 
-            // 🚨 補入多語言 Alert
             alert(<?= json_encode(__('Blockchain transaction failed or rejected.'), JSON_UNESCAPED_UNICODE) ?>); 
         }
     }

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Added 0.45 NEAR Floor Price display
+ * 🚀 Patched: Added Active Renters Popup & Rental Disclaimer Warning
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -60,6 +60,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
     <div id="pagination-container" class="mt-12 flex justify-center items-center w-full"></div>
+</div>
+
+<div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-users text-blue-400"></i> <?= __('Renter List') ?></h3>
+            <button type="button" onclick="closeRentersModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-5 overflow-y-auto custom-scrollbar flex-grow bg-zinc-900/50">
+            <div id="renters-list-content" class="space-y-3"></div>
+        </div>
+        <div class="p-4 border-t border-white/10 bg-zinc-950 text-right">
+            <button type="button" onclick="closeRentersModal()" class="px-5 py-2 bg-zinc-800 text-white rounded-xl font-bold hover:bg-zinc-700 transition shadow"><?= __('Close') ?></button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -281,7 +296,21 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                 const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
-                // 🚨 注入 Floor Price 保底價顯示
+                // 🚨 計算活躍租客
+                let activeRenters = [];
+                if (soul.market.renters) {
+                    const nowMs = Date.now();
+                    for (const accountId in soul.market.renters) {
+                        // 防止 BigInt 精度丟失：將 nanoseconds 先 / 1,000,000 再轉為 Number
+                        const expiryMs = Number(BigInt(soul.market.renters[accountId]) / 1000000n);
+                        if (expiryMs > nowMs) {
+                            activeRenters.push({ account: accountId, expiry: expiryMs });
+                        }
+                    }
+                }
+                const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
+                const rentersCount = activeRenters.length;
+
                 html += `
                     <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
@@ -290,11 +319,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <a href="${seoUrl}" class="font-bold text-xl text-white group-hover:text-purple-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
                             </div>
                             <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
-                                <div class="text-[10px] text-zinc-500 font-mono truncate">
+                                <div class="text-[10px] text-zinc-500 font-mono truncate mr-2">
                                     <?= addslashes(__('Owner:')) ?> <span class="text-purple-300 font-bold">${escapeHTML(soul.market.owner_id)}</span>
                                 </div>
-                                <div class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold cursor-help shadow-sm" title="<?= addslashes(__('Floor Desc')) ?>">
-                                    <?= addslashes(__('Floor Price')) ?>: <span class="text-white">0.45</span> N
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button type="button" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold cursor-pointer shadow-sm transition">
+                                        <i class="fas fa-users mr-1"></i> ${rentersCount} <?= addslashes(__('Active Renters')) ?>
+                                    </button>
+                                    <div class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold cursor-help shadow-sm" title="<?= addslashes(__('Floor Desc')) ?>">
+                                        <?= addslashes(__('Floor Price')) ?>: <span class="text-white">0.45</span> N
+                                    </div>
                                 </div>
                             </div>
                             ${soul.description ? `<p class="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
@@ -334,13 +368,61 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 顯示活躍租客名單 Modal
+    function showRentersModal(encodedJson) {
+        const renters = JSON.parse(decodeURIComponent(encodedJson));
+        const listContainer = document.getElementById('renters-list-content');
+        listContainer.innerHTML = '';
+
+        if (renters.length === 0) {
+            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6">${<?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>}</div>`;
+        } else {
+            renters.forEach(r => {
+                const d = new Date(r.expiry);
+                const dateStr = d.toLocaleString();
+                listContainer.innerHTML += `
+                    <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
+                        <div class="text-[10px] text-zinc-500 shrink-0 text-right">
+                            <div class="uppercase tracking-wider">${<?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>}</div>
+                            <div class="text-zinc-300 font-bold">${dateStr}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        document.body.style.overflow = 'hidden';
+        const modal = document.getElementById('renters-modal');
+        const content = modal.firstElementChild;
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeRentersModal() {
+        document.body.style.overflow = '';
+        const modal = document.getElementById('renters-modal');
+        const content = modal.firstElementChild;
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
     async function buyMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + id }, gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
     }
 
+    // 🚨 租用前彈出免責聲明警告
     async function rentMarketSoul(id, rawPrice) {
+        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
+
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
         await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + id }, gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });

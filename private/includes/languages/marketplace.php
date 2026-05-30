@@ -35,9 +35,17 @@ return [
         'Swap success' => 'Swap Transaction Successfully Submitted! Your $SOUL tokens will arrive shortly.',
         'Swap fail' => 'Transaction Failed: ',
 
-        // 🚨 新增：保底地板價
         'Floor Price' => 'Floor Price',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
+
+        // 🚨 新增：租用提示與活躍租客名單
+        'Active Renters' => 'Active Renters',
+        'Renter List' => 'Active Renters List',
+        'Renter' => 'Renter (Wallet)',
+        'Expires At' => 'Expires At',
+        'No active renters' => 'No active renters at the moment.',
+        'Close' => 'Close',
+        'Rent Warning Desc' => "⚠️ RENTAL WARNING:\nThe original author retains the right to update or modify the model's core instructions at any time. The platform cannot guarantee that the model's performance or behavior will remain permanently unchanged.\n\nDo you wish to proceed and rent this AI model for 30 days?",
     ],
     
     'zh' => [
@@ -70,8 +78,16 @@ return [
         'Swap success' => '交易成功！您的 $SOUL 代幣已順利兌換並存入您的錢包。',
         'Swap fail' => '區塊鏈交易失敗：',
 
-        // 🚨 新增：保底地板價
         'Floor Price' => '保底地板價',
         'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
+
+        // 🚨 新增：租用提示與活躍租客名單
+        'Active Renters' => '名活躍租客',
+        'Renter List' => '目前活躍租客名單',
+        'Renter' => '租客錢包',
+        'Expires At' => '租約到期時間',
+        'No active renters' => '目前暫無活躍的租客。',
+        'Close' => '關閉',
+        'Rent Warning Desc' => "⚠️ 租用風險提示：\n\n原創作者保留隨時更新或修改 AI 模型核心指令的權利，平台無法保證此模型的效能與對話行為永久不變。\n\n您確定要支付租金，租用此 AI 模型 30 天嗎？",
     ]
 ];
