@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Homepage
- * (Dynamic i18n Internationalization Edition)
+ * (Dynamic i18n Internationalization & V5 Web2 Isolation Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -14,8 +14,8 @@ loadTranslations('index');
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
-// 獲取平台統計數據
-$statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1")->fetchColumn();
+// 獲取平台統計數據 (只統計 Web2 公開模型)
+$statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1 AND is_nft = 0")->fetchColumn();
 $statsUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $statsTags = $pdo->query("SELECT COUNT(*) FROM tags_domain")->fetchColumn() ?: 0;
 $categories = $pdo->query("SELECT name, slug, icon FROM categories LIMIT 6")->fetchAll();
@@ -155,7 +155,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
         try {
-            const res = await fetch('/api/souls?limit=6&sort=popular'); 
+            // 🚨 完美 V5 隔離防護：加上 &is_nft=0 保證絕對唔會撈到市集 NFT！
+            const res = await fetch('/api/souls?limit=6&sort=popular&is_nft=0'); 
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {

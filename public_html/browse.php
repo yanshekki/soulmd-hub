@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Public AI Souls Catalog
- * (Dynamic i18n Internationalization & Fully Responsive Mobile Edition)
+ * (Dynamic i18n Internationalization & V5 Web2-Only Isolation Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -182,7 +182,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = html;
     }
 
-    // 🚨 完美多語言化：JavaScript 動態卡片渲染整合
     async function loadSouls() {
         const container = document.getElementById('results-container');
         const pagination = document.getElementById('pagination-container');
@@ -195,19 +194,25 @@ require_once __DIR__ . '/../private/includes/header.php';
         const role = document.getElementById('role-filter').value;
         const type = document.getElementById('type-filter').value;
 
-        const params = new URLSearchParams();
-        if (q) params.append('q', q);
-        if (sort && sort !== 'newest') params.append('sort', sort);
-        if (role) params.append('role', role);
-        if (type) params.append('file_type', type);
-        params.append('page', currentPage);
-        params.append('limit', 12); 
+        // 🚨 僅用於瀏覽器網址列顯示的參數 (保持乾淨)
+        const urlParams = new URLSearchParams();
+        if (q) urlParams.append('q', q);
+        if (sort && sort !== 'newest') urlParams.append('sort', sort);
+        if (role) urlParams.append('role', role);
+        if (type) urlParams.append('file_type', type);
+        if (currentPage > 1) urlParams.append('page', currentPage);
 
-        const newUrl = window.location.pathname + '?' + params.toString();
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
         window.history.replaceState({}, '', newUrl);
 
+        // 🚨 實際發送給 API 伺服器的過濾參數 (加入系統級安全過濾)
+        const fetchParams = new URLSearchParams(urlParams);
+        fetchParams.set('page', currentPage);
+        fetchParams.append('limit', 12); 
+        fetchParams.append('is_nft', 0); // 🔒 強制只撈取 Web2 原創模型，隔離市集資產！
+
         try {
-            const res = await fetch(`/api/souls?${params.toString()}`);
+            const res = await fetch(`/api/souls?${fetchParams.toString()}`);
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
@@ -224,8 +229,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     
                     // 🌍 將 JS 模板內嵌之文字進行後端多語言編譯
-                    const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= __('Modular') ?>' : '<?= __('Single .md') ?>';
-                    const roleLabel = soul.role ? escapeHTML(soul.role) : '<?= __('Unassigned') ?>';
+                    const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= addslashes(__('Modular')) ?>' : '<?= addslashes(__('Single .md')) ?>';
+                    const roleLabel = soul.role ? escapeHTML(soul.role) : '<?= addslashes(__('Unassigned')) ?>';
 
                     html += `
                         <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">

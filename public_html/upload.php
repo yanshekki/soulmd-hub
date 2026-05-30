@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Upload & Publish Dashboard
- * (Decoupled Modals, DRY Web3 Script & Web2.5 NEAR NFT Minting Edition)
+ * (Decoupled Modals, V5 Security Gate Guard & Web2.5 NEAR NFT Minting Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -19,6 +19,12 @@ loadTranslations('upload');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
+$user_id = $_SESSION['user_id'];
+
+// 🚀 V5 核心防護：查詢創作者是否已綁定 Web3 錢包
+$uStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+$uStmt->execute([$user_id]);
+$nearWallet = $uStmt->fetchColumn();
 
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
@@ -163,15 +169,21 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
         </div>
 
-        <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-between gap-4 shadow-lg">
-            <div>
-                <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2"><i class="fas fa-cube text-emerald-400"></i> <?= __('Mint to NEAR') ?></h3>
+        <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-between gap-4 shadow-lg relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+            <div class="flex-1">
+                <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2"><i class="fas fa-cube text-purple-400"></i> <?= __('Mint to NEAR') ?></h3>
                 <p class="text-xs sm:text-sm text-zinc-400 mt-1"><?= __('Mint Desc') ?></p>
-                <div class="text-[10px] sm:text-xs font-mono font-bold text-emerald-500/70 mt-2"><?= __('Platform Fee') ?></div>
+                <div class="text-[10px] sm:text-xs font-mono font-bold text-purple-400/80 mt-2"><?= __('Platform Fee') ?></div>
+                
+                <?php if (empty($nearWallet)): ?>
+                    <div class="text-xs text-red-400 font-bold mt-2 flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> <?= __('Please connect NEAR wallet first') ?></div>
+                <?php endif; ?>
             </div>
+            
             <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                <input type="checkbox" id="mint-toggle" class="sr-only peer">
-                <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                <input type="checkbox" id="mint-toggle" class="sr-only peer" <?= empty($nearWallet) ? 'disabled' : '' ?>>
+                <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500 <?= empty($nearWallet) ? 'opacity-40 cursor-not-allowed' : '' ?>"></div>
             </label>
         </div>
 
@@ -196,10 +208,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         const errorMsg = document.getElementById('error-msg');
         const successBox = document.getElementById('success-box');
 
-        const wantMint = document.getElementById('mint-toggle').checked;
+        const wantMint = document.getElementById('mint-toggle').checked ? 1 : 0;
         let wallet = null;
 
-        // 🚀 若啟用 Mint，發送前先利用共用腳本檢查錢包授權
         if (wantMint) {
             wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
@@ -234,7 +245,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             role: document.getElementById('role').value,
             domain: document.getElementById('domain').value,
             compatibility: document.getElementById('compatibility').value,
-            content: finalContent
+            content: finalContent,
+            is_minting: wantMint // 🚀 傳遞鑄造初始化 Flag 給 souls.php 引擎
         };
 
         try {
@@ -248,29 +260,29 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) {
                 const seoUrl = data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                 
-                // 🚀 執行 Web3 鑄造
+                // 🚀 V5 核心：發送完 Web2 資料庫快照後，立即發動 NEAR 主網合約
                 if (wantMint) {
-                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
-                    text.classList.remove('hidden');
-                    loading.classList.add('hidden');
+                    if (text) text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
+                    if (text) text.classList.remove('hidden');
+                    if (loading) loading.classList.add('hidden');
                     
-                    const deposit = nearApi.utils.format.parseNearAmount("0.6"); // 0.6 NEAR
+                    const deposit = nearApi.utils.format.parseNearAmount("0.6"); // 合約規定 0.6 NEAR 質押發行稅
                     const args = {
                         token_id: "soul_" + data.id,
                         title: payload.title,
                         description: payload.description || "No description provided",
-                        hash: data.hash, 
+                        hash: data.hash, // 帶入 Server 端防白嫖雜湊指紋
                         reference: data.url
                     };
                     
-                    // 跳轉至 NEAR Wallet 簽名
+                    // 喚起 NEAR Selector 簽名，並將 callbackUrl 指向當前模型的公開大廳
                     await wallet.account().functionCall({
                         contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                         methodName: "mint_soul",
                         args: args,
-                        gas: "30000000000000", // 30 TGas
+                        gas: "30000000000000", 
                         attachedDeposit: deposit,
-                        walletCallbackUrl: seoUrl // 簽署完成後無縫跳回該模型頁面
+                        walletCallbackUrl: seoUrl 
                     });
                 } else {
                     window.location.href = seoUrl;
@@ -296,4 +308,4 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 </script>
 
-<?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../private/includes/upload-modals.php'; ?>

@@ -1,9 +1,9 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/souls          - List public souls (Optimized Search, Multi-Keyword, Sorting, Pagination & User Filter)
- * POST /api/souls          - Create soul (Auth: Session or API Key, with JSON Auto-Fix)
- * (100% Dynamic i18n Internationalized & Web3 Hash Provider Edition)
+ * GET  /api/souls          - List souls (AgentFi Market & Web2 Hub strict separation)
+ * POST /api/souls          - Create soul (Web2 or Web3 Minting initialization V5)
+ * (100% Dynamic i18n Internationalized Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -55,6 +55,9 @@ function makeSlug($str) {
     return rawurlencode(trim($str, '-'));
 }
 
+// ==========================================
+// GET 路由：嚴格區分 Web2 大廳與 Web3 市集
+// ==========================================
 if ($method === 'GET') {
     $page = max(1, (int)($_GET['page'] ?? 1));
     $limit = min((int)($_GET['limit'] ?? 12), 100); 
@@ -64,14 +67,21 @@ if ($method === 'GET') {
     $role = $_GET['role'] ?? '';
     $fileType = $_GET['file_type'] ?? '';
     $sort = $_GET['sort'] ?? 'newest';
-    
-    // 🌟 修復核心：接收 user_id 參數
     $userIdFilter = $_GET['user_id'] ?? '';
+    $isNftFilter = $_GET['is_nft'] ?? '0'; // 預設撈取 Web2
 
-    $whereSql = " WHERE s.is_public = 1";
+    $whereSql = " WHERE 1=1";
     $binds = [];
 
-    // 🌟 加入 user_id 過濾，確保 Profile 頁面只顯示該創作者的內容
+    // 🚀 V5 架構：嚴格分流
+    if ($isNftFilter === '1') {
+        // Marketplace：只顯示 NFT，無視 is_public
+        $whereSql .= " AND s.is_nft = 1";
+    } else {
+        // Web2 Browse / Profile：只顯示公開且非 NFT 的模型
+        $whereSql .= " AND s.is_public = 1 AND s.is_nft = 0";
+    }
+
     if ($userIdFilter !== '') {
         $whereSql .= " AND s.user_id = ?";
         $binds[] = [(int)$userIdFilter, PDO::PARAM_INT];
@@ -113,7 +123,7 @@ if ($method === 'GET') {
         $totalCount = (int)$countStmt->fetchColumn();
         $totalPages = ceil($totalCount / $limit);
 
-        $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username 
+        $dataSql = "SELECT s.id, s.title, s.description, s.role, s.domain, s.compatibility, s.file_type, s.like_count, s.fork_count, s.created_at, u.username, s.nft_owner_wallet 
                     FROM souls s 
                     LEFT JOIN users u ON s.user_id = u.id" . $whereSql;
 
@@ -158,6 +168,9 @@ if ($method === 'GET') {
         echo json_encode(['success' => false, 'error' => __('Database query failed')], JSON_UNESCAPED_UNICODE);
     }
 
+// ==========================================
+// POST 路由：V5 鑄造與 Hash 生成引擎
+// ==========================================
 } elseif ($method === 'POST') {
     $userId = getAuthUserId($pdo);
     if (!$userId) {
@@ -174,7 +187,19 @@ if ($method === 'GET') {
     $role = $input['role'] ?? '';
     $domain = trim($input['domain'] ?? '');
     $compatibility = trim($input['compatibility'] ?? '');
-    $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 1;
+    
+    $is_minting = !empty($input['is_minting']) ? 1 : 0;
+    
+    // 獲取當前用戶的 Web3 錢包
+    $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $walletStmt->execute([$userId]);
+    $nearWallet = $walletStmt->fetchColumn();
+
+    if ($is_minting && empty($nearWallet)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => __('Wallet address missing')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
     if (empty($title) || empty($content)) {
         http_response_code(400);
@@ -204,25 +229,32 @@ if ($method === 'GET') {
         $content = json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
-    // 🚀 計算內容指紋 Hash
-    $contentHash = 'sha256:' . hash('sha256', $content);
+    // 🚀 核心 V5 防護與 Hash 邏輯
+    $nft_salt = null;
+    $nft_hash = null;
+    $nft_owner_wallet = null;
+    $legacy_hash = 'sha256:' . hash('sha256', $content); // 供非 Minting 回傳用
+
+    if ($is_minting) {
+        $is_public = 0; // NFT 必須強制私密防白嫖
+        $is_nft = 1;
+        $nft_salt = bin2hex(random_bytes(16));
+        $nft_hash = 'sha256:' . hash('sha256', $content . $nft_salt);
+        $nft_owner_wallet = $nearWallet;
+    } else {
+        $is_public = isset($input['is_public']) ? (int)$input['is_public'] : 1;
+        $is_nft = 0;
+    }
 
     try {
         $pdo->beginTransaction();
 
         $stmt = $pdo->prepare("INSERT INTO souls 
-            (user_id, title, description, content, file_type, role, domain, compatibility, is_public) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (user_id, title, description, content, file_type, role, domain, compatibility, is_public, is_nft, nft_salt, nft_hash, nft_owner_wallet) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
-            $userId,
-            $title,
-            $description,
-            $content,
-            $fileType,
-            $role,
-            $domain,
-            $compatibility,
-            $is_public
+            $userId, $title, $description, $content, $fileType, $role, $domain, $compatibility, 
+            $is_public, $is_nft, $nft_salt, $nft_hash, $nft_owner_wallet
         ]);
 
         $newId = $pdo->lastInsertId();
@@ -244,7 +276,7 @@ if ($method === 'GET') {
             'message' => __('Soul created successfully'),
             'id' => $newId,
             'url' => $seoUrl,
-            'hash' => $contentHash
+            'hash' => $is_minting ? $nft_hash : $legacy_hash
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {

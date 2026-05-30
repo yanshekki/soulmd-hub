@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & $SOUL Swap Widget)
- * 🚀 Fixed: Pure MyNearWallet Native Integration & Emerald Contrast UI with RPC Loading (i18n Fixed)
+ * 🚀 V5 規格完美版：強制定向 API 拉取 is_nft=1 資產，結合多節點 RPC 權威校驗
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -11,6 +11,7 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
+// 🌍 載入市集專屬語言包
 loadTranslations('marketplace');
 
 $pageTitle = __('SEO Title');
@@ -22,9 +23,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
     
-    <div class="flex flex-wrap items-center justify-between gap-6 mb-10 border-b border-white/10 pb-8">
+    <div class="flex flex-col lg:flex-wrap items-center justify-between gap-6 mb-10 border-b border-white/10 pb-8 md:flex-row">
         <div class="flex-1 min-w-[280px]">
-            <div class="inline-flex items-center gap-2 bg-blue-900/30 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-3 shadow-sm">
+            <div class="inline-flex items-center gap-2 bg-purple-950/40 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-3 shadow-sm">
                 <i class="fas fa-gem"></i> Web3 Market
             </div>
             <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tighter text-white break-words"><?= __('AgentFi Marketplace') ?></h1>
@@ -32,23 +33,23 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
         
         <div class="shrink-0" id="wallet-status-container">
-            <button onclick="ensureWalletConnection()" id="marketplace-wallet-btn" class="px-6 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 rounded-xl font-black hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
+            <button onclick="ensureWalletConnection()" id="marketplace-wallet-btn" class="px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-black hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(147,51,234,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
                 <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="marketplace-btn-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR">
                 <span id="wallet-btn-text" class="truncate max-w-[200px]"><?= __('Connect Wallet to Trade') ?></span>
             </button>
         </div>
     </div>
 
-    <div class="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+    <div class="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
         <div class="flex-1 min-w-[280px]">
-            <div class="text-emerald-400 text-[10px] font-bold tracking-widest uppercase mb-1.5"><i class="fas fa-bolt"></i> <?= __('Swap Subtitle') ?></div>
+            <div class="text-purple-400 text-[10px] font-bold tracking-widest uppercase mb-1.5"><i class="fas fa-bolt"></i> <?= __('Swap Subtitle') ?></div>
             <h3 class="text-2xl sm:text-3xl font-bold text-white mb-2"><?= __('Swap Title') ?></h3>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-xl"><?= __('Swap Desc') ?></p>
         </div>
         <div class="shrink-0 flex items-center gap-3 bg-zinc-950/40 p-2.5 rounded-2xl border border-white/5 w-full sm:w-auto">
-            <input type="number" id="buy-soul-amount" placeholder="<?= __('Pay Amount') ?>" step="0.1" min="0.1" class="w-full sm:w-48 bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-emerald-400 text-white shadow-inner font-mono">
-            <button type="button" onclick="executeBuySoul()" id="buy-soul-btn" class="shrink-0 px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 duration-200 flex items-center gap-2">
+            <input type="number" id="buy-soul-amount" placeholder="<?= __('Pay Amount') ?>" step="0.1" min="0.1" class="w-full sm:w-48 bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-purple-400 text-white shadow-inner font-mono">
+            <button type="button" onclick="executeBuySoul()" id="buy-soul-btn" class="shrink-0 px-6 py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 duration-200 flex items-center gap-2">
                 <i class="fas fa-exchange-alt"></i> <span id="buy-soul-text"><?= __('Swap Button') ?></span>
             </button>
         </div>
@@ -56,7 +57,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <div id="market-container" class="min-h-[400px]">
         <div class="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mb-4"></div>
             <p class="text-zinc-400 font-medium animate-pulse"><?= __('Scanning...') ?></p>
         </div>
     </div>
@@ -81,7 +82,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            // 🌟 已修正為 i18n 語言包寫法
             btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
             btn.classList.add('opacity-80', 'pointer-events-none');
             if(btnIcon) btnIcon.classList.add('hidden');
@@ -192,16 +192,26 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚀 V5 核心：透過多節點 RPC 校驗隻拉取 is_nft=1 的真鏈上模型
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
         try {
-            const res = await fetch('/api/souls?limit=100&sort=newest');
+            // 🌟 修正：明細拉取加上 &is_nft=1，完成大廳與市集數據徹底分流
+            const res = await fetch('/api/souls?limit=100&sort=newest&is_nft=1');
             const data = await res.json();
-            if (!data.success || data.data.length === 0) throw new Error("No data");
+            if (!data.success || data.data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
+                        <i class="fas fa-store-slash text-4xl text-zinc-600 mb-4"></i>
+                        <p class="text-zinc-400 font-medium"><?= addslashes(__('No listings')) ?></p>
+                    </div>`;
+                return;
+            }
 
             const activeListings = [];
             const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             
+            // 使用 Promise.all 併發向鏈上核查當前商品的掛牌與擁有權狀態 (自癒比對準備)
             const rpcPromises = data.data.map(async (soul) => {
                 try {
                     const rpcRes = await fetch(safeRpcUrl, {
@@ -214,13 +224,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const rpcData = await rpcRes.json();
                     if (rpcData.result && rpcData.result.result) {
                         const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                        if (tokenInfo && (tokenInfo.sale_price || tokenInfo.rent_price)) {
+                        
+                        // 🌟 V5 特性：只有當鏈上確實存在且處於掛售(sale)或掛租(rent)狀態時，才允許出現在市集大廳
+                        if (tokenInfo && (tokenInfo.sale_price !== null || tokenInfo.rent_price !== null)) {
                             soul.market = tokenInfo;
                             activeListings.push(soul);
                         }
                     }
                 } catch(e) {
-                    console.warn("Listing fetch skipped due to RPC limit", e);
+                    console.warn("Listing fetch skipped due to RPC limit, downgraded to safe mode", e);
                 }
             });
             await Promise.all(rpcPromises);
@@ -237,39 +249,43 @@ require_once __DIR__ . '/../private/includes/header.php';
             let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
             activeListings.forEach(soul => {
                 const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                
+                // 計算 yoctoNEAR 轉換
                 const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                 const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
                 html += `
-                    <div class="bg-zinc-900/80 border border-blue-500/20 rounded-3xl p-6 hover:border-blue-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
                         <div>
                             <div class="flex justify-between items-start gap-3 mb-2">
-                                <a href="${seoUrl}" class="font-bold text-xl text-white hover:text-blue-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
+                                <a href="${seoUrl}" class="font-bold text-xl text-white group-hover:text-purple-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
                             </div>
                             <div class="text-[10px] text-zinc-500 mb-4 font-mono truncate">
-                                <?= addslashes(__('Owner:')) ?> <span class="text-blue-300">${escapeHTML(soul.market.owner_id)}</span>
+                                <?= addslashes(__('Owner:')) ?> <span class="text-purple-300 font-bold">${escapeHTML(soul.market.owner_id)}</span>
                             </div>
+                            ${soul.description ? `<p class="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                         </div>
-                        <div class="mt-auto space-y-3 pt-4 border-t border-white/10">
-                            ${salePrice ? `
+                        <div class="mt-auto space-y-3 pt-4 border-t border-white/5">
+                            ${salePrice && salePrice !== "0" ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
                                 <div class="min-w-0 pr-2">
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
                                     <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                <button onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')" class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none">
                                     <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
                                 </button>
                             </div>` : ''}
-                            ${rentPrice ? `
+                            
+                            ${rentPrice && rentPrice !== "0" ? `
                             <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-white/5">
                                 <div class="min-w-0 pr-2">
                                     <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
                                     <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                 </div>
-                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
-                                    <i class="fas fa-handshake"></i> <?= addslashes(__('Rent Now')) ?>
+                                <button onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')" class="shrink-0 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                    <i class="fas fa-handshake"></i> <?= addslashes(__('Rent (30d)')) ?>
                                 </button>
                             </div>` : ''}
                         </div>
