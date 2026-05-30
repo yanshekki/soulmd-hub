@@ -1,8 +1,8 @@
 # SoulMD Hub
 
 # Node
-/private/contract/node_modules/*
-/private/contract/build/*
+/contract/node_modules/*
+/contract/build/*
 package-lock.json
 
 # PHP
