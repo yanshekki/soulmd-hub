@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
- * (V5 Specification Dual-Section Web2/Web3 Separation Edition)
+ * (V5 Specification Dual-Section Web2/Web3 Separation Edition + Proactive Radar)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -243,8 +243,64 @@ require_once __DIR__ . '/../private/includes/header.php';
 </div>
 
 <?php 
+// 🚨 引入 Web3 錢包庫與腳本
+require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; 
+?>
+
+<?php 
 // 🚨 動態載入優化後的 Modals 腳本組件
 require_once __DIR__ . '/../private/includes/my-souls-modals.php'; 
 ?>
+
+<script>
+    // 🚀 V5 終極修補：背景主動擁有權雷達 (Proactive Ownership Radar)
+    async function proactiveAssetSync() {
+        if (typeof initNearWallet !== 'function') return;
+        const wallet = await initNearWallet();
+        if (!wallet || !wallet.isSignedIn()) return;
+        const myWallet = wallet.getAccountId();
+
+        try {
+            // 拉取全平台所有 NFT (僅限已鑄造)
+            const res = await fetch('/api/souls?limit=1000&is_nft=1');
+            const data = await res.json();
+            if (!data.success || !data.data) return;
+
+            let needsReload = false;
+            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+            
+            // 掃描哪些 NFT 鏈上是我的，但資料庫還沒更新 (Lazy Sync 盲區)
+            const syncPromises = data.data.map(async (soul) => {
+                if (soul.nft_owner_wallet === myWallet) return; // 已經同步，跳過
+
+                try {
+                    const rpcRes = await fetch(safeRpcUrl, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            jsonrpc: "2.0", id: "dontcare", method: "query",
+                            params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                        })
+                    });
+                    const rpcData = await rpcRes.json();
+                    if (rpcData.result && rpcData.result.result) {
+                        const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                        
+                        // 🎯 發現未同步的資產！暗中呼叫 api/soul.php 觸發後端 Lazy Sync
+                        if (tokenInfo && tokenInfo.owner_id === myWallet) {
+                            await fetch(`/api/soul/${soul.id}`);
+                            needsReload = true;
+                        }
+                    }
+                } catch(e) {}
+            });
+
+            await Promise.all(syncPromises);
+            if (needsReload) window.location.reload(); // 同步完畢，自動刷新畫面顯示新資產
+        } catch(e) {}
+    }
+
+    // 啟動擁有權雷達
+    window.addEventListener('DOMContentLoaded', proactiveAssetSync);
+</script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
