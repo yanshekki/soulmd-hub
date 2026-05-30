@@ -31,6 +31,10 @@ return [
         'View' => 'View',
         'Version History' => 'Version History',
         
+        // 🚀 新增：一鍵 Mint Existing Soul
+        'Mint NFT' => 'Mint NFT',
+        'Mint Confirm' => 'Minting an NFT requires a 0.6 NEAR deposit. Do you want to upgrade this soul into an exclusive Web3 asset?',
+
         // Edit Main Modal
         'Edit Modular AI Soul' => 'Edit Modular AI Soul',
         'Title' => 'Title',
@@ -83,6 +87,8 @@ return [
         'Failed to delete' => 'Failed to delete soul.',
         'Network error.' => 'Network error. Please try again.',
         'Delete file check' => 'Are you sure you want to delete ',
+
+        'No description provided' => 'No description provided',
     ],
     
     'zh' => [
@@ -111,6 +117,10 @@ return [
         'View' => '瀏覽',
         'Version History' => '版本歷史',
         
+        // 🚀 新增：一鍵 Mint Existing Soul
+        'Mint NFT' => '鑄造 NFT',
+        'Mint Confirm' => '將模型鑄造為 NFT 需要 0.6 NEAR 的發行質押金。確定要將此模型升級為 Web3 鏈上資產嗎？',
+
         // Edit Main Modal
         'Edit Modular AI Soul' => '編輯模組化 AI 靈魂設定',
         'Title' => '模型標題',
@@ -163,5 +173,7 @@ return [
         'Failed to delete' => '刪除失敗。',
         'Network error.' => '網絡連線錯誤，請檢查連線後重試。',
         'Delete file check' => '您確定要刪除此檔案模組嗎：',
+
+        'No description provided' => '沒有提供描述',
     ]
 ];

@@ -58,6 +58,8 @@ return [
         'Content empty' => 'Soul Content is empty or hasn\'t loaded yet.',
         'Failed to save soul.' => 'Failed to save soul.',
         'Network Error' => 'Network Error. Please try again.',
+
+        'No description provided' => 'No description provided',
     ],
     
     'zh' => [
@@ -113,5 +115,7 @@ return [
         'Content empty' => '模型內容為空或尚未載入完成。',
         'Failed to save soul.' => '儲存模型失敗。',
         'Network Error' => '網絡連線錯誤，請檢查連線後重試。',
+        
+        'No description provided' => '沒有提供描述',
     ]
 ];

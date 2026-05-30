@@ -93,12 +93,10 @@
                     </div>
                 </div>
 
-                <!-- 🚀 Phase 3: AgentFi Actions Area -->
                 <div class="p-5 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner">
                     <h4 class="text-emerald-400 font-bold text-sm mb-4 flex items-center gap-2"><i class="fas fa-gem"></i> <?= __('AgentFi Actions') ?></h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
-                        <!-- Sale Config -->
                         <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <div class="flex justify-between items-start mb-2">
                                 <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400"></i> <?= __('List for Sale') ?></label>
@@ -111,7 +109,6 @@
                             </div>
                         </div>
 
-                        <!-- Rent Config -->
                         <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <div class="flex justify-between items-start mb-2">
                                 <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400"></i> <?= __('List for Rent') ?></label>
@@ -126,8 +123,6 @@
 
                     </div>
                 </div>
-                <!-- End AgentFi Actions -->
-
                 <div class="p-4 sm:p-5 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
                     <div>
                         <h3 class="text-white font-bold text-sm flex items-center gap-2"><i class="fas fa-sync-alt text-emerald-400"></i> <?= __('Sync to NEAR') ?></h3>
@@ -187,6 +182,50 @@
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
+    // 🌟 核心 V5：加入一鍵 Mint 現有模型函式
+    async function mintExistingSoul(id) {
+        if (!confirm("<?= addslashes(__('Mint Confirm')) ?>")) return;
+
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/soul/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_minting: true })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                const deposit = nearApi.utils.format.parseNearAmount("0.6");
+                const args = {
+                    token_id: "soul_" + id,
+                    title: data.soul_title,
+                    description: data.soul_description || "<?= addslashes(__('No description provided')) ?>",
+                    hash: data.hash,
+                    reference: data.url
+                };
+                
+                await wallet.account().functionCall({
+                    contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                    methodName: "mint_soul",
+                    args: args,
+                    gas: "30000000000000",
+                    attachedDeposit: deposit,
+                    walletCallbackUrl: window.location.href
+                });
+            } else {
+                alert(data.error || "Failed to prepare minting.");
+            }
+        } catch(e) {
+            alert("<?= addslashes(__('Network error.')) ?>");
+        }
     }
 
     const modalTagInputs = {};
@@ -363,9 +402,8 @@
         currentEditId = id;
         document.getElementById('edit-id').value = id;
         document.getElementById('edit-title').value = <?= json_encode(__('Loading...'), JSON_UNESCAPED_UNICODE) ?>;
-        document.getElementById('sync-toggle').checked = false; // Reset toggle
+        document.getElementById('sync-toggle').checked = false; 
         
-        // Reset AgentFi fields
         document.getElementById('agentfi-sale-price').value = '';
         document.getElementById('agentfi-rent-price').value = '';
         document.getElementById('btn-cancel-sale').classList.add('hidden');
@@ -465,10 +503,7 @@
             args.price = nearApi.utils.format.parseNearAmount(price.toString());
             methodName = 'list_for_rent';
         } else if (actionType === 'cancel_sale') {
-            methodName = 'list_for_sale'; // Pass null conceptually to clear, but our TS contract expects a string.
-            // Wait, our TS contract currently requires a string price. 
-            // If we want to cancel, we might need a dedicated cancel_sale method or pass a specific string.
-            // Let's assume we pass "0" to indicate cancel. (For simplicity here)
+            methodName = 'list_for_sale'; 
             args.price = "0"; 
         } else if (actionType === 'cancel_rent') {
             methodName = 'list_for_rent';
@@ -618,7 +653,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('transactionHashes')) {
             window.history.replaceState({}, '', window.location.pathname);
-            // Optional: Show a subtle toast that tx was broadcasted
         }
     });
 

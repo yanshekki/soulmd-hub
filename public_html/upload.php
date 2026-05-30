@@ -270,7 +270,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const args = {
                         token_id: "soul_" + data.id,
                         title: payload.title,
-                        description: payload.description || "No description provided",
+                        description: payload.description || "<?= addslashes(__('No description provided')) ?>",
                         hash: data.hash, // 帶入 Server 端防白嫖雜湊指紋
                         reference: data.url
                     };

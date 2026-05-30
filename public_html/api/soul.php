@@ -73,7 +73,6 @@ function syncTags($pdo, $table, $oldStr, $newStr) {
 // 🚀 核心 V5：RPC 備援池與狀態查詢 (對齊全域設定)
 // ==========================================
 function fetchNearRpcToken($tokenId) {
-    // 🌟 完美改進：直接讀取 config.php 中定義的中央高可用 RPC 備援池陣列
     $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : [
         "https://free.rpc.fastnear.com",
         "https://near.lava.build",
@@ -99,7 +98,7 @@ function fetchNearRpcToken($tokenId) {
             CURLOPT_POST => true, 
             CURLOPT_POSTFIELDS => $payload,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'], 
-            CURLOPT_TIMEOUT => 3 // 3 秒極速超時切換
+            CURLOPT_TIMEOUT => 3 
         ]);
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -110,13 +109,13 @@ function fetchNearRpcToken($tokenId) {
             if (isset($data['result']['result'])) {
                 $resString = implode(array_map('chr', $data['result']['result']));
                 if (trim($resString) === 'null') {
-                    return ['status' => 'not_found']; // 鏈上查無此 Token (證明被 Burn 或 Mint 失敗)
+                    return ['status' => 'not_found']; 
                 }
                 return ['status' => 'success', 'data' => json_decode($resString, true)];
             }
         }
     }
-    return ['status' => 'timeout']; // 所有節點因不可抗力死亡，啟動 MySQL 本地緩存放行
+    return ['status' => 'timeout']; 
 }
 
 // ==========================================
@@ -127,7 +126,6 @@ function applyLazySync(&$soul, $pdo) {
 
     $rpcRes = fetchNearRpcToken("soul_" . $soul['id']);
     
-    // 情況 1: 鏈上完全搵唔到呢個 Token (證明用戶 Mint 中途斷線 / 剛剛執行咗 Burn 銷毀)
     if ($rpcRes['status'] === 'not_found') {
         $stmt = $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?");
         $stmt->execute([$soul['id']]);
@@ -136,16 +134,14 @@ function applyLazySync(&$soul, $pdo) {
         $soul['nft_owner_wallet'] = null;
         $soul['nft_salt'] = null;
         $soul['nft_hash'] = null;
-        $soul['is_public'] = 0; // 強制自動回歸為原作者名下的普通 Web2 私密模型 (降級自癒)
+        $soul['is_public'] = 0; 
         return;
     }
 
-    // 情況 2: 成功連通鏈上權威狀態，執行 Web2 拥有權比對與懶同步易手
     if ($rpcRes['status'] === 'success' && !empty($rpcRes['data']['owner_id'])) {
         $chainOwner = $rpcRes['data']['owner_id'];
         
         if ($chainOwner !== $soul['nft_owner_wallet']) {
-            // 🚨 鏈上 Owner 換人（資產易手成功）！立即執行 Lazy Sync
             $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
             $userStmt->execute([$chainOwner]);
             $newOwnerId = $userStmt->fetchColumn() ?: null; 
@@ -157,7 +153,6 @@ function applyLazySync(&$soul, $pdo) {
             $soul['nft_owner_wallet'] = $chainOwner;
         }
     }
-    // 情況 3: 所有 RPC 斷線 (timeout) -> 不做任何數據修改，交由外層依靠 MySQL 紀錄的舊安全緩存放行
 }
 
 // ==========================================
@@ -176,10 +171,8 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 🚀 執行 懶同步與降級自癒 核心防禦
     applyLazySync($soul, $pdo);
 
-    // 權限核對：若已被轉移或本身是私密，非目前擁有者直接彈 403 阻斷 (防偷睇)
     if (!$soul['is_public'] && $soul['user_id'] !== $userId) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
@@ -213,6 +206,55 @@ if ($method === 'GET') {
         exit;
     }
 
+    // 🌟 核心 V5：處理現有 Web2 模型一鍵 Mint 請求
+    if (!empty($input['is_minting']) && $old['is_nft'] == 0) {
+        $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+        $walletStmt->execute([$userId]);
+        $nearWallet = $walletStmt->fetchColumn();
+
+        if (empty($nearWallet)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => __('Please connect NEAR wallet first')], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $nft_salt = bin2hex(random_bytes(16));
+        $nft_hash = 'sha256:' . hash('sha256', $old['content'] . $nft_salt);
+        
+        try {
+            $pdo->prepare("UPDATE souls SET is_nft = 1, is_public = 0, nft_salt = ?, nft_hash = ?, nft_owner_wallet = ? WHERE id = ?")
+                ->execute([$nft_salt, $nft_hash, $nearWallet, $id]);
+
+            $uStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+            $uStmt->execute([$userId]);
+            $username = $uStmt->fetchColumn() ?: 'anonymous';
+
+            if (!function_exists('makeSlugLocal')) {
+                function makeSlugLocal($str) {
+                    if (empty($str)) return 'unassigned';
+                    $str = mb_strtolower($str, 'UTF-8');
+                    $str = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str);
+                    return rawurlencode(trim($str, '-'));
+                }
+            }
+
+            $seoUrl = "https://" . $_SERVER['HTTP_HOST'] . "/soul/" . rawurlencode($username) . "/" . $id . "/" . makeSlugLocal($old['role']) . "/" . makeSlugLocal($old['title']);
+
+            echo json_encode([
+                'success' => true,
+                'hash' => $nft_hash,
+                'soul_title' => $old['title'],
+                'soul_description' => $old['description'],
+                'url' => $seoUrl
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => __('Internal Server Error')], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
     $title = isset($input['title']) ? trim($input['title']) : $old['title'];
     $description = isset($input['description']) ? trim($input['description']) : ($old['description'] ?? '');
     $content = isset($input['content']) ? $input['content'] : $old['content'];
@@ -220,7 +262,7 @@ if ($method === 'GET') {
     $domain = isset($input['domain']) ? trim($input['domain']) : ($old['domain'] ?? '');
     $compatibility = isset($input['compatibility']) ? trim($input['compatibility']) : ($old['compatibility'] ?? '');
     
-    // 🚨 遵循 V5 規格：若是 NFT 資產，強制將 Web2 可見度鎖死為 0 (Private)
+    // 如果是 NFT，強制鎖死 is_public 為 0 (防白嫖機制)
     $is_public = ($old['is_nft'] == 1) ? 0 : (isset($input['is_public']) ? (int)$input['is_public'] : (int)$old['is_public']);
 
     if (empty($title) || empty($content)) {
@@ -249,12 +291,10 @@ if ($method === 'GET') {
     try {
         $pdo->beginTransaction();
 
-        // 自動快照至 Timeline 版本備份庫
         $pdo->prepare("INSERT INTO soul_versions (soul_id, title, content) VALUES (?, ?, ?)")
             ->execute([$id, $old['title'], $old['content']]);
 
         if ($old['is_nft'] == 1) {
-            // 🚀 若是鏈上 NFT 資產：生成安全 Salt 並編譯全新的防篡改指紋，回傳供前端上鏈演進
             $nft_salt = bin2hex(random_bytes(16));
             $nft_hash = 'sha256:' . hash('sha256', $content . $nft_salt);
             $contentHash = $nft_hash;
@@ -262,7 +302,6 @@ if ($method === 'GET') {
             $updStmt = $pdo->prepare("UPDATE souls SET title = ?, description = ?, content = ?, role = ?, domain = ?, compatibility = ?, is_public = 0, file_type = ?, nft_salt = ?, nft_hash = ? WHERE id = ?");
             $updStmt->execute([$title, $description, $content, $role, $domain, $compatibility, $fileType, $nft_salt, $nft_hash, $id]);
         } else {
-            // 普通 Web2 原型
             $contentHash = 'sha256:' . hash('sha256', $content);
             $updStmt = $pdo->prepare("UPDATE souls SET title = ?, description = ?, content = ?, role = ?, domain = ?, compatibility = ?, is_public = ?, file_type = ? WHERE id = ?");
             $updStmt->execute([$title, $description, $content, $role, $domain, $compatibility, $is_public, $fileType, $id]);
