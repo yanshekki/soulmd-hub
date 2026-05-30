@@ -1,8 +1,8 @@
 <?php
 /**
  * SoulMD Hub - Model Version History Archive
- * (Dynamic i18n Internationalization, Secure Parsing & SSR Pagination Edition)
- * 🚀 Patched: PHP Native Pagination to prevent OOM on massive histories
+ * (Dynamic i18n Internationalization, Secure Parsing & SPA Async Fetch Edition)
+ * 🚀 Patched: Fully Paginated with AJAX Fetch to prevent OOM
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,8 +10,6 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-
-// 🌍 載入專屬語言包
 loadTranslations('soul-versions');
 
 $db = Database::getInstance();
@@ -43,30 +41,6 @@ if (!$soul) {
 
 $isOwner = ($soul['user_id'] === $userId);
 
-// =========================================================
-// 🚀 分頁計算與查詢版本紀錄 (OOM 防護)
-// =========================================================
-$countStmt = $pdo->prepare("SELECT COUNT(*) FROM soul_versions WHERE soul_id = ?");
-$countStmt->execute([$soulId]);
-$totalVersions = (int)$countStmt->fetchColumn();
-
-$page = max(1, (int)($_GET['page'] ?? 1));
-$limit = 10; // 每次只載入 10 個版本，保護 PHP 記憶體
-$totalPages = max(1, ceil($totalVersions / $limit));
-$page = min($page, $totalPages);
-$offset = ($page - 1) * $limit;
-
-$versionsStmt = $pdo->prepare("SELECT * FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC LIMIT ? OFFSET ?");
-$versionsStmt->bindValue(1, $soulId, PDO::PARAM_INT);
-$versionsStmt->bindValue(2, $limit, PDO::PARAM_INT);
-$versionsStmt->bindValue(3, $offset, PDO::PARAM_INT);
-$versionsStmt->execute();
-$versions = $versionsStmt->fetchAll();
-
-function getPageUrl($newPage) {
-    return '?page=' . $newPage;
-}
-
 // 🚨 PHP 端 SEO 友善助手
 function makeSlug($str) {
     if (empty($str)) return 'unassigned';
@@ -79,19 +53,6 @@ $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
 $slugRole = makeSlug($soul['role']);
 $slugTitle = makeSlug($soul['title']);
 $canonicalUrl = url("/soul/{$encodedUsername}/{$soulId}/{$slugRole}/{$slugTitle}");
-
-function getFileStyle($filename) {
-    $name = strtoupper($filename);
-    if (str_contains($name, 'SOUL')) return ['icon' => 'fa-brain', 'color' => 'text-emerald-400', 'border' => 'border-emerald-400'];
-    if (str_contains($name, 'STYLE')) return ['icon' => 'fa-palette', 'color' => 'text-purple-400', 'border' => 'border-purple-400'];
-    if (str_contains($name, 'RULE')) return ['icon' => 'fa-shield-alt', 'color' => 'text-red-400', 'border' => 'border-red-400'];
-    if (str_contains($name, 'SKILL')) return ['icon' => 'fa-tools', 'color' => 'text-amber-400', 'border' => 'border-amber-400'];
-    if (str_contains($name, 'MEMORY')) return ['icon' => 'fa-memory', 'color' => 'text-blue-400', 'border' => 'border-blue-400'];
-    if (str_contains($name, 'CONTEXT')) return ['icon' => 'fa-globe', 'color' => 'text-cyan-400', 'border' => 'border-cyan-400'];
-    if (str_contains($name, 'PROMPT')) return ['icon' => 'fa-terminal', 'color' => 'text-green-400', 'border' => 'border-green-400'];
-    if (str_ends_with($name, '.JSON') || str_contains($name, 'ERROR')) return ['icon' => 'fa-code', 'color' => 'text-yellow-400', 'border' => 'border-yellow-400'];
-    return ['icon' => 'fa-file-alt', 'color' => 'text-zinc-400', 'border' => 'border-zinc-400'];
-}
 
 $pageTitle = __('Version History') . ' - ' . $soul['title'];
 $pageDesc = __('Version History Desc');
@@ -116,177 +77,32 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
-    <?php if (empty($versions)): ?>
-        <div class="text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
-            <div class="mx-auto w-20 h-20 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-6 text-zinc-500">
-                <i class="fas fa-history text-3xl"></i>
-            </div>
-            <h2 class="text-2xl font-semibold mb-2"><?= __('No versions yet') ?></h2>
-            <p class="text-zinc-400 text-sm max-w-sm mx-auto"><?= __('No versions desc') ?></p>
-        </div>
-    <?php else: ?>
-        <div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-            
-            <?php if ($page === 1): ?>
-            <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active mb-12">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-zinc-950 bg-emerald-500 text-zinc-950 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                    <i class="fas fa-check text-xs"></i>
-                </div>
-                <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-emerald-400 text-sm font-medium text-center shadow-lg">
-                    <?= __('Currently Active Version') ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <?php foreach ($versions as $index => $version): 
-                // 🚀 精準計算跨頁面版本號 (例如總共 45 個，第 1 頁係 45-36)
-                $versionNumber = $totalVersions - $offset - $index;
-                $isVersionFolder = strpos(trim($version['content']), '{') === 0;
-                
-                // 🚨 完美 JSON 容錯修復機制
-                if ($isVersionFolder) {
-                    $cleanedContent = str_replace("\\'", "'", $version['content']);
-                    $files = json_decode($cleanedContent, true);
-                    
-                    if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
-                        $errorMsg = json_last_error_msg();
-                        $files = [
-                            'ERROR.md' => "## ⚠️ " . __('Parse Error') . "\n" . __('Failed to parse JSON folder structure in this version.') . "\n\n**" . __('Error:') . "** `{$errorMsg}`\n\n---\n\n### " . __('Raw Content:') . "\n```json\n" . $version['content'] . "\n```"
-                        ];
-                    }
-                } else {
-                    $files = ['SOUL.md' => $version['content']];
-                }
-            ?>
-                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-zinc-950 bg-zinc-800 text-zinc-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                        <span class="text-xs font-bold font-mono"><?= $versionNumber ?></span>
-                    </div>
-                    
-                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-zinc-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-sm hover:border-white/20 transition-colors shadow-xl">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <div class="text-xs text-emerald-400 font-medium mb-1 tracking-wider uppercase"><?= __('Version') ?> <?= $versionNumber ?></div>
-                                <div class="font-bold text-lg mb-1 leading-tight text-white"><?= htmlspecialchars($version['title']) ?></div>
-                                <div class="text-xs text-zinc-500 flex items-center gap-1.5">
-                                    <i class="far fa-clock"></i> <?= date('M j, Y • H:i', strtotime($version['edited_at'])) ?>
-                                </div>
-                            </div>
-                            <?php if ($isVersionFolder): ?>
-                                <span class="text-[10px] px-2 py-0.5 rounded font-medium border bg-purple-500/10 text-purple-400 border-purple-500/20 shrink-0"><?= __('Modular') ?></span>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-white/5">
-                            <button onclick="toggleContent(<?= $version['id'] ?>)" id="btn-toggle-<?= $version['id'] ?>" class="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl hover:bg-zinc-700 transition flex items-center justify-center gap-2 border border-white/5 shadow-sm">
-                                <i class="fas fa-eye" id="icon-<?= $version['id'] ?>"></i> <span><?= __('View Content') ?></span>
-                            </button>
-                            
-                            <?php if ($isOwner): ?>
-                            <button onclick="restoreVersion(<?= $version['id'] ?>, <?= $soulId ?>)" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
-                                <i class="fas fa-undo"></i> <?= __('Restore') ?>
-                            </button>
-                            <?php endif; ?>
-                        </div>
-
-                        <div id="content-<?= $version['id'] ?>" class="hidden mt-4 pt-4 border-t border-white/5">
-                            <?php if (count($files) > 1): ?>
-                                <div class="flex overflow-x-auto border-b border-white/10 mb-4 pb-2 custom-scrollbar gap-2">
-                                    <?php 
-                                    $fIdx = 0; 
-                                    foreach($files as $fname => $fcontent): 
-                                        $fIdx++; 
-                                        $fStyle = getFileStyle($fname); 
-                                        
-                                        $displayName = htmlspecialchars($fname);
-                                        $pathPrefix = '';
-                                        if (strpos($fname, '/') !== false) {
-                                            $parts = explode('/', $fname);
-                                            $nameOnly = array_pop($parts);
-                                            $pathOnly = implode('/', $parts);
-                                            $displayName = htmlspecialchars($nameOnly);
-                                            $pathPrefix = '<div class="text-[9px] opacity-50 -mb-1 truncate max-w-[80px] leading-tight">' . htmlspecialchars($pathOnly) . '/</div>';
-                                        }
-                                    ?>
-                                        <button onclick="showVersionFile(<?= $version['id'] ?>, <?= $fIdx ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-v<?= $version['id'] ?>-<?= $fIdx ?>" class="tab-btn-v<?= $version['id'] ?> px-3 py-1.5 text-[11px] font-medium whitespace-nowrap transition border-b-2 rounded-t-lg bg-zinc-950/50 <?= $fIdx === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-800' ?>">
-                                            <div class="flex items-center gap-1.5 text-left">
-                                                <i class="fas <?= $fStyle['icon'] ?>"></i>
-                                                <div class="flex flex-col justify-center min-h-[24px]">
-                                                    <?= $pathPrefix ?>
-                                                    <div class="truncate max-w-[100px] leading-tight"><?= $displayName ?></div>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="bg-zinc-950 border border-white/5 p-5 rounded-2xl relative shadow-inner">
-                                <?php 
-                                $fIdx = 0; 
-                                foreach($files as $fname => $fcontent): 
-                                    $fIdx++; 
-                                    $safeContent = is_string($fcontent) ? $fcontent : json_encode($fcontent, JSON_UNESCAPED_UNICODE);
-                                ?>
-                                    <div id="file-v<?= $version['id'] ?>-<?= $fIdx ?>" class="file-tab-v<?= $version['id'] ?> <?= $fIdx === 1 ? 'block' : 'hidden' ?>">
-                                        <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
-                                            <span class="text-xs font-mono text-zinc-500"><?= htmlspecialchars($fname) ?></span>
-                                            <button onclick="copyRaw(<?= $version['id'] ?>, <?= $fIdx ?>, this)" class="text-[10px] bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-md border border-white/10 hover:bg-zinc-700 transition shadow">
-                                                <i class="far fa-copy mr-1"></i> <?= __('Copy') ?>
-                                            </button>
-                                        </div>
-                                        <textarea id="raw-v<?= $version['id'] ?>-<?= $fIdx ?>" class="raw-v<?= $version['id'] ?> hidden" data-idx="<?= $fIdx ?>"><?= htmlspecialchars($safeContent) ?></textarea>
-                                        
-                                        <div id="render-v<?= $version['id'] ?>-<?= $fIdx ?>" class="prose prose-invert prose-emerald max-w-none prose-sm overflow-y-auto max-h-[350px] custom-scrollbar pr-2 text-zinc-300 leading-relaxed">
-                                            <div class="animate-pulse text-zinc-500 flex items-center gap-2"><i class="fas fa-spinner fa-spin"></i> <?= __('Rendering Markdown...') ?></div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <?php if ($totalPages > 1): ?>
-            <div class="mt-16 flex justify-center select-none">
-                <div class="flex sm:hidden w-full max-w-sm items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">
-                    <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left"></i></a>
-                    <span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= __('Page') ?> <span class="text-white text-sm font-mono"><?= $page ?></span> / <?= $totalPages ?></span>
-                    <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right"></i></a>
-                </div>
-                <div class="hidden sm:flex items-center gap-1.5 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">
-                    <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left text-xs"></i></a>
-                    <?php
-                    $window = 2; 
-                    $start = max(1, $page - $window);
-                    $end = min($totalPages, $page + $window);
-                    if ($start > 1) {
-                        echo '<a href="' . getPageUrl(1) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">1</a>';
-                        if ($start > 2) echo '<span class="w-9 h-9 flex items-center justify-center text-zinc-600 select-none">...</span>';
-                    }
-                    for ($i = $start; $i <= $end; $i++) {
-                        if ($i === $page) echo '<span class="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black font-mono shadow-md">' . $i . '</span>';
-                        else echo '<a href="' . getPageUrl($i) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">' . $i . '</a>';
-                    }
-                    if ($end < $totalPages) {
-                        if ($end < $totalPages - 1) echo '<span class="w-9 h-9 flex items-center justify-center text-zinc-600 select-none">...</span>';
-                        echo '<a href="' . getPageUrl($totalPages) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">' . $totalPages . '</a>';
-                    }
-                    ?>
-                    <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right text-xs"></i></a>
-                </div>
-            </div>
-        <?php endif; ?>
-    <?php endif; ?>
+    <div id="versions-container" class="min-h-[400px]"></div>
+    <div id="pagination-container" class="mt-16 flex justify-center items-center w-full select-none"></div>
 </div>
 
 <script>
-    // 🌍 動態注入多語言 JS 變數 (安全 json_encode)
+    const soulId = <?= $soulId ?>;
+    const isOwner = <?= $isOwner ? 'true' : 'false' ?>;
+    let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
+
+    // 🌍 動態注入多語言 JS 變數
     const lang_ViewContent = <?= json_encode(__('View Content'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_HideContent = <?= json_encode(__('Hide Content'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Copied = <?= json_encode(__('Copied!'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Copy = <?= json_encode(__('Copy'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ActiveVersion = <?= json_encode(__('Currently Active Version'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ParseError = <?= json_encode(__('Parse Error'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ParseErrorDesc = <?= json_encode(__('Failed to parse JSON folder structure in this version.'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Error = <?= json_encode(__('Error:'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_RawContent = <?= json_encode(__('Raw Content:'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Version = <?= json_encode(__('Version'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Modular = <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Restore = <?= json_encode(__('Restore'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_NoVersions = <?= json_encode(__('No versions yet'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_NoVersionsDesc = <?= json_encode(__('No versions desc'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Page = <?= json_encode(__('Page'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_Rendering = <?= json_encode(__('Rendering Markdown...'), JSON_UNESCAPED_UNICODE) ?>;
 
     marked.setOptions({
         breaks: true,
@@ -299,14 +115,225 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    async function restoreVersion(versionId, soulId) {
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
+    function getFileStyle(filename) {
+        const name = filename.toUpperCase();
+        if (name.includes('SOUL')) return { icon: 'fa-brain', color: 'text-emerald-400', border: 'border-emerald-400' };
+        if (name.includes('STYLE')) return { icon: 'fa-palette', color: 'text-purple-400', border: 'border-purple-400' };
+        if (name.includes('RULE')) return { icon: 'fa-shield-alt', color: 'text-red-400', border: 'border-red-400' };
+        if (name.includes('SKILL')) return { icon: 'fa-tools', color: 'text-amber-400', border: 'border-amber-400' };
+        if (name.includes('MEMORY')) return { icon: 'fa-memory', color: 'text-blue-400', border: 'border-blue-400' };
+        if (name.includes('CONTEXT')) return { icon: 'fa-globe', color: 'text-cyan-400', border: 'border-cyan-400' };
+        if (name.includes('PROMPT')) return { icon: 'fa-terminal', color: 'text-green-400', border: 'border-green-400' };
+        if (name.endsWith('.JSON') || name.includes('ERROR')) return { icon: 'fa-code', color: 'text-yellow-400', border: 'border-yellow-400' };
+        return { icon: 'fa-file-alt', color: 'text-zinc-400', border: 'border-zinc-400' };
+    }
+
+    function changePage(p) {
+        currentPage = p;
+        const newUrl = window.location.pathname + '?id=' + soulId + '&page=' + currentPage;
+        window.history.replaceState({}, '', newUrl);
+        loadVersions();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderPagination(current, totalPages) {
+        const container = document.getElementById('pagination-container');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
+        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left"></i></button>`;
+        html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
+        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right"></i></button>`;
+        html += `</div>`;
+
+        html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
+        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left text-xs"></i></button>`;
+
+        const windowSize = 2; 
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
+                if (i === current) {
+                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
+                }
+            } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+            }
+        }
+
+        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += `</div>`;
+
+        container.innerHTML = html;
+    }
+
+    async function loadVersions() {
+        const container = document.getElementById('versions-container');
+        const pagination = document.getElementById('pagination-container');
+        
+        container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        pagination.innerHTML = '';
+
+        try {
+            const res = await fetch(`/api/versions?soul_id=${soulId}&page=${currentPage}`);
+            const data = await res.json();
+
+            if (data.success && data.data.length > 0) {
+                const offset = (currentPage - 1) * 10;
+                let html = '<div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">';
+
+                if (currentPage === 1) {
+                    html += `
+                    <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active mb-12">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-zinc-950 bg-emerald-500 text-zinc-950 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                            <i class="fas fa-check text-xs"></i>
+                        </div>
+                        <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-emerald-400 text-sm font-medium text-center shadow-lg">
+                            ${lang_ActiveVersion}
+                        </div>
+                    </div>`;
+                }
+
+                data.data.forEach((version, index) => {
+                    const versionNumber = data.total_count - offset - index;
+                    const dateObj = new Date(version.edited_at.replace(/-/g, '/'));
+                    const datePart = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timePart = String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+                    const dateStr = `${datePart} • ${timePart}`;
+
+                    const isFolder = version.content && version.content.trim().startsWith('{');
+                    let files = {};
+                    
+                    if (isFolder) {
+                        try {
+                            files = JSON.parse(version.content.replace(/\\'/g, "'"));
+                            if (typeof files !== 'object' || files === null || Object.keys(files).length === 0) throw new Error("Invalid JSON");
+                        } catch (e) {
+                            files = { 'ERROR.md': `## ⚠️ ${lang_ParseError}\n${lang_ParseErrorDesc}\n\n**${lang_Error}** \`${e.message}\`\n\n---\n\n### ${lang_RawContent}\n\`\`\`json\n${version.content}\n\`\`\`` };
+                        }
+                    } else {
+                        files = { 'SOUL.md': version.content };
+                    }
+
+                    html += `
+                    <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-zinc-950 bg-zinc-800 text-zinc-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                            <span class="text-xs font-bold font-mono">${versionNumber}</span>
+                        </div>
+                        
+                        <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-zinc-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-sm hover:border-white/20 transition-colors shadow-xl">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <div class="text-xs text-emerald-400 font-medium mb-1 tracking-wider uppercase">${lang_Version} ${versionNumber}</div>
+                                    <div class="font-bold text-lg mb-1 leading-tight text-white">${escapeHTML(version.title)}</div>
+                                    <div class="text-xs text-zinc-500 flex items-center gap-1.5">
+                                        <i class="far fa-clock"></i> ${dateStr}
+                                    </div>
+                                </div>
+                                ${isFolder ? `<span class="text-[10px] px-2 py-0.5 rounded font-medium border bg-purple-500/10 text-purple-400 border-purple-500/20 shrink-0">${lang_Modular}</span>` : ''}
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-white/5">
+                                <button onclick="toggleContent(${version.id})" id="btn-toggle-${version.id}" class="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl hover:bg-zinc-700 transition flex items-center justify-center gap-2 border border-white/5 shadow-sm">
+                                    <i class="fas fa-eye" id="icon-${version.id}"></i> <span>${lang_ViewContent}</span>
+                                </button>
+                                
+                                ${isOwner ? `
+                                <button onclick="restoreVersion(${version.id}, ${soulId})" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
+                                    <i class="fas fa-undo"></i> ${lang_Restore}
+                                </button>` : ''}
+                            </div>
+
+                            <div id="content-${version.id}" class="hidden mt-4 pt-4 border-t border-white/5">
+                    `;
+
+                    if (Object.keys(files).length > 1) {
+                        html += `<div class="flex overflow-x-auto border-b border-white/10 mb-4 pb-2 custom-scrollbar gap-2">`;
+                        let fIdx = 0;
+                        for (const [fname, fcontent] of Object.entries(files)) {
+                            fIdx++;
+                            const fStyle = getFileStyle(fname);
+                            let displayName = escapeHTML(fname);
+                            let pathPrefix = '';
+                            if (fname.includes('/')) {
+                                const parts = fname.split('/');
+                                displayName = escapeHTML(parts.pop());
+                                const pathOnly = escapeHTML(parts.join('/'));
+                                pathPrefix = `<div class="text-[9px] opacity-50 -mb-1 truncate max-w-[80px] leading-tight">${pathOnly}/</div>`;
+                            }
+                            const isActive = fIdx === 1 ? `${fStyle.border} ${fStyle.color}` : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-800';
+
+                            html += `<button onclick="showVersionFile(${version.id}, ${fIdx}, '${fStyle.border}', '${fStyle.color}')" id="tab-btn-v${version.id}-${fIdx}" class="tab-btn-v${version.id} px-3 py-1.5 text-[11px] font-medium whitespace-nowrap transition border-b-2 rounded-t-lg bg-zinc-950/50 ${isActive}">
+                                <div class="flex items-center gap-1.5 text-left">
+                                    <i class="fas ${fStyle.icon}"></i>
+                                    <div class="flex flex-col justify-center min-h-[24px]">
+                                        ${pathPrefix}
+                                        <div class="truncate max-w-[100px] leading-tight">${displayName}</div>
+                                    </div>
+                                </div>
+                            </button>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    html += `<div class="bg-zinc-950 border border-white/5 p-5 rounded-2xl relative shadow-inner">`;
+                    let fIdx = 0;
+                    for (const [fname, fcontent] of Object.entries(files)) {
+                        fIdx++;
+                        const safeContent = typeof fcontent === 'string' ? fcontent : JSON.stringify(fcontent, null, 2);
+                        const isHidden = fIdx === 1 ? 'block' : 'hidden';
+
+                        html += `
+                        <div id="file-v${version.id}-${fIdx}" class="file-tab-v${version.id} ${isHidden}">
+                            <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+                                <span class="text-xs font-mono text-zinc-500">${escapeHTML(fname)}</span>
+                                <button onclick="copyRaw(${version.id}, ${fIdx}, this)" class="text-[10px] bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-md border border-white/10 hover:bg-zinc-700 transition shadow">
+                                    <i class="far fa-copy mr-1"></i> ${lang_Copy}
+                                </button>
+                            </div>
+                            <textarea id="raw-v${version.id}-${fIdx}" class="raw-v${version.id} hidden" data-idx="${fIdx}">${escapeHTML(safeContent)}</textarea>
+                            <div id="render-v${version.id}-${fIdx}" class="prose prose-invert prose-emerald max-w-none prose-sm overflow-y-auto max-h-[350px] custom-scrollbar pr-2 text-zinc-300 leading-relaxed">
+                                <div class="animate-pulse text-zinc-500 flex items-center gap-2"><i class="fas fa-spinner fa-spin"></i> ${lang_Rendering}</div>
+                            </div>
+                        </div>`;
+                    }
+                    
+                    html += `</div></div></div></div>`; // Close inner divs
+                });
+
+                html += `</div>`;
+                container.innerHTML = html;
+                renderPagination(data.current_page, data.total_pages);
+            } else {
+                container.innerHTML = `
+                <div class="text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
+                    <div class="mx-auto w-20 h-20 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-6 text-zinc-500">
+                        <i class="fas fa-history text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-semibold mb-2">${lang_NoVersions}</h2>
+                    <p class="text-zinc-400 text-sm max-w-sm mx-auto">${lang_NoVersionsDesc}</p>
+                </div>`;
+            }
+        } catch (e) {
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network Error</div>`;
+        }
+    }
+
+    async function restoreVersion(versionId, targetSoulId) {
         if (!confirm(<?= json_encode(__('Restore Confirm'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
         try {
             const res = await fetch('/api/versions', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ version_id: versionId, soul_id: soulId })
+                body: JSON.stringify({ version_id: versionId, soul_id: targetSoulId })
             });
             const data = await res.json();
             
@@ -335,7 +362,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             icon.classList.add('fa-eye-slash');
             btnSpan.innerText = lang_HideContent;
 
-            // 懶加載 (Lazy Render)：當打開面板時才將 Markdown 轉 HTML
             const textareas = document.querySelectorAll(`.raw-v${versionId}`);
             textareas.forEach(ta => {
                 const idx = ta.dataset.idx;
@@ -384,6 +410,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             }, 2000);
         });
     }
+
+    window.onload = loadVersions;
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

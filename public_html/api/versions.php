@@ -1,9 +1,9 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/versions?soul_id={id} - List all versions of a specific soul
- * POST /api/versions              - Restore a specific version (Requires Auth)
- * (100% Dynamic i18n Internationalized Error Stack & UNESCAPED Edition)
+ * GET  /api/versions?soul_id={id}&page={page} - List versions (Paginated)
+ * POST /api/versions - Restore a specific version (Requires Auth)
+ * (100% Dynamic i18n Internationalized Error Stack & Paginated Edition)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+// 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
 $db = Database::getInstance();
@@ -47,8 +47,11 @@ function getAuthUserId($pdo) {
 // 路由處理
 // ==========================================
 if ($method === 'GET') {
-    // 獲取歷史版本列表
+    // 獲取歷史版本列表 (Paginated)
     $soulId = (int)($_GET['soul_id'] ?? 0);
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $limit = min((int)($_GET['limit'] ?? 10), 50); 
+    
     if (!$soulId) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => __('soul_id required')], JSON_UNESCAPED_UNICODE);
@@ -73,14 +76,32 @@ if ($method === 'GET') {
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT id, soul_id, title, content, edited_at FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
-    $stmt->execute([$soulId]);
+    // 🚀 分頁計算
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM soul_versions WHERE soul_id = ?");
+    $countStmt->execute([$soulId]);
+    $totalCount = (int)$countStmt->fetchColumn();
+    
+    $totalPages = max(1, ceil($totalCount / $limit));
+    $offset = ($page - 1) * $limit;
+
+    $stmt = $pdo->prepare("SELECT id, soul_id, title, content, edited_at FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC LIMIT ? OFFSET ?");
+    $stmt->bindValue(1, $soulId, PDO::PARAM_INT);
+    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+    $stmt->execute();
     $versions = $stmt->fetchAll();
 
-    echo json_encode(['success' => true, 'count' => count($versions), 'data' => $versions], JSON_UNESCAPED_UNICODE);
+    echo json_encode([
+        'success' => true, 
+        'count' => count($versions), 
+        'total_count' => $totalCount,
+        'current_page' => $page,
+        'total_pages' => $totalPages,
+        'data' => $versions
+    ], JSON_UNESCAPED_UNICODE);
 
 } elseif ($method === 'POST') {
-    // 還原歷史版本
+    // 還原歷史版本 (Restore Logic)
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -144,3 +165,4 @@ if ($method === 'GET') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }
+?>
