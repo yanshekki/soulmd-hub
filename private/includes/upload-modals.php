@@ -1,12 +1,13 @@
 <?php
 /**
  * SoulMD Hub - Upload Modals & Core Scripts Component
- * Included dynamically at the bottom of upload.php
+ * Included dynamically at the bottom of upload.php & edit.php
+ * 🚀 Patched: Added loadData() method to support Edit Mode parsing
  */
 ?>
 
 <div id="add-file-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
+    <div class="bg-zinc-900 border border border-white/10 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="add-file-content">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30 shrink-0">
             <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white"><i class="fas fa-plus-circle text-emerald-400 mr-2"></i><?= __('Add Module File') ?></h3>
             <button type="button" onclick="closeAddFileModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
@@ -57,7 +58,6 @@
             });
             hiddenInput.value = tags.join(', ');
             
-            // 💡 完美修復：利用 JSON 確保 Placeholder 語法絕對安全
             let ph = '';
             if (tags.length === 0) {
                 ph = inputId === 'domain' ? <?= json_encode(__('Domain Placeholder'), JSON_UNESCAPED_UNICODE) ?> : <?= json_encode(__('Compatibility Placeholder'), JSON_UNESCAPED_UNICODE) ?>;
@@ -130,6 +130,24 @@
             this.switchFile(Object.keys(this.files)[0]);
         }
 
+        // 🚀 核心 V5 補漏：為編輯模式提供數據載入與解析引擎
+        loadData(rawContent) {
+            this.files = {};
+            try {
+                let cleaned = rawContent.replace(/\\'/g, "'");
+                if (cleaned.trim().startsWith('{')) { 
+                    this.files = JSON.parse(cleaned); 
+                } else { 
+                    this.files['SOUL.md'] = rawContent; 
+                }
+            } catch(e) { 
+                this.files['SOUL.md'] = rawContent; 
+            }
+            if (Object.keys(this.files).length === 0) this.files['SOUL.md'] = '';
+            this.renderFileList();
+            this.switchFile(Object.keys(this.files)[0]);
+        }
+
         renderFileList() {
             this.fileListEl.innerHTML = '';
             Object.keys(this.files).forEach(filename => {
@@ -175,7 +193,6 @@
         }
 
         deleteCurrentFile() {
-            // 💡 完美安全：使用 json_encode 防止任何字元中斷 JS 執行
             if (Object.keys(this.files).length <= 1) return alert(<?= json_encode(__('You must have at least one file.'), JSON_UNESCAPED_UNICODE) ?>);
             if (!confirm(<?= json_encode(__('Delete file check'), JSON_UNESCAPED_UNICODE) ?> + this.activeFile + "?")) return;
             delete this.files[this.activeFile];
@@ -191,7 +208,6 @@
 
     const fileEditor = new MultiFileEditor();
 
-    // 🚨 開啟 Modal 時，鎖定背景滾動
     function openAddFileModal() {
         document.body.style.overflow = 'hidden';
         const modal = document.getElementById('add-file-modal');
@@ -205,7 +221,6 @@
         }, 10);
     }
 
-    // 🚨 關閉 Modal 時，恢復背景滾動
     function closeAddFileModal() {
         document.body.style.overflow = '';
         const modal = document.getElementById('add-file-modal');
@@ -267,72 +282,6 @@
         } else {
             alert(<?= json_encode(__('Unsupported file extension.'), JSON_UNESCAPED_UNICODE) ?>);
             uploadedContentStr = '';
-        }
-    });
-
-    const form = document.getElementById('upload-form');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const btn = document.getElementById('submit-btn');
-        const text = document.getElementById('submit-text');
-        const loading = document.getElementById('submit-loading');
-        const errorBox = document.getElementById('error-box');
-        const errorMsg = document.getElementById('error-msg');
-        const successBox = document.getElementById('success-box');
-
-        errorBox.classList.add('hidden');
-        successBox.classList.add('hidden');
-
-        let finalContent = '';
-        if (activeMainTab === 0) finalContent = fileEditor.getPayload();
-        else if (activeMainTab === 1) finalContent = document.getElementById('content-raw').value;
-        else finalContent = uploadedContentStr;
-
-        if (!finalContent || finalContent.trim() === '') {
-            errorMsg.innerText = <?= json_encode(__('Content empty'), JSON_UNESCAPED_UNICODE) ?>;
-            errorBox.classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
-
-        text.classList.add('hidden');
-        loading.classList.remove('hidden');
-        btn.classList.add('opacity-80', 'cursor-not-allowed');
-
-        const payload = {
-            title: document.getElementById('title').value,
-            description: document.getElementById('description').value,
-            role: document.getElementById('role').value,
-            domain: document.getElementById('domain').value,
-            compatibility: document.getElementById('compatibility').value,
-            content: finalContent
-        };
-
-        try {
-            const res = await fetch('/api/souls', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                // 🚨 發布成功後自動跳轉去雙語版網址
-                window.location.href = data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
-            } else {
-                errorMsg.innerText = data.error || <?= json_encode(__('Failed to save soul.'), JSON_UNESCAPED_UNICODE) ?>;
-                errorBox.classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        } catch(err) {
-            errorMsg.innerText = <?= json_encode(__('Network Error'), JSON_UNESCAPED_UNICODE) ?>;
-            errorBox.classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } finally {
-            text.classList.remove('hidden');
-            loading.classList.add('hidden');
-            btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     });
 </script>
