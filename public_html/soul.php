@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Centrally Synchronized Wallet Router Integration
+ * 🚀 Patched: Centrally Synchronized Wallet Router Integration & Accurate Tx Alerts
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -370,9 +370,18 @@ require_once __DIR__ . '/../private/includes/header.php';
     const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
     const soulDbId = <?= $id ?>;
 
+    // 🚨 輔助函數：生成帶有操作標記的回傳網址
+    function getCallbackUrl(actionType) {
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('id', soulDbId);
+        url.searchParams.set('tx_action', actionType);
+        return url.toString();
+    }
+
     // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
     async function fetchMarketStatus() {
         try {
+            // 🚨 取得目前綁定的錢包 (用於判斷是否為 Owner)
             const wallet = await initNearWallet();
             const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
 
@@ -398,6 +407,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     document.getElementById('agentfi-market-block').classList.remove('hidden');
                     document.getElementById('market-owner').innerText = tokenInfo.owner_id;
 
+                    // 🚨 核心判斷：是否為擁有人
                     const isOwner = myWallet && tokenInfo.owner_id === myWallet;
 
                     if (tokenInfo.sale_price) {
@@ -407,6 +417,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnBuy.classList.remove('hidden');
                         btnBuy.dataset.price = tokenInfo.sale_price; 
                         
+                        // 🔒 鎖死擁有人的購買按鈕
                         if (isOwner) {
                             btnBuy.disabled = true;
                             btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
@@ -421,6 +432,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnRent.classList.remove('hidden');
                         btnRent.dataset.price = tokenInfo.rent_price; 
                         
+                        // 🔒 鎖死擁有人的租用按鈕
                         if (isOwner) {
                             btnRent.disabled = true;
                             btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
@@ -433,42 +445,55 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch(e) { console.log('Not an NFT or RPC failed'); }
     }
 
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 🚨 精準分析回傳參數並彈出對應提示
+        if (urlParams.has('transactionHashes')) {
+            const txAction = urlParams.get('tx_action');
+            if (txAction === 'buy') {
+                alert('<?= addslashes(__('Buy success')) ?>');
+            } else if (txAction === 'rent') {
+                alert('<?= addslashes(__('Rent success')) ?>');
+            } else {
+                alert('<?= addslashes(__('Transaction Success')) ?>');
+            }
+            
+            // 清理網址
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + soulDbId;
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        }
+
+        const tabs = document.querySelectorAll('.file-tab');
+        tabs.forEach((tab, idx) => {
+            const i = idx + 1;
+            const rawContent = document.getElementById(`raw-${i}`).value;
+            const parsedHTML = marked.parse(rawContent);
+            document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
+        });
+
+        // 🚀 初始化載入 NFT 市場狀態
+        fetchMarketStatus();
+    });
+
     async function buySoul() {
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
-            // 🚨 核心更新：使用中央路由
-            await window.connectOrBindWallet();
-            return;
-        }
+        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         const price = document.getElementById('btn-buy').dataset.price;
-        await wallet.account().functionCall({
-            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-            methodName: "buy_soul",
-            args: { token_id: "soul_" + soulDbId },
-            gas: "30000000000000",
-            attachedDeposit: price,
-            walletCallbackUrl: window.location.href
-        });
+        
+        // 🚨 標記此操作為 Buy
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('buy') });
     }
 
     async function rentSoul() {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
-            // 🚨 核心更新：使用中央路由
-            await window.connectOrBindWallet();
-            return;
-        }
+        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         const price = document.getElementById('btn-rent').dataset.price;
-        await wallet.account().functionCall({
-            contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-            methodName: "rent_soul",
-            args: { token_id: "soul_" + soulDbId },
-            gas: "30000000000000",
-            attachedDeposit: price,
-            walletCallbackUrl: window.location.href
-        });
+        
+        // 🚨 標記此操作為 Rent
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('rent') });
     }
 
     function copyMegaPrompt(btn) {
@@ -518,19 +543,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
             return hljs.highlightAuto(code).value; 
         } 
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-        const tabs = document.querySelectorAll('.file-tab');
-        tabs.forEach((tab, idx) => {
-            const i = idx + 1;
-            const rawContent = document.getElementById(`raw-${i}`).value;
-            const parsedHTML = marked.parse(rawContent);
-            document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
-        });
-
-        // 🚀 初始化載入 NFT 市場狀態
-        fetchMarketStatus();
     });
 
     function showFile(n, activeBorder, activeColor) {

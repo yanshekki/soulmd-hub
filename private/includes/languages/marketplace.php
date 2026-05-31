@@ -32,13 +32,17 @@ return [
         'Sale' => 'Sale',
         'Rent' => 'Rent',
         'Network Error' => 'Network Error. Please try again.',
+        
+        // 🚨 精準成功提示
         'Swap success' => 'Swap Transaction Successfully Submitted! Your $SOUL tokens will arrive shortly.',
+        'Buy success' => 'NFT successfully purchased! You are now the owner.',
+        'Rent success' => 'NFT successfully rented for 30 days! You can now interact with it in the Chat Engine.',
+        'Transaction Success' => 'Transaction successfully submitted!',
         'Swap fail' => 'Transaction Failed: ',
 
         'Floor Price' => 'Floor Price',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
 
-        // 🚨 新增：租用提示與活躍租客名單
         'Active Renters' => 'Active Renters',
         'Renter List' => 'Active Renters List',
         'Renter' => 'Renter (Wallet)',
@@ -75,13 +79,17 @@ return [
         'Sale' => '出售',
         'Rent' => '出租',
         'Network Error' => '網絡異常，請檢查連線。',
+
+        // 🚨 精準成功提示
         'Swap success' => '交易成功！您的 $SOUL 代幣已順利兌換並存入您的錢包。',
+        'Buy success' => '成功買斷 NFT！您現在是該模型的合法擁有者。',
+        'Rent success' => '成功租用 NFT 30 天！您現在可以前往 Chat 引擎與其對話。',
+        'Transaction Success' => '交易已成功提交！',
         'Swap fail' => '區塊鏈交易失敗：',
 
         'Floor Price' => '保底地板價',
         'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
 
-        // 🚨 新增：租用提示與活躍租客名單
         'Active Renters' => '名活躍租客',
         'Renter List' => '目前活躍租客名單',
         'Renter' => '租客錢包',

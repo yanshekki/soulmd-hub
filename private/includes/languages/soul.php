@@ -50,9 +50,13 @@ return [
         'Forking...' => 'Forking...',
         'Fork failed' => 'Fork failed',
 
-        // 🚨 新增：保底地板價
         'Floor Price' => 'Floor Price',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
+        
+        // 🚨 精準成功提示
+        'Buy success' => 'NFT successfully purchased! You are now the owner.',
+        'Rent success' => 'NFT successfully rented for 30 days! You can now interact with it in the Chat Engine.',
+        'Transaction Success' => 'Transaction successfully submitted!',
     ],
     
     'zh' => [
@@ -100,8 +104,12 @@ return [
         'Forking...' => '正在分叉...',
         'Fork failed' => '分叉失敗',
 
-        // 🚨 新增：保底地板價
         'Floor Price' => '保底地板價',
         'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
+        
+        // 🚨 精準成功提示
+        'Buy success' => '成功買斷 NFT！您現在是該模型的合法擁有者。',
+        'Rent success' => '成功租用 NFT 30 天！您現在可以前往 Chat 引擎與其對話。',
+        'Transaction Success' => '交易已成功提交！',
     ]
 ];
