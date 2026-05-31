@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Edit Model Dashboard
  * (DRY Refactored - Unified Form Extracted to soul-form.php)
- * 🚀 Patched: Phantom NFT Self-Healing Mechanism
+ * 🚀 Patched: Phantom NFT Self-Healing & Lazy Sync Ownership Transfer
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -28,8 +28,9 @@ if (!$soulId) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ? AND user_id = ?");
-$stmt->execute([$soulId, $user_id]);
+// 🚨 修正 1：先不要檢查 user_id，純粹撈取 Soul，因為可能是剛買入的 NFT (Lazy Sync 尚未觸發)
+$stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ?");
+$stmt->execute([$soulId]);
 $soulData = $stmt->fetch();
 
 if (!$soulData) {
@@ -38,9 +39,13 @@ if (!$soulData) {
     exit;
 }
 
-// 🚨 核心防死鎖：Phantom NFT 幽靈自癒降級機制
+$wStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+$wStmt->execute([$user_id]);
+$myWallet = $wStmt->fetchColumn();
+
+// 🚨 修正 2：Lazy Sync 與 Phantom NFT 幽靈自癒降級機制
 if ($soulData['is_nft'] == 1) {
-    $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://free.rpc.fastnear.com"];
+    $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"];
     $rpcPayload = json_encode([
         "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
         "params" => [
@@ -69,11 +74,40 @@ if ($soulData['is_nft'] == 1) {
                     // 區塊鏈上查無此物！執行降級自癒，解鎖前端表單！
                     $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL WHERE id = ?")->execute([$soulId]);
                     $soulData['is_nft'] = 0;
+                } else {
+                    // 🔄 Lazy Sync 擁有權移交 (保障買家能立即編輯)
+                    $tokenInfo = json_decode($resString, true);
+                    if ($tokenInfo && isset($tokenInfo['owner_id'])) {
+                        $chainOwner = $tokenInfo['owner_id'];
+                        if ($chainOwner !== $soulData['nft_owner_wallet']) {
+                            $uStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
+                            $uStmt->execute([$chainOwner]);
+                            $newOwnerId = $uStmt->fetchColumn() ?: null;
+                            
+                            $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ? WHERE id = ?")->execute([$newOwnerId, $chainOwner, $soulId]);
+                            $soulData['user_id'] = $newOwnerId;
+                            $soulData['nft_owner_wallet'] = $chainOwner;
+                        }
+                    }
                 }
             }
             break; 
         }
     }
+}
+
+// 🚨 修正 3：最終權限校驗 (確認是 Web2 擁有者，或者是 Web3 錢包擁有者)
+$hasAccess = false;
+if ($soulData['user_id'] == $user_id) {
+    $hasAccess = true;
+} elseif ($soulData['is_nft'] == 1 && !empty($myWallet) && $myWallet === $soulData['nft_owner_wallet']) {
+    $hasAccess = true;
+}
+
+if (!$hasAccess) {
+    http_response_code(404);
+    include __DIR__ . '/404.php';
+    exit;
 }
 
 $isEditMode = true;

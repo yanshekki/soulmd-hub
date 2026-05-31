@@ -9,7 +9,8 @@ ErrorDocument 404 /404.php
     # 0. 多語言 (i18n) 預處理 (支援未來無限擴充)
     # ==========================================
     RewriteCond %{REQUEST_URI} ^/([a-z]{2})(/|$) [NC]
-    RewriteCond %{REQUEST_URI} !^/([a-z]{2})/(api|images|uploads|download|edit)(/|$) [NC]
+    # 🚨 漏洞修復：從排除名單中拔除 edit，讓 /zh/edit/123 可以成功被解析
+    RewriteCond %{REQUEST_URI} !^/([a-z]{2})/(api|images|uploads|download)(/|$) [NC]
     RewriteRule ^([a-z]{2})(?:/(.*))?$ /$2?lang=$1 [QSA,E=LANG:$1]
 
     # ==========================================
