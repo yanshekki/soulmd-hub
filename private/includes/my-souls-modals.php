@@ -185,47 +185,46 @@
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
 
-    // 🚨 Web2 Delete 專屬邏輯
-    async function deleteWeb2Soul(id) {
-        if (!confirm(lang_PermDelete)) return;
-        try {
-            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) { 
-                location.reload(); 
-            } else { 
-                alert(data.error || "Delete failed"); 
-            }
-        } catch(e) { 
-            alert("Network Error"); 
+    async function mintExistingSoul(id) {
+        if (!confirm("<?= addslashes(__('Mint Confirm')) ?>")) return;
+
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            await window.connectOrBindWallet();
+            return;
         }
-    }
-
-    // 🚨 Web3 Burn 專屬邏輯 (搭配 0 Deposit 靜默簽署)
-    async function burnWeb3Soul(id) {
-        if (!confirm(lang_BurnConfirm)) return;
 
         try {
-            if (typeof initNearWallet !== 'function') return;
-            const wallet = await initNearWallet();
-            
-            if (!wallet.isSignedIn()) {
-                await window.connectOrBindWallet();
-                return;
-            }
-
-            // 0 Deposit 將自動觸發靜默簽署
-            await wallet.account().functionCall({
-                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                methodName: "burn_soul",
-                args: { token_id: "soul_" + id },
-                gas: "30000000000000", 
-                attachedDeposit: "0", 
-                walletCallbackUrl: window.location.href 
+            const res = await fetch(`/api/soul/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_minting: true })
             });
+            const data = await res.json();
             
-        } catch (e) {
-            console.error("Burn execution error:", e);
+            if (data.success) {
+                const deposit = nearApi.utils.format.parseNearAmount("0.6");
+                const args = {
+                    token_id: "soul_" + id,
+                    title: data.soul_title,
+                    description: data.soul_description || "<?= addslashes(__('No description provided')) ?>",
+                    hash: data.hash,
+                    reference: data.url
+                };
+                
+                await wallet.account().functionCall({
+                    contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                    methodName: "mint_soul",
+                    args: args,
+                    gas: "30000000000000",
+                    attachedDeposit: deposit,
+                    walletCallbackUrl: window.location.href
+                });
+            } else {
+                alert(data.error || <?= json_encode(__('Failed to prepare minting.'), JSON_UNESCAPED_UNICODE) ?>);
+            }
+        } catch(e) {
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>);
         }
     }
 
@@ -521,6 +520,8 @@
                 attachedDeposit: "0",
                 walletCallbackUrl: window.location.href
             });
+            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+            window.location.reload();
         } catch(e) { 
             alert(<?= json_encode(__('Blockchain transaction failed or rejected.'), JSON_UNESCAPED_UNICODE) ?>); 
         }
@@ -568,9 +569,9 @@
             
             if (data.success) { 
                 if (wantSync) {
-                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
+                    text.innerText = "Syncing...";
                     text.classList.remove('hidden');
-                    spinner.classList.add('hidden');
+                    spinner.classList.remove('hidden');
                     
                     const args = {
                         token_id: "soul_" + currentEditId,
@@ -585,6 +586,9 @@
                         attachedDeposit: "0",
                         walletCallbackUrl: window.location.href
                     });
+                    
+                    // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+                    closeModal(); location.reload(); 
                 } else {
                     closeModal(); location.reload(); 
                 }

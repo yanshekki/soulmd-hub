@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
- * 🚀 Patched: Fixed URL Race Condition & Full i18n
+ * 🚀 Patched: Fixed Wallet Callback URL Parsing Race Condition Bug & Tab Routing Support
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -362,6 +362,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 attachedDeposit: "0", 
                 walletCallbackUrl: window.location.href
             });
+            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+            alert("Buyback initiated successfully!");
+            window.location.reload();
         } catch(e) {
             let errorText = `<?= addslashes(__('Buyback Failed')) ?>`.replace(':contract', '<?= NEAR_CONTRACT_ID; ?>');
             alert(errorText);

@@ -293,6 +293,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success && data.data.length > 0) {
                 const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
                 
+                // 🚨 核心升級：實時拉取 RPC 獲取租客資訊
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
                     try {
@@ -325,6 +326,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
+                    // 🚨 解析租客資訊
                     let activeRenters = [];
                     if (soul.market.renters) {
                         const nowMs = Date.now();
@@ -408,6 +410,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 顯示活躍租客名單 Modal
     function showRentersModal(encodedJson) {
         const renters = JSON.parse(decodeURIComponent(encodedJson));
         const listContainer = document.getElementById('renters-list-content');
@@ -450,6 +453,50 @@ require_once __DIR__ . '/../private/includes/header.php';
         content.classList.remove('scale-100');
         content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
+    async function deleteWeb2Soul(id) {
+        if (!confirm(lang_PermDelete)) return;
+        try {
+            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { 
+                location.reload(); 
+            } else { 
+                alert(data.error || "Delete failed"); 
+            }
+        } catch(e) { 
+            alert("Network Error"); 
+        }
+    }
+
+    async function burnWeb3Soul(id) {
+        if (!confirm(lang_BurnConfirm)) return;
+
+        try {
+            if (typeof initNearWallet !== 'function') return;
+            const wallet = await initNearWallet();
+            
+            if (!wallet.isSignedIn()) {
+                await window.connectOrBindWallet();
+                return;
+            }
+
+            // 0 Deposit 將自動觸發靜默簽署
+            await wallet.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "burn_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000", 
+                attachedDeposit: "0", 
+                walletCallbackUrl: window.location.href 
+            });
+            
+            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+            window.location.reload();
+        } catch (e) {
+            console.error("Burn execution error:", e);
+        }
     }
 
     async function proactiveAssetSync() {
@@ -501,5 +548,4 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 </script>
 
-<?php require_once __DIR__ . '/../private/includes/my-souls-modals.php'; ?>
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

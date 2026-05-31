@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: Centrally Synchronized Wallet Router Integration
+ * 🚀 Patched: Centrally Synchronized Wallet Router & Silent Sign Support
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -323,7 +323,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         if (!isEditMode) return;
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            // 🚨 核心更新：使用中央路由
             await window.connectOrBindWallet();
             return;
         }
@@ -358,6 +357,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                 methodName: methodName, args: args, gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: window.location.href
             });
+            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+            window.location.reload();
         } catch(e) { 
             alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>"); 
         }
@@ -382,7 +383,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             if (wantMintOrSync) {
                 wallet = await initNearWallet();
                 if (!wallet.isSignedIn()) {
-                    // 🚨 核心更新：使用中央路由
                     await window.connectOrBindWallet();
                     return;
                 }
@@ -429,7 +429,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                     const targetUrl = isEditMode ? window.location.href : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                     
                     if (wantMintOrSync) {
-                        text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>"; text.classList.remove('hidden'); loading.classList.add('hidden');
+                        text.innerText = isNft ? "Syncing..." : "<?= addslashes(__('Redirecting to Wallet...')) ?>"; 
+                        text.classList.remove('hidden'); loading.classList.add('hidden');
                         
                         if (isEditMode && isNft) {
                             await wallet.account().functionCall({
@@ -438,6 +439,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                                 args: { token_id: "soul_" + soulId, new_hash: data.hash },
                                 gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: targetUrl
                             });
+                            // 🚨 V5 靜默簽署修復：簽署完成後直接跳轉
+                            window.location.href = "<?= url('/my-souls') ?>";
                         } else {
                             const deposit = nearApi.utils.format.parseNearAmount("0.6");
                             const newId = isEditMode ? soulId : data.id;
