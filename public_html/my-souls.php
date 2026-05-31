@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Centrally Synchronized Wallet Router Integration
+ * 🚀 Patched: Added Active Renters Popup & RPC Realtime Polling for My NFT Assets
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -94,6 +94,21 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
+<div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-users text-blue-400"></i> <?= __('Renter List') ?></h3>
+            <button type="button" onclick="closeRentersModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-5 overflow-y-auto custom-scrollbar flex-grow bg-zinc-900/50">
+            <div id="renters-list-content" class="space-y-3"></div>
+        </div>
+        <div class="p-4 border-t border-white/10 bg-zinc-950 text-right">
+            <button type="button" onclick="closeRentersModal()" class="px-5 py-2 bg-zinc-800 text-white rounded-xl font-bold hover:bg-zinc-700 transition shadow"><?= __('Close') ?></button>
+        </div>
+    </div>
+</div>
+
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
@@ -117,6 +132,11 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_FloorPrice = <?= json_encode(__('Floor Price'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_FloorDesc = <?= json_encode(__('Floor Desc'), JSON_UNESCAPED_UNICODE) ?>;
     
+    // 🚨 新增：動態語言變量
+    const lang_ActiveRenters = <?= json_encode(__('Active Renters'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ExpiresAt = <?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_NoActiveRenters = <?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>;
+
     const url_soul_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_edit_prefix = <?= json_encode(url('/edit/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_versions = <?= json_encode(url('/soul-versions/'), JSON_UNESCAPED_UNICODE) ?>;
@@ -269,6 +289,28 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if (data.success && data.data.length > 0) {
+                const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+                
+                // 🚨 核心升級：實時拉取 RPC 獲取租客資訊
+                const rpcPromises = data.data.map(async (soul) => {
+                    soul.market = {};
+                    try {
+                        const rpcRes = await fetch(safeRpcUrl, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                jsonrpc: "2.0", id: "dontcare", method: "query",
+                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                            })
+                        });
+                        const rpcData = await rpcRes.json();
+                        if (rpcData.result && rpcData.result.result) {
+                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                            if (tokenInfo) soul.market = tokenInfo;
+                        }
+                    } catch(e) {}
+                });
+                await Promise.all(rpcPromises);
+
                 let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">`;
                 data.data.forEach(soul => {
                     const dateObj = new Date(soul.created_at.replace(/-/g, '/'));
@@ -281,6 +323,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                         });
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+
+                    // 🚨 解析租客資訊
+                    let activeRenters = [];
+                    if (soul.market.renters) {
+                        const nowMs = Date.now();
+                        for (const accountId in soul.market.renters) {
+                            const expiryMs = Number(BigInt(soul.market.renters[accountId]) / 1000000n);
+                            if (expiryMs > nowMs) {
+                                activeRenters.push({ account: accountId, expiry: expiryMs });
+                            }
+                        }
+                    }
+                    const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
+                    const rentersCount = activeRenters.length;
 
                     html += `
                     <div class="soul-card bg-zinc-900/60 border border-purple-500/20 rounded-3xl p-5 sm:p-6 hover:border-purple-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg relative overflow-hidden" data-id="${soul.id}">
@@ -302,6 +358,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     </span>
                                 </div>
                             </div>
+
+                            <div class="mb-3 flex items-center gap-2">
+                                <button type="button" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md font-bold cursor-pointer shadow-sm transition inline-flex items-center gap-1.5">
+                                    <i class="fas fa-users"></i> ${rentersCount} ${lang_ActiveRenters}
+                                </button>
+                            </div>
+
                             ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                             <div class="flex flex-wrap gap-1.5 mb-6">${tagsHtml}</div>
                         </div>
@@ -335,6 +398,51 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 顯示活躍租客名單 Modal
+    function showRentersModal(encodedJson) {
+        const renters = JSON.parse(decodeURIComponent(encodedJson));
+        const listContainer = document.getElementById('renters-list-content');
+        listContainer.innerHTML = '';
+
+        if (renters.length === 0) {
+            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6">${lang_NoActiveRenters}</div>`;
+        } else {
+            renters.forEach(r => {
+                const d = new Date(r.expiry);
+                const dateStr = d.toLocaleString();
+                listContainer.innerHTML += `
+                    <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
+                        <div class="text-[10px] text-zinc-500 shrink-0 text-right">
+                            <div class="uppercase tracking-wider">${lang_ExpiresAt}</div>
+                            <div class="text-zinc-300 font-bold">${dateStr}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        document.body.style.overflow = 'hidden';
+        const modal = document.getElementById('renters-modal');
+        const content = modal.firstElementChild;
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeRentersModal() {
+        document.body.style.overflow = '';
+        const modal = document.getElementById('renters-modal');
+        const content = modal.firstElementChild;
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
     async function deleteSoul(id) {
         if (!confirm(lang_BurnConfirm)) {
             if (!confirm(lang_PermDelete)) return;
@@ -346,7 +454,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (typeof initNearWallet !== 'function') { executeDatabaseDelete(id); return; }
             const wallet = await initNearWallet();
             
-            // 🚨 核心更新：若用戶在進行 Web3 操作前斷線，強制導向中央綁定路由
             if (!wallet.isSignedIn()) {
                 await window.connectOrBindWallet();
                 return;

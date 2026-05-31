@@ -69,8 +69,9 @@ return [
         'Burn Confirm' => "Are you sure you want to permanently delete this AI soul?\n\nIf this soul was minted as an NFT on NEAR, do you want to BURN it on the blockchain to reclaim the 0.45 NEAR Floor Price?\n\nPress [OK] to Delete + Burn NFT.\nPress [Cancel] to just delete from database.",
         'Floor Price' => 'Floor Price',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
+        
+        'Active renters error' => 'Action Blocked: Cannot burn this NFT because there are active renters. Please wait until all rental periods expire before burning.',
 
-        // 🚨 更新提示
         'AgentFi Actions' => 'AgentFi Actions',
         'List for Sale' => 'List for Sale',
         'Sale Desc' => 'Sell full ownership and royalty rights of this AI model. (5% platform fee) Set price to 0 or leave empty to disable sale.',
@@ -100,6 +101,13 @@ return [
         'Failed to prepare minting.' => 'Failed to prepare minting.',
         'Invalid price' => 'Invalid price. Must be greater than 0.',
         'Blockchain transaction failed or rejected.' => 'Blockchain transaction failed or rejected by user.',
+
+        // 🚨 新增：租客彈窗語言
+        'Active Renters' => 'Active Renters',
+        'Renter List' => 'Active Renters List',
+        'Expires At' => 'Expires At',
+        'No active renters' => 'No active renters at the moment.',
+        'Close' => 'Close',
     ],
     
     'zh' => [
@@ -166,8 +174,9 @@ return [
         'Burn Confirm' => "您確定要永久刪除這個 AI 靈魂模型嗎？\n\n如果此模型已經鑄造為 NEAR 上的 NFT，您是否要同時在區塊鏈上「銷毀 (Burn)」它，以取回 0.45 NEAR 的保底地板價退款？\n\n點擊 [確定]：刪除資料庫並喚起錢包銷毀 NFT\n點擊 [取消]：僅刪除資料庫（不退款）",
         'Floor Price' => '保底地板價',
         'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
+        
+        'Active renters error' => '操作被拒：目前尚有活躍租客正在租用此模型，您必須等待所有租約到期後才能銷毀此 NFT。',
 
-        // 🚨 更新提示
         'AgentFi Actions' => 'AgentFi 區塊鏈操作',
         'List for Sale' => '掛牌出售 (賣斷)',
         'Sale Desc' => '出售此 AI 模型的完整擁有權及後續版稅權益。(扣除 5% 平台稅)。將價格設定為 0 或留白即可取消掛售。',
@@ -197,5 +206,12 @@ return [
         'Failed to prepare minting.' => '準備鑄造失敗。',
         'Invalid price' => '無效的價格，必須大於 0。',
         'Blockchain transaction failed or rejected.' => '區塊鏈交易失敗，或已被用戶拒絕。',
+
+        // 🚨 新增：租客彈窗語言
+        'Active Renters' => '名活躍租客',
+        'Renter List' => '目前活躍租客名單',
+        'Expires At' => '租約到期時間',
+        'No active renters' => '目前暫無活躍的租客。',
+        'Close' => '關閉',
     ]
 ];

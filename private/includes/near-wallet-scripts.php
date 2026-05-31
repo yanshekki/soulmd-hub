@@ -2,10 +2,9 @@
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
  * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER (V5 Centralized Config Edition)
- * 🚨 Patched: Unified Wallet Router & Global Session Sync Engine
+ * 🚨 Patched: Restored Silent Sign (0 Deposit) & Smart FullAccess Router
  */
 
-// 🌟 獲取當前 PHP Web2 狀態，供前端 JS 進行狀態同步比對
 $sync_isPhpLoggedIn = isset($_SESSION['user_id']) ? 'true' : 'false';
 $sync_phpUserWallet = '';
 if (isset($_SESSION['user_id'])) {
@@ -70,20 +69,40 @@ if (isset($_SESSION['user_id'])) {
                 requestSignIn: ({ contractId }) => { wallet.requestSignIn({ contractId: contractId }); },
                 signOut: () => { wallet.signOut(); },
                 account: () => {
+                    const originalAccount = wallet.account();
                     return {
                         functionCall: async ({ contractId, methodName, args, gas, attachedDeposit, walletCallbackUrl }) => {
-                            return window.nearHubWalletWrapper.requestSignTransactions({
-                                transactions: [{
-                                    receiverId: contractId,
-                                    actions: [{
-                                        methodName: methodName,
-                                        args: args,
-                                        gas: gas || "30000000000000",
-                                        deposit: attachedDeposit || "0"
-                                    }]
-                                }],
-                                callbackUrl: walletCallbackUrl
-                            });
+                            const depositStr = (attachedDeposit || "0").toString();
+                            
+                            // 🚨 終極 UX 修復：0 Deposit 操作 (如 Burn, Update Hash) 使用原生靜默簽署 (Silent Sign)
+                            // 這樣就不會再每次都跳轉去 MyNearWallet 要求授權！
+                            if (depositStr === "0") {
+                                const gasVal = typeof utils.BN !== 'undefined' ? new utils.BN((gas || "30000000000000").toString()) : BigInt((gas || "30000000000000").toString());
+                                const depVal = typeof utils.BN !== 'undefined' ? new utils.BN("0") : BigInt(0);
+                                
+                                return originalAccount.functionCall({
+                                    contractId: contractId,
+                                    methodName: methodName,
+                                    args: args,
+                                    gas: gasVal,
+                                    attachedDeposit: depVal,
+                                    walletCallbackUrl: walletCallbackUrl
+                                });
+                            } else {
+                                // 💸 大於 0 Deposit (如買賣、Mint) 則強制使用 FullAccess 並跳轉錢包
+                                return window.nearHubWalletWrapper.requestSignTransactions({
+                                    transactions: [{
+                                        receiverId: contractId,
+                                        actions: [{
+                                            methodName: methodName,
+                                            args: args,
+                                            gas: gas || "30000000000000",
+                                            deposit: depositStr
+                                        }]
+                                    }],
+                                    callbackUrl: walletCallbackUrl
+                                });
+                            }
                         }
                     };
                 },
@@ -129,26 +148,20 @@ if (isset($_SESSION['user_id'])) {
         }
     };
 
-    // =========================================================
-    // 🌟 全域統一錢包入口 (Centralized Wallet Router)
-    // =========================================================
     window.connectOrBindWallet = async function() {
         const isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
         const dbWallet = "<?= $sync_phpUserWallet ?>";
 
         if (!isPhpLoggedIn) {
-            // 情況 1：未登入，踢去登入頁
             window.location.href = '<?= url("/login") ?>';
             return;
         }
 
         if (!dbWallet) {
-            // 情況 2：已登入但未綁定錢包，踢去設定頁並自動切換到 web3 tab
             window.location.href = '<?= url("/my-setting") ?>?tab=web3';
             return;
         }
 
-        // 情況 3：已綁定錢包，但 LocalStorage 可能遺失了金鑰，自動喚起重新簽署
         const wallet = await window.initNearWallet();
         if (!wallet.isSignedIn()) {
             wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
@@ -157,7 +170,6 @@ if (isset($_SESSION['user_id'])) {
         }
     };
 
-    // 🌟 全域 Web2 & Web3 狀態同步引擎
     window.addEventListener('DOMContentLoaded', async () => {
         const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
         
