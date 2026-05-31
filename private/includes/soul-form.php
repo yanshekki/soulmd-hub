@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: 0-Price Input Handler for Cancellation
+ * 🚀 Patched: Centrally Synchronized Wallet Router Integration
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -218,9 +218,9 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                             <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
                             <p><?= ($isEditMode && $soulData['is_nft'] == 1) ? __('NFT Edit Lock Warning') : __('Please connect NEAR wallet first') ?></p>
                         </div>
-                        <a href="<?= url('/my-setting') ?>" class="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap text-center">
+                        <button type="button" onclick="window.connectOrBindWallet()" class="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap text-center">
                             <i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?>
-                        </a>
+                        </button>
                     </div>
                 <?php endif; ?>
             </div>
@@ -322,12 +322,15 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
     async function agentfiAction(actionType) {
         if (!isEditMode) return;
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+        if (!wallet.isSignedIn()) {
+            // 🚨 核心更新：使用中央路由
+            await window.connectOrBindWallet();
+            return;
+        }
 
         const args = { token_id: "soul_" + soulId };
         let methodName = '';
         
-        // 🚨 更新邏輯：若價格為 0 則改為取消
         if (actionType === 'list_sale') {
             const price = document.getElementById('agentfi-sale-price').value;
             if(!price || parseFloat(price) <= 0) {
@@ -379,8 +382,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             if (wantMintOrSync) {
                 wallet = await initNearWallet();
                 if (!wallet.isSignedIn()) {
-                    alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-                    window.location.href = "<?= url('/my-api') ?>";
+                    // 🚨 核心更新：使用中央路由
+                    await window.connectOrBindWallet();
                     return;
                 }
             }

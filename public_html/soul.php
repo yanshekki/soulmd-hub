@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Disabled Buy/Rent buttons for Owner + Floor Price indicator
+ * 🚀 Patched: Centrally Synchronized Wallet Router Integration
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -373,7 +373,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
     async function fetchMarketStatus() {
         try {
-            // 🚨 取得目前綁定的錢包 (用於判斷是否為 Owner)
             const wallet = await initNearWallet();
             const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
 
@@ -399,7 +398,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     document.getElementById('agentfi-market-block').classList.remove('hidden');
                     document.getElementById('market-owner').innerText = tokenInfo.owner_id;
 
-                    // 🚨 核心判斷：是否為擁有人
                     const isOwner = myWallet && tokenInfo.owner_id === myWallet;
 
                     if (tokenInfo.sale_price) {
@@ -409,7 +407,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnBuy.classList.remove('hidden');
                         btnBuy.dataset.price = tokenInfo.sale_price; 
                         
-                        // 🔒 鎖死擁有人的購買按鈕
                         if (isOwner) {
                             btnBuy.disabled = true;
                             btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
@@ -424,7 +421,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnRent.classList.remove('hidden');
                         btnRent.dataset.price = tokenInfo.rent_price; 
                         
-                        // 🔒 鎖死擁有人的租用按鈕
                         if (isOwner) {
                             btnRent.disabled = true;
                             btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
@@ -440,8 +436,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function buySoul() {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+            // 🚨 核心更新：使用中央路由
+            await window.connectOrBindWallet();
             return;
         }
         const price = document.getElementById('btn-buy').dataset.price;
@@ -456,10 +452,12 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function rentSoul() {
+        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
+
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+            // 🚨 核心更新：使用中央路由
+            await window.connectOrBindWallet();
             return;
         }
         const price = document.getElementById('btn-rent').dataset.price;

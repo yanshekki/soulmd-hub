@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My Souls Modals & Scripts Component
  * Included dynamically at the bottom of my-souls.php
- * 🚀 Patched: 0-Price Input Handler for Cancellation
+ * 🚀 Patched: Centrally Synchronized Wallet Router Integration
  */
 ?>
 
@@ -190,7 +190,8 @@
 
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            // 🚨 核心更新：使用中央路由
+            await window.connectOrBindWallet();
             return;
         }
 
@@ -482,14 +483,14 @@
         if (!currentEditId) return;
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
+            // 🚨 核心更新：使用中央路由
+            await window.connectOrBindWallet();
             return;
         }
 
         const args = { token_id: "soul_" + currentEditId };
         let methodName = '';
         
-        // 🚨 更新邏輯：若價格為 0 則改為取消
         if (actionType === 'list_sale') {
             const price = document.getElementById('agentfi-sale-price').value;
             if(!price || parseFloat(price) <= 0) {
@@ -540,8 +541,8 @@
         if (wantSync) {
             wallet = await initNearWallet();
             if (!wallet.isSignedIn()) {
-                alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-                window.location.href = "<?= url('/my-api') ?>";
+                // 🚨 核心更新：使用中央路由
+                await window.connectOrBindWallet();
                 return;
             }
         }
@@ -611,54 +612,4 @@
         content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); currentEditId = null; }, 300);
     }
-
-    async function deleteSoul(id) {
-        if (!confirm(<?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
-            if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
-            executeDatabaseDelete(id);
-            return;
-        }
-
-        try {
-            const wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
-                executeDatabaseDelete(id);
-                return;
-            }
-
-            await wallet.account().functionCall({
-                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                methodName: "burn_soul",
-                args: { token_id: "soul_" + id },
-                gas: "30000000000000", 
-                attachedDeposit: "0", 
-                walletCallbackUrl: window.location.href 
-            });
-            
-        } catch (e) {
-            executeDatabaseDelete(id);
-        }
-    }
-
-    async function executeDatabaseDelete(id) {
-        try {
-            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) { 
-                location.reload(); 
-            } else { 
-                alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); 
-            }
-        } catch(e) { 
-            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
-        }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('transactionHashes')) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-    });
-
 </script>

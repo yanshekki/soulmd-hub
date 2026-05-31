@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Added Floor Price indicator
+ * 🚀 Patched: Centrally Synchronized Wallet Router Integration
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -85,7 +85,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-wallet text-purple-400 text-4xl mb-4"></i>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('No Web3 Wallet Detected') ?></h3>
                 <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
-                <a href="<?= url('/my-setting') ?>" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-cog"></i> <?= __('Go to Bind Wallet') ?></a>
+                <button type="button" onclick="window.connectOrBindWallet()" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?></button>
             </div>
         <?php else: ?>
             <div id="web3-container" class="min-h-[250px]"></div>
@@ -282,7 +282,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
-                    // 🚨 注入 Floor Price 保底價顯示
                     html += `
                     <div class="soul-card bg-zinc-900/60 border border-purple-500/20 rounded-3xl p-5 sm:p-6 hover:border-purple-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg relative overflow-hidden" data-id="${soul.id}">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-transparent"></div>
@@ -346,8 +345,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             if (typeof initNearWallet !== 'function') { executeDatabaseDelete(id); return; }
             const wallet = await initNearWallet();
+            
+            // 🚨 核心更新：若用戶在進行 Web3 操作前斷線，強制導向中央綁定路由
             if (!wallet.isSignedIn()) {
-                executeDatabaseDelete(id);
+                await window.connectOrBindWallet();
                 return;
             }
 

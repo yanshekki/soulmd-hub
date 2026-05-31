@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Added Active Renters Popup & Rental Disclaimer Warning
+ * 🚀 Patched: Centrally Synchronized Wallet Router Integration & Renter Protection
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -91,29 +91,15 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function ensureWalletConnection() {
-        const btn = document.getElementById('marketplace-wallet-btn');
-        const btnText = document.getElementById('wallet-btn-text');
-        const btnIcon = document.getElementById('marketplace-btn-icon');
-        const originalHTML = btnText.innerHTML;
-
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
-            btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
-            btn.classList.add('opacity-80', 'pointer-events-none');
-            if(btnIcon) btnIcon.classList.add('hidden');
-
-            try {
-                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-            } catch(e) {
-                btnText.innerHTML = originalHTML;
-                btn.classList.remove('opacity-80', 'pointer-events-none');
-                if(btnIcon) btnIcon.classList.remove('hidden');
-            }
-        } else {
+        // 🚨 核心修復：落實大一統中央錢包路由判定！
+        if (wallet && wallet.isSignedIn()) {
             if(confirm("Wallet Connected: " + wallet.getAccountId() + "\nDo you want to sign out?")) {
                 wallet.signOut();
                 window.location.reload();
             }
+        } else {
+            await window.connectOrBindWallet();
         }
     }
 
@@ -148,7 +134,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>" }); return;
+            await window.connectOrBindWallet(); return;
         }
 
         const originalText = textSpan.innerHTML;
@@ -263,7 +249,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             jsonrpc: "2.0", id: "dontcare", method: "query",
-                            params: { request_type: "call_function", finality: "final", account_id: "<?= NEAR_CONTRACT_ID ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                            params: { request_type: "call_function", finality: "final", account_id: "<?= NEAR_CONTRACT_ID ?>" , method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
                         })
                     });
                     const rpcData = await rpcRes.json();
@@ -296,12 +282,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                 const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
-                // 🚨 計算活躍租客
                 let activeRenters = [];
                 if (soul.market.renters) {
                     const nowMs = Date.now();
                     for (const accountId in soul.market.renters) {
-                        // 防止 BigInt 精度丟失：將 nanoseconds 先 / 1,000,000 再轉為 Number
                         const expiryMs = Number(BigInt(soul.market.renters[accountId]) / 1000000n);
                         if (expiryMs > nowMs) {
                             activeRenters.push({ account: accountId, expiry: expiryMs });
@@ -368,7 +352,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 顯示活躍租客名單 Modal
     function showRentersModal(encodedJson) {
         const renters = JSON.parse(decodeURIComponent(encodedJson));
         const listContainer = document.getElementById('renters-list-content');
@@ -415,17 +398,16 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function buyMarketSoul(id, rawPrice) {
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + id }, gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
+        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
     }
 
-    // 🚨 租用前彈出免責聲明警告
     async function rentMarketSoul(id, rawPrice) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) return wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + id }, gas: "30000000000000", attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
+        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: window.location.href });
     }
 </script>
 

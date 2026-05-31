@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Grand Unified Settings Hub
  * (Account, Web3, Platform API, Encrypted BYOK Engine - 100% i18n Edition)
- * 🚀 Patched: Fixed Wallet Callback URL Parsing Race Condition Bug
+ * 🚀 Patched: Fixed Wallet Callback URL Parsing Race Condition Bug & Tab Routing Support
  */
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
@@ -84,7 +84,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
                 
-                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3">
+                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3 border-none">
                     <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90"> 
                     <span id="bind-wallet-text"><?= __('Connect & Bind NEAR Wallet') ?></span>
                 </button>
@@ -116,7 +116,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
 
             <div id="byok-settings-panel" class="space-y-6 opacity-50 pointer-events-none transition-opacity duration-300">
-                
                 <div class="bg-zinc-950/50 border border-white/5 rounded-2xl p-5 shadow-inner">
                     <h3 class="text-emerald-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-comment-alt mr-2"></i><?= __('Text LLM') ?></h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -187,7 +186,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <input type="range" id="memory_compress_threshold" min="4" max="50" step="2" class="w-full accent-amber-400 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer outline-none" oninput="document.getElementById('compress_val_display').innerText = this.value">
                 </div>
 
-                <button onclick="saveLLMSettings()" id="save-llm-btn" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-2xl transition shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                <button onclick="saveLLMSettings()" id="save-llm-btn" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-2xl transition shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 border-none">
                     <i class="fas fa-save"></i> <?= __('Save Custom Engine Settings') ?>
                 </button>
             </div>
@@ -210,8 +209,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         document.getElementById('tab-' + tabId).classList.remove('hidden');
         const activeBtn = document.getElementById('btn-' + tabId);
-        activeBtn.classList.remove('text-zinc-400', 'hover:bg-white/5');
-        activeBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+        if (activeBtn) {
+            activeBtn.classList.remove('text-zinc-400', 'hover:bg-white/5');
+            activeBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+        }
     }
 
     const PRESETS = {
@@ -255,14 +256,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-        
-        // 🚨 完美修復：必須在 initNearWallet() 執行前先讀取網址參數
-        // 因為 near-api-js 會自動將 URL 中的 account_id 洗走！
+        // 🚀 核心升級：喺最頂端優先攔截 URL 參數，完美支援大一統分流
         const urlParams = new URLSearchParams(window.location.search);
         const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
-        
-        if (hasWalletCallback) {
-            switchTab('web3'); // 自動跳去 Web3 頁籤
+        const forcedTab = urlParams.get('tab');
+
+        if (hasWalletCallback || forcedTab === 'web3') {
+            switchTab('web3'); 
         }
 
         try {
@@ -287,8 +287,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } catch(e) {}
 
-        <?php if (!$nearWallet): ?>
-            // 若為 Wallet 簽名返回，執行綁定邏輯
+        <?php if (!$user['near_wallet_address']): ?>
             if (hasWalletCallback) {
                 const wallet = await initNearWallet();
                 setTimeout(async () => {
@@ -320,21 +319,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/settings', { 
                 method: 'POST', 
-                headers: {
-                    'Content-Type':'application/json',
-                    'X-CSRF-Token': serverCsrfToken
-                }, 
+                headers: { 'Content-Type':'application/json', 'X-CSRF-Token': serverCsrfToken }, 
                 body: JSON.stringify(payload) 
             });
             const data = await res.json();
             if(data.success) {
                 btn.innerHTML = '<i class="fas fa-check mr-2"></i> <?= addslashes(__('Settings Saved')) ?>';
                 btn.classList.replace('bg-purple-600', 'bg-emerald-500');
-                btn.classList.replace('shadow-purple-500/20', 'shadow-emerald-500/20');
                 setTimeout(() => { 
                     btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>'; 
                     btn.classList.replace('bg-emerald-500', 'bg-purple-600'); 
-                    btn.classList.replace('shadow-emerald-500/20', 'shadow-purple-500/20'); 
                 }, 2000);
             } else {
                 alert('<?= addslashes(__('Save Failed')) ?>' + data.error);
@@ -359,10 +353,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         const res = await fetch('/api/change-password', { 
             method: 'POST', 
-            headers: {
-                'Content-Type':'application/json',
-                'X-CSRF-Token': serverCsrfToken
-            }, 
+            headers: { 'Content-Type':'application/json', 'X-CSRF-Token': serverCsrfToken }, 
             body: JSON.stringify({current_password:oldp, new_password:newp, confirm_password:confirmp}) 
         });
         const data = await res.json();
@@ -373,9 +364,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if(data.success) { 
             alert('<?= addslashes(__('Password updated successfully!')) ?>'); 
             document.getElementById('pwd-form').reset(); 
-        } else { 
-            alert(data.error); 
-        }
+        } else { alert(data.error); }
     });
 
     async function bindNearWallet() {
@@ -409,22 +398,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/bind-wallet', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': serverCsrfToken
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': serverCsrfToken },
                 body: JSON.stringify({ action: 'bind', wallet: accountId })
             });
             const data = await res.json();
             if (data.success) {
-                // 綁定成功後，清除網址參數並重整畫面
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                 window.location.reload();
             } else {
                 alert('<?= addslashes(__('Bind Failed')) ?>' + (data.error || ''));
                 const wallet = await initNearWallet();
-                wallet.signOut(); // 踢走本地緩存
+                wallet.signOut(); 
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
                 const btn = document.getElementById('bind-wallet-btn');
                 if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
  * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER (V5 Centralized Config Edition)
- * 🚨 Patched: Global Web2 <-> Web3 Session Synchronization Engine
+ * 🚨 Patched: Unified Wallet Router & Global Session Sync Engine
  */
 
 // 🌟 獲取當前 PHP Web2 狀態，供前端 JS 進行狀態同步比對
@@ -129,12 +129,39 @@ if (isset($_SESSION['user_id'])) {
         }
     };
 
-    // 🌟 全域 Web2 & Web3 狀態同步引擎 (Global Session Synchronization Engine)
+    // =========================================================
+    // 🌟 全域統一錢包入口 (Centralized Wallet Router)
+    // =========================================================
+    window.connectOrBindWallet = async function() {
+        const isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
+        const dbWallet = "<?= $sync_phpUserWallet ?>";
+
+        if (!isPhpLoggedIn) {
+            // 情況 1：未登入，踢去登入頁
+            window.location.href = '<?= url("/login") ?>';
+            return;
+        }
+
+        if (!dbWallet) {
+            // 情況 2：已登入但未綁定錢包，踢去設定頁並自動切換到 web3 tab
+            window.location.href = '<?= url("/my-setting") ?>?tab=web3';
+            return;
+        }
+
+        // 情況 3：已綁定錢包，但 LocalStorage 可能遺失了金鑰，自動喚起重新簽署
+        const wallet = await window.initNearWallet();
+        if (!wallet.isSignedIn()) {
+            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
+        } else {
+            window.location.reload();
+        }
+    };
+
+    // 🌟 全域 Web2 & Web3 狀態同步引擎
     window.addEventListener('DOMContentLoaded', async () => {
         const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
         
         try {
-            // 初始化並檢查 Web3 狀態
             const wallet = await window.initNearWallet();
             const isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
             const phpWalletAddress = "<?= $sync_phpUserWallet ?>";
@@ -143,7 +170,6 @@ if (isset($_SESSION['user_id'])) {
                 const currentWeb3Wallet = wallet.getAccountId();
 
                 if (!isPhpLoggedIn) {
-                    // 情況 A：Web3 連接了，但 Web2 沒有登入 -> 嘗試無縫自動同步登入 Web2
                     const res = await fetch('/api/wallet-login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -152,14 +178,12 @@ if (isset($_SESSION['user_id'])) {
                     const data = await res.json();
                     
                     if (data.success) {
-                        // 同步登入成功！刷新頁面應用 Web2 Session (若是從 login 頁面進入則直接跳轉)
                         if (!isAuthPage) {
                             window.location.reload();
                         } else {
                             window.location.href = '<?= url("/my-souls") ?>';
                         }
                     } else {
-                        // 錢包未綁定任何 Web2 帳號！強制登出 Web3 以保持兩端無狀態 (Stateless)
                         console.warn("Web3 Wallet not bound to Web2 account. Forcing sync logout.");
                         wallet.signOut();
                         if (!isAuthPage) {
@@ -168,7 +192,6 @@ if (isset($_SESSION['user_id'])) {
                         }
                     }
                 } else {
-                    // 情況 B：兩邊都登入了，嚴格檢查是否為同一個錢包 (防止用戶手動切換帳號導致越權)
                     if (phpWalletAddress && currentWeb3Wallet !== phpWalletAddress) {
                         console.warn("Web2 and Web3 Wallet mismatch. Forcing Web3 sync.");
                         wallet.signOut();
