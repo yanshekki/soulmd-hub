@@ -23,10 +23,13 @@ return [
         // Card Actions
         'Unassigned' => 'Unassigned',
         'View Repository' => 'View Repository',
+        'View Asset' => 'View Asset',
         
         // Dynamic JS & Pagination
         'Page' => 'Page',
         'Back to Hub' => 'Back to Hub',
+        'Processing...' => 'Processing...',
+        'Loading...' => 'Loading...',
         
         // 🚨 Dual-Section Headers & Empty States
         'Web2 Prototype Box' => '🛠️ Original Models (Web2 Prototype Box)',
@@ -82,10 +85,13 @@ return [
         // Card Actions
         'Unassigned' => '未分類',
         'View Repository' => '檢視代碼庫',
+        'View Asset' => '檢視鏈上資產',
         
         // Dynamic JS & Pagination
         'Page' => '頁數',
         'Back to Hub' => '返回大廳探索',
+        'Processing...' => '處理中...',
+        'Loading...' => '載入中...',
 
         // 🚨 Dual-Section Headers & Empty States
         'Web2 Prototype Box' => '🛠️ 原創模型庫 (Web2 Prototype Box)',
@@ -118,7 +124,7 @@ return [
         
         // Errors
         'User Not Found' => '找不到該使用者',
-        'User Not Found Desc' => '您嘗試存取的創作者個人檔案並不存在於系統數據庫中。',
+        'User Not Found Desc' => '您嘗試存取的創作者個人檔案並不存於系統數據庫中。',
         'Error loading profile data.' => '載入創作者檔案數據時發生錯誤。',
         'Network Error.' => '網絡異常，請檢查連線後重試。',
     ]

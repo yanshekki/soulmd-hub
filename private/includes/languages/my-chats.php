@@ -39,6 +39,7 @@ return [
         'Connection Error' => 'Connection Error',
         'Connection Error Desc' => 'Could not load your history at this time. Please try again later.',
         'Page' => 'Page',
+        'Loading...' => 'Loading...',
     ],
     
     'zh' => [
@@ -75,5 +76,6 @@ return [
         'Connection Error' => '連線錯誤',
         'Connection Error Desc' => '目前無法載入您的歷史紀錄，請稍後再試。',
         'Page' => '頁數',
+        'Loading...' => '載入中...',
     ]
 ];

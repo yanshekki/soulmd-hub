@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions in Grid
+ * 🚀 Patched: Fixed missing lang_ViewRepo JS ReferenceError + Hardcoded Processing text
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -80,6 +80,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
 
+    // 🌍 JavaScript 動態語言變數宣告
+    const lang_ViewAsset = "<?= addslashes(__('View Asset')) ?>"; 
+
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
@@ -90,7 +93,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         return encodeURIComponent(str.toLowerCase().replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-').replace(/^-+|-+$/g, ''));
     }
 
-    // 🚨 輔助函數：生成帶有操作標記的回傳網址，並帶上 sync_id
     function getCallbackUrl(actionType, id) {
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('tx_action', actionType);
@@ -120,7 +122,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             const txAction = urlParams.get('tx_action');
             const syncId = urlParams.get('sync_id');
             
-            // 🚨 買/租完返黎即刻觸發懶同步，更新 MySQL 資料庫！
             if (syncId) {
                 await fetch(`/api/soul/${syncId}`);
             }
@@ -167,7 +168,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         const originalText = textSpan.innerHTML;
-        textSpan.innerHTML = '<i class="fas fa-spinner animate-spin"></i> <?= addslashes(__('Processing')) ?>';
+        textSpan.innerHTML = '<i class="fas fa-spinner animate-spin"></i> <?= addslashes(__('Processing...')) ?>';
         btn.disabled = true; btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         try {
@@ -258,7 +259,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             const wallet = await initNearWallet();
             const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
 
-            // 🚨 依賴 MySQL 提供精準分頁 (因為已經在 API 層過濾咗 sale_price IS NOT NULL OR rent_price IS NOT NULL)
             const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);
             const data = await res.json();
             
@@ -273,9 +273,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             
-            // 🚨 再次向 RPC 請求最新狀態以獲取「實時租客名單」與「秒級最新價」
             const rpcPromises = data.data.map(async (soul) => {
-                // 將 DB 價格作為 Fallback 保底
                 soul.market = {
                     sale_price: soul.sale_price,
                     rent_price: soul.rent_price,
@@ -295,7 +293,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     if (rpcData.result && rpcData.result.result) {
                         const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
                         if (tokenInfo) {
-                            soul.market = tokenInfo; // 以 RPC 的實時資料覆蓋
+                            soul.market = tokenInfo;
                         }
                     }
                 } catch(e) { console.warn("Listing fetch skipped, using DB fallback", e); }
@@ -303,7 +301,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             await Promise.all(rpcPromises);
 
-            // 過濾掉 RPC 回傳已經取消掛賣的假象 (如果 DB 還沒同步)
             const activeListings = data.data.filter(s => s.market.sale_price !== null || s.market.rent_price !== null);
 
             if (activeListings.length === 0) {
@@ -336,7 +333,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                 const rentersCount = activeRenters.length;
 
-                // 🚨 將 this (button) 傳入函數，並加入 min-w 以穩定 Loading UI 寬度
+                // 🚨 完美修復：已將原本報錯的 lang_ViewRepo 替換成宣告好的變數 lang_ViewAsset
                 html += `
                     <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
@@ -381,6 +378,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <i class="fas fa-handshake"></i> <span><?= addslashes(__('Rent (30d)')) ?></span>
                                 </button>
                             </div>` : ''}
+                            
+                            ${(!salePrice || salePrice === "0") && (!rentPrice || rentPrice === "0") ? `
+                                <a href="${seoUrl}" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
+                                    \${lang_ViewAsset} <i class="fas fa-arrow-right text-[10px]"></i>
+                                </a>
+                            ` : ''}
                         </div>
                     </div>`;
             });
@@ -407,10 +410,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const dateStr = d.toLocaleString();
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
-                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>\${escapeHTML(r.account)}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
                             <div class="uppercase tracking-wider">${<?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>}</div>
-                            <div class="text-zinc-300 font-bold">${dateStr}</div>
+                            <div class="text-zinc-300 font-bold">\${dateStr}</div>
                         </div>
                     </div>
                 `;
@@ -438,13 +441,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 支援 Button Loading UI 鎖定
+    // 🚨 修正：套用多語言 Processing...
     async function buyMarketSoul(id, rawPrice, btn) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Processing...</span>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
@@ -457,6 +460,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 修正：套用多語言 Processing...
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
@@ -464,7 +468,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Processing...</span>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 

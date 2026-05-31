@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions
+ * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions & Fixed missing JS Variables
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -141,6 +141,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_SingleMd = <?= json_encode(__('Single .md'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Unassigned = <?= json_encode(__('Unassigned'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_ViewRepo = <?= json_encode(__('View Repository'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_ViewAsset = <?= json_encode(__('View Asset'), JSON_UNESCAPED_UNICODE) ?>;
     
     const lang_Page = <?= json_encode(__('Page'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Forks = <?= json_encode(__('Forks Received'), JSON_UNESCAPED_UNICODE) ?>;
@@ -294,7 +295,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <span title="${lang_Likes}"><i class="fas fa-heart text-red-500 mr-1"></i><b>${soul.like_count}</b></span>
                                     </div>
                                 </div>
-                                <a href="${seoUrl}" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner">
+                                <a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
                                     ${lang_ViewRepo} <i class="fas fa-arrow-right text-[10px] ml-0.5"></i>
                                 </a>
                             </div>
@@ -427,8 +428,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 </div>` : ''}
                                 
                                 ${(!salePrice || salePrice === "0") && (!rentPrice || rentPrice === "0") ? `
-                                    <a href="${seoUrl}" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
-                                        ${lang_ViewRepo} <i class="fas fa-arrow-right text-[10px]"></i>
+                                    <a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
+                                        ${lang_ViewAsset} <i class="fas fa-arrow-right text-[10px]"></i>
                                     </a>
                                 ` : ''}
                             </div>
@@ -496,18 +497,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 支援 Button Loading UI 鎖定
+    // 🚨 修正：套用多語言 Processing...
     async function buyMarketSoul(id, rawPrice, btn) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span>Processing...</span>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         try {
-            await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
+            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
         } catch(e) {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -515,6 +516,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 修正：套用多語言 Processing...
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
@@ -522,12 +524,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span>Processing...</span>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         try {
-            await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
+            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
         } catch(e) {
             btn.innerHTML = originalHtml;
             btn.disabled = false;

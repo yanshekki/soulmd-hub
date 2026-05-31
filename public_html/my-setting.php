@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Grand Unified Settings Hub
  * (Account, Web3, Platform API, Encrypted BYOK Engine - 100% i18n Edition)
- * 🚀 Patched: Added Comprehensive Button Loading Spinners & Disabling Locks for all tabs
+ * 🚀 Patched: Removed hardcoded strings in Admin Treasury Buyback action
  */
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
@@ -87,9 +87,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
                 
-                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3 border-none min-w-[260px]">
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90"> 
-                    <span id="bind-wallet-text"><?= __('Connect & Bind NEAR Wallet') ?></span>
+                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200 relative overflow-hidden">
+                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
+                    <span id="bind-wallet-text"><?= __('Connect & Bind Wallet') ?></span>
                 </button>
             <?php endif; ?>
         </div>

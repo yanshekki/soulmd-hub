@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Added Loading UI for Web2 Delete and Web3 Burn actions
+ * 🚀 Patched: Fixed SEO Title/Desc keys & removed hardcoded JS Error strings
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -34,8 +34,9 @@ $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY 
 
 $sort = $_GET['sort'] ?? 'newest';
 
-$pageTitle = __('My Souls');
-$pageDesc = __('Manage and edit your uploaded AI personalities');
+// 🚨 完美修復：對齊標準 SEO 語言包 Key
+$pageTitle = __('SEO Title');
+$pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -278,7 +279,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12">Network Error</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Network error.')) ?></div>`;
         }
     }
 
@@ -405,7 +406,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web3-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12">Network Error</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Network error.')) ?></div>`;
         }
     }
 
@@ -469,13 +470,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) { 
                 location.reload(); 
             } else { 
-                alert(data.error || "Delete failed"); 
+                alert(data.error || "<?= addslashes(__('Failed to delete')) ?>"); 
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         } catch(e) { 
-            alert("Network Error"); 
+            alert("<?= addslashes(__('Network error.')) ?>"); 
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');

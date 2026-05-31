@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Upload & Publish Dashboard
  * (DRY Refactored - Unified Form Extracted to soul-form.php)
- * 🚀 Note: Loading UI & Submit Locks are handled centrally in soul-form.php
+ * 🚀 Patched: Standardized SEO Meta i18n variables
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -26,7 +26,8 @@ $isEditMode = false;
 $soulId = 0;
 $soulData = [];
 
-$pageTitle = __('Upload Soul');
+$pageTitle = __('SEO Title Upload');
+$pageDesc = __('SEO Desc Upload');
 require_once __DIR__ . '/../private/includes/header.php';
 
 // 🚨 引入核心表單 (已包含所有 Loading 效果與防雙擊鎖定)

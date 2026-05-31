@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My Chats Page
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination Edition)
- * 🚀 Patched: Added immediate visual Click-Loading feedback for Chat redirections
+ * 🚀 Patched: Fixed Copy-Paste Mismatched i18n Keys for Page Meta
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -14,8 +14,8 @@ loadTranslations('my-chats');
 
 $isLoggedIn = isset($_SESSION['user_id']);
 
-$pageTitle = __('Open-source platform for AI personas.');
-$pageDesc = __('My Chats Subtitle');
+$pageTitle = __('SEO Title');
+$pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -157,7 +157,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         ? `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20" title="${lang_PrivateTooltip}"><i class="fas fa-lock mr-1"></i>${lang_Private}</span>`
                         : `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-400 border-white/5" title="${lang_PublicTooltip}"><i class="fas fa-globe mr-1"></i>${lang_Public}</span>`;
 
-                    // 🚨 補強：為進入聊天室連結加上內嵌 Spinner 與點擊鎖定效果
                     html += `
                         <div class="soul-card bg-zinc-900/60 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-xl hover:-translate-y-1 relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/50 to-transparent"></div>
@@ -178,7 +177,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 </div>
                             </div>
                             <div class="pt-4 border-t border-white/5 mt-auto">
-                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\'></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-3 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
+                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-3 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
                                     ${lang_ContinueChat} <i class="fas fa-arrow-right text-xs"></i>
                                 </a>
                             </div>
@@ -253,9 +252,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const ownerText = chat.owner_username ? `@${escapeHTML(chat.owner_username)}` : lang_GuestUser;
                     const roleText = chat.role ? escapeHTML(chat.role) : lang_Unassigned;
                     
-                    // 🚨 補強：訪客跳轉連結同樣加上動態 Spinner 與點擊阻斷保護
                     html += `
-                        <div class="bg-zinc-900/40 border border-dashed border-white/10 rounded-3xl p-6 hover:border-emerald-500/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-xl hover:-translate-y-1">
+                        <div class="bg-zinc-900/40 border border-dashed border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-xl hover:-translate-y-1">
                             <div>
                                 <div class="flex justify-between items-start gap-4 mb-4">
                                     <div>
@@ -275,7 +273,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 </div>
                             </div>
                             <div class="pt-4 border-t border-white/5 mt-auto">
-                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\'></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800/50 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-300 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-sm border border-white/5">
+                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800/50 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-300 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-sm border border-white/5">
                                     ${lang_ViewSession} <i class="fas fa-external-link-alt text-[10px]"></i>
                                 </a>
                             </div>

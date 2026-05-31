@@ -1,11 +1,19 @@
 <?php
 /**
  * SoulMD Hub - i18n Translation Dictionary
- * Target: upload.php & edit.php (Shared Form)
+ * Target: upload.php & edit.php (Shared Form Component)
+ * 🚀 Patched: Perfect 100% alignment for Split SEO Titles & Async Button states
  */
 
 return [
     'en' => [
+        // 🚨 完美補齊：Split SEO Meta Tags
+        'SEO Title Upload' => 'Upload New AI Soul Architecture - SoulMD Hub',
+        'SEO Desc' => 'Publish single prompts or modular agent architectures.',
+        'SEO Desc Upload' => 'Publish single prompts or modular agent architectures to the community.',
+        'SEO Title Edit' => 'Edit AI Soul: :title - SoulMD Hub',
+        'SEO Desc Edit' => 'Modify your custom AI persona system instructions, model tree configurations, and market assets.',
+
         'Upload Soul' => 'Upload Soul',
         'Upload Subtitle' => 'Publish single prompts or modular agent architectures.',
         'Edit Soul' => 'Edit AI Soul',
@@ -47,7 +55,7 @@ return [
         'Wallet Required to Edit NFT' => 'Wallet Required to Edit NFT',
         'Redirecting to Wallet...' => 'Redirecting to Wallet...',
 
-        // 🚨 更新：明確提示設定為 0 即可取消
+        // AgentFi Market Operations
         'AgentFi Actions' => 'AgentFi Actions',
         'List for Sale' => 'List for Sale',
         'Sale Desc' => 'Sell full ownership and royalty rights of this AI model. (5% platform fee) Set price to 0 or leave empty to disable sale.',
@@ -66,6 +74,12 @@ return [
         'e.g. docs/guide.md' => 'e.g. docs/guide.md',
         
         'Save Changes' => 'Save Changes',
+        
+        // 🚨 完美補齊：Async Loading/Processing 字眼
+        'Loading...' => 'Loading...',
+        'Processing...' => 'Processing...',
+        'Syncing to DB...' => 'Syncing to DB...',
+        
         'Ready to upload' => 'Ready to upload',
         'File already exists!' => 'File already exists!',
         'You must have at least one file.' => 'You must have at least one file.',
@@ -81,6 +95,13 @@ return [
     ],
     
     'zh' => [
+        // 🚨 完美補齊：Split SEO Meta Tags
+        'SEO Title Upload' => '發佈全新 AI 靈魂智能體 - SoulMD Hub',
+        'SEO Desc' => '發佈單一提示詞或模組化智能體架構。',
+        'SEO Desc Upload' => '發佈單一提示詞或模組化智能體架構至創作者社群大廳。',
+        'SEO Title Edit' => '編輯靈魂模型: :title - SoulMD Hub',
+        'SEO Desc Edit' => '修改您的自訂 AI 角色系統指令、多檔案模組樹狀配置以及鏈上資產屬性。',
+
         'Upload Soul' => '上傳靈魂模型',
         'Upload Subtitle' => '發佈單一提示詞或模組化智能體架構。',
         'Edit Soul' => '編輯靈魂模型',
@@ -122,7 +143,7 @@ return [
         'Wallet Required to Edit NFT' => '需綁定錢包以授權編輯 NFT',
         'Redirecting to Wallet...' => '正在重導向至錢包...',
 
-        // 🚨 更新：明確提示設定為 0 即可取消
+        // AgentFi Market Operations
         'AgentFi Actions' => 'AgentFi 區塊鏈操作',
         'List for Sale' => '掛牌出售 (賣斷)',
         'Sale Desc' => '出售此 AI 模型的完整擁有權及後續版稅權益。(扣除 5% 平台稅)。將價格設定為 0 或留白即可取消掛售。',
@@ -141,6 +162,12 @@ return [
         'e.g. docs/guide.md' => '例如：docs/guide.md',
         
         'Save Changes' => '儲存變更',
+        
+        // 🚨 完美補齊：Async Loading/Processing 字眼
+        'Loading...' => '載入中...',
+        'Processing...' => '處理中...',
+        'Syncing to DB...' => '同步更新資料庫中...',
+        
         'Ready to upload' => '準備好上傳',
         'File already exists!' => '該檔案路徑已存在！',
         'You must have at least one file.' => '模組化結構內必須包含至少一個架構檔案。',

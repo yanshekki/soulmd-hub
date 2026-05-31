@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions
+ * 🚀 Patched: Wrapped hardcoded Loading strings with i18n translation functions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -370,7 +370,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
     const soulDbId = <?= $id ?>;
 
-    // 🚨 輔助函數：生成帶有操作標記的回傳網址
     function getCallbackUrl(actionType) {
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('id', soulDbId);
@@ -378,10 +377,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         return url.toString();
     }
 
-    // 🚀 Phase 3: AgentFi - 從區塊鏈 RPC 讀取 Market 狀態
     async function fetchMarketStatus() {
         try {
-            // 🚨 取得目前綁定的錢包 (用於判斷是否為 Owner)
             const wallet = await initNearWallet();
             const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
 
@@ -407,7 +404,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     document.getElementById('agentfi-market-block').classList.remove('hidden');
                     document.getElementById('market-owner').innerText = tokenInfo.owner_id;
 
-                    // 🚨 核心判斷：是否為擁有人
                     const isOwner = myWallet && tokenInfo.owner_id === myWallet;
 
                     if (tokenInfo.sale_price) {
@@ -417,7 +413,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnBuy.classList.remove('hidden');
                         btnBuy.dataset.price = tokenInfo.sale_price; 
                         
-                        // 🔒 鎖死擁有人的購買按鈕
                         if (isOwner) {
                             btnBuy.disabled = true;
                             btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
@@ -432,7 +427,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnRent.classList.remove('hidden');
                         btnRent.dataset.price = tokenInfo.rent_price; 
                         
-                        // 🔒 鎖死擁有人的租用按鈕
                         if (isOwner) {
                             btnRent.disabled = true;
                             btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
@@ -448,11 +442,9 @@ require_once __DIR__ . '/../private/includes/header.php';
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         
-        // 🚨 精準分析回傳參數並彈出對應提示
         if (urlParams.has('transactionHashes')) {
             const txAction = urlParams.get('tx_action');
             
-            // 🚨 買完返黎即刻觸發懶同步，更新資料庫！
             await fetch(`/api/soul/${soulDbId}`);
 
             if (txAction === 'buy') {
@@ -463,7 +455,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 alert('<?= addslashes(__('Transaction Success')) ?>');
             }
             
-            // 清理網址
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + soulDbId;
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
@@ -476,10 +467,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
         });
 
-        // 🚀 初始化載入 NFT 市場狀態
         fetchMarketStatus();
     });
 
+    // 🚨 修正：套用多語言 Processing...
     async function buySoul() {
         const btn = document.getElementById('btn-buy');
         const textSpan = document.getElementById('text-buy');
@@ -490,13 +481,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         const price = btn.dataset.price;
         
-        // 🚨 加入 Loading UI 效果
-        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            // 🚨 標記此操作為 Buy
             await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('buy') });
         } catch (e) {
             textSpan.innerHTML = originalText;
@@ -505,6 +494,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
+    // 🚨 修正：套用多語言 Processing...
     async function rentSoul() {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
@@ -517,13 +507,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         const price = btn.dataset.price;
         
-        // 🚨 加入 Loading UI 效果
-        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            // 🚨 標記此操作為 Rent
             await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('rent') });
         } catch (e) {
             textSpan.innerHTML = originalText;

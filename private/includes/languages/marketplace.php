@@ -26,6 +26,7 @@ return [
         'Invalid amount' => 'Please enter a valid NEAR amount!',
         'Transaction failed' => 'Transaction preparation failed. ',
         'Processing' => 'Processing...',
+        'Processing...' => 'Processing...',
         'Connecting to RPC...' => 'Connecting to RPC...',
         
         'Page' => 'Page',
@@ -73,6 +74,7 @@ return [
         'Invalid amount' => '請輸入有效的 NEAR 數量！',
         'Transaction failed' => '交易前置失敗或您拒絕了簽署：',
         'Processing' => '處理中...',
+        'Processing...' => '處理中...',
         'Connecting to RPC...' => '等緊 RPC 連接...',
         
         'Page' => '頁數',

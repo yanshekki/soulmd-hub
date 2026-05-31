@@ -23,6 +23,8 @@ return [
         'JSON' => 'JSON',
         'Rendering Markdown...' => 'Rendering Markdown...',
         'Unassigned' => 'Unassigned',
+        'Processing...' => 'Processing...',
+        'Loading...' => 'Loading...',
         
         'MegaPrompt Intro' => "Please adopt the following modular AI persona. The persona is defined across several modules below. Read and internalize all rules, styles, and context before interacting with me.",
         'MegaPrompt Outro' => "If you understand these instructions and have fully adopted the persona, acknowledge briefly and await my first prompt.",
@@ -77,6 +79,8 @@ return [
         'JSON' => '下載 JSON',
         'Rendering Markdown...' => '正在渲染 Markdown 畫面...',
         'Unassigned' => '未分類',
+        'Processing...' => '處理中...',
+        'Loading...' => '載入中...',
         
         'MegaPrompt Intro' => "請你扮演並代入以下由多個模組組成的 AI 角色。在與我進行互動前，請先仔細閱讀並內化所有規則、風格與上下文設定。",
         'MegaPrompt Outro' => "如果你清楚明白上述指示，並已完全代入該角色，請簡短回覆確認，並等待我的第一個輸入指令。",

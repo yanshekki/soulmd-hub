@@ -6,6 +6,9 @@
 
 return [
     'en' => [
+        // SEO & Headers
+        'SEO Title' => 'My Souls - SoulMD Hub',
+        'SEO Desc' => 'Manage and edit your uploaded AI personalities.',
         'My Souls' => 'My Souls',
         'Manage and edit your uploaded AI personalities' => 'Manage and edit your uploaded AI personalities',
         '✨ Newest' => '✨ Newest',
@@ -57,7 +60,11 @@ return [
         'Compatibility' => 'Compatibility',
         'Modular Files Editor' => 'Modular Files Editor',
         'Files' => 'Files',
+        
+        // Async UI States
         'Loading...' => 'Loading...',
+        'Processing...' => 'Processing...',
+        
         'Cancel' => 'Cancel',
         'Save Changes' => 'Save Changes',
 
@@ -114,6 +121,9 @@ return [
     ],
     
     'zh' => [
+        // SEO & Headers
+        'SEO Title' => '我的靈魂模型 - SoulMD Hub',
+        'SEO Desc' => '管理與編輯您所上傳的 AI 角色設定與智能體。',
         'My Souls' => '我的靈魂模型',
         'Manage and edit your uploaded AI personalities' => '管理與編輯您所上傳的 AI 角色設定與智能體。',
         '✨ Newest' => '✨ 最新發佈',
@@ -165,7 +175,11 @@ return [
         'Compatibility' => '相容大模型平台',
         'Modular Files Editor' => '模組化多檔案編輯器',
         'Files' => '檔案模組清單',
+        
+        // Async UI States
         'Loading...' => '正在載入中...',
+        'Processing...' => '處理中...',
+        
         'Cancel' => '取消',
         'Save Changes' => '儲存變更',
 

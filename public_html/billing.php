@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Billing & Subscription Management Dashboard
  * (V5 Dual-Track Web2.5 Hybrid Ledger & Asynchronous Blockchain Radar Edition)
- * 🚀 Patched: Integrated real-time Web3 Sale/Rent position tracking with strict Loading UI
+ * 🚀 Patched: Wrapped all hardcoded Web3 texts and Loading Spinners with i18n functions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -157,10 +157,10 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <div class="flex border-b border-white/10 mb-6 gap-2">
         <button onclick="switchLedgerTab('web2')" id="tab-btn-web2" class="px-5 py-3 text-sm font-bold border-b-2 border-emerald-400 text-emerald-400 transition-all flex items-center gap-2">
-            <i class="fab fa-paypal"></i> 平台方案通行證 (Web2 Pass)
+            <i class="fab fa-paypal"></i> <?= __('Web2 Pass') ?>
         </button>
         <button onclick="switchLedgerTab('web3')" id="tab-btn-web3" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-zinc-400 hover:text-white transition-all flex items-center gap-2">
-            <i class="fas fa-gem"></i> 鏈上智能體資產 (AgentFi Web3)
+            <i class="fas fa-gem"></i> <?= __('AgentFi Web3') ?>
         </button>
     </div>
 
@@ -286,9 +286,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php if (empty($nearWallet)): ?>
             <div class="text-center py-12 bg-purple-950/10 border border-dashed border-purple-500/30 rounded-3xl p-8">
                 <i class="fas fa-wallet text-purple-400 text-4xl mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-2">未綁定區塊鏈錢包</h3>
-                <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6">您需要先將帳號永久綁定一個 NEAR 主網錢包，才能在此處追蹤所有去中心化租務與買賣帳本。</p>
-                <a href="<?= url('/my-setting?tab=web3') ?>" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link"></i> 前往綁定錢包</a>
+                <h3 class="text-lg font-bold text-white mb-2"><?= __('No Web3 Wallet Detected') ?></h3>
+                <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
+                <a href="<?= url('/my-setting?tab=web3') ?>" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?></a>
             </div>
         <?php else: ?>
             <div class="bg-zinc-900/60 border border-white/10 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm">
@@ -296,11 +296,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-zinc-950/80 text-zinc-500 text-xs uppercase tracking-widest border-b border-white/10 select-none">
-                                <th class="p-4 font-semibold whitespace-nowrap">資產類型 (Type)</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">智能體靈魂 (Agent Asset)</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">鏈上身分 (On-Chain Role)</th>
-                                <th class="p-4 font-semibold whitespace-nowrap">流動性狀態 (Market Status)</th>
-                                <th class="p-4 font-semibold whitespace-nowrap text-right">即時操作 (Action)</th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Asset Type') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Agent Asset') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('On-Chain Role') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Market Status') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap text-right"><?= __('Live Action') ?></th>
                             </tr>
                         </thead>
                         <tbody id="web3-ledger-body" class="text-sm divide-y divide-white/5 font-medium">
@@ -309,7 +309,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
                 <div id="web3-scanning-loading" class="flex flex-col items-center justify-center py-20 bg-zinc-950/20">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-3"></div>
-                    <p class="text-zinc-400 text-xs animate-pulse">Scanning Blockchain Contract Ledger...</p>
+                    <p class="text-zinc-400 text-xs animate-pulse"><?= __('Scanning Blockchain...') ?></p>
                 </div>
             </div>
         <?php endif; ?>
@@ -371,7 +371,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             if (!data.success || data.data.length === 0) {
                 if(loader) loader.classList.add('hidden');
-                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500">區塊鏈合約中暫無任何與您相關的交易持倉。</td></tr>`;
+                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500"><?= addslashes(__('No Web3 positions')) ?></td></tr>`;
                 return;
             }
 
@@ -416,38 +416,37 @@ require_once __DIR__ . '/../private/includes/header.php';
                         // 判斷分流
                         if (isOwner) {
                             isMyAsset = true;
-                            typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1"></i>買斷產權</span>`;
-                            roleLabel = `<span class="text-zinc-300 font-mono text-xs">合法持有人</span>`;
+                            typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1"></i><?= addslashes(__('Ownership')) ?></span>`;
+                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Legal Owner')) ?></span>`;
                             
                             if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
-                                statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1"></i>掛售中 (${nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
+                                statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1"></i><?= addslashes(__('Listed for Sale')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
                             } else if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
-                                statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1"></i>出租中 (${nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
+                                statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1"></i><?= addslashes(__('Listed for Rent')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
                             } else {
-                                statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1"></i>閒置 (原型內藏)</span>`;
+                                statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1"></i><?= addslashes(__('Idle')) ?></span>`;
                             }
                         } else if (isRenter) {
                             isMyAsset = true;
-                            typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1"></i>合約租約</span>`;
-                            roleLabel = `<span class="text-zinc-300 font-mono text-xs">活躍租客</span>`;
-                            statusHtml = `<div class="text-[11px] text-zinc-400"><div class="text-zinc-500 text-[9px] uppercase tracking-wider">租約有效至</div><div class="font-bold font-mono text-emerald-400">${leaseExpiryStr}</div></div>`;
+                            typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1"></i><?= addslashes(__('Active Lease')) ?></span>`;
+                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Active Renter')) ?></span>`;
+                            statusHtml = `<div class="text-[11px] text-zinc-400"><div class="text-zinc-500 text-[9px] uppercase tracking-wider"><?= addslashes(__('Lease Expires At')) ?></div><div class="font-bold font-mono text-emerald-400">${leaseExpiryStr}</div></div>`;
                         } else if (isCreator) {
-                            // 僅僅是原創作者，非持有人也非租客（純賺二手版稅）
                             isMyAsset = true;
-                            typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1"></i>版稅樹節點</span>`;
-                            roleLabel = `<span class="text-zinc-300 font-mono text-xs">創作者</span>`;
-                            statusHtml = `<span class="text-xs text-zinc-500">永續 5% 鏈上版稅</span>`;
+                            typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1"></i><?= addslashes(__('Royalty Node')) ?></span>`;
+                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Creator')) ?></span>`;
+                            statusHtml = `<span class="text-xs text-zinc-500"><?= addslashes(__('Perpetual 5% Royalty')) ?></span>`;
                         }
 
                         if (isMyAsset) {
                             matchedCount++;
-                            const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                            const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                             
                             // 🚨 為 Action 按鈕強制加配 點擊 Loading 機制
                             if (isOwner || isRenter) {
-                                actionHtml = `<a href="/chat/${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments"></i> 進入對話</a>`;
+                                actionHtml = `<a href="<?= url('/chat/') ?>${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments"></i> <?= addslashes(__('Enter Chat')) ?></a>`;
                             } else {
-                                actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye"></i> 查看代碼庫</a>`;
+                                actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye"></i> <?= addslashes(__('View Codebase')) ?></a>`;
                             }
 
                             body.innerHTML += `
@@ -468,11 +467,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             if(loader) loader.classList.add('hidden');
             
             if (matchedCount === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500">區塊鏈合約中暫無任何與您目前錢包相關的交易持倉。</td></tr>`;
+                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500"><?= addslashes(__('No Web3 positions')) ?></td></tr>`;
             }
         } catch(e) {
             if(loader) loader.classList.add('hidden');
-            body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">連線至區塊鏈失敗，請稍後重試。</td></tr>`;
+            body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400"><?= addslashes(__('Blockchain connection failed')) ?></td></tr>`;
         }
     }
 </script>

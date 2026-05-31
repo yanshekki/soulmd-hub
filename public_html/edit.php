@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Edit Model Dashboard
  * (DRY Refactored - Unified Form Extracted to soul-form.php)
- * 🚀 Patched: Phantom NFT Self-Healing & Lazy Sync Ownership Transfer
+ * 🚀 Patched: Phantom NFT Self-Healing, Lazy Sync & SEO Meta i18n
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -111,7 +111,8 @@ if (!$hasAccess) {
 }
 
 $isEditMode = true;
-$pageTitle = __('Edit Soul') . ' - ' . htmlspecialchars($soulData['title']);
+$pageTitle = __('SEO Title Edit', ['title' => htmlspecialchars($soulData['title'])]);
+$pageDesc = __('SEO Desc Edit');
 require_once __DIR__ . '/../private/includes/header.php';
 
 // 引入核心表單
