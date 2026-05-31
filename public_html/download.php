@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub - Download & Raw File Handler
- * 支援單一檔案輸出、ZIP 打包、Cloudflare Edge Caching 以及 JSON 自動容錯
+ * (Web2.5 AgentFi Edition)
+ * 🚀 Patched: Integrated Web3 Ownership (NFT) Authorization Checks for Secure Downloads
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -38,11 +39,29 @@ if (!$soul) {
     die('Soul not found.');
 }
 
-$isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $soul['user_id']);
-if (!$soul['is_public'] && !$isOwner) {
-    http_response_code(403);
-    die('Access denied. This soul is private.');
+// ==========================================
+// 🚨 完美修復：Web2 與 Web3 雙軌權限驗證
+// ==========================================
+$userId = $_SESSION['user_id'] ?? 0;
+$isOwner = ($userId > 0 && $userId === $soul['user_id']);
+$isChainOwner = false;
+
+if ($userId > 0 && $soul['is_nft'] == 1) {
+    $wStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $wStmt->execute([$userId]);
+    $currentUserWallet = $wStmt->fetchColumn();
+    
+    if (!empty($currentUserWallet) && $currentUserWallet === $soul['nft_owner_wallet']) {
+        $isChainOwner = true;
+    }
 }
+
+// 🛡️ 只有 公開模型、Web2 原作者，或 Web3 錢包持有者 才能下載源碼
+if (!$soul['is_public'] && !$isOwner && !$isChainOwner) {
+    http_response_code(403);
+    die('Access denied. This soul is private or protected as an NFT asset.');
+}
+// ==========================================
 
 // 緩存控制
 $lastModifiedTime = strtotime($soul['last_modified']);
