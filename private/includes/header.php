@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Core Responsive Header Matrix
  * (Dynamic Enterprise i18n Engine, Automated SEO Hreflang Compiler & Mobile Menu Edition)
+ * 🚀 Patched: Synchronized Web2 & Web3 Atomic Logout
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -159,7 +160,6 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
                 <a href="<?= url('/browse') ?>" class="text-zinc-400 hover:text-white transition"><?= __('Browse') ?></a>
                 <a href="<?= url('/marketplace') ?>" class="text-zinc-400 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-gem text-blue-400"></i> <?= __('Marketplace') ?></a>
                 <a href="<?= url('/my-chats') ?>" class="text-zinc-400 hover:text-white transition"><?= __('My Chats') ?></a>
-                <!--a href="<?= url('/generate') ?>" class="text-zinc-400 hover:text-white transition"><?= __('AI Generator') ?></a-->
                 <a href="<?= url('/upload') ?>" class="text-zinc-400 hover:text-white transition"><?= __('Upload') ?></a>
                 <a href="<?= url('/upgrade') ?>" class="text-amber-400 hover:text-amber-300 transition flex items-center gap-1.5 px-3 py-1 bg-amber-400/10 rounded-full border border-amber-400/20"><i class="fas fa-crown text-xs"></i> <?= __('Premium') ?></a>
             </div>
@@ -211,7 +211,6 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
             <a href="<?= url('/browse') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-compass w-6 text-center text-emerald-400"></i> <?= __('Browse') ?></a>
             <a href="<?= url('/marketplace') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-gem w-6 text-center text-blue-400"></i> <?= __('Marketplace') ?></a>
             <a href="<?= url('/my-chats') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-comments w-6 text-center text-emerald-400"></i> <?= __('My Chats') ?></a>
-            <!--a href="<?= url('/generate') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-magic w-6 text-center text-emerald-400"></i> <?= __('AI Generator') ?></a-->
             <a href="<?= url('/upload') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-cloud-upload-alt w-6 text-center text-emerald-400"></i> <?= __('Upload') ?></a>
             <a href="<?= url('/upgrade') ?>" class="p-3.5 text-base font-bold text-amber-400 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-crown w-6 text-center"></i> <?= __('Premium') ?></a>
             
@@ -238,8 +237,25 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
     </header>
 
     <script>
+    // 🚨 完美自癒修復：同生共死 (Atomic Logout)
+    // 確保同時登出 Web2 (PHP Session) 與 Web3 (LocalStorage)
     async function handleLogout() {
-        try { await fetch('/api/logout', {method: 'POST'}); } catch(e) {}
+        try {
+            // 1. 同步登出 Web3 錢包 (如果有的話)
+            if (typeof initNearWallet === 'function') {
+                const wallet = await initNearWallet();
+                if (wallet && wallet.isSignedIn()) {
+                    wallet.signOut();
+                }
+            }
+        } catch (e) {}
+
+        try {
+            // 2. 登出 Web2 後端
+            await fetch('/api/logout', {method: 'POST'}); 
+        } catch(e) {}
+        
+        // 3. 轉導回登入頁
         window.location.href = '<?= url("/login") ?>';
     }
     </script>
