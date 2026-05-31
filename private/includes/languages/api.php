@@ -86,6 +86,7 @@ return [
         'Invalid action' => 'Invalid action or action not permitted.',
         'Wallet in use' => 'This wallet address is already in use by another account.',
         'RPC Connection Failed' => 'RPC Connection Failed. Please check your network or refresh (Ctrl+F5).',
+        'Wallet not bound' => 'This NEAR wallet is not bound to any account. Please login with your username first, and bind your wallet in the API Settings.',
         
         // Downloads
         'Invalid request parameters' => 'Invalid request parameters.',
@@ -202,6 +203,7 @@ return [
         'Invalid action' => '無效的操作或不被允許。',
         'Wallet in use' => '此 Web3 錢包地址已被其他帳號綁定。',
         'RPC Connection Failed' => 'RPC 連線失敗，請檢查網絡或重新整理 (Ctrl+F5)！',
+        'Wallet not bound' => '此 NEAR 錢包尚未綁定任何帳號。請先使用傳統帳號密碼登入，並前往「API 存取權限」設定中綁定您的錢包。',
         
         // Downloads
         'Invalid request parameters' => '無效的請求參數。',

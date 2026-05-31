@@ -3,6 +3,7 @@
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
  * (Web2.5 BYOK Dual-Track Router Edition - 100% Full Unredacted Version)
+ * 🚀 Patched: Integrated Send Button Loading Spinner Controls
  */
 ?>
 <script>
@@ -322,7 +323,6 @@
             const data = await res.json();
             if (data.success && data.data.use_byok == 1) {
                 isByokMode = true;
-                // 🚨 完美多語言修復：BYOK 動態標籤
                 const header = document.querySelector('header');
                 const badge = document.createElement('div');
                 badge.className = 'w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold text-center py-1.5 tracking-widest shadow-md flex items-center justify-center gap-2';
@@ -398,11 +398,18 @@
             return;
         }
 
+        // 🚨 UI 鎖定：隱藏飛機 icon，顯示轉圈圈 Spinner
+        const sendIcon = document.getElementById('send-icon');
+        const sendSpinner = document.getElementById('send-spinner');
+        if(sendIcon) sendIcon.classList.add('hidden');
+        if(sendSpinner) sendSpinner.classList.remove('hidden');
+
         chatInput.value = '';
         chatInput.style.height = '48px';
         updateCharCount(chatInput);
         chatInput.disabled = true;
         sendBtn.disabled = true;
+        sendBtn.classList.add('opacity-80', 'cursor-not-allowed');
 
         let displayPayload = [];
         if (messageText) displayPayload.push({ type: 'text', text: messageText });
@@ -466,8 +473,12 @@
         } catch (err) {
             aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> ` + <?= json_encode(__('Network error. Connection failed.'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
         } finally {
+            // 🚨 UI 解鎖：還原按鈕與 icon
             chatInput.disabled = false;
             sendBtn.disabled = false;
+            sendBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            if(sendIcon) sendIcon.classList.remove('hidden');
+            if(sendSpinner) sendSpinner.classList.add('hidden');
             
             chatInput.style.height = '48px'; 
             

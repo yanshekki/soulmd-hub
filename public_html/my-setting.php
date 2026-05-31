@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Grand Unified Settings Hub
  * (Account, Web3, Platform API, Encrypted BYOK Engine - 100% i18n Edition)
- * 🚀 Patched: Fixed Wallet Callback URL Parsing Race Condition Bug & Tab Routing Support
+ * 🚀 Patched: Added Comprehensive Button Loading Spinners & Disabling Locks for all tabs
  */
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
@@ -61,7 +61,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <label class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Confirm New Password') ?></label>
                     <input type="password" id="confirm-pwd" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none text-white shadow-inner">
                 </div>
-                <button type="submit" class="mt-4 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow"><?= __('Update Password') ?></button>
+                <button type="submit" id="pwd-submit-btn" class="mt-4 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow flex items-center justify-center gap-2 min-w-[150px]">
+                    <span id="pwd-submit-text"><?= __('Update Password') ?></span>
+                    <span id="pwd-submit-loading" class="hidden animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
+                </button>
             </form>
         </div>
 
@@ -84,7 +87,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
                 
-                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3 border-none">
+                <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black rounded-2xl transition hover:brightness-110 shadow-[0_0_25px_rgba(52,211,153,0.25)] flex items-center justify-center gap-3 border-none min-w-[260px]">
                     <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90"> 
                     <span id="bind-wallet-text"><?= __('Connect & Bind NEAR Wallet') ?></span>
                 </button>
@@ -97,7 +100,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="bg-zinc-950 border border-white/10 p-4 rounded-xl flex items-center justify-between gap-3 mb-6 shadow-inner">
                 <code id="key-display" class="text-base text-amber-400 font-mono truncate select-all"><?= htmlspecialchars($user['api_key']) ?></code>
             </div>
-            <button onclick="rollApiKey()" class="px-6 py-3 bg-zinc-800 hover:bg-amber-500/20 text-white font-bold rounded-xl transition border border-white/5 hover:border-amber-500/30"><i class="fas fa-redo mr-2"></i> <?= __('Regenerate Key') ?></button>
+            <button type="button" id="roll-btn" onclick="rollApiKey()" class="px-6 py-3 bg-zinc-800 hover:bg-amber-500/20 text-white font-bold rounded-xl transition border border-white/5 hover:border-red-500/30 flex items-center justify-center gap-2 min-w-[170px]">
+                <span id="roll-text"><i class="fas fa-redo mr-2"></i> <?= __('Regenerate Key') ?></span>
+                <span id="roll-loading" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+            </button>
         </div>
 
         <div id="tab-byok" class="tab-content hidden animate-fade-in relative">
@@ -302,6 +308,8 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function saveLLMSettings() {
         const btn = document.getElementById('save-llm-btn');
         btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> <?= addslashes(__('Saving...')) ?>';
+        btn.disabled = true; // 🚨 鎖定自訂引擎儲存
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
         
         const payload = {
             use_byok: document.getElementById('use_byok').checked ? 1 : 0,
@@ -329,42 +337,58 @@ require_once __DIR__ . '/../private/includes/header.php';
                 setTimeout(() => { 
                     btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>'; 
                     btn.classList.replace('bg-emerald-500', 'bg-purple-600'); 
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }, 2000);
             } else {
                 alert('<?= addslashes(__('Save Failed')) ?>' + data.error);
                 btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>';
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         } catch(e) { 
             alert('<?= addslashes(__('Network Error')) ?>'); 
             btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>';
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 
     document.getElementById('pwd-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = e.target.querySelector('button[type="submit"]');
-        const originalText = btn.innerText;
-        btn.innerText = '<?= addslashes(__('Updating...')) ?>';
-        btn.disabled = true;
+        const btn = document.getElementById('pwd-submit-btn');
+        const text = document.getElementById('pwd-submit-text');
+        const loading = document.getElementById('pwd-submit-loading');
+
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+        btn.disabled = true; // 🚨 鎖定密碼修改
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         const oldp = document.getElementById('old-pwd').value;
         const newp = document.getElementById('new-pwd').value;
         const confirmp = document.getElementById('confirm-pwd').value;
         
-        const res = await fetch('/api/change-password', { 
-            method: 'POST', 
-            headers: { 'Content-Type':'application/json', 'X-CSRF-Token': serverCsrfToken }, 
-            body: JSON.stringify({current_password:oldp, new_password:newp, confirm_password:confirmp}) 
-        });
-        const data = await res.json();
-        
-        btn.disabled = false;
-        btn.innerText = originalText;
-
-        if(data.success) { 
-            alert('<?= addslashes(__('Password updated successfully!')) ?>'); 
-            document.getElementById('pwd-form').reset(); 
-        } else { alert(data.error); }
+        try {
+            const res = await fetch('/api/change-password', { 
+                method: 'POST', 
+                headers: { 'Content-Type':'application/json', 'X-CSRF-Token': serverCsrfToken }, 
+                body: JSON.stringify({current_password:oldp, new_password:newp, confirm_password:confirmp}) 
+            });
+            const data = await res.json();
+            
+            if(data.success) { 
+                alert('<?= addslashes(__('Password updated successfully!')) ?>'); 
+                document.getElementById('pwd-form').reset(); 
+            } else { alert(data.error); }
+        } catch(e) {
+            alert('<?= addslashes(__('Network Error')) ?>');
+        } finally {
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     });
 
     async function bindNearWallet() {
@@ -374,7 +398,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         const originalText = text.innerHTML;
 
         text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting RPC...')) ?>';
-        btn.classList.add('opacity-50', 'pointer-events-none');
+        btn.disabled = true; // 🚨 鎖定 Web3 錢包綁定
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
         if(icon) icon.classList.add('hidden');
 
         try {
@@ -386,14 +411,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } catch(e) {
             text.innerHTML = originalText;
-            btn.classList.remove('opacity-50', 'pointer-events-none');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
             if(icon) icon.classList.remove('hidden');
         }
     }
 
     async function executeWalletBind(accountId) {
         const text = document.getElementById('bind-wallet-text');
+        const btn = document.getElementById('bind-wallet-btn');
         if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Binding Address...')) ?>';
+        if(btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
         
         try {
             const res = await fetch('/api/bind-wallet', {
@@ -411,28 +442,50 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const wallet = await initNearWallet();
                 wallet.signOut(); 
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
-                const btn = document.getElementById('bind-wallet-btn');
-                if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+                if(btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             }
         } catch(e) {
             alert('<?= addslashes(__('Network Error')) ?>');
             if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
-            const btn = document.getElementById('bind-wallet-btn');
-            if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+            if(btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         }
     }
 
     async function rollApiKey() {
         if(!confirm('<?= addslashes(__('Key Regen Confirm')) ?>')) return;
         
-        const res = await fetch('/api/regenerate-key', { 
-            method: 'POST',
-            headers: { 'X-CSRF-Token': serverCsrfToken }
-        });
-        const data = await res.json();
-        if(data.success) { 
-            document.getElementById('key-display').innerText = data.new_api_key; 
-            alert('<?= addslashes(__('Key generated successfully!')) ?>'); 
+        const btn = document.getElementById('roll-btn');
+        const text = document.getElementById('roll-text');
+        const loading = document.getElementById('roll-loading');
+
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+        btn.disabled = true; // 🚨 鎖定金鑰重置
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        try {
+            const res = await fetch('/api/regenerate-key', { 
+                method: 'POST',
+                headers: { 'X-CSRF-Token': serverCsrfToken }
+            });
+            const data = await res.json();
+            if(data.success) { 
+                document.getElementById('key-display').innerText = data.new_api_key; 
+                alert('<?= addslashes(__('Key generated successfully!')) ?>'); 
+            }
+        } catch(e) {
+            alert('<?= addslashes(__('Network Error')) ?>');
+        } finally {
+            text.classList.remove('hidden');
+            loading.classList.add('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 </script>

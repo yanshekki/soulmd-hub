@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Login Page
  * (Dynamic i18n Internationalization & Pure Native MyNearWallet Redirect Edition)
- * 🚀 Patched: 100% Pure Redirect Mode & Non-Black Emerald Contrast UI with RPC Loading (i18n Fixed)
+ * 🚀 Patched: 100% Pure Redirect Mode & Non-Black Emerald Contrast UI with Strict RPC Loading Locks
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -81,9 +81,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btnIcon = document.getElementById('near-btn-icon');
         const originalText = btnText.innerHTML;
 
-        // 🌟 已修正為 i18n 語言包寫法
+        // 🚨 鎖定 Web3 登入按鈕
         btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
-        btn.classList.add('opacity-80', 'pointer-events-none');
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
         if(btnIcon) btnIcon.classList.add('hidden');
 
         try {
@@ -95,7 +96,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } catch(e) {
             btnText.innerHTML = originalText;
-            btn.classList.remove('opacity-80', 'pointer-events-none');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
             if(btnIcon) btnIcon.classList.remove('hidden');
         }
     }
@@ -117,8 +119,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         const errorMsg = document.getElementById('error-msg');
         const btn = document.getElementById('near-login-btn');
         const btnText = document.getElementById('near-btn-text');
+        const btnIcon = document.getElementById('near-btn-icon');
         
-        // 🌟 已修正為 i18n 語言包寫法
+        // 🚨 驗證期間持續鎖定按鈕
+        if(btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            if(btnIcon) btnIcon.classList.add('hidden');
+        }
         if(btnText) btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Verifying Session...')) ?>';
 
         try {
@@ -134,7 +142,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 errorMsg.innerText = data.error || '<?= addslashes(__('Wallet not bound')) ?>';
                 errorBox.classList.remove('hidden');
                 if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
-                if(btn) btn.classList.remove('opacity-80', 'pointer-events-none');
+                if(btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    if(btnIcon) btnIcon.classList.remove('hidden');
+                }
                 
                 const wallet = await initNearWallet();
                 wallet.signOut();
@@ -146,7 +158,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             errorMsg.innerText = '<?= addslashes(__('Network Error.')) ?>';
             errorBox.classList.remove('hidden');
             if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
-            if(btn) btn.classList.remove('opacity-80', 'pointer-events-none');
+            if(btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                if(btnIcon) btnIcon.classList.remove('hidden');
+            }
         }
     }
 
@@ -162,6 +178,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
+        
+        // 🚨 鎖定傳統登入按鈕
+        btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         const payload = {
@@ -185,6 +204,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');
                 loading.classList.add('hidden');
+                btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch (e) {
@@ -192,6 +212,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             errorBox.classList.remove('hidden');
             text.classList.remove('hidden');
             loading.classList.add('hidden');
+            btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     });

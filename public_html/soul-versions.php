@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Model Version History Archive
  * (Dynamic i18n Internationalization, Secure Parsing & SPA Async Fetch Edition)
- * 🚀 Patched: Fully Paginated with AJAX Fetch to prevent OOM
+ * 🚀 Patched: Added Button Loading UI for Restore Action
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -246,7 +246,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 </button>
                                 
                                 ${isOwner ? `
-                                <button onclick="restoreVersion(${version.id}, ${soulId})" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm">
+                                <button onclick="restoreVersion(${version.id}, ${soulId}, this)" class="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500 hover:text-zinc-950 transition flex items-center justify-center gap-2 border border-emerald-500/20 shadow-sm min-w-[100px]">
                                     <i class="fas fa-undo"></i> ${lang_Restore}
                                 </button>` : ''}
                             </div>
@@ -326,8 +326,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    async function restoreVersion(versionId, targetSoulId) {
+    // 🚨 支援 Button Loading UI 鎖定
+    async function restoreVersion(versionId, targetSoulId, btn) {
         if (!confirm(<?= json_encode(__('Restore Confirm'), JSON_UNESCAPED_UNICODE) ?>)) return;
+
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         try {
             const res = await fetch('/api/versions', { 
@@ -344,10 +350,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                     window.location.href = '<?= url("/login") ?>'; 
                 } else { 
                     alert(data.error || <?= json_encode(__('Restore failed'), JSON_UNESCAPED_UNICODE) ?>); 
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
         } catch(e) {
             alert(<?= json_encode(__('Network error while restoring.'), JSON_UNESCAPED_UNICODE) ?>);
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 

@@ -3,6 +3,7 @@
  * SoulMD Hub Premium Upgrade Page
  * Fully parameterized with PayPal SDK and Prorated Tier detection
  * (Dynamic i18n Internationalization & Mobile UX Responsive Fixed Edition)
+ * 🚀 Patched: Enhanced Loading Spinners for PayPal Transactions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -182,7 +183,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 statusBox.classList.remove('hidden', 'bg-red-900/50', 'text-red-200', 'border-red-500', 'bg-emerald-900/50', 'text-emerald-400', 'border-emerald-500');
                 statusBox.classList.add('bg-blue-900/50', 'text-blue-200', 'border', 'border-blue-500', 'block');
                 
-                // 🌍 JavaScript 動態狀態提示多語言化
+                // 🚨 加入顯眼的 Loading 轉圈動畫
                 statusBox.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> <?= addslashes(__('Verifying transaction...')) ?>';
                 statusBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -197,9 +198,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                         statusBox.classList.replace('bg-blue-900/50', 'bg-emerald-900/50');
                         statusBox.classList.replace('text-blue-200', 'text-emerald-400');
                         statusBox.classList.replace('border-blue-500', 'border-emerald-500');
-                        statusBox.innerHTML = '<i class="fas fa-check-circle mr-2"></i> ' + orderData.message + '<br><span class="text-xs sm:text-sm mt-2 block text-emerald-200/70"><?= addslashes(__('Syncing subscription...')) ?></span>';
+                        // 🚨 成功後同樣加入同步中的 Loading 轉圈動畫
+                        statusBox.innerHTML = '<i class="fas fa-check-circle mr-2"></i> ' + orderData.message + '<br><span class="text-xs sm:text-sm mt-2 block text-emerald-200/70"><i class="fas fa-sync fa-spin mr-1"></i><?= addslashes(__('Syncing subscription...')) ?></span>';
                         
-                        // 🚨 重導向路由加入多語言自動處理
                         setTimeout(() => { window.location.href = '<?= url("/billing") ?>'; }, 2500);
                     } else {
                         statusBox.classList.replace('bg-blue-900/50', 'bg-red-900/50');

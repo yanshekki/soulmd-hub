@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
- * 🚀 Patched: Fixed Wallet Callback URL Parsing Race Condition Bug & Tab Routing Support
+ * 🚀 Patched: Added comprehensive Loading UI & Button Locks for all async actions
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -188,8 +188,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <input type="number" id="buyback-amount" placeholder="e.g. 50" step="0.1" class="w-full bg-zinc-950 border border-amber-500/20 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 text-white shadow-inner">
                     </div>
                     
-                    <button type="button" onclick="triggerAutoBuyback()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
-                        <i class="fas fa-fire"></i> <?= __('Trigger Buyback & Burn') ?>
+                    <button type="button" id="buyback-btn" onclick="triggerAutoBuyback()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
+                        <span id="buyback-text"><i class="fas fa-fire"></i> <?= __('Trigger Buyback & Burn') ?></span>
                     </button>
                 </div>
             </div>
@@ -230,7 +230,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         const originalText = text.innerHTML;
 
         text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
-        btn.classList.add('opacity-50', 'pointer-events-none');
+        btn.disabled = true; // 🚨 鎖定按鈕
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
         if(icon) icon.classList.add('hidden');
 
         try {
@@ -242,14 +243,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } catch(e) {
             text.innerHTML = originalText;
-            btn.classList.remove('opacity-50', 'pointer-events-none');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
             if(icon) icon.classList.remove('hidden');
         }
     }
 
     async function executeWalletBind(accountId) {
         const text = document.getElementById('bind-wallet-text');
+        const btn = document.getElementById('bind-wallet-btn');
         if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Binding Address...')) ?>';
+        if(btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
         
         try {
             const res = await fetch('/api/bind-wallet', {
@@ -267,14 +274,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const wallet = await initNearWallet();
                 wallet.signOut();
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
-                const btn = document.getElementById('bind-wallet-btn');
-                if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+                if(btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             }
         } catch(e) {
             showFeedbackNotification(false, '<?= addslashes(__('Network Error')) ?>');
             if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
-            const btn = document.getElementById('bind-wallet-btn');
-            if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+            if(btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         }
     }
 
@@ -297,6 +308,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         text.classList.add('hidden');
         loading.classList.remove('hidden');
+        btn.disabled = true; // 🚨 鎖定按鈕
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         successBox.classList.add('hidden');
         errorBox.classList.add('hidden');
@@ -315,6 +327,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');
+            btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
@@ -352,6 +365,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             return;
         }
 
+        const btn = document.getElementById('buyback-btn');
+        const text = document.getElementById('buyback-text');
+        const originalHtml = text.innerHTML;
+        
+        text.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+        btn.disabled = true; // 🚨 鎖定按鈕
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
         try {
             const amountInYocto = nearApi.utils.format.parseNearAmount(amount.toString());
             await wallet.account().functionCall({
@@ -362,12 +383,20 @@ require_once __DIR__ . '/../private/includes/header.php';
                 attachedDeposit: "0", 
                 walletCallbackUrl: window.location.href
             });
-            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+            
+            // 🚨 靜默簽署修復：加入過渡延遲
+            text.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> Syncing...';
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             alert("Buyback initiated successfully!");
             window.location.reload();
         } catch(e) {
             let errorText = `<?= addslashes(__('Buyback Failed')) ?>`.replace(':contract', '<?= NEAR_CONTRACT_ID; ?>');
             alert(errorText);
+            
+            text.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
     <?php endif; ?>

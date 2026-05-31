@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Hard separated Web2 and Web3 AgentFi Assets with DB-level Price Pagination
+ * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -262,7 +262,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
         
         try {
-            // 🚨 強制撈出該用戶 is_nft=0 的公開模型
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${web2Page}&limit=6&sort=newest&is_nft=0`);
             const data = await res.json();
 
@@ -325,13 +324,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div></div>`;
         
         try {
-            // 🚨 強制撈出該用戶 is_nft=1 且有標價的 NFT 資產 (利用最新 API 功能)
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${web3Page}&limit=6&sort=newest&is_nft=1`);
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
                 
-                // 1. 同步拉取 RPC 租客資料與實時價格 (作為 Overlay)
                 const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {
@@ -357,7 +354,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 });
                 await Promise.all(rpcPromises);
 
-                // 2. 準備當前登入者之錢包比對
                 const wallet = typeof initNearWallet === 'function' ? await initNearWallet() : null;
                 const myWallet = wallet && wallet.isSignedIn() ? wallet.getAccountId() : null;
 
@@ -369,7 +365,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     
-                    // 🚨 完美修復前端讀價 Bug：改由 RPC 讀取價格，而非從資料庫讀取
                     const isOwner = myWallet && soul.market && soul.market.owner_id === myWallet;
                     const salePrice = soul.market && soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                     const rentPrice = soul.market && soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
@@ -415,8 +410,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
                                         <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none">
-                                        <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
+                                    <button ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}', this)"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none flex items-center justify-center gap-1.5 min-w-[110px]">
+                                        <i class="fas fa-shopping-cart"></i> <span><?= addslashes(__('Buy Now')) ?></span>
                                     </button>
                                 </div>` : ''}
                                 
@@ -426,8 +421,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
                                         <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
-                                        <i class="fas fa-handshake"></i> <?= addslashes(__('Rent (30d)')) ?>
+                                    <button ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}', this)"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap flex items-center justify-center gap-1.5 min-w-[110px]">
+                                        <i class="fas fa-handshake"></i> <span><?= addslashes(__('Rent (30d)')) ?></span>
                                     </button>
                                 </div>` : ''}
                                 
@@ -501,20 +496,43 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    async function buyMarketSoul(id, rawPrice) {
+    // 🚨 支援 Button Loading UI 鎖定
+    async function buyMarketSoul(id, rawPrice, btn) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
-        await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span>Processing...</span>';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        try {
+            await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
+        } catch(e) {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
     }
 
-    async function rentMarketSoul(id, rawPrice) {
+    async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
-        await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span>Processing...</span>';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        try {
+            await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
+        } catch(e) {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
     }
 </script>
 

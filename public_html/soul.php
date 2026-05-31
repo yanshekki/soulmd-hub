@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Centrally Synchronized Wallet Router Integration & Accurate Tx Alerts
+ * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -184,10 +184,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
         <div class="flex flex-wrap gap-2 w-full md:w-auto" id="market-actions">
             <button id="btn-buy" onclick="buySoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
-                <i class="fas fa-shopping-cart mr-1"></i> <span id="price-buy"></span> NEAR
+                <span id="text-buy"><i class="fas fa-shopping-cart mr-1"></i> <span id="price-buy"></span> NEAR</span>
             </button>
             <button id="btn-rent" onclick="rentSoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
-                <i class="fas fa-handshake mr-1"></i> <span id="price-rent"></span> NEAR
+                <span id="text-rent"><i class="fas fa-handshake mr-1"></i> <span id="price-rent"></span> NEAR</span>
             </button>
         </div>
     </div>
@@ -481,23 +481,55 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 
     async function buySoul() {
+        const btn = document.getElementById('btn-buy');
+        const textSpan = document.getElementById('text-buy');
+        const originalText = textSpan.innerHTML;
+        
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
-        const price = document.getElementById('btn-buy').dataset.price;
         
-        // 🚨 標記此操作為 Buy
-        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('buy') });
+        const price = btn.dataset.price;
+        
+        // 🚨 加入 Loading UI 效果
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+        
+        try {
+            // 🚨 標記此操作為 Buy
+            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('buy') });
+        } catch (e) {
+            textSpan.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
     }
 
     async function rentSoul() {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
+        const btn = document.getElementById('btn-rent');
+        const textSpan = document.getElementById('text-rent');
+        const originalText = textSpan.innerHTML;
+        
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
-        const price = document.getElementById('btn-rent').dataset.price;
         
-        // 🚨 標記此操作為 Rent
-        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('rent') });
+        const price = btn.dataset.price;
+        
+        // 🚨 加入 Loading UI 效果
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+        
+        try {
+            // 🚨 標記此操作為 Rent
+            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('rent') });
+        } catch (e) {
+            textSpan.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
     }
 
     function copyMegaPrompt(btn) {

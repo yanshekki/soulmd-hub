@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Hard separated Web2 Delete and Web3 Burn Logic with Active Renter Locks
+ * 🚀 Patched: Added Loading UI for Web2 Delete and Web3 Burn actions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -225,6 +225,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(currentUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
+                    // 🚨 傳入 this
                     html += `
                     <div class="soul-card bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/40 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg" data-id="${soul.id}">
                         <div>
@@ -257,7 +258,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
                                 <a href="${url_versions}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center" title="${lang_VersionHistory}"><i class="fas fa-history"></i></a>
                                 
-                                <button onclick="deleteWeb2Soul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center" title="${lang_DeleteSoul}"><i class="far fa-trash-alt sm:text-base"></i></button>
+                                <button onclick="deleteWeb2Soul(${soul.id}, this)" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center min-w-[44px]" title="${lang_DeleteSoul}"><i class="far fa-trash-alt sm:text-base"></i></button>
                                 
                                 <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
                             </div>
@@ -293,7 +294,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success && data.data.length > 0) {
                 const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
                 
-                // 🚨 核心升級：實時拉取 RPC 獲取租客資訊
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
                     try {
@@ -326,7 +326,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
-                    // 🚨 解析租客資訊
                     let activeRenters = [];
                     if (soul.market.renters) {
                         const nowMs = Date.now();
@@ -340,12 +339,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                     const rentersCount = activeRenters.length;
 
-                    // 🚨 Web3 Burn 判斷：有租客則 Disable，並顯示警告
+                    // 🚨 傳入 this 到 burnWeb3Soul
                     let burnBtnHtml = '';
                     if (rentersCount > 0) {
-                        burnBtnHtml = `<button disabled class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center opacity-30 cursor-not-allowed" title="${lang_ActiveRentersError}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
+                        burnBtnHtml = `<button disabled class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center opacity-30 cursor-not-allowed min-w-[44px]" title="${lang_ActiveRentersError}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
                     } else {
-                        burnBtnHtml = `<button onclick="burnWeb3Soul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
+                        burnBtnHtml = `<button onclick="burnWeb3Soul(${soul.id}, this)" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center min-w-[44px]" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
                     }
 
                     html += `
@@ -455,8 +454,15 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    async function deleteWeb2Soul(id) {
+    // 🚨 支援 Button Loading UI 鎖定
+    async function deleteWeb2Soul(id, btn) {
         if (!confirm(lang_PermDelete)) return;
+        
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base"></i>';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
         try {
             const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
@@ -464,13 +470,19 @@ require_once __DIR__ . '/../private/includes/header.php';
                 location.reload(); 
             } else { 
                 alert(data.error || "Delete failed"); 
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         } catch(e) { 
             alert("Network Error"); 
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 
-    async function burnWeb3Soul(id) {
+    async function burnWeb3Soul(id, btn) {
         if (!confirm(lang_BurnConfirm)) return;
 
         try {
@@ -482,6 +494,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base"></i>';
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
             // 0 Deposit 將自動觸發靜默簽署
             await wallet.account().functionCall({
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
@@ -492,10 +509,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                 walletCallbackUrl: window.location.href 
             });
             
+            btn.innerHTML = '<i class="fas fa-sync fa-spin sm:text-base"></i>';
             // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
             window.location.reload();
         } catch (e) {
             console.error("Burn execution error:", e);
+            if(btn) {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         }
     }
 

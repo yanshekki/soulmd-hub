@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Core Intelligent Chat Interface
  * (Slim & Modular Master Controller Edition with Dynamic i18n Support)
- * 🚀 Patched: Allowed is_nft access with dynamic Anti-Peeping modal masking!
+ * 🚀 Patched: Added Loading Spinner UI Structure for Send Button
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -194,8 +194,9 @@ if ($maskContent) {
                 </div>
             </div>
 
-            <button type="submit" id="send-btn" class="h-12 px-6 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center shrink-0 shadow-lg">
-                <i class="fas fa-paper-plane"></i>
+            <button type="submit" id="send-btn" class="h-12 w-16 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center shrink-0 shadow-lg">
+                <span id="send-icon"><i class="fas fa-paper-plane"></i></span>
+                <span id="send-spinner" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
             </button>
         </form>
     </div>

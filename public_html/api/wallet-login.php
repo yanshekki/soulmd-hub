@@ -52,5 +52,5 @@ if ($user) {
 } else {
     http_response_code(401);
     // 傳回特定錯誤碼，由前端語言包處理翻譯
-    echo json_encode(['success' => false, 'error' => 'Wallet not bound'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'error' => __('Wallet not bound')], JSON_UNESCAPED_UNICODE);
 }

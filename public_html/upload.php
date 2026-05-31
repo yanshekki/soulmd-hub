@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Upload & Publish Dashboard
  * (DRY Refactored - Unified Form Extracted to soul-form.php)
+ * 🚀 Note: Loading UI & Submit Locks are handled centrally in soul-form.php
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -28,7 +29,7 @@ $soulData = [];
 $pageTitle = __('Upload Soul');
 require_once __DIR__ . '/../private/includes/header.php';
 
-// 引入核心表單
+// 🚨 引入核心表單 (已包含所有 Loading 效果與防雙擊鎖定)
 require_once __DIR__ . '/../private/includes/soul-form.php';
 
 require_once __DIR__ . '/../private/includes/footer.php';

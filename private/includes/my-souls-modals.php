@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My Souls Modals & Scripts Component
  * Included dynamically at the bottom of my-souls.php
- * 🚀 Patched: Forced DB Lazy Sync after AgentFi Silent Transactions
+ * 🚀 Patched: Added Loading UI + 2s Delay + API Sync for Silent Transactions
  */
 ?>
 
@@ -101,24 +101,24 @@
                         <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <div class="flex justify-between items-start mb-2">
                                 <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400"></i> <?= __('List for Sale') ?></label>
-                                <button type="button" onclick="agentfiAction('cancel_sale')" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
+                                <button type="button" onclick="agentfiAction('cancel_sale', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden min-w-[90px]" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
                             </div>
                             <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Sale Desc') ?></p>
                             <div class="flex gap-2">
-                                <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner">
-                                <button type="button" onclick="agentfiAction('list_sale')" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm"><?= __('List on Market') ?></button>
+                                <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner font-mono">
+                                <button type="button" onclick="agentfiAction('list_sale', this)" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm min-w-[120px] flex items-center justify-center gap-1.5"><?= __('List on Market') ?></button>
                             </div>
                         </div>
 
                         <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <div class="flex justify-between items-start mb-2">
                                 <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400"></i> <?= __('List for Rent') ?></label>
-                                <button type="button" onclick="agentfiAction('cancel_rent')" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
+                                <button type="button" onclick="agentfiAction('cancel_rent', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden min-w-[90px]" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
                             </div>
                             <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Rent Desc') ?></p>
                             <div class="flex gap-2">
-                                <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner">
-                                <button type="button" onclick="agentfiAction('list_rent')" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm"><?= __('List on Market') ?></button>
+                                <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner font-mono">
+                                <button type="button" onclick="agentfiAction('list_rent', this)" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm min-w-[120px] flex items-center justify-center gap-1.5"><?= __('List on Market') ?></button>
                             </div>
                         </div>
 
@@ -478,7 +478,8 @@
         } catch(e) { console.log('RPC Fetch Error for NFT status', e); }
     }
 
-    async function agentfiAction(actionType) {
+    // 🚨 支援 Button Loading UI + 2s Delay Sync
+    async function agentfiAction(actionType, btn) {
         if (!currentEditId) return;
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
@@ -511,6 +512,12 @@
             methodName = 'list_for_rent'; args.price = "0";
         }
 
+        // 鎖定按鈕並顯示 Processing UI
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
         try {
             await wallet.account().functionCall({
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
@@ -521,13 +528,19 @@
                 walletCallbackUrl: window.location.href
             });
             
-            // 🚨 終極同步修復：在靜默簽署完成後，強制敲擊一次後端 API 更新 MySQL 價錢庫！
+            // 🚨 靜默簽署完成，進入 2秒退避等待，顯示 Syncing UI
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing to DB...';
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 強制敲擊後端 API 更新 MySQL 價錢庫
             await fetch(`/api/soul/${currentEditId}`);
             
-            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
             window.location.reload();
         } catch(e) { 
             alert(<?= json_encode(__('Blockchain transaction failed or rejected.'), JSON_UNESCAPED_UNICODE) ?>); 
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 
@@ -573,9 +586,10 @@
             
             if (data.success) { 
                 if (wantSync) {
-                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
+                    // 🚨 更新 Hash 為 0 Deposit 操作，加入 2s 等待與同步
+                    text.innerText = "Processing...";
                     text.classList.remove('hidden');
-                    spinner.classList.add('hidden');
+                    spinner.classList.remove('hidden');
                     
                     const args = {
                         token_id: "soul_" + currentEditId,
@@ -591,7 +605,10 @@
                         walletCallbackUrl: window.location.href
                     });
                     
-                    await fetch(`/api/soul/${currentEditId}`); // Just in case
+                    text.innerText = "Syncing to DB...";
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await fetch(`/api/soul/${currentEditId}`);
+                    
                     closeModal(); location.reload(); 
                 } else {
                     closeModal(); location.reload(); 
@@ -617,75 +634,5 @@
         content.classList.remove('scale-100'); 
         content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); currentEditId = null; }, 300);
-    }
-
-    // 🚨 租客防護攔截與自癒 RPC Check
-    async function deleteSoul(id) {
-        const lang_ActiveRentersError = <?= json_encode(__('Active renters error'), JSON_UNESCAPED_UNICODE) ?>;
-        
-        try {
-            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
-            const rpcRes = await fetch(safeRpcUrl, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    jsonrpc: "2.0", id: "dontcare", method: "query",
-                    params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + id })) }
-                })
-            });
-            const rpcData = await rpcRes.json();
-            if (rpcData.result && rpcData.result.result) {
-                const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                if (tokenInfo && tokenInfo.renters) {
-                    const nowMs = Date.now();
-                    for (const accountId in tokenInfo.renters) {
-                        const expiryMs = Number(BigInt(tokenInfo.renters[accountId]) / 1000000n);
-                        if (expiryMs > nowMs) {
-                            alert(lang_ActiveRentersError);
-                            return; // ⛔️ 攔截：租約未到期，禁止銷毀！
-                        }
-                    }
-                }
-            }
-        } catch(e) { console.log('RPC check skipped or not an NFT'); }
-
-        if (!confirm(<?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
-            if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
-            executeDatabaseDelete(id);
-            return;
-        }
-
-        try {
-            const wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
-                await window.connectOrBindWallet();
-                return;
-            }
-
-            await wallet.account().functionCall({
-                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                methodName: "burn_soul",
-                args: { token_id: "soul_" + id },
-                gas: "30000000000000", 
-                attachedDeposit: "0", 
-                walletCallbackUrl: window.location.href 
-            });
-            
-        } catch (e) {
-            executeDatabaseDelete(id);
-        }
-    }
-
-    async function executeDatabaseDelete(id) {
-        try {
-            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) { 
-                location.reload(); 
-            } else { 
-                alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); 
-            }
-        } catch(e) { 
-            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
-        }
     }
 </script>
