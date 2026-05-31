@@ -39,7 +39,7 @@ return [
         'No NFT assets' => 'You currently hold no AgentFi NFTs in your wallet. Go to the Hub and mint a creator\'s model!',
         
         'List / Rent Market' => 'List / Rent on Market',
-        'Burn and Refund' => 'Burn NFT and Refund Deposit',
+        'Burn and Refund' => 'Burn NFT and Refund 0.45 NEAR',
         
         'Mint NFT' => 'Mint NFT',
         'Mint Confirm' => 'Minting an NFT requires a 0.6 NEAR deposit. Do you want to upgrade this soul into an exclusive Web3 asset?',
@@ -66,11 +66,12 @@ return [
         'Please connect NEAR wallet first' => 'Please bind your NEAR wallet in Developer API Access first.',
         'Redirecting to Wallet...' => 'Redirecting to Wallet...',
 
-        'Burn Confirm' => "Are you sure you want to permanently delete this AI soul?\n\nIf this soul was minted as an NFT on NEAR, do you want to BURN it on the blockchain to reclaim the 0.45 NEAR Floor Price?\n\nPress [OK] to Delete + Burn NFT.\nPress [Cancel] to just delete from database.",
+        // 🚨 獨立的 Web3 銷毀提示
+        'Burn Confirm' => "Are you sure you want to BURN this NFT on the blockchain to reclaim the 0.45 NEAR Floor Price?\n\nAfter burning, it will be downgraded back to a regular Web2 model in your Prototype Box. You can then permanently delete it if you wish.",
         'Floor Price' => 'Floor Price',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR refund.',
         
-        'Active renters error' => 'Action Blocked: Cannot burn this NFT because there are active renters. Please wait until all rental periods expire before burning.',
+        'Active renters error' => 'Action Blocked: Cannot burn this NFT because there are active renters. Please wait until all rental periods expire.',
 
         'AgentFi Actions' => 'AgentFi Actions',
         'List for Sale' => 'List for Sale',
@@ -92,7 +93,10 @@ return [
         'You must have at least one file.' => 'You must have at least one file.',
         'File already exists!' => 'File already exists!',
         'Failed to fetch soul details' => 'Failed to fetch soul details.',
-        'Are you sure you want to permanently delete this AI soul?' => 'Are you sure you want to permanently delete this AI soul?',
+        
+        // 🚨 獨立的 Web2 永久刪除提示
+        'Perm Delete Confirm' => 'Are you sure you want to permanently delete this AI soul? This action cannot be undone.',
+        'Delete Soul' => 'Delete Soul',
         'Failed to delete' => 'Failed to delete soul.',
         'Network error.' => 'Network error. Please try again.',
         'Delete file check' => 'Are you sure you want to delete ',
@@ -102,7 +106,6 @@ return [
         'Invalid price' => 'Invalid price. Must be greater than 0.',
         'Blockchain transaction failed or rejected.' => 'Blockchain transaction failed or rejected by user.',
 
-        // 🚨 新增：租客彈窗語言
         'Active Renters' => 'Active Renters',
         'Renter List' => 'Active Renters List',
         'Expires At' => 'Expires At',
@@ -144,7 +147,7 @@ return [
         'No NFT assets' => '您的錢包名下暫無持有的 AI 智能體 NFT。前往模型庫選擇一個創作者模型鑄造吧！',
         
         'List / Rent Market' => '市集上架 / 租務',
-        'Burn and Refund' => '銷毀 NFT 並贖回押金',
+        'Burn and Refund' => '銷毀 NFT 並贖回 0.45 NEAR',
         
         'Mint NFT' => '鑄造 NFT',
         'Mint Confirm' => '將模型鑄造為 NFT 需要 0.6 NEAR 的發行質押金。確定要將此模型升級為 Web3 鏈上資產嗎？',
@@ -171,7 +174,8 @@ return [
         'Please connect NEAR wallet first' => '請先前往「開發者 API 存取權限」綁定您的 NEAR 錢包。',
         'Redirecting to Wallet...' => '正在重導向至錢包...',
 
-        'Burn Confirm' => "您確定要永久刪除這個 AI 靈魂模型嗎？\n\n如果此模型已經鑄造為 NEAR 上的 NFT，您是否要同時在區塊鏈上「銷毀 (Burn)」它，以取回 0.45 NEAR 的保底地板價退款？\n\n點擊 [確定]：刪除資料庫並喚起錢包銷毀 NFT\n點擊 [取消]：僅刪除資料庫（不退款）",
+        // 🚨 獨立的 Web3 銷毀提示
+        'Burn Confirm' => "您確定要在區塊鏈上「銷毀 (Burn)」此 NFT 以取回 0.45 NEAR 的保底退款嗎？\n\n銷毀後，該模型將會降級並回到您的 Web2 原創模型庫。屆時如果您希望永久刪除，可以再次點擊垃圾桶圖示進行刪除。",
         'Floor Price' => '保底地板價',
         'Floor Desc' => '資產保底價值。擁有者隨時可透過銷毀 (Burn) 此 NFT 無條件贖回 0.45 NEAR 押金。',
         
@@ -197,7 +201,10 @@ return [
         'You must have at least one file.' => '模組化結構內必須包含至少一個架構檔案。',
         'File already exists!' => '該檔案路徑已存在！',
         'Failed to fetch soul details' => '無法撈取模型詳細資料。',
-        'Are you sure you want to permanently delete this AI soul?' => '您確定要永久刪除這個 AI 靈魂模型嗎？此操作無法撤銷。',
+        
+        // 🚨 獨立的 Web2 永久刪除提示
+        'Perm Delete Confirm' => '您確定要永久刪除這個 Web2 靈魂模型嗎？此操作無法撤銷。',
+        'Delete Soul' => '永久刪除',
         'Failed to delete' => '刪除失敗。',
         'Network error.' => '網絡連線錯誤，請檢查連線後重試。',
         'Delete file check' => '您確定要刪除此檔案模組嗎：',
@@ -207,7 +214,6 @@ return [
         'Invalid price' => '無效的價格，必須大於 0。',
         'Blockchain transaction failed or rejected.' => '區塊鏈交易失敗，或已被用戶拒絕。',
 
-        // 🚨 新增：租客彈窗語言
         'Active Renters' => '名活躍租客',
         'Renter List' => '目前活躍租客名單',
         'Expires At' => '租約到期時間',

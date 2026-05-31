@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Added Active Renters Popup & RPC Realtime Polling for My NFT Assets
+ * 🚀 Patched: Hard separated Web2 Delete and Web3 Burn Logic with Active Renter Locks
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -128,11 +128,11 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_NoSouls = <?= json_encode(__('No souls shared yet'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoNFTs = <?= json_encode(__('No NFT assets'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_BurnConfirm = <?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>;
-    const lang_PermDelete = <?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_PermDelete = <?= json_encode(__('Perm Delete Confirm'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_DeleteSoul = <?= json_encode(__('Delete Soul'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_FloorPrice = <?= json_encode(__('Floor Price'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_FloorDesc = <?= json_encode(__('Floor Desc'), JSON_UNESCAPED_UNICODE) ?>;
-    
-    // 🚨 新增：動態語言變量
+    const lang_ActiveRentersError = <?= json_encode(__('Active renters error'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_ActiveRenters = <?= json_encode(__('Active Renters'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_ExpiresAt = <?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoActiveRenters = <?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>;
@@ -256,7 +256,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <div class="flex flex-wrap items-center gap-2">
                                 <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
                                 <a href="${url_versions}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center" title="${lang_VersionHistory}"><i class="fas fa-history"></i></a>
-                                <button onclick="deleteSoul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center"><i class="far fa-trash-alt sm:text-base"></i></button>
+                                
+                                <button onclick="deleteWeb2Soul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center" title="${lang_DeleteSoul}"><i class="far fa-trash-alt sm:text-base"></i></button>
+                                
                                 <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
                             </div>
                         </div>
@@ -291,7 +293,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success && data.data.length > 0) {
                 const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
                 
-                // 🚨 核心升級：實時拉取 RPC 獲取租客資訊
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
                     try {
@@ -324,7 +325,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
-                    // 🚨 解析租客資訊
                     let activeRenters = [];
                     if (soul.market.renters) {
                         const nowMs = Date.now();
@@ -337,6 +337,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                     const rentersCount = activeRenters.length;
+
+                    // 🚨 Web3 Burn 判斷：有租客則 Disable，並顯示警告
+                    let burnBtnHtml = '';
+                    if (rentersCount > 0) {
+                        burnBtnHtml = `<button disabled class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center opacity-30 cursor-not-allowed" title="${lang_ActiveRentersError}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
+                    } else {
+                        burnBtnHtml = `<button onclick="burnWeb3Soul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
+                    }
 
                     html += `
                     <div class="soul-card bg-zinc-900/60 border border-purple-500/20 rounded-3xl p-5 sm:p-6 hover:border-purple-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg relative overflow-hidden" data-id="${soul.id}">
@@ -375,7 +383,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
                                 <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/20 rounded-xl transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
-                                <button onclick="deleteSoul(${soul.id})" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base"></i></button>
+                                
+                                ${burnBtnHtml}
+                                
                                 <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
                             </div>
                         </div>
@@ -398,7 +408,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 顯示活躍租客名單 Modal
     function showRentersModal(encodedJson) {
         const renters = JSON.parse(decodeURIComponent(encodedJson));
         const listContainer = document.getElementById('renters-list-content');
@@ -441,49 +450,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         content.classList.remove('scale-100');
         content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
-    }
-
-    async function deleteSoul(id) {
-        if (!confirm(lang_BurnConfirm)) {
-            if (!confirm(lang_PermDelete)) return;
-            executeDatabaseDelete(id);
-            return;
-        }
-
-        try {
-            if (typeof initNearWallet !== 'function') { executeDatabaseDelete(id); return; }
-            const wallet = await initNearWallet();
-            
-            if (!wallet.isSignedIn()) {
-                await window.connectOrBindWallet();
-                return;
-            }
-
-            await wallet.account().functionCall({
-                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                methodName: "burn_soul",
-                args: { token_id: "soul_" + id },
-                gas: "30000000000000", 
-                attachedDeposit: "0", 
-                walletCallbackUrl: window.location.href 
-            });
-        } catch (e) {
-            executeDatabaseDelete(id);
-        }
-    }
-
-    async function executeDatabaseDelete(id) {
-        try {
-            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) { 
-                location.reload(); 
-            } else { 
-                alert(data.error || "Delete failed"); 
-            }
-        } catch(e) { 
-            alert("Network Error"); 
-        }
     }
 
     async function proactiveAssetSync() {
@@ -535,4 +501,5 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 </script>
 
+<?php require_once __DIR__ . '/../private/includes/my-souls-modals.php'; ?>
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
