@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Global Logout Handler
- * 🚀 Patched: Synchronous Atomic Logout for both Web2 (PHP) and Web3 (LocalStorage)
+ * 🚀 Patched: Deep Web3 LocalStorage Wipe (Including Auth Keys) to break infinite Auto-Login loop
  */
 session_start();
 
@@ -22,7 +22,6 @@ session_unset();
 session_destroy();
 setcookie('remember_token', '', time() - 3600, '/');
 
-// 3. 輸出 HTML 與 JavaScript 執行 Web3 清理並導向
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,18 +37,19 @@ setcookie('remember_token', '', time() - 3600, '/');
     <div>Securely logging you out of Web2 and Web3...</div>
     <script>
         try {
-            // 🚨 清除所有以 near-api-js 開頭的 LocalStorage (Web3 錢包狀態)
+            // 🚨 終極修復：除了 keystore，必須同時刪除 '_wallet_auth_key' 才能徹底讓 NEAR Wallet 判定為登出！
+            // 否則 isSignedIn() 依舊回傳 true，導致 Global Sync 自動將你登入！
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith('near-api-js:keystore:')) {
+                if (key && (key.startsWith('near-api-js:keystore:') || key.includes('_wallet_auth_key'))) {
                     keysToRemove.push(key);
                 }
             }
             keysToRemove.forEach(k => localStorage.removeItem(k));
         } catch(e) {}
         
-        // 🚨 完美轉導：使用 location.replace 避免污染歷史紀錄，並自帶多語言前綴
+        // 🚨 完美轉導：使用 location.replace 避免污染歷史紀錄
         window.location.replace('<?= url("/login") ?>');
     </script>
 </body>

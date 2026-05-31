@@ -5,6 +5,7 @@
  * PUT    /api/soul/{id} - Update a soul & Generate new NFT Hash
  * DELETE /api/soul/{id} - Delete a soul 
  * (100% Dynamic i18n Internationalized & Web2.5 AgentFi V5 Architecture - Centralized RPC)
+ * 🚀 Patched: Dual-Track Permissions & Syncs sale_price and rent_price to DB during Lazy Sync
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -69,9 +70,6 @@ function syncTags($pdo, $table, $oldStr, $newStr) {
     }
 }
 
-// ==========================================
-// 🚀 核心 V5：RPC 備援池與狀態查詢 (對齊全域設定)
-// ==========================================
 function fetchNearRpcToken($tokenId) {
     $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : [
         "https://free.rpc.fastnear.com",
@@ -118,16 +116,14 @@ function fetchNearRpcToken($tokenId) {
     return ['status' => 'timeout']; 
 }
 
-// ==========================================
-// 🚀 核心 V5：懶同步與自癒降級引擎 (Lazy Sync & Self-Healing)
-// ==========================================
+// 🚨 核心同步機制：除了擁有者，現在還會同步售價與租金
 function applyLazySync(&$soul, $pdo) {
     if ($soul['is_nft'] != 1) return;
 
     $rpcRes = fetchNearRpcToken("soul_" . $soul['id']);
     
     if ($rpcRes['status'] === 'not_found') {
-        $stmt = $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0, sale_price = NULL, rent_price = NULL WHERE id = ?");
         $stmt->execute([$soul['id']]);
         
         $soul['is_nft'] = 0;
@@ -135,23 +131,27 @@ function applyLazySync(&$soul, $pdo) {
         $soul['nft_salt'] = null;
         $soul['nft_hash'] = null;
         $soul['is_public'] = 0; 
+        $soul['sale_price'] = null;
+        $soul['rent_price'] = null;
         return;
     }
 
     if ($rpcRes['status'] === 'success' && !empty($rpcRes['data']['owner_id'])) {
         $chainOwner = $rpcRes['data']['owner_id'];
+        $salePrice = isset($rpcRes['data']['sale_price']) ? (string)$rpcRes['data']['sale_price'] : null;
+        $rentPrice = isset($rpcRes['data']['rent_price']) ? (string)$rpcRes['data']['rent_price'] : null;
         
-        if ($chainOwner !== $soul['nft_owner_wallet']) {
-            $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
-            $userStmt->execute([$chainOwner]);
-            $newOwnerId = $userStmt->fetchColumn() ?: null; 
-            
-            $stmt = $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ? WHERE id = ?");
-            $stmt->execute([$newOwnerId, $chainOwner, $soul['id']]);
-            
-            $soul['user_id'] = $newOwnerId;
-            $soul['nft_owner_wallet'] = $chainOwner;
-        }
+        $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
+        $userStmt->execute([$chainOwner]);
+        $newOwnerId = $userStmt->fetchColumn() ?: null; 
+        
+        $stmt = $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ?, sale_price = ?, rent_price = ? WHERE id = ?");
+        $stmt->execute([$newOwnerId, $chainOwner, $salePrice, $rentPrice, $soul['id']]);
+        
+        $soul['user_id'] = $newOwnerId;
+        $soul['nft_owner_wallet'] = $chainOwner;
+        $soul['sale_price'] = $salePrice;
+        $soul['rent_price'] = $rentPrice;
     }
 }
 
@@ -196,23 +196,37 @@ if ($method === 'GET') {
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT is_nft, title, description, content, role, domain, compatibility, is_public FROM souls WHERE id = ? AND user_id = ?");
-    $stmt->execute([$id, $userId]);
+    $stmt = $pdo->prepare("SELECT user_id, is_nft, nft_owner_wallet, title, description, content, role, domain, compatibility, is_public FROM souls WHERE id = ?");
+    $stmt->execute([$id]);
     $old = $stmt->fetch();
 
     if (!$old) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 取得當前用戶綁定的 Web3 錢包
+    $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $walletStmt->execute([$userId]);
+    $myWallet = $walletStmt->fetchColumn();
+
+    // 雙軌制權限核對 (Web2 ID 吻合，或是 Web3 錢包吻合皆可放行)
+    $hasEditPerm = false;
+    if ($old['user_id'] == $userId) {
+        $hasEditPerm = true;
+    } elseif ($old['is_nft'] == 1 && !empty($myWallet) && $myWallet === $old['nft_owner_wallet']) {
+        $hasEditPerm = true;
+    }
+
+    if (!$hasEditPerm) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Soul not found or no edit perm')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // 🌟 核心 V5：處理現有 Web2 模型一鍵 Mint 請求
     if (!empty($input['is_minting']) && $old['is_nft'] == 0) {
-        $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
-        $walletStmt->execute([$userId]);
-        $nearWallet = $walletStmt->fetchColumn();
-
-        if (empty($nearWallet)) {
+        if (empty($myWallet)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => __('Please connect NEAR wallet first')], JSON_UNESCAPED_UNICODE);
             exit;
@@ -223,7 +237,7 @@ if ($method === 'GET') {
         
         try {
             $pdo->prepare("UPDATE souls SET is_nft = 1, is_public = 0, nft_salt = ?, nft_hash = ?, nft_owner_wallet = ? WHERE id = ?")
-                ->execute([$nft_salt, $nft_hash, $nearWallet, $id]);
+                ->execute([$nft_salt, $nft_hash, $myWallet, $id]);
 
             $uStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
             $uStmt->execute([$userId]);
@@ -262,7 +276,7 @@ if ($method === 'GET') {
     $domain = isset($input['domain']) ? trim($input['domain']) : ($old['domain'] ?? '');
     $compatibility = isset($input['compatibility']) ? trim($input['compatibility']) : ($old['compatibility'] ?? '');
     
-    // 如果是 NFT，強制鎖死 is_public 為 0 (防白嫖機制)
+    // 如果是 NFT，強制鎖死 is_public 為 0
     $is_public = ($old['is_nft'] == 1) ? 0 : (isset($input['is_public']) ? (int)$input['is_public'] : (int)$old['is_public']);
 
     if (empty($title) || empty($content)) {
@@ -327,11 +341,28 @@ if ($method === 'GET') {
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT domain, compatibility FROM souls WHERE id = ? AND user_id = ?");
-    $stmt->execute([$id, $userId]);
+    $stmt = $pdo->prepare("SELECT user_id, is_nft, nft_owner_wallet, domain, compatibility FROM souls WHERE id = ?");
+    $stmt->execute([$id]);
     $old = $stmt->fetch();
 
     if (!$old) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $walletStmt->execute([$userId]);
+    $myWallet = $walletStmt->fetchColumn();
+
+    $hasDeletePerm = false;
+    if ($old['user_id'] == $userId) {
+        $hasDeletePerm = true;
+    } elseif ($old['is_nft'] == 1 && !empty($myWallet) && $myWallet === $old['nft_owner_wallet']) {
+        $hasDeletePerm = true;
+    }
+
+    if (!$hasDeletePerm) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Soul not found or no delete perm')], JSON_UNESCAPED_UNICODE);
         exit;
@@ -357,3 +388,4 @@ if ($method === 'GET') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }
+?>

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Core Responsive Header Matrix
  * (Dynamic Enterprise i18n Engine, Automated SEO Hreflang Compiler & Mobile Menu Edition)
- * 🚀 Patched: Synchronous Atomic Logout Routing to eliminate Race Condition
+ * 🚀 Patched: Synchronous Web3 signOut before Web2 Logout Redirect
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -237,8 +237,17 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
     </header>
 
     <script>
-    // 🚨 完美修復：捨棄非同步 fetch，改為實體網頁轉跳至專屬登出清道夫，避免瀏覽器取消請求！
-    function handleLogout() {
+    // 🚨 完美修復：先同步登出 Web3 錢包，再實體轉跳至 logout.php 清除 Web2 Session
+    async function handleLogout() {
+        try {
+            if (typeof initNearWallet === 'function') {
+                const wallet = await initNearWallet();
+                if (wallet && wallet.isSignedIn()) {
+                    wallet.signOut(); // 這會即時刪除所有 localStorage 的 Web3 金鑰
+                }
+            }
+        } catch (e) {}
+        
         window.location.href = '<?= url("/logout") ?>';
     }
     </script>

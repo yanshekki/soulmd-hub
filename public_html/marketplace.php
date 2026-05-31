@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Centrally Synchronized Wallet Router Integration & Renter Protection & Accurate Tx Alerts
+ * 🚀 Patched: Unified DB-level Pagination with Real-time RPC State Overlay
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -115,7 +115,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         
-        // 🚨 精準分析回傳參數並彈出對應提示
         if (urlParams.has('transactionHashes')) {
             const txAction = urlParams.get('tx_action');
             if (txAction === 'swap') {
@@ -128,7 +127,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 alert('<?= addslashes(__('Transaction Success')) ?>');
             }
             
-            // 清理網址，保留 page 參數
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (urlParams.has('page') ? '?page=' + urlParams.get('page') : '');
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
             
@@ -190,7 +188,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 }
             ];
             
-            // 🚨 標記此操作為 Swap
             await wallet.requestSignTransactions({ transactions: transactions, callbackUrl: getCallbackUrl('swap') });
         } catch(e) {
             console.error("BuySoul Error:", e); alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
@@ -253,6 +250,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const wallet = await initNearWallet();
             const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
 
+            // 🚨 依賴 MySQL 提供精準分頁 (因為已經在 API 層過濾咗 sale_price IS NOT NULL OR rent_price IS NOT NULL)
             const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);
             const data = await res.json();
             
@@ -265,10 +263,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
-            const activeListings = [];
             const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             
+            // 🚨 再次向 RPC 請求最新狀態以獲取「實時租客名單」與「秒級最新價」
             const rpcPromises = data.data.map(async (soul) => {
+                // 將 DB 價格作為 Fallback 保底
+                soul.market = {
+                    sale_price: soul.sale_price,
+                    rent_price: soul.rent_price,
+                    owner_id: soul.nft_owner_wallet,
+                    renters: {}
+                };
+
                 try {
                     const rpcRes = await fetch(safeRpcUrl, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -280,15 +286,17 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const rpcData = await rpcRes.json();
                     if (rpcData.result && rpcData.result.result) {
                         const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                        
-                        if (tokenInfo && (tokenInfo.sale_price !== null || tokenInfo.rent_price !== null)) {
-                            soul.market = tokenInfo;
-                            activeListings.push(soul);
+                        if (tokenInfo) {
+                            soul.market = tokenInfo; // 以 RPC 的實時資料覆蓋
                         }
                     }
-                } catch(e) { console.warn("Listing fetch skipped", e); }
+                } catch(e) { console.warn("Listing fetch skipped, using DB fallback", e); }
             });
+            
             await Promise.all(rpcPromises);
+
+            // 過濾掉 RPC 回傳已經取消掛賣的假象 (如果 DB 還沒同步)
+            const activeListings = data.data.filter(s => s.market.sale_price !== null || s.market.rent_price !== null);
 
             if (activeListings.length === 0) {
                 container.innerHTML = `

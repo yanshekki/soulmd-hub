@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Fixed HTTP 500 DB Column Crash & Restored RPC Market Price Fetching
+ * 🚀 Patched: Hard separated Web2 and Web3 AgentFi Assets with DB-level Price Pagination
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -42,13 +42,13 @@ if (!$profileUser) {
 $profileUserId = (int)$profileUser['id'];
 $safeUsername = htmlspecialchars($profileUser['username']);
 
-// 🚨 完美修復 HTTP 500：移除不存在的 sale_price 欄位，回歸原本的 Web2+Web3 統計邏輯
+// 🚨 完美修復：統計該用戶的社交數據 (包含 Web2 的公開模型 + Web3 確實有標價的 NFT)
 $statsStmt = $pdo->prepare("
     SELECT COUNT(*) as total_souls, 
            COALESCE(SUM(like_count), 0) as total_likes, 
            COALESCE(SUM(fork_count), 0) as total_forks 
     FROM souls 
-    WHERE user_id = ? AND ((is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)) OR is_nft = 1)
+    WHERE user_id = ? AND ((is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)) OR (is_nft = 1 AND (sale_price IS NOT NULL OR rent_price IS NOT NULL)))
 ");
 $statsStmt->execute([$profileUserId]);
 $stats = $statsStmt->fetch();
@@ -253,6 +253,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
         
         try {
+            // 🚨 強制撈出該用戶 is_nft=0 的公開模型
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${web2Page}&limit=6&sort=newest&is_nft=0`);
             const data = await res.json();
 
@@ -315,15 +316,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div></div>`;
         
         try {
+            // 🚨 強制撈出該用戶 is_nft=1 且有標價的 NFT 資產 (利用最新 API 功能)
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${web3Page}&limit=6&sort=newest&is_nft=1`);
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
                 
-                // 1. 同步拉取 RPC 租客資料與實時價格
+                // 1. 同步拉取 RPC 租客資料與實時價格 (作為 Overlay)
                 const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
                 const rpcPromises = data.data.map(async (soul) => {
-                    soul.market = {};
+                    soul.market = {
+                        sale_price: soul.sale_price,
+                        rent_price: soul.rent_price,
+                        owner_id: soul.nft_owner_wallet,
+                        renters: {}
+                    };
                     try {
                         const rpcRes = await fetch(safeRpcUrl, {
                             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -353,7 +360,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     
-                    // 🚨 完美修復前端讀價 Bug：改由 RPC 讀取價格，而非從資料庫讀取
                     const isOwner = myWallet && soul.market && soul.market.owner_id === myWallet;
                     const salePrice = soul.market && soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                     const rentPrice = soul.market && soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
