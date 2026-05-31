@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Hard separated Web2 and Web3 AgentFi Assets with specific Pagination
+ * 🚀 Patched: Fixed HTTP 500 DB Column Crash & Restored RPC Market Price Fetching
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -42,13 +42,13 @@ if (!$profileUser) {
 $profileUserId = (int)$profileUser['id'];
 $safeUsername = htmlspecialchars($profileUser['username']);
 
-// 統計數據：包含 Web2 的公開模型 + Web3 帶有價格的 NFT
+// 🚨 完美修復 HTTP 500：移除不存在的 sale_price 欄位，回歸原本的 Web2+Web3 統計邏輯
 $statsStmt = $pdo->prepare("
     SELECT COUNT(*) as total_souls, 
            COALESCE(SUM(like_count), 0) as total_likes, 
            COALESCE(SUM(fork_count), 0) as total_forks 
     FROM souls 
-    WHERE user_id = ? AND ((is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)) OR (is_nft = 1 AND (sale_price IS NOT NULL OR rent_price IS NOT NULL)))
+    WHERE user_id = ? AND ((is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)) OR is_nft = 1)
 ");
 $statsStmt->execute([$profileUserId]);
 $stats = $statsStmt->fetch();
@@ -320,7 +320,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             if (data.success && data.data.length > 0) {
                 
-                // 1. 同步拉取 RPC 租客資料
+                // 1. 同步拉取 RPC 租客資料與實時價格
                 const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
@@ -353,10 +353,11 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     
-                    const isOwner = myWallet && soul.nft_owner_wallet === myWallet;
-                    const salePrice = soul.sale_price ? nearApi.utils.format.formatNearAmount(soul.sale_price) : null;
-                    const rentPrice = soul.rent_price ? nearApi.utils.format.formatNearAmount(soul.rent_price) : null;
-                    const marketOwner = escapeHTML(soul.nft_owner_wallet || 'Loading...');
+                    // 🚨 完美修復前端讀價 Bug：改由 RPC 讀取價格，而非從資料庫讀取
+                    const isOwner = myWallet && soul.market && soul.market.owner_id === myWallet;
+                    const salePrice = soul.market && soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
+                    const rentPrice = soul.market && soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
+                    const marketOwner = soul.market && soul.market.owner_id ? escapeHTML(soul.market.owner_id) : 'Loading...';
 
                     let activeRenters = [];
                     if (soul.market && soul.market.renters) {
@@ -398,7 +399,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
                                         <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.sale_price}')"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none">
+                                    <button ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}')"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none">
                                         <i class="fas fa-shopping-cart"></i> <?= addslashes(__('Buy Now')) ?>
                                     </button>
                                 </div>` : ''}
@@ -409,7 +410,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
                                         <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.rent_price}')"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
+                                    <button ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}')"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap">
                                         <i class="fas fa-handshake"></i> <?= addslashes(__('Rent (30d)')) ?>
                                     </button>
                                 </div>` : ''}
