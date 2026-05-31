@@ -161,9 +161,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         return encodeURIComponent(slug);
     }
 
-    function getCallbackUrl(actionType) {
+    // 🚨 輔助函數：生成帶有操作標記的回傳網址，並帶上 sync_id
+    function getCallbackUrl(actionType, id) {
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('tx_action', actionType);
+        if (id) url.searchParams.set('sync_id', id);
         return url.toString();
     }
 
@@ -171,6 +173,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('transactionHashes')) {
             const txAction = urlParams.get('tx_action');
+            const syncId = urlParams.get('sync_id');
+            
+            // 🚨 買/租完返黎即刻觸發懶同步，更新 MySQL 資料庫！
+            if (syncId) {
+                await fetch(`/api/soul/${syncId}`);
+            }
+
             if (txAction === 'buy') alert('<?= addslashes(__('Buy success')) ?>');
             else if (txAction === 'rent') alert('<?= addslashes(__('Rent success')) ?>');
             else alert('<?= addslashes(__('Transaction Success')) ?>');
@@ -360,6 +369,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     
+                    // 🚨 完美修復前端讀價 Bug：改由 RPC 讀取價格，而非從資料庫讀取
                     const isOwner = myWallet && soul.market && soul.market.owner_id === myWallet;
                     const salePrice = soul.market && soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                     const rentPrice = soul.market && soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
@@ -495,7 +505,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
-        await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy') });
+        await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
     }
 
     async function rentMarketSoul(id, rawPrice) {
@@ -504,7 +514,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
-        await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent') });
+        await wallet.account().functionCall({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
     }
 </script>
 

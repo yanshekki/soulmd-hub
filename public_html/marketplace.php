@@ -90,10 +90,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         return encodeURIComponent(str.toLowerCase().replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-').replace(/^-+|-+$/g, ''));
     }
 
-    // 🚨 輔助函數：生成帶有操作標記的回傳網址
-    function getCallbackUrl(actionType) {
+    // 🚨 輔助函數：生成帶有操作標記的回傳網址，並帶上 sync_id
+    function getCallbackUrl(actionType, id) {
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('tx_action', actionType);
+        if (id) url.searchParams.set('sync_id', id);
         if (currentPage > 1) {
             url.searchParams.set('page', currentPage);
         }
@@ -117,6 +118,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         if (urlParams.has('transactionHashes')) {
             const txAction = urlParams.get('tx_action');
+            const syncId = urlParams.get('sync_id');
+            
+            // 🚨 買/租完返黎即刻觸發懶同步，更新 MySQL 資料庫！
+            if (syncId) {
+                await fetch(`/api/soul/${syncId}`);
+            }
+
             if (txAction === 'swap') {
                 alert('<?= addslashes(__('Swap success')) ?>');
             } else if (txAction === 'buy') {
@@ -188,7 +196,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 }
             ];
             
-            await wallet.requestSignTransactions({ transactions: transactions, callbackUrl: getCallbackUrl('swap') });
+            await wallet.requestSignTransactions({ transactions: transactions, callbackUrl: getCallbackUrl('swap', null) });
         } catch(e) {
             console.error("BuySoul Error:", e); alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
             textSpan.innerHTML = originalText; btn.disabled = false; btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -434,7 +442,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         // 🚨 標記此操作為 Buy
-        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy') });
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
     }
 
     async function rentMarketSoul(id, rawPrice) {
@@ -444,7 +452,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         // 🚨 標記此操作為 Rent
-        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent') });
+        await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
     }
 </script>
 

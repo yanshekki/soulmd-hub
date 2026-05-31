@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My Souls Modals & Scripts Component
  * Included dynamically at the bottom of my-souls.php
- * 🚀 Patched: Isolated Web2 Delete & Web3 Burn Mechanisms with Silent Sign support
+ * 🚀 Patched: Forced DB Lazy Sync after AgentFi Silent Transactions
  */
 ?>
 
@@ -520,6 +520,10 @@
                 attachedDeposit: "0",
                 walletCallbackUrl: window.location.href
             });
+            
+            // 🚨 終極同步修復：在靜默簽署完成後，強制敲擊一次後端 API 更新 MySQL 價錢庫！
+            await fetch(`/api/soul/${currentEditId}`);
+            
             // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
             window.location.reload();
         } catch(e) { 
@@ -569,9 +573,9 @@
             
             if (data.success) { 
                 if (wantSync) {
-                    text.innerText = "Syncing...";
+                    text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
                     text.classList.remove('hidden');
-                    spinner.classList.remove('hidden');
+                    spinner.classList.add('hidden');
                     
                     const args = {
                         token_id: "soul_" + currentEditId,
@@ -587,7 +591,7 @@
                         walletCallbackUrl: window.location.href
                     });
                     
-                    // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+                    await fetch(`/api/soul/${currentEditId}`); // Just in case
                     closeModal(); location.reload(); 
                 } else {
                     closeModal(); location.reload(); 
@@ -613,5 +617,75 @@
         content.classList.remove('scale-100'); 
         content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); currentEditId = null; }, 300);
+    }
+
+    // 🚨 租客防護攔截與自癒 RPC Check
+    async function deleteSoul(id) {
+        const lang_ActiveRentersError = <?= json_encode(__('Active renters error'), JSON_UNESCAPED_UNICODE) ?>;
+        
+        try {
+            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+            const rpcRes = await fetch(safeRpcUrl, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    jsonrpc: "2.0", id: "dontcare", method: "query",
+                    params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + id })) }
+                })
+            });
+            const rpcData = await rpcRes.json();
+            if (rpcData.result && rpcData.result.result) {
+                const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                if (tokenInfo && tokenInfo.renters) {
+                    const nowMs = Date.now();
+                    for (const accountId in tokenInfo.renters) {
+                        const expiryMs = Number(BigInt(tokenInfo.renters[accountId]) / 1000000n);
+                        if (expiryMs > nowMs) {
+                            alert(lang_ActiveRentersError);
+                            return; // ⛔️ 攔截：租約未到期，禁止銷毀！
+                        }
+                    }
+                }
+            }
+        } catch(e) { console.log('RPC check skipped or not an NFT'); }
+
+        if (!confirm(<?= json_encode(__('Burn Confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
+            if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
+            executeDatabaseDelete(id);
+            return;
+        }
+
+        try {
+            const wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                await window.connectOrBindWallet();
+                return;
+            }
+
+            await wallet.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "burn_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000", 
+                attachedDeposit: "0", 
+                walletCallbackUrl: window.location.href 
+            });
+            
+        } catch (e) {
+            executeDatabaseDelete(id);
+        }
+    }
+
+    async function executeDatabaseDelete(id) {
+        try {
+            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { 
+                location.reload(); 
+            } else { 
+                alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); 
+            }
+        } catch(e) { 
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
+        }
     }
 </script>

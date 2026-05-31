@@ -445,12 +445,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch(e) { console.log('Not an NFT or RPC failed'); }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         
         // 🚨 精準分析回傳參數並彈出對應提示
         if (urlParams.has('transactionHashes')) {
             const txAction = urlParams.get('tx_action');
+            
+            // 🚨 買完返黎即刻觸發懶同步，更新資料庫！
+            await fetch(`/api/soul/${soulDbId}`);
+
             if (txAction === 'buy') {
                 alert('<?= addslashes(__('Buy success')) ?>');
             } else if (txAction === 'rent') {
