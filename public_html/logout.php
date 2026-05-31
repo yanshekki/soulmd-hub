@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Global Logout Handler
- * 🚀 Patched: Atomic Logout for both Web2 (PHP) and Web3 (LocalStorage)
+ * 🚀 Patched: Synchronous Atomic Logout for both Web2 (PHP) and Web3 (LocalStorage)
  */
 session_start();
 
@@ -17,12 +17,12 @@ if (isset($_SESSION['user_id'])) {
     } catch (Exception $e) {}
 }
 
-// 2. 銷毀 PHP Session 與 Cookie
+// 2. 徹底銷毀 PHP Session 與 Cookie
 session_unset();
 session_destroy();
 setcookie('remember_token', '', time() - 3600, '/');
 
-// 3. 輸出 HTML 與 JavaScript 執行 Web3 清理
+// 3. 輸出 HTML 與 JavaScript 執行 Web3 清理並導向
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -49,8 +49,8 @@ setcookie('remember_token', '', time() - 3600, '/');
             keysToRemove.forEach(k => localStorage.removeItem(k));
         } catch(e) {}
         
-        // 轉導回登入頁
-        window.location.href = '/login';
+        // 🚨 完美轉導：使用 location.replace 避免污染歷史紀錄，並自帶多語言前綴
+        window.location.replace('<?= url("/login") ?>');
     </script>
 </body>
 </html>
