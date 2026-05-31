@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: Centrally Synchronized Wallet Router & Silent Sign Support
+ * 🚀 Patched: Added 2s Delay + Sync API + Loading UI for Silent Transactions
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -175,23 +175,23 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                     <div class="flex justify-between items-start mb-2">
                         <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400"></i> <?= __('List for Sale') ?></label>
-                        <button type="button" onclick="agentfiAction('cancel_sale')" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
+                        <button type="button" onclick="agentfiAction('cancel_sale', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
                     </div>
                     <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Sale Desc') ?></p>
                     <div class="flex gap-2">
                         <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner font-mono">
-                        <button type="button" onclick="agentfiAction('list_sale')" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm"><?= __('List on Market') ?></button>
+                        <button type="button" onclick="agentfiAction('list_sale', this)" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm flex items-center justify-center gap-1 min-w-[120px]"><?= __('List on Market') ?></button>
                     </div>
                 </div>
                 <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                     <div class="flex justify-between items-start mb-2">
                         <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400"></i> <?= __('List for Rent') ?></label>
-                        <button type="button" onclick="agentfiAction('cancel_rent')" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
+                        <button type="button" onclick="agentfiAction('cancel_rent', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
                     </div>
                     <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Rent Desc') ?></p>
                     <div class="flex gap-2">
                         <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner font-mono">
-                        <button type="button" onclick="agentfiAction('list_rent')" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm"><?= __('List on Market') ?></button>
+                        <button type="button" onclick="agentfiAction('list_rent', this)" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm flex items-center justify-center gap-1 min-w-[120px]"><?= __('List on Market') ?></button>
                     </div>
                 </div>
             </div>
@@ -319,7 +319,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         } catch(e) {}
     }
 
-    async function agentfiAction(actionType) {
+    // 🚨 V5：為 AgentFi 操作加入按鈕傳遞，實施 2s 延遲 + API 強制同步
+    async function agentfiAction(actionType, btn) {
         if (!isEditMode) return;
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) {
@@ -352,15 +353,31 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             methodName = 'list_for_rent'; args.price = "0";
         }
 
+        // 鎖定按鈕並顯示 Processing UI
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
         try {
             await wallet.account().functionCall({
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                 methodName: methodName, args: args, gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: window.location.href
             });
-            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
+            
+            // 🚨 靜默簽署完成，進入 2秒退避等待，顯示 Syncing UI
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing to DB...';
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 強制敲擊後端 API 進行 Lazy Sync 更新價錢
+            await fetch(`/api/soul/${soulId}`);
+            
             window.location.reload();
         } catch(e) { 
             alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>"); 
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 
@@ -429,19 +446,28 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                     const targetUrl = isEditMode ? window.location.href : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                     
                     if (wantMintOrSync) {
-                        text.innerText = isNft ? "Syncing..." : "<?= addslashes(__('Redirecting to Wallet...')) ?>"; 
-                        text.classList.remove('hidden'); loading.classList.add('hidden');
-                        
                         if (isEditMode && isNft) {
+                            // 🚨 更新 Hash 為 0 Deposit 操作，加入 2s 等待與同步
+                            text.innerText = "Processing..."; 
+                            text.classList.remove('hidden'); loading.classList.remove('hidden');
+                            
                             await wallet.account().functionCall({
                                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                                 methodName: "update_soul_hash",
                                 args: { token_id: "soul_" + soulId, new_hash: data.hash },
                                 gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: targetUrl
                             });
-                            // 🚨 V5 靜默簽署修復：簽署完成後直接跳轉
+
+                            text.innerText = "Syncing to DB...";
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                            await fetch(`/api/soul/${soulId}`);
+                            
                             window.location.href = "<?= url('/my-souls') ?>";
                         } else {
+                            // 新鑄造 Mint 操作有 Deposit，將直接跳轉授權頁面
+                            text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>"; 
+                            text.classList.remove('hidden'); loading.classList.add('hidden');
+                            
                             const deposit = nearApi.utils.format.parseNearAmount("0.6");
                             const newId = isEditMode ? soulId : data.id;
                             const refUrl = "<?= url('/soul/') ?>" + "<?= rawurlencode($sessionUsername) ?>/" + newId;

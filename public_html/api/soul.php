@@ -5,7 +5,7 @@
  * PUT    /api/soul/{id} - Update a soul & Generate new NFT Hash
  * DELETE /api/soul/{id} - Delete a soul 
  * (100% Dynamic i18n Internationalized & Web2.5 AgentFi V5 Architecture - Centralized RPC)
- * 🚀 Patched: Dual-Track Permissions & Syncs sale_price and rent_price to DB during Lazy Sync
+ * 🚀 Patched: Changed finality to 'optimistic' to eliminate Read-Replica Lag
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -81,7 +81,8 @@ function fetchNearRpcToken($tokenId) {
     $payload = json_encode([
         "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
         "params" => [
-            "request_type" => "call_function", "finality" => "final",
+            // 🚨 完美修復：將 finality 從 final 改為 optimistic，確保秒級寫入後馬上能讀到最新價格
+            "request_type" => "call_function", "finality" => "optimistic",
             "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
             "method_name" => "get_soul", 
             "args_base64" => base64_encode(json_encode(["token_id" => $tokenId]))
