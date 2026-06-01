@@ -3,7 +3,8 @@
  * SoulMD Hub - BYOK Proxy API (self-chat.php)
  * 100% 左手交右手無狀態代理，不扣除平台 Daily Limit (Fallback 例外)。
  * 包含 Web3 Token-Gating, 自訂記憶壓縮, 及 Vision Fallback。
- * (V5 Web2.5 AgentFi Architecture: Centralized RPC Failover, Lazy Sync & Self-Healing Edition)
+ * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
+ * 🚀 Patched: Replaced hardcoded cURL loops with centralized NearRpcService
  */
 
 set_time_limit(180);
@@ -21,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
+require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 
 // 🌍 載入全域 API 語言包
 loadTranslations('api');
@@ -205,7 +207,6 @@ if ($chatSession) {
         ->execute([$sessionToken, $soulId, $currentUser['id'], (int)$isPrivate]);
 }
 
-// 🚨 V5：取消 is_public = 1 限制，由後端拉出資料後依據 is_nft 進行分流判定
 $soulStmt = $pdo->prepare("SELECT * FROM souls WHERE id = ?");
 $soulStmt->execute([$soulId]);
 $soul = $soulStmt->fetch();
@@ -220,50 +221,14 @@ $hasAccess = false;
 
 if ($soul['is_nft'] == 1) {
     // 🚀 Web3 AgentFi 權威門禁：Lazy Sync + Failover + Integrity Radar
-    $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : [
-        "https://free.rpc.fastnear.com",
-        "https://near.lava.build",
-        "https://rpc.mainnet.pagoda.co",
-        "https://rpc.mainnet.near.org"
-    ];
+    $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
+    $rpc = NearRpcService::getInstance();
     
-    $rpcStatus = 'timeout';
-    $tokenInfo = null;
-
-    $rpcPayload = json_encode([
-        "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
-        "params" => [
-            "request_type" => "call_function", "finality" => "final",
-            "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
-            "method_name" => "get_soul", 
-            "args_base64" => base64_encode(json_encode(["token_id" => "soul_" . $soulId]))
-        ]
-    ]);
-
-    foreach ($rpcNodes as $url) {
-        $chRpc = curl_init($url);
-        curl_setopt_array($chRpc, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $rpcPayload,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_TIMEOUT => 3 // 極速超時切換
-        ]);
-        $res = curl_exec($chRpc);
-        $httpCode = curl_getinfo($chRpc, CURLINFO_HTTP_CODE);
-        curl_close($chRpc);
-        
-        if ($httpCode === 200 && $res) {
-            $data = json_decode($res, true);
-            if (isset($data['result']['result'])) {
-                $resString = implode(array_map('chr', $data['result']['result']));
-                if (trim($resString) === 'null') {
-                    $rpcStatus = 'not_found';
-                    break;
-                }
-                $tokenInfo = json_decode($resString, true);
-                $rpcStatus = 'success';
-                break;
-            }
-        }
-    }
+    // 🌟 呼叫中央 RPC 服務
+    $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId]);
+    
+    $rpcStatus = $rpcRes['status'];
+    $tokenInfo = $rpcRes['data'];
 
     if ($rpcStatus === 'not_found') {
         // 🚨 自癒降級：鏈上找不到，剝奪 NFT 狀態，交還 Web2 持有者
@@ -301,8 +266,8 @@ if ($soul['is_nft'] == 1) {
             echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE); 
             exit;
         }
-    } elseif ($rpcStatus === 'timeout') {
-        // ⚠️ 區塊鏈 RPC 節點全數塞車，依賴資料庫中的 nft_owner_wallet 緩存作最後放行判斷
+    } elseif ($rpcStatus === 'timeout' || $rpcStatus === 'error') {
+        // ⚠️ 區塊鏈 RPC 節點全數塞車或報錯，依賴資料庫中的 nft_owner_wallet 緩存作最後放行判斷
         if ($chatUserWallet === $soul['nft_owner_wallet']) {
             $hasAccess = true;
         } else {

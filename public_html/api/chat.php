@@ -2,7 +2,8 @@
 /**
  * SoulMD Hub Public API - Platform Official Channel (chat.php)
  * 官方計費通道：嚴格執行 Tier 限制、扣除 Daily Limit、Web3 門禁及平台官方金鑰調用。
- * (V5 Web2.5 AgentFi Architecture: Centralized RPC Failover, Lazy Sync & Self-Healing Edition)
+ * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
+ * 🚀 Patched: Replaced hardcoded cURL loops with centralized NearRpcService
  */
 
 set_time_limit(180);
@@ -19,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 
 loadTranslations('api');
 
@@ -137,7 +139,6 @@ if ($method === 'GET') {
     }
 
     try {
-        // 🚨 終極安全修復：只拉取最新 300 條對話，防止無限增長的 Base64 圖片塞爆伺服器 RAM (OOM)
         $stmt = $pdo->prepare("
             SELECT role, content FROM (
                 SELECT id, role, content 
@@ -299,7 +300,6 @@ if ($method === 'POST') {
             exit;
         }
 
-        // 🚨 V5 規格：取消 is_public = 1 硬性篩選，交由 AgentFi 去中心化權威引擎判定
         $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ?");
         $stmt->execute([$soulId]);
         $soul = $stmt->fetch();
@@ -310,56 +310,20 @@ if ($method === 'POST') {
         }
 
         // =================================================================
-        // 🚀 V5 核心：高可用 RPC Pool 混合門禁機制 (中央 Config 陣列輪詢)
+        // 🚀 V5 核心：高可用 RPC Pool 混合門禁機制 (NearRpcService)
         // =================================================================
         $chatUserWallet = $currentUser['near_wallet'] ?? '';
         $hasAccess = false;
 
         if ($soul['is_nft'] == 1) {
-            $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : [
-                "https://free.rpc.fastnear.com",
-                "https://near.lava.build",
-                "https://rpc.mainnet.pagoda.co",
-                "https://rpc.mainnet.near.org"
-            ];
+            $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
+            $rpc = NearRpcService::getInstance();
             
-            $rpcStatus = 'timeout';
-            $tokenInfo = null;
-
-            $rpcPayload = json_encode([
-                "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
-                "params" => [
-                    "request_type" => "call_function", "finality" => "final",
-                    "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
-                    "method_name" => "get_soul", 
-                    "args_base64" => base64_encode(json_encode(["token_id" => "soul_" . $soulId]))
-                ]
-            ]);
-
-            foreach ($rpcNodes as $url) {
-                $chRpc = curl_init($url);
-                curl_setopt_array($chRpc, [
-                    CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $rpcPayload,
-                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_TIMEOUT => 3 // 3 秒極速切換
-                ]);
-                $res = curl_exec($chRpc);
-                $httpCode = curl_getinfo($chRpc, CURLINFO_HTTP_CODE);
-                curl_close($chRpc);
-                
-                if ($httpCode === 200 && $res) {
-                    $data = json_decode($res, true);
-                    if (isset($data['result']['result'])) {
-                        $resString = implode(array_map('chr', $data['result']['result']));
-                        if (trim($resString) === 'null') {
-                            $rpcStatus = 'not_found';
-                            break;
-                        }
-                        $tokenInfo = json_decode($resString, true);
-                        $rpcStatus = 'success';
-                        break;
-                    }
-                }
-            }
+            // 🌟 呼叫中央 RPC 服務
+            $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId]);
+            
+            $rpcStatus = $rpcRes['status'];
+            $tokenInfo = $rpcRes['data'];
 
             if ($rpcStatus === 'not_found') {
                 // 🚨 降級自癒：鏈上查無此代幣，秒級解除 Web3 狀態並還原 Web2 模型
@@ -397,8 +361,8 @@ if ($method === 'POST') {
                     echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE); 
                     exit;
                 }
-            } elseif ($rpcStatus === 'timeout') {
-                // ⚠️ 鏈上大塞車：降級依賴 MySQL 緩存的 nft_owner_wallet 防禦放行
+            } elseif ($rpcStatus === 'timeout' || $rpcStatus === 'error') {
+                // ⚠️ 鏈上大塞車或節點故障：降級依賴 MySQL 緩存的 nft_owner_wallet 防禦放行
                 if ($chatUserWallet === $soul['nft_owner_wallet']) {
                     $hasAccess = true;
                 } else {

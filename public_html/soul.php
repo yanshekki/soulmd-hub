@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Dynamic Back Button Routing (Marketplace vs Hub) & NFT IP Protection
+ * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -385,62 +385,47 @@ require_once __DIR__ . '/../private/includes/header.php';
         return url.toString();
     }
 
+    // 🚀 核心升級：直接採用全域 window.nearRpcQuery() 取代冗長 fetch
     async function fetchMarketStatus() {
         try {
-            const wallet = await initNearWallet();
-            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
+            const wallet = typeof initNearWallet === 'function' ? await initNearWallet() : null;
+            const myWallet = wallet && wallet.isSignedIn() ? wallet.getAccountId() : null;
 
-            const rpcPayload = {
-                jsonrpc: "2.0", id: "dontcare", method: "query",
-                params: {
-                    request_type: "call_function", finality: "final",
-                    account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                    method_name: "get_soul",
-                    args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulDbId }))
-                }
-            };
-            const rpcRes = await fetch(window.activeNearRpcUrl || 'https://free.rpc.fastnear.com', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(rpcPayload)
-            });
-            const rpcData = await rpcRes.json();
-            if (rpcData.result && rpcData.result.result) {
-                const resString = new TextDecoder().decode(new Uint8Array(rpcData.result.result));
-                const tokenInfo = JSON.parse(resString);
-                
-                if (tokenInfo) {
-                    document.getElementById('agentfi-market-block').classList.remove('hidden');
-                    document.getElementById('market-owner').innerText = tokenInfo.owner_id;
+            const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulDbId });
+            
+            if (rpcRes.success && rpcRes.data) {
+                const tokenInfo = rpcRes.data;
+                document.getElementById('agentfi-market-block').classList.remove('hidden');
+                document.getElementById('market-owner').innerText = tokenInfo.owner_id;
 
-                    const isOwner = myWallet && tokenInfo.owner_id === myWallet;
+                const isOwner = myWallet && tokenInfo.owner_id === myWallet;
 
-                    if (tokenInfo.sale_price) {
-                        const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
-                        document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
-                        const btnBuy = document.getElementById('btn-buy');
-                        btnBuy.classList.remove('hidden');
-                        btnBuy.dataset.price = tokenInfo.sale_price; 
-                        
-                        if (isOwner) {
-                            btnBuy.disabled = true;
-                            btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
-                            btnBuy.classList.remove('hover:bg-blue-600');
-                            btnBuy.removeAttribute('onclick');
-                        }
+                if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
+                    const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                    document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
+                    const btnBuy = document.getElementById('btn-buy');
+                    btnBuy.classList.remove('hidden');
+                    btnBuy.dataset.price = tokenInfo.sale_price; 
+                    
+                    if (isOwner) {
+                        btnBuy.disabled = true;
+                        btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
+                        btnBuy.classList.remove('hover:bg-blue-600');
+                        btnBuy.removeAttribute('onclick');
                     }
-                    if (tokenInfo.rent_price) {
-                        const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
-                        document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
-                        const btnRent = document.getElementById('btn-rent');
-                        btnRent.classList.remove('hidden');
-                        btnRent.dataset.price = tokenInfo.rent_price; 
-                        
-                        if (isOwner) {
-                            btnRent.disabled = true;
-                            btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
-                            btnRent.classList.remove('hover:bg-purple-600');
-                            btnRent.removeAttribute('onclick');
-                        }
+                }
+                if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
+                    const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                    document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
+                    const btnRent = document.getElementById('btn-rent');
+                    btnRent.classList.remove('hidden');
+                    btnRent.dataset.price = tokenInfo.rent_price; 
+                    
+                    if (isOwner) {
+                        btnRent.disabled = true;
+                        btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
+                        btnRent.classList.remove('hover:bg-purple-600');
+                        btnRent.removeAttribute('onclick');
                     }
                 }
             }

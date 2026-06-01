@@ -4,8 +4,8 @@
  * GET    /api/soul/{id} - Get single soul details (Lazy Sync & Self-Healing Edition)
  * PUT    /api/soul/{id} - Update a soul & Generate new NFT Hash
  * DELETE /api/soul/{id} - Delete a soul 
- * (100% Dynamic i18n Internationalized & Web2.5 AgentFi V5 Architecture - Centralized RPC)
- * 🚀 Patched: Changed finality to 'optimistic' to eliminate Read-Replica Lag
+ * (100% Dynamic i18n Internationalized & Web2.5 AgentFi V5 Architecture)
+ * 🚀 Patched: Replaced hardcoded cURL loops with centralized NearRpcService
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 
 loadTranslations('api');
 
@@ -70,58 +71,15 @@ function syncTags($pdo, $table, $oldStr, $newStr) {
     }
 }
 
-function fetchNearRpcToken($tokenId) {
-    $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : [
-        "https://free.rpc.fastnear.com",
-        "https://near.lava.build",
-        "https://rpc.mainnet.pagoda.co",
-        "https://rpc.mainnet.near.org"
-    ];
-    
-    $payload = json_encode([
-        "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
-        "params" => [
-            // 🚨 完美修復：將 finality 從 final 改為 optimistic，確保秒級寫入後馬上能讀到最新價格
-            "request_type" => "call_function", "finality" => "optimistic",
-            "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
-            "method_name" => "get_soul", 
-            "args_base64" => base64_encode(json_encode(["token_id" => $tokenId]))
-        ]
-    ]);
-
-    foreach ($rpcNodes as $url) {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true, 
-            CURLOPT_POST => true, 
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'], 
-            CURLOPT_TIMEOUT => 3 
-        ]);
-        $res = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode === 200 && $res) {
-            $data = json_decode($res, true);
-            if (isset($data['result']['result'])) {
-                $resString = implode(array_map('chr', $data['result']['result']));
-                if (trim($resString) === 'null') {
-                    return ['status' => 'not_found']; 
-                }
-                return ['status' => 'success', 'data' => json_decode($resString, true)];
-            }
-        }
-    }
-    return ['status' => 'timeout']; 
-}
-
-// 🚨 核心同步機制：除了擁有者，現在還會同步售價與租金
+// 🚨 核心同步機制：改用大一統 NearRpcService 執行 Lazy Sync
 function applyLazySync(&$soul, $pdo) {
     if ($soul['is_nft'] != 1) return;
 
-    $rpcRes = fetchNearRpcToken("soul_" . $soul['id']);
+    $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
+    $rpc = NearRpcService::getInstance();
+    
+    // 🌟 呼叫中央 RPC 服務 (自動處理 Base64 編碼及節點輪詢)
+    $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soul['id']], 'optimistic');
     
     if ($rpcRes['status'] === 'not_found') {
         $stmt = $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0, sale_price = NULL, rent_price = NULL WHERE id = ?");

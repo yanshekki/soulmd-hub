@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Auto-Pagination While Loop for 100% Rented NFT RPC Polling
+ * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -163,7 +163,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     const currentUsername = <?= json_encode($username, JSON_UNESCAPED_UNICODE) ?>;
     const hasWallet = <?= !empty($nearWallet) ? 'true' : 'false' ?>;
 
-    // 🚀 從資料庫取得綁定嘅錢包，不受前端登出影響！
     const boundWallet = <?= json_encode($nearWallet, JSON_UNESCAPED_UNICODE) ?>;
 
     let web2Page = 1;
@@ -223,7 +222,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         }
 
-        html += `<button onclick="${funcName}(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += `<button onclick="${funcName}(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
         html += `</div>`;
 
         container.innerHTML = html;
@@ -303,7 +302,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network error.</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Network error.')) ?></div>`;
         }
     }
 
@@ -317,24 +316,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if (data.success && data.data.length > 0) {
-                const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
-                
+                // 🌟 核心重構：改用 NearRpc 全域統一查詢引擎
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
-                    try {
-                        const rpcRes = await fetch(safeRpcUrl, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                jsonrpc: "2.0", id: "dontcare", method: "query",
-                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                            })
-                        });
-                        const rpcData = await rpcRes.json();
-                        if (rpcData.result && rpcData.result.result) {
-                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                            if (tokenInfo) soul.market = tokenInfo;
-                        }
-                    } catch(e) {}
+                    const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
+                    if (rpcRes.success && rpcRes.data) {
+                        soul.market = rpcRes.data;
+                    }
                 });
                 await Promise.all(rpcPromises);
 
@@ -433,14 +421,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🌟 核心升級：全自動翻頁撈出全站 NFT，然後分批 RPC 校對租約
     async function loadRentedSouls() {
         if (!boundWallet) return;
         const container = document.getElementById('rented-container');
         container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>`;
         
         try {
-            // 1. 自動翻頁撈取全站所有 NFT
             let allFetchedNfts = [];
             let page = 1;
             let totalPages = 1;
@@ -468,43 +454,30 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
-            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             const rentedSouls = [];
 
-            // 2. 分批發送 RPC 請求 (Chunking)，每次 20 筆
+            // 🌟 核心重構：改用 NearRpc 全域統一查詢引擎
             const chunkSize = 20;
             for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
                 const batch = allFetchedNfts.slice(i, i + chunkSize);
                 
                 const rpcPromises = batch.map(async (soul) => {
-                    try {
-                        const rpcRes = await fetch(safeRpcUrl, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                jsonrpc: "2.0", id: "dontcare", method: "query",
-                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                            })
-                        });
-                        const rpcData = await rpcRes.json();
-                        if (rpcData.result && rpcData.result.result) {
-                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                            
-                            // 判斷是否為活躍租客 (未到期)
-                            if (tokenInfo && tokenInfo.renters && tokenInfo.renters[boundWallet]) {
-                                const expiryMs = Number(BigInt(tokenInfo.renters[boundWallet]) / 1000000n);
-                                if (expiryMs > Date.now()) {
-                                    soul.rent_expiry = expiryMs;
-                                    rentedSouls.push(soul);
-                                }
+                    const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
+                    if (rpcRes.success && rpcRes.data) {
+                        const tokenInfo = rpcRes.data;
+                        if (tokenInfo && tokenInfo.renters && tokenInfo.renters[boundWallet]) {
+                            const expiryMs = Number(BigInt(tokenInfo.renters[boundWallet]) / 1000000n);
+                            if (expiryMs > Date.now()) {
+                                soul.rent_expiry = expiryMs;
+                                rentedSouls.push(soul);
                             }
                         }
-                    } catch(e) {}
+                    }
                 });
                 
                 await Promise.all(rpcPromises);
             }
 
-            // 3. 渲染租賃資產
             if (rentedSouls.length > 0) {
                 let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">`;
                 rentedSouls.sort((a,b) => a.rent_expiry - b.rent_expiry).forEach(soul => {
@@ -676,7 +649,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!boundWallet) return;
 
         try {
-            // 同樣套用自動翻頁拉取全庫 NFT
             let allFetchedNfts = [];
             let page = 1;
             let totalPages = 1;
@@ -694,8 +666,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (allFetchedNfts.length === 0) return;
 
             let needsReload = false;
-            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             
+            // 🌟 核心重構：改用 NearRpc 全域統一查詢引擎
             const chunkSize = 20;
             for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
                 const batch = allFetchedNfts.slice(i, i + chunkSize);
@@ -703,25 +675,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const syncPromises = batch.map(async (soul) => {
                     if (soul.nft_owner_wallet === boundWallet) return; 
 
-                    try {
-                        const rpcRes = await fetch(safeRpcUrl, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                jsonrpc: "2.0", id: "dontcare", method: "query",
-                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                            })
-                        });
-                        const rpcData = await rpcRes.json();
-                        if (rpcData.result && rpcData.result.result) {
-                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                            
-                            // 發現擁有權轉移給當前綁定者，立刻觸發 Lazy Sync 更新資料庫
-                            if (tokenInfo && tokenInfo.owner_id === boundWallet) {
-                                await fetch(`/api/soul/${soul.id}`);
-                                needsReload = true;
-                            }
+                    const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
+                    if (rpcRes.success && rpcRes.data) {
+                        const tokenInfo = rpcRes.data;
+                        if (tokenInfo && tokenInfo.owner_id === boundWallet) {
+                            await fetch(`/api/soul/${soul.id}`);
+                            needsReload = true;
                         }
-                    } catch(e) {}
+                    }
                 });
                 await Promise.all(syncPromises);
             }

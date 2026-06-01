@@ -2,12 +2,13 @@
 /**
  * SoulMD Hub - Edit Model Dashboard
  * (DRY Refactored - Unified Form Extracted to soul-form.php)
- * 🚀 Patched: Phantom NFT Self-Healing, Lazy Sync & SEO Meta i18n
+ * 🚀 Patched: Fully integrated with the unified NearRpcService layer.
  */
 
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 
 session_start();
 
@@ -45,53 +46,31 @@ $myWallet = $wStmt->fetchColumn();
 
 // 🚨 修正 2：Lazy Sync 與 Phantom NFT 幽靈自癒降級機制
 if ($soulData['is_nft'] == 1) {
-    $rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"];
-    $rpcPayload = json_encode([
-        "jsonrpc" => "2.0", "id" => "dontcare", "method" => "query",
-        "params" => [
-            "request_type" => "call_function", "finality" => "final",
-            "account_id" => defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near', 
-            "method_name" => "get_soul", 
-            "args_base64" => base64_encode(json_encode(["token_id" => "soul_" . $soulId]))
-        ]
-    ]);
+    $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
+    $rpc = NearRpcService::getInstance();
+    
+    // 🌟 呼叫中央 RPC 服務
+    $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId], 'optimistic');
 
-    foreach ($rpcNodes as $url) {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $rpcPayload,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_TIMEOUT => 3
-        ]);
-        $res = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+    if ($rpcRes['status'] === 'not_found') {
+        // 區塊鏈上查無此物！執行降級自癒，解鎖前端表單！
+        $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL WHERE id = ?")->execute([$soulId]);
+        $soulData['is_nft'] = 0;
+    } elseif ($rpcRes['status'] === 'success' && !empty($rpcRes['data'])) {
+        $tokenInfo = $rpcRes['data'];
         
-        if ($httpCode === 200 && $res) {
-            $data = json_decode($res, true);
-            if (isset($data['result']['result'])) {
-                $resString = implode(array_map('chr', $data['result']['result']));
-                if (trim($resString) === 'null') {
-                    // 區塊鏈上查無此物！執行降級自癒，解鎖前端表單！
-                    $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL WHERE id = ?")->execute([$soulId]);
-                    $soulData['is_nft'] = 0;
-                } else {
-                    // 🔄 Lazy Sync 擁有權移交 (保障買家能立即編輯)
-                    $tokenInfo = json_decode($resString, true);
-                    if ($tokenInfo && isset($tokenInfo['owner_id'])) {
-                        $chainOwner = $tokenInfo['owner_id'];
-                        if ($chainOwner !== $soulData['nft_owner_wallet']) {
-                            $uStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
-                            $uStmt->execute([$chainOwner]);
-                            $newOwnerId = $uStmt->fetchColumn() ?: null;
-                            
-                            $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ? WHERE id = ?")->execute([$newOwnerId, $chainOwner, $soulId]);
-                            $soulData['user_id'] = $newOwnerId;
-                            $soulData['nft_owner_wallet'] = $chainOwner;
-                        }
-                    }
-                }
+        // 🔄 Lazy Sync 擁有權移交 (保障買家能立即編輯)
+        if (isset($tokenInfo['owner_id'])) {
+            $chainOwner = $tokenInfo['owner_id'];
+            if ($chainOwner !== $soulData['nft_owner_wallet']) {
+                $uStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
+                $uStmt->execute([$chainOwner]);
+                $newOwnerId = $uStmt->fetchColumn() ?: null;
+                
+                $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ? WHERE id = ?")->execute([$newOwnerId, $chainOwner, $soulId]);
+                $soulData['user_id'] = $newOwnerId;
+                $soulData['nft_owner_wallet'] = $chainOwner;
             }
-            break; 
         }
     }
 }

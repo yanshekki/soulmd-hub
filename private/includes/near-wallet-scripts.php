@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
  * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER (V5 Centralized Config Edition)
- * 🚨 Patched: Restored Silent Sign (0 Deposit) & Smart FullAccess Router
+ * 🚨 Patched: Added Unified nearRpcQuery() for Global Smart Contract Read-Calls
  */
 
 $sync_isPhpLoggedIn = isset($_SESSION['user_id']) ? 'true' : 'false';
@@ -27,6 +27,7 @@ if (isset($_SESSION['user_id'])) {
     window.rpcNodesPool = <?= json_encode(defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"]) ?>;
     window.activeNearRpcUrl = window.rpcNodesPool[0]; 
 
+    // 🌟 動態尋找最快健康節點
     async function getHealthyRpc() {
         for (const url of window.rpcNodesPool) {
             try {
@@ -46,6 +47,75 @@ if (isset($_SESSION['user_id'])) {
         return window.rpcNodesPool[0]; 
     }
 
+    // 🚀 全新核心服務：全域通用 RPC 查詢引擎 (View Call)
+    window.nearRpcQuery = async function(methodName, args = {}, finality = 'optimistic') {
+        const contractId = "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>";
+        // 處理 Unicode 字符的 Base64 編碼
+        const argsBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(args))));
+        
+        const payload = {
+            jsonrpc: "2.0",
+            id: "soulmd_query",
+            method: "query",
+            params: {
+                request_type: "call_function",
+                finality: finality,
+                account_id: contractId,
+                method_name: methodName,
+                args_base64: argsBase64
+            }
+        };
+
+        if (!window.activeNearRpcUrl) {
+            window.activeNearRpcUrl = await getHealthyRpc();
+        }
+
+        // 優先嘗試當前活躍節點，若失敗則輪詢整個節點池
+        const nodesToTry = [window.activeNearRpcUrl, ...window.rpcNodesPool.filter(url => url !== window.activeNearRpcUrl)];
+
+        for (const url of nodesToTry) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5秒超時容忍
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // 合約層級錯誤
+                    if (data.error) {
+                        return { success: false, error: data.error, status: 'error' };
+                    }
+                    
+                    // 成功取回並解析 Bytes Array
+                    if (data.result && data.result.result) {
+                        const resString = new TextDecoder().decode(new Uint8Array(data.result.result));
+                        if (resString.trim() === 'null') {
+                            return { success: true, data: null, status: 'not_found' }; 
+                        }
+                        return { success: true, data: JSON.parse(resString), status: 'success' };
+                    }
+                }
+            } catch (e) {
+                console.warn(`⚠️ RPC Query failed on ${url}, trying next...`);
+                if (url === window.activeNearRpcUrl) {
+                    window.activeNearRpcUrl = null; // 清除失效緩存
+                }
+            }
+        }
+        
+        return { success: false, error: 'All RPC nodes failed', status: 'timeout' };
+    };
+
+    // 🚀 錢包初始化與包裝器
     window.initNearWallet = async function() {
         if (window.nearHubWalletWrapper) return window.nearHubWalletWrapper;
 
@@ -74,8 +144,7 @@ if (isset($_SESSION['user_id'])) {
                         functionCall: async ({ contractId, methodName, args, gas, attachedDeposit, walletCallbackUrl }) => {
                             const depositStr = (attachedDeposit || "0").toString();
                             
-                            // 🚨 終極 UX 修復：0 Deposit 操作 (如 Burn, Update Hash) 使用原生靜默簽署 (Silent Sign)
-                            // 這樣就不會再每次都跳轉去 MyNearWallet 要求授權！
+                            // 0 Deposit 操作使用原生靜默簽署 (Silent Sign)
                             if (depositStr === "0") {
                                 const gasVal = typeof utils.BN !== 'undefined' ? new utils.BN((gas || "30000000000000").toString()) : BigInt((gas || "30000000000000").toString());
                                 const depVal = typeof utils.BN !== 'undefined' ? new utils.BN("0") : BigInt(0);
@@ -89,7 +158,7 @@ if (isset($_SESSION['user_id'])) {
                                     walletCallbackUrl: walletCallbackUrl
                                 });
                             } else {
-                                // 💸 大於 0 Deposit (如買賣、Mint) 則強制使用 FullAccess 並跳轉錢包
+                                // 大於 0 Deposit 強制使用 FullAccess 並跳轉錢包
                                 return window.nearHubWalletWrapper.requestSignTransactions({
                                     transactions: [{
                                         receiverId: contractId,

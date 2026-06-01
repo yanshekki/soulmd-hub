@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Billing & Subscription Management Dashboard
  * (V5 Dual-Track Web2.5 Hybrid Ledger & Asynchronous Blockchain Radar Edition)
- * 🚀 Patched: Auto-Pagination While Loop for 100% Rented/Owned/Created NFT RPC Polling
+ * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -251,7 +251,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             <?php if ($totalPages > 1): ?>
                 <div class="mt-8 flex justify-center select-none">
-                    <div class="flex sm:hidden w-full max-w-sm items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">
+                    <div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">
                         <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left"></i></a>
                         <span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= __('Page') ?> <span class="text-white text-sm font-mono"><?= $page ?></span> / <?= $totalPages ?></span>
                         <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right"></i></a>
@@ -389,27 +389,18 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
-            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             let matchedCount = 0;
 
-            // 🌟 2. 批次處理 (Chunking) RPC 查詢，避免伺服器超載
+            // 🌟 2. 批次處理 (Chunking) RPC 查詢，使用全域 nearRpcQuery
             const chunkSize = 20; 
             for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
                 const batch = allFetchedNfts.slice(i, i + chunkSize);
                 
                 const scanPromises = batch.map(async (soul) => {
                     try {
-                        const rpcRes = await fetch(safeRpcUrl, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                jsonrpc: "2.0", id: "dontcare", method: "query",
-                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                            })
-                        });
-                        const rpcData = await rpcRes.json();
-                        if (rpcData.result && rpcData.result.result) {
-                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                            if (!tokenInfo) return;
+                        const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
+                        if (rpcRes.success && rpcRes.data) {
+                            const tokenInfo = rpcRes.data;
 
                             let isMyAsset = false;
                             let roleLabel = '';

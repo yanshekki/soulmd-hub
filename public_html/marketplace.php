@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Fixed JS Template Literal escapes (\${}) causing garbled text in UI
+ * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -79,8 +79,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
-
-    // 🌍 JavaScript 動態語言變數宣告
     const lang_ViewAsset = "<?= addslashes(__('View Asset')) ?>"; 
 
     function escapeHTML(str) {
@@ -271,8 +269,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 return;
             }
 
-            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
-            
+            const rentedSouls = [];
+
+            // 🌟 核心升級：剷除舊有手動 fetch 組裝 JSON-RPC，全面改用全域 NearRpc 查詢引擎
             const rpcPromises = data.data.map(async (soul) => {
                 soul.market = {
                     sale_price: soul.sale_price,
@@ -281,22 +280,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     renters: {}
                 };
 
-                try {
-                    const rpcRes = await fetch(safeRpcUrl, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            jsonrpc: "2.0", id: "dontcare", method: "query",
-                            params: { request_type: "call_function", finality: "final", account_id: "<?= NEAR_CONTRACT_ID ?>" , method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                        })
-                    });
-                    const rpcData = await rpcRes.json();
-                    if (rpcData.result && rpcData.result.result) {
-                        const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                        if (tokenInfo) {
-                            soul.market = tokenInfo;
-                        }
-                    }
-                } catch(e) { console.warn("Listing fetch skipped, using DB fallback", e); }
+                // 呼叫大一統前端 RPC 調度函數
+                const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
+                if (rpcRes.success && rpcRes.data) {
+                    soul.market = rpcRes.data;
+                }
             });
             
             await Promise.all(rpcPromises);
@@ -333,7 +321,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                 const rentersCount = activeRenters.length;
 
-                // 🚨 已將 \${...} 修正為 ${...} 解決亂碼問題
                 html += `
                     <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
@@ -408,7 +395,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             renters.forEach(r => {
                 const d = new Date(r.expiry);
                 const dateStr = d.toLocaleString();
-                // 🚨 已將 \${...} 修正為 ${...} 解決亂碼問題
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
                         <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: Added 2s Delay + Sync API + Loading UI for Silent Transactions
+ * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -289,31 +289,18 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 
     async function fetchOnChainData() {
         try {
-            const rpcPayload = {
-                jsonrpc: "2.0", id: "dontcare", method: "query",
-                params: {
-                    request_type: "call_function", finality: "final",
-                    account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                    method_name: "get_soul",
-                    args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulId }))
+            // 🚀 核心升級：直接採用全域 window.nearRpcQuery() 取代冗長 fetch
+            const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulId });
+            
+            if (rpcRes.success && rpcRes.data) {
+                const tokenInfo = rpcRes.data;
+                if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
+                    document.getElementById('agentfi-sale-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                    document.getElementById('btn-cancel-sale').classList.remove('hidden');
                 }
-            };
-            const rpcRes = await fetch(window.activeNearRpcUrl || 'https://free.rpc.fastnear.com', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rpcPayload)
-            });
-            const rpcData = await rpcRes.json();
-            if (rpcData.result && rpcData.result.result) {
-                const resString = new TextDecoder().decode(new Uint8Array(rpcData.result.result));
-                const tokenInfo = JSON.parse(resString);
-                if (tokenInfo) {
-                    if (tokenInfo.sale_price) {
-                        document.getElementById('agentfi-sale-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
-                        document.getElementById('btn-cancel-sale').classList.remove('hidden');
-                    }
-                    if (tokenInfo.rent_price) {
-                        document.getElementById('agentfi-rent-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
-                        document.getElementById('btn-cancel-rent').classList.remove('hidden');
-                    }
+                if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
+                    document.getElementById('agentfi-rent-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                    document.getElementById('btn-cancel-rent').classList.remove('hidden');
                 }
             }
         } catch(e) {}
