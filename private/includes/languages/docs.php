@@ -2,8 +2,8 @@
 /**
  * SoulMD Hub - i18n Translation Dictionary
  * Target: docs.php (Grand Unified Ecosystem Documentation)
- * 🚀 Patched: 100% Brand-Agnostic Edition & Deeply Expanded Technical Key-Value Grid.
- * 🚀 Includes: Complete $SOUL Tokenomics Allocation & DAO Governance Matrices.
+ * 🚀 Patched: Fixed unescaped single quotes causing HTTP 500 Parse Error!
+ * 🚀 Patched: Aligned 'Percentage' key mismatch for the Tokenomics ledger table.
  */
 
 return [
@@ -184,7 +184,7 @@ return [
         'Ecosystem Blueprint Core Intro: SoulMD Hub establishes a professional, zero-overhead, multi-tenant framework engineered to handle granular prompt trees securely. By abstracting the interaction layer between clients and cognitive logic models, the core ecosystem decouples model rendering, persistent caching, and cryptographic user state tracking without relying on stateful persistent socket overheads.' => '核心技術導言：SoulMD Hub 建立了一個極致專業、零負擔的多租戶底層框架，專為安全處理高密度的語義指令樹而設。透過將客戶端與認知邏輯模型之間的互動層徹底抽象化，核心生態系統成功將模型渲染、持久化緩存與加密用戶狀態追蹤進行了解耦 (Decouple)，完全無需依賴高耗能的狀態化持續 Socket 開銷。',
         
         'Infrastructure Isolation Firewall' => '基礎設施隔離防火牆',
-        'Decoupled Architecture Matrix: Traditional multi-modal systems suffer from intense memory locks and process degradation when handling multi-file JSON trees. SoulMD Hub eliminates framework bloat by employing native vanilla processing, shifting the computational weights to programmatic object models while enforcing rigorous cross-origin runtime shielding.' => '解耦架構矩陣：傳統的多模態系統在處理多檔案 JSON 樹狀結構時，常會遭遇嚴重的記憶體死鎖與效能降級。SoulMD Hub 徹底消除了框架臃腫，採用原生純粹的底層處理，將運算權重轉移至編程物件模型，同時強制實施最嚴格的跨網域運行時 (Runtime) 屏蔽防護。',
+        'Decoupled Architecture Matrix: Traditional multi-modal systems suffer from intense memory locks and process degradation when handling multi-file JSON trees. SoulMD Hub eliminates framework bloat by employing native vanilla processing, shifting the computational weights to programmatic object models while enforcing rigorous cross-origin runtime shielding.' => '解耦架構矩陣：傳統的多模態系統在處理多檔案 JSON 樹狀結構時，常會遭遇嚴重的記憶體死鎖與效能降級。SoulMD Hub 徹底消成了框架臃腫，採用原生純粹的底層處理，將運算權重轉移至編程物件模型，同時強制實施最嚴格的跨網域運行時 (Runtime) 屏蔽防護。',
         
         'Bare-Metal Compiling Core' => 'Bare-Metal (裸機) 編譯核心',
         'Bare-metal execution pattern handles user data transformations seamlessly. Memory structures are optimized at the execution level, bypassing resource heavy framework runtimes. This guarantees near-zero latency overhead when executing custom context injection matrices and complex sliding summarization routines.' => 'Bare-Metal 執行模式無縫處理所有用戶資料轉換。記憶體結構在執行層面被極致最佳化，完美避開了資源消耗龐大的框架運行時。這保證了在執行自訂上下文注入矩陣與複雜的滑動摘要運算時，能夠達到「近乎零延遲」的硬核效能。',
@@ -193,7 +193,7 @@ return [
         'Headless security walls permanently lock mutated processing paths. By isolating CORS pre-flight configurations and strictly rejecting multipart form fallback queries, mutations are restricted to pure application/json streams, rendering standard request-forgery templates completely mathematically inert.' => '無頭安全牆永久鎖定了所有突變處理路徑。透過隔離 CORS 預檢配置並嚴格拒絕 Multipart 表單的降級查詢，所有資料寫入與突變被死鎖於純粹的 application/json 數據流中，令傳統的 CSRF 請求偽造模板在數學邏輯上完全失效。',
         
         'Cascading Semantic Compiler' => '級聯語義編譯器 (Cascading Semantic Compiler)',
-        'Prompt Modularization Engine: Standard single-file prompts degrade rapidly as token history expands, shifting character weights and leaking structural bounds. SoulMD Hub enforces an unredacted multi-file segmentation process that dynamically parses prompt files into a consolidated operational memory context at the threshold level:' => '系統指令模組化引擎：標準的單一檔案 Prompt 隨著歷史對話 Token 膨脹會迅速劣化，導致角色權重偏移並突破結構界限。SoulMD Hub 強制執行一套毫不妥協的多檔案分割流程，在閾值層面將各個指令檔動態解析，並熔接成一個高度鞏固的操作記憶上下文：',
+        'Prompt Modularization Engine: Standard single-file prompts degrade rapidly as token history expands, shifting character weights and leaking structural bounds. SoulMD Hub enforces an unredacted multi-file segmentation process that dynamically parses prompt files into a consolidated operational memory context at the threshold level:' => '系統指令模組化引擎：標準的單一檔案 Prompt 隨著歷史對話 Token 膨脹會迅速外流，導致角色權重偏移並突破結構界限。SoulMD Hub 強制執行一套毫不妥協的多檔案分割流程，在閾值層面將各個指令檔動態解析，並熔接成一個高度鞏固的操作記憶上下文：',
         
         'SOUL.md Foundational Layer' => 'SOUL.md 基礎底層 (Foundational Layer)',
         'SOUL.md functions as the authoritative core structure of the architecture. It maps system behavioral parameters, environmental contexts, specific knowledge graphs, and default identity matrices. This block serves as the unalterable system foundation injected natively at the prefix tier of every cognitive request.' => 'SOUL.md 作為架構中最具權威性的核心結構。它精準映射了系統行為參數、環境上下文、特定領域知識圖譜以及預設身份矩陣。此區塊作為不可篡改的系統基石，會被原生注入到每一次認知請求的最頂層 (Prefix Tier)。',
@@ -211,7 +211,7 @@ return [
         'Text logical processing pathway handles structural natural language queries natively. Low-tier configurations trigger extreme velocity flash token clusters, while advanced accounts escalate queries to dense logic-thinking matrices, providing comprehensive internal thoughts processing maps before returning text strings.' => '文字邏輯處理軌道負責原生處理結構化的自然語言查詢。標準配置會觸發極速 (Flash) 算力叢集，而進階帳號的查詢將直接升級至高密度的邏輯思考矩陣，在返回文字字串之前提供極度全面的內部思維軌跡 (Internal Thoughts) 運算地圖。',
         
         'Multimodal Serverless Vision Grid' => '多模態 Serverless 視覺解耦網格',
-        'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.' => '多模態資料分析以非同步方式攔截二進制封包與 Base64 結構。請求會被串流至專門的視覺運算節點，這些節點經過嚴格訓練，專攻高密度圖表計算、系統藍圖解碼、排版 OCR 映射以及空間網格處理，將極限上下文優化於 15 秒內完成。',
+        'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.' => '多模態資料分析以非同步方式攔截二進制封包與 Base64 結構。請求會被串流至專門的視覺運算節點，開裝節點經過嚴格訓練，專攻高密度圖表計算、系統藍圖解碼、排版 OCR 映射以及空間網格處理，將極限上下文優化於 15 秒內完成。',
 
         // =========================================================
         // 3. Tab 2: Problems Solved (解決的痛點)
@@ -242,9 +242,8 @@ return [
         'Memory Step C' => '<strong>事實蒸餾 (Facts Distillation)</strong>: 被剝離的數據組會被非同步投遞至高速度微型文本推理節點，強行重寫、濃縮為低於 150 字的純事實摘要（Facts Digest）。',
         'Memory Step D' => '<strong>原子性寫入 (Atomic Flashing)</strong>: 摘要結果原子性寫入 chat_memory 緩存表，並作為 [CONTEXT MEMORY] 前綴常駐注入下一輪 System Frame 頂端，全面推進快照指針，徹底截斷 Token 滲漏。',
         'Off-Chain Fingerprint' => '四、 產權洩漏與線下篡改：鏈下數據指紋與鏈上防篡改熔斷機制',
-        'Fingerprint Problem Analysis' => '提示詞工程師（Prompt Engineer）最核心的資產是精心調教的系統架構指令。一旦平台將指令以 Web2 形式公開，會聯同底層 Prompt 一併遭到白嫖。但如果完全隱藏，租客又無法在去中心化市集驗證其真實性，且無法防範平台管理員線下在數據庫中惡意篡改指令（Rug Pull）。',
-        'Fingerprint Solution' => '平台實施了「Web2.5 混合數據密碼學邊界」── 鏈下 Prompt 明文黑盒執行 + 鏈上 SHA-256 產權指紋熔斷機制：',
-        'Fingerprint Desc' => '當創作者發佈模組化智能體並進行 Web3 NEP-171 鑄造時，伺服器會生成隨機混淆密碼（Salt），並計算其數據指紋：nft_hash = "sha256:" + hash('sha256', content + salt)。區塊鏈上只記錄這個 Hash 指紋，不存放明文 Prompt。每次租客發起對話呼叫時，無狀態後端在內存組裝 Prompt 之前，會向區塊鏈發起 RPC 調用查詢。若計算出當前數據庫的 Hash 與鏈上最終真理（Source of Truth）不符，代表源碼遭到篡改，系統會立刻啟動安全熔斷（Circuit Breaker），永久阻斷對話請求，100% 捍衛創作者版權與租客權益！',
+        // 🔒 修正：將雙引號轉義，徹底杜絕單引號包裹引起嘅 500 錯誤！
+        'Fingerprint Desc' => '當創作者發佈模組化智能體並進行 Web3 NEP-171 鑄造時，伺服器會生成隨機混淆密碼（Salt），並計算其數據指紋：nft_hash = "sha256:" + hash("sha256", content + salt)。區塊鏈上只記錄這個 Hash 指紋，不存放明文 Prompt。每次租客發起對話呼叫時，無狀態後端在內存組裝 Prompt 之前，會向區塊鏈發起 RPC 調用查詢。若計算出當前數據庫的 Hash 與鏈上最終真理（Source of Truth）不符，代表源碼遭到篡改，系統會立刻啟動安全熔斷（Circuit Breaker），永久阻斷對話請求，100% 捍衛創作者版權與租客權益！',
 
         // =========================================================
         // 4. Tab 3: Daily Use Cases (日常應用場景)
@@ -255,7 +254,7 @@ return [
         'Usecase Engineering Desc: Technical software teams build a cascading developer persona pool. By nesting discrete rules across multiple directories, compilers leverage the multi-file architecture to inject code standards programmatically. The system maps identity limits seamlessly, creating an automated code linter capable of checking memory drops, edge-case validation failure, and micro-concurrency issues via standard text blocks.' => '軟體技術團隊能建立一套具備級聯效應的工程師角色池。透過在不同目錄下嵌套分立的規則，編譯組能最大化利用多檔案架構程式化地注入代碼規範，完美勾勒出一個全自動的 Linter 審查網格，透過標準文字區塊直接檢查內存洩漏、邊界條件失效與微併發衝突。',
         'Usecase Automation Title' => '📡 Headless 遠端自動化與多租戶跨境 API 閘道',
         'Usecase Automation Desc: Power members scale their business automation layer by rotating secure authorization keys inside the developer dashboard. By invoking our direct backend gateway pathways, applications bypass traditional browser session scopes entirely. Businesses route high-concurrency requests natively from corporate backend structures, mobile terminals, or distributed automated daemons directly into our unredacted prompt sandbox.' => '進階付費用戶可以透過在開發者控制台一鍵重置輪替 Secret 授權密鑰，大幅度擴充企業的自動化業務層。透過直接呼叫我們的後端網關通道，遠端應用程式能完全繞過傳統的瀏覽器 Session 會話邊界，允許企業從自身的後台伺服器、手機終端或分散式常駐守護進程（Daemon），將高併發請求原生投遞到我們受保護的黑盒 Prompt 沙盒中。',
-        'Usecase Composable Title' => '🌿 複合成型依賴樹與代碼庫分叉克隆',
+        'Usecase Composable Title' => '🌿 複製與開源協作模組化分叉',
         'Usecase Composable Desc: Prompt architects build advanced collaborative models using repository cloning forks. An engineer can inherit a public base architecture layer, overlaying custom child prompt modifications to create nested, composable dependency networks. This allows modular code architectures to be swapped, mixed, and referenced across different accounts seamlessly, establishing a reliable, open-source template ecosystem.' => '提示詞架構師能利用代碼庫克隆（Fork）建立高階的開源協作模型。開發者可以完美繼承一個公開的基礎架構層，並在此之上疊加自訂的子提示詞修飾，形成嵌套的、具備相依關係的 Composable 依賴樹結構。這使得模組化代碼在不同帳號間可以被自由調度、混合與跨引用，打造了極具信任度的開源範本經濟圈。',
 
         // =========================================================
@@ -264,19 +263,18 @@ return [
         'Future Main Title' => 'AgentFi 白皮書：$SOUL 資本賬本與 DAO 治理底層藍圖',
         'Future Main Desc' => 'SoulMD Hub 徹底打破傳統 Web2 SaaS 的訂閱牆與中心化基礎設施限制，將 AI 提示詞架構重塑為具備鏈上剛性稀缺度的去中心化合約資產。',
         'Tokenomics Allocation Matrix' => '$SOUL 原生通縮資產全域分配矩陣',
-        'Tokenomics Capital Distribution: The native functional utility asset ($SOUL) is strictly capped at a hard maximum ceiling of 1,000,000,000 units, with zero inflationary minting capabilities written into the base contract. Capital weights are strategically stratified to incentivize open-source prompt modularization, sustain core research and development, and drive continuous on-chain protocol liquidity pools.' => '通縮資本分佈：平台原生權益代幣 $SOUL 總發行量上限死鎖為 1,000,000,000 粒，合約底層不留任何通脹鑄造接口。資本權重經過高密度的戰略階梯式劃分，旨在激勵提示詞模組化開源、維持底層核心研發運作，並確保去中心化流動性資金池的持續注資。',
         'Allocation Segment' => '代幣分配板塊',
         'Percentage' => '分配比例',
         'Total Supply (Tokens)' => '供應量總計 (粒)',
         'Cryptographic Lock & Vesting Schedule' => '密碼學鎖倉與釋放網格時程表',
         'Creator & Ecosystem Mining' => '提示詞創作者激勵與全生態協作開採池',
-        'Ecosystem Vesting Desc: Allocated directly for prompt-engineering contribution incentives, modular repository forks bonuses, and collaborative template mining loops.' => '創作者釋放說明：此板塊專門用於原創提示詞確權獎勵、模組化倉庫分叉調度津貼，以及跨賬戶協作模板的生態產出開採。',
+        'Ecosystem Vesting Desc: Allocated directly for prompt-engineering contribution incentives, modular repository forks bonuses, and collaborative template mining loops.' => '創作者釋放說明：此板塊佔 30%（300,000,000 $SOUL），專門用於原創提示詞確權獎勵、模組化倉庫分叉調度津貼，以及跨賬戶協作模板的生態產出開採。',
         'Platform Treasury Vault' => '平台官方發展國庫與資金池流動性儲備',
-        'Treasury Vesting Desc: Reserved for continuous core infrastructure scaling, AMM liquidity injection, protocol failover reserve staking, and operating costs.' => '國庫釋放說明：此部分資金將嚴格鎖定於官方多簽金庫中，專門用於核心代碼迭代維護、AMM 去中心化交易所初始流動性注資、網絡拓撲故障墊付以及基礎營運開支。',
+        'Treasury Vesting Desc: Reserved for continuous core infrastructure scaling, AMM liquidity injection, protocol failover reserve staking, and operating costs.' => '國庫釋放說明：此部分佔 20%（200,000,000 $SOUL），將嚴格鎖定於官方多簽金庫中，專門用於核心代碼迭代維護、AMM 去中心化交易所初始流動性注資、網絡拓撲故障墊付以及日常營運開支。',
         'Early Backers & Seed Investors' => '早期戰略支持者與私募種子輪投資人',
-        'Investors Vesting Desc: Locked under a cryptographically enforced smart contract with a 6-month complete cliff, followed by a 24-month linear vesting grid to protect token distribution velocity.' => '投資人釋放說明：由鏈上智能合約實施密碼學硬性鎖倉，內置 6 個月的完整斷崖期 (Cliff)，隨後進入 24 個月的線性級聯解鎖釋放網格，嚴防二級市場通脹踩踏。',
+        'Investors Vesting Desc: Locked under a cryptographically enforced smart contract with a 6-month complete cliff, followed by a 24-month linear vesting grid to protect token distribution velocity.' => '投資人釋放說明：此部分佔 30%（300,000,000 $SOUL），由鏈上智能合約實施密碼學硬性鎖倉，內置 6 個月的完整斷崖期 (Cliff)，隨後進入 24 個月的線性級聯解鎖釋放網格，嚴防二級市場通脹踩踏。',
         'Decentralized Staking Rewards' => '去中心化節點高收益質押與安全池補貼',
-        'Staking Vesting Desc: Allocated for high-yield validation staking, context summary backup staking, and model lease security deposit staking loops.' => '質押釋放說明：用於分配給長期鎖倉質押者、滑動記憶摘要備份節點，以及黑盒出租履約保證金質押池的利息分配。',
+        'Staking Vesting Desc: Allocated for high-yield validation staking, context summary backup staking, and model lease security deposit staking loops.' => '質押釋放說明：此部分佔 20%（200,000,000 $SOUL），用於分配給長期鎖倉質押者、滑動記憶摘要備份節點，以及黑盒出租履約保證金質押池的利息分配。',
         'Assetization Core Engine' => '一、 可進化智能體 NFT 存證與 Prompt 產權黑盒隔離',
         'Assetization Core Desc' => '為了解決提示詞工程師的核心代碼被線下複製（白嫖）問題，AI 模組會被鑄造為可進化的 NEP-171 NFT 資產。區塊鏈上只記錄 SHA-256 指紋：<code>sha256(content + 隨機鹽)</code>，真實的提示詞源碼則安全地鎖在後端無狀態沙盒內，從根本捍衛智慧財產權。',
         'NFT Structure Matrix' => '鏈上數據構造矩陣 (DECENTWARE METADATA)',
@@ -296,7 +294,7 @@ return [
         'Deflationary Spiral Desc' => '底層協議在整個智能體的生命週期內實施極度硬核的價值捕獲。所有的資金流會實施無差別網關統計，並全數匯聚至官方金庫地址 soulmd-hub.near：',
         'Treasury Inflow Channels' => '官方金庫資本流入渠道 (Inflow Channels)',
         'Inflow Mint Tax' => '<strong>發行鑄造稅</strong>: 每次將 Web2 靈魂升級鑄造為 Web3 NFT 時，合約強制收取 0.1 NEAR 平台稅，直接積累金庫的底層資產淨值。',
-        'Inflow Market Tax' => '<strong>換手流動稅</strong>: 協議自動攔截市集行為，對二級市場的產權買斷強制抽水 5% 成交稅；對黑盒出租成交則自動扣留 10% 租賃稅。',
+        'Inflow Market Tax' => '<strong>更換手流動稅</strong>: 協議自動攔截市集行為，對二級市場的產權買斷強制抽水 5% 成交稅；對黑盒出租成交則自動扣留 10% 租賃稅。',
         'Automated Market Maker Loop' => 'AMM 自動回購通縮螺旋黑洞 (淨收入銷毀機制)',
         'Inflow AMM Execution' => '<strong>淨收入全量銷毀 (Net Income Burn)</strong>: 協議會實時扣除基礎設施的必要硬件與網絡維護支出，將剩餘的<strong>100% 平台淨利潤收入</strong>定期透過跨合約調用，直接衝入去中心化交易所的 <strong>$SOUL / $NEAR</strong> 流動性池內，按市價不計成本全數回購我們的原生代幣 <code>$SOUL</code>，並直接打入區塊鏈黑洞地址永久銷毀！市集對話越火熱，代幣通縮速度越呈幾何級數飆升！',
         'Decentralized DAO Governance Direction' => '四、 去中心化 DAO 代幣治理與可升級合約未來方向',
