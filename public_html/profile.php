@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Fixed JS Template Literal escapes (\${}) causing garbled text in Renter List
+ * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -42,7 +42,7 @@ if (!$profileUser) {
 $profileUserId = (int)$profileUser['id'];
 $safeUsername = htmlspecialchars($profileUser['username']);
 
-// 🚨 完美修復：統計該用戶的社交數據 (包含 Web2 的公開模型 + Web3 確實有標價的 NFT)
+// 🚨 完美統計：只有 Web2公開 或 Web3有價錢 的資產才算入公共作品集！
 $statsStmt = $pdo->prepare("
     SELECT COUNT(*) as total_souls, 
            COALESCE(SUM(like_count), 0) as total_likes, 
@@ -162,7 +162,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         return encodeURIComponent(slug);
     }
 
-    // 🚨 輔助函數：生成帶有操作標記的回傳網址，並帶上 sync_id
     function getCallbackUrl(actionType, id) {
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('tx_action', actionType);
@@ -176,7 +175,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             const txAction = urlParams.get('tx_action');
             const syncId = urlParams.get('sync_id');
             
-            // 🚨 買/租完返黎即刻觸發懶同步，更新 MySQL 資料庫！
             if (syncId) {
                 await fetch(`/api/soul/${syncId}`);
             }
@@ -330,28 +328,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             if (data.success && data.data.length > 0) {
                 
-                const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+                // 🌟 核心升級：直接套用全域 window.nearRpcQuery() 取代手動 fetch
                 const rpcPromises = data.data.map(async (soul) => {
-                    soul.market = {
-                        sale_price: soul.sale_price,
-                        rent_price: soul.rent_price,
-                        owner_id: soul.nft_owner_wallet,
-                        renters: {}
-                    };
-                    try {
-                        const rpcRes = await fetch(safeRpcUrl, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                jsonrpc: "2.0", id: "dontcare", method: "query",
-                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                            })
-                        });
-                        const rpcData = await rpcRes.json();
-                        if (rpcData.result && rpcData.result.result) {
-                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                            if (tokenInfo) soul.market = tokenInfo;
-                        }
-                    } catch(e) {}
+                    soul.market = {};
+                    const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
+                    if (rpcRes.success && rpcRes.data) {
+                        soul.market = rpcRes.data;
+                    }
                 });
                 await Promise.all(rpcPromises);
 
@@ -399,6 +382,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <button type="button" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold cursor-pointer shadow-sm transition">
                                             <i class="fas fa-users mr-1"></i> ${rentersCount} <?= addslashes(__('Active Renters')) ?>
                                         </button>
+                                        <div class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold cursor-help shadow-sm" title="<?= addslashes(__('Floor Desc')) ?>">
+                                            <?= addslashes(__('Floor Price')) ?>: <span class="text-white">0.45</span> N
+                                        </div>
                                     </div>
                                 </div>
                                 ${soul.description ? `<p class="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
@@ -459,17 +445,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         listContainer.innerHTML = '';
 
         if (renters.length === 0) {
-            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6"><?= addslashes(__('No active renters')) ?></div>`;
+            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6">${lang_NoActiveRenters}</div>`;
         } else {
             renters.forEach(r => {
                 const d = new Date(r.expiry);
                 const dateStr = d.toLocaleString();
-                // 🚨 完美修復：移除了畫蛇添足的 \，解決亂碼問題
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
                         <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
-                            <div class="uppercase tracking-wider"><?= addslashes(__('Expires At')) ?></div>
+                            <div class="uppercase tracking-wider">${lang_ExpiresAt}</div>
                             <div class="text-zinc-300 font-bold">${dateStr}</div>
                         </div>
                     </div>
@@ -535,6 +520,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadWeb2Souls();
+        loadWeb3Souls();
+    });
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
