@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - AgentFi Marketplace
  * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 Patched: Fixed missing lang_ViewRepo JS ReferenceError + Hardcoded Processing text
+ * 🚀 Patched: Fixed JS Template Literal escapes (\${}) causing garbled text in UI
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -333,7 +333,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                 const rentersCount = activeRenters.length;
 
-                // 🚨 完美修復：已將原本報錯的 lang_ViewRepo 替換成宣告好的變數 lang_ViewAsset
+                // 🚨 已將 \${...} 修正為 ${...} 解決亂碼問題
                 html += `
                     <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
@@ -381,7 +381,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             
                             ${(!salePrice || salePrice === "0") && (!rentPrice || rentPrice === "0") ? `
                                 <a href="${seoUrl}" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
-                                    \${lang_ViewAsset} <i class="fas fa-arrow-right text-[10px]"></i>
+                                    ${lang_ViewAsset} <i class="fas fa-arrow-right text-[10px]"></i>
                                 </a>
                             ` : ''}
                         </div>
@@ -403,17 +403,18 @@ require_once __DIR__ . '/../private/includes/header.php';
         listContainer.innerHTML = '';
 
         if (renters.length === 0) {
-            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6">${<?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>}</div>`;
+            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6"><?= addslashes(__('No active renters')) ?></div>`;
         } else {
             renters.forEach(r => {
                 const d = new Date(r.expiry);
                 const dateStr = d.toLocaleString();
+                // 🚨 已將 \${...} 修正為 ${...} 解決亂碼問題
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
-                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>\${escapeHTML(r.account)}</div>
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
-                            <div class="uppercase tracking-wider">${<?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>}</div>
-                            <div class="text-zinc-300 font-bold">\${dateStr}</div>
+                            <div class="uppercase tracking-wider"><?= addslashes(__('Expires At')) ?></div>
+                            <div class="text-zinc-300 font-bold">${dateStr}</div>
                         </div>
                     </div>
                 `;
@@ -441,7 +442,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 修正：套用多語言 Processing...
     async function buyMarketSoul(id, rawPrice, btn) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
@@ -460,7 +460,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 修正：套用多語言 Processing...
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 

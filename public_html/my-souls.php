@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Fixed SEO Title/Desc keys & removed hardcoded JS Error strings
+ * 🚀 Patched: Fixed JS Template Literal escapes (\${}) causing garbled text in Renter List
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -226,7 +226,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(currentUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
-                    // 🚨 傳入 this
                     html += `
                     <div class="soul-card bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/40 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg" data-id="${soul.id}">
                         <div>
@@ -410,7 +409,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 顯示活躍租客名單 Modal
+    // 🚨 顯示活躍租客名單 Modal (修復 \${} 亂碼問題)
     function showRentersModal(encodedJson) {
         const renters = JSON.parse(decodeURIComponent(encodedJson));
         const listContainer = document.getElementById('renters-list-content');

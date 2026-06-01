@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Wrapped hardcoded Loading strings with i18n translation functions
+ * 🚀 Patched: Dynamic Back Button Routing (Marketplace vs Hub) & NFT IP Protection
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -144,8 +144,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
-            <i class="fas fa-arrow-left"></i> <?= __('Back to Hub') ?>
+        <a href="<?= $soul['is_nft'] == 1 ? url('/marketplace') : url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
+            <i class="fas fa-arrow-left"></i> <?= $soul['is_nft'] == 1 ? __('Back to Market') : __('Back to Hub') ?>
         </a>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full md:w-auto mt-2 md:mt-0">
@@ -153,9 +153,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>"></i>
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
+            
+            <?php if ($soul['is_nft'] == 0): ?>
             <button onclick="forkSoul()" id="fork-btn" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
                 <i class="fas fa-code-branch text-emerald-400"></i> <?= __('Fork') ?>
             </button>
+            <?php endif; ?>
             
             <?php if ($canViewContent): ?>
                 <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
@@ -242,12 +245,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="flex items-center gap-2">
                     <i class="far fa-calendar-alt"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
                 </div>
+                
+                <?php if ($soul['is_nft'] == 0): ?>
                 <div class="flex items-center gap-2">
                     <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> <?= __('forks') ?>
                 </div>
                 <a href="<?= url('/soul-versions/' . $id) ?>" class="flex items-center gap-2 hover:text-emerald-400 transition">
                     <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> <?= __('versions') ?>
                 </a>
+                <?php endif; ?>
                 
                 <div class="flex items-center gap-2 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-white/5">
                     <div class="flex text-lg" id="rating-stars">
@@ -315,7 +321,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
             
             <div class="flex items-center justify-end gap-2 p-3 md:py-2 md:px-4 bg-zinc-900/30 md:bg-transparent border-t border-white/5 md:border-t-0 shrink-0">
-                <?php if ($isFolder): ?>
+                <?php if ($isFolder && $soul['is_nft'] == 0): ?>
                     <?php if ($canViewContent): ?>
                         <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
                             <i class="fas fa-file-archive text-amber-400"></i> .zip
@@ -343,15 +349,17 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
                         
-                        <?php if ($canViewContent): ?>
-                            <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                                <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
-                            </a>
+                        <?php if ($soul['is_nft'] == 0): ?>
+                            <?php if ($canViewContent): ?>
+                                <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                    <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
+                                </a>
+                            <?php endif; ?>
+                            
+                            <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
+                            </button>
                         <?php endif; ?>
-                        
-                        <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
-                        </button>
                     </div>
                     
                     <textarea id="raw-<?= $i ?>" class="hidden"><?= htmlspecialchars($safeContent) ?></textarea>
@@ -470,7 +478,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         fetchMarketStatus();
     });
 
-    // 🚨 修正：套用多語言 Processing...
     async function buySoul() {
         const btn = document.getElementById('btn-buy');
         const textSpan = document.getElementById('text-buy');
@@ -494,7 +501,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 修正：套用多語言 Processing...
     async function rentSoul() {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 

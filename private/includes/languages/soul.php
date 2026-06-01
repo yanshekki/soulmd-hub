@@ -7,6 +7,7 @@
 return [
     'en' => [
         'Back to Hub' => 'Back to Hub',
+        'Back to Market' => 'Back to Market',
         'Copy Full Prompt' => 'Copy Full Prompt',
         'Modular Folder' => 'Modular Folder',
         'Single .md' => 'Single .md',
@@ -63,6 +64,7 @@ return [
     
     'zh' => [
         'Back to Hub' => '返回探索',
+        'Back to Market' => '返回市集',
         'Copy Full Prompt' => '複製完整提示詞',
         'Modular Folder' => '模組化結構 (Modular)',
         'Single .md' => '單一 .md 文件',

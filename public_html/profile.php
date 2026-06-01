@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Added comprehensive Loading UI for Web3 Transactions & Fixed missing JS Variables
+ * 🚀 Patched: Fixed JS Template Literal escapes (\${}) causing garbled text in Renter List
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -464,6 +464,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             renters.forEach(r => {
                 const d = new Date(r.expiry);
                 const dateStr = d.toLocaleString();
+                // 🚨 完美修復：移除了畫蛇添足的 \，解決亂碼問題
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
                         <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
@@ -497,7 +498,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 修正：套用多語言 Processing...
     async function buyMarketSoul(id, rawPrice, btn) {
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
@@ -516,7 +516,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🚨 修正：套用多語言 Processing...
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
 
