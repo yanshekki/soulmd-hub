@@ -118,6 +118,13 @@ return [
         'Expires At' => 'Expires At',
         'No active renters' => 'No active renters at the moment.',
         'Close' => 'Close',
+
+        // 🌟 新增：租用資產語言包
+        'My Rented Agents' => '⏳ My Leased Agents (Rented Assets)',
+        'No rented assets' => 'You haven\'t rented any AgentFi assets yet. Go to the Marketplace to discover powerful models!',
+        'Rent Expires At' => 'Lease Expires',
+        'Enter Chat' => 'Enter Chat',
+        'Go to Marketplace' => 'Go to Marketplace',
     ],
     
     'zh' => [
@@ -233,5 +240,12 @@ return [
         'Expires At' => '租約到期時間',
         'No active renters' => '目前暫無活躍的租客。',
         'Close' => '關閉',
+
+        // 🌟 新增：租用資產語言包
+        'My Rented Agents' => '⏳ 我的租賃智能體 (已租用資產)',
+        'No rented assets' => '您目前尚未租用任何 AgentFi 資產。前往市集發掘強大模型吧！',
+        'Rent Expires At' => '租約到期時間',
+        'Enter Chat' => '進入對話',
+        'Go to Marketplace' => '前往市集',
     ]
 ];

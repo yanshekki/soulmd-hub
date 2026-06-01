@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Fixed JS Template Literal escapes (\${}) causing garbled text in Renter List
+ * 🚀 Patched: Added Active Rented NFT Display and Bypass Limit RPC Scanning
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -32,9 +32,18 @@ $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id A
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 
+// 🚀 核心升級：直接由 PHP 拉出全庫所有的 NFT 名單，交給前端批次驗證租約，無視 /api/souls 的 100 筆上限！
+$nftStmt = $pdo->query("
+    SELECT s.id, s.title, s.role, s.description, u.username, c.icon as role_icon, c.name as role_name 
+    FROM souls s 
+    LEFT JOIN users u ON s.user_id = u.id 
+    LEFT JOIN categories c ON s.role = c.slug 
+    WHERE s.is_nft = 1
+");
+$allNfts = $nftStmt->fetchAll(PDO::FETCH_ASSOC);
+
 $sort = $_GET['sort'] ?? 'newest';
 
-// 🚨 完美修復：對齊標準 SEO 語言包 Key
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
@@ -76,7 +85,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div id="web2-pagination" class="mt-8 flex justify-center items-center w-full"></div>
     </div>
 
-    <div>
+    <div class="mb-14">
         <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-purple-500 pl-3">
             <i class="fas fa-gem text-purple-400"></i> <?= __('AgentFi NFT Asset Inventory') ?>
         </h2>
@@ -91,6 +100,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php else: ?>
             <div id="web3-container" class="min-h-[250px]"></div>
             <div id="web3-pagination" class="mt-8 flex justify-center items-center w-full"></div>
+        <?php endif; ?>
+    </div>
+
+    <div>
+        <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-blue-500 pl-3">
+            <i class="fas fa-handshake text-blue-400"></i> <?= __('My Rented Agents') ?>
+        </h2>
+        
+        <?php if (empty($nearWallet)): ?>
+            <div class="text-center py-12 bg-blue-950/10 border border-dashed border-blue-500/30 rounded-3xl p-8">
+                <i class="fas fa-wallet text-blue-400 text-4xl mb-4"></i>
+                <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
+            </div>
+        <?php else: ?>
+            <div id="rented-container" class="min-h-[250px]"></div>
         <?php endif; ?>
     </div>
 </div>
@@ -138,11 +162,20 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_ExpiresAt = <?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoActiveRenters = <?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>;
 
+    // 🌟 新增：租用資產語言變數
+    const lang_NoRentedAssets = <?= json_encode(__('No rented assets'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_RentExpiresAt = <?= json_encode(__('Rent Expires At'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_EnterChat = <?= json_encode(__('Enter Chat'), JSON_UNESCAPED_UNICODE) ?>;
+    const lang_GoToMarketplace = <?= json_encode(__('Go to Marketplace'), JSON_UNESCAPED_UNICODE) ?>;
+
     const url_soul_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_edit_prefix = <?= json_encode(url('/edit/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_versions = <?= json_encode(url('/soul-versions/'), JSON_UNESCAPED_UNICODE) ?>;
     const currentUsername = <?= json_encode($username, JSON_UNESCAPED_UNICODE) ?>;
     const hasWallet = <?= !empty($nearWallet) ? 'true' : 'false' ?>;
+    
+    // 🚀 PHP 注入的所有 NFT 陣列 (解決 API limit 及市集過濾的痛點)
+    const allNfts = <?= json_encode($allNfts, JSON_UNESCAPED_UNICODE) ?>;
 
     let web2Page = 1;
     let web3Page = 1;
@@ -163,7 +196,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         web2Page = 1;
         web3Page = 1;
         loadWeb2Souls();
-        if(hasWallet) loadWeb3Souls();
+        if(hasWallet) {
+            loadWeb3Souls();
+            loadRentedSouls();
+        }
         const newUrl = window.location.pathname + '?sort=' + val;
         window.history.replaceState({}, '', newUrl);
     }
@@ -206,7 +242,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function loadWeb2Souls() {
         const container = document.getElementById('web2-container');
-        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
         
         try {
             const res = await fetch(`/api/souls?scope=me&is_nft=0&page=${web2Page}&sort=${currentSort}`);
@@ -278,7 +314,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Network error.')) ?></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network error.</div>`;
         }
     }
 
@@ -339,7 +375,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                     const rentersCount = activeRenters.length;
 
-                    // 🚨 傳入 this 到 burnWeb3Soul
                     let burnBtnHtml = '';
                     if (rentersCount > 0) {
                         burnBtnHtml = `<button disabled class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center opacity-30 cursor-not-allowed min-w-[44px]" title="${lang_ActiveRentersError}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
@@ -405,11 +440,115 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web3-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Network error.')) ?></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network error.</div>`;
         }
     }
 
-    // 🚨 顯示活躍租客名單 Modal (修復 \${} 亂碼問題)
+    // 🌟 核心新增：直接批次掃描全庫 NFT，精準拉出未過期的租用資產
+    async function loadRentedSouls() {
+        if (!hasWallet) return;
+        const container = document.getElementById('rented-container');
+        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>`;
+        
+        try {
+            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+            const rentedSouls = [];
+            
+            const wallet = await initNearWallet();
+            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
+            if (!myWallet) {
+                container.innerHTML = '';
+                return;
+            }
+
+            // 批次掃描，每次 20 筆，避免 RPC Rate Limit 或瀏覽器卡死
+            const chunkSize = 20;
+            for (let i = 0; i < allNfts.length; i += chunkSize) {
+                const batch = allNfts.slice(i, i + chunkSize);
+                const rpcPromises = batch.map(async (soul) => {
+                    try {
+                        const rpcRes = await fetch(safeRpcUrl, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                jsonrpc: "2.0", id: "dontcare", method: "query",
+                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                            })
+                        });
+                        const rpcData = await rpcRes.json();
+                        if (rpcData.result && rpcData.result.result) {
+                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                            if (tokenInfo && tokenInfo.renters && tokenInfo.renters[myWallet]) {
+                                const expiryMs = Number(BigInt(tokenInfo.renters[myWallet]) / 1000000n);
+                                if (expiryMs > Date.now()) {
+                                    soul.rent_expiry = expiryMs;
+                                    rentedSouls.push(soul);
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                });
+                await Promise.all(rpcPromises);
+            }
+
+            if (rentedSouls.length > 0) {
+                let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">`;
+                // 根據到期時間由早到晚排序
+                rentedSouls.sort((a,b) => a.rent_expiry - b.rent_expiry).forEach(soul => {
+                    const expiryDate = new Date(soul.rent_expiry).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    const chatUrl = `<?= url('/chat/') ?>${soul.id}`;
+                    
+                    html += `
+                    <div class="soul-card bg-zinc-900/60 border border-blue-500/20 rounded-3xl p-5 sm:p-6 hover:border-blue-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-lg relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-transparent"></div>
+                        <div>
+                            <div class="flex justify-between items-start gap-3 mb-3">
+                                <div>
+                                    <div class="font-bold text-lg sm:text-xl text-white tracking-tight mb-1 line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
+                                    <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-1.5 flex-wrap">
+                                        <span>${escapeHTML(soul.role_icon || '✨')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 shrink-0 flex-col items-end">
+                                    <span class="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-sm">
+                                        <i class="fas fa-handshake mr-1"></i>Rented
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-zinc-950 p-3 rounded-xl border border-white/5 mb-4 shadow-inner">
+                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">${lang_RentExpiresAt}</div>
+                                <div class="text-sm font-bold font-mono text-emerald-400"><i class="far fa-clock mr-1"></i> ${expiryDate}</div>
+                            </div>
+                            
+                            ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
+                        </div>
+                        <div class="pt-4 border-t border-white/5 flex gap-2 mt-auto">
+                            <a href="${chatUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
+                                <i class="fas fa-comments"></i> ${lang_EnterChat}
+                            </a>
+                            <a href="${seoUrl}" class="px-5 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition text-center shadow-sm shrink-0 border border-white/5 flex items-center justify-center">
+                                ${lang_View}
+                            </a>
+                        </div>
+                    </div>
+                    `;
+                });
+                html += `</div>`;
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                <div class="text-center py-12 bg-zinc-900/20 border border-dashed border-white/5 rounded-3xl">
+                    <div class="mx-auto w-12 h-12 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-xl mb-4 text-zinc-500"><i class="fas fa-handshake text-xl"></i></div>
+                    <p class="text-zinc-400 text-sm">${lang_NoRentedAssets}</p>
+                    <a href="<?= url('/marketplace') ?>" class="inline-block mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1"></i> ${lang_GoToMarketplace}</a>
+                </div>`;
+            }
+        } catch(e) {
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network error</div>`;
+        }
+    }
+
     function showRentersModal(encodedJson) {
         const renters = JSON.parse(decodeURIComponent(encodedJson));
         const listContainer = document.getElementById('renters-list-content');
@@ -454,7 +593,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // 🚨 支援 Button Loading UI 鎖定
     async function deleteWeb2Soul(id, btn) {
         if (!confirm(lang_PermDelete)) return;
         
@@ -499,7 +637,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
 
-            // 0 Deposit 將自動觸發靜默簽署
             await wallet.account().functionCall({
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                 methodName: "burn_soul",
@@ -510,7 +647,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             
             btn.innerHTML = '<i class="fas fa-sync fa-spin sm:text-base"></i>';
-            // 🚨 V5 靜默簽署修復：簽署完成後重新載入頁面
             window.location.reload();
         } catch (e) {
             console.error("Burn execution error:", e);
@@ -560,13 +696,17 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
 
             await Promise.all(syncPromises);
-            if (needsReload) { loadWeb2Souls(); loadWeb3Souls(); }
+            // 🚨 租務資料更新後一併重載
+            if (needsReload) { loadWeb2Souls(); loadWeb3Souls(); loadRentedSouls(); }
         } catch(e) {}
     }
 
     window.addEventListener('DOMContentLoaded', () => {
         loadWeb2Souls();
-        if(hasWallet) loadWeb3Souls();
+        if(hasWallet) {
+            loadWeb3Souls();
+            loadRentedSouls();
+        }
         proactiveAssetSync();
     });
 </script>
