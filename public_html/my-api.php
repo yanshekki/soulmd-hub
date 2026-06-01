@@ -2,8 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
- * 🚀 Patched: Fully stripped of hardcoded text. 100% i18n compliant.
- * 🚀 Security: Added Cryptographic Signature Payload for Wallet Binding
+ * 🚀 Patched: 100% Structural integrity retained + i18n + Cryptographic Signature Payload
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -99,7 +98,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <?= $isExpired ? __('Premium Expired Title') : __('API Locked Title') ?>
                         </h3>
                         <p class="text-sm text-zinc-300 leading-relaxed">
-                            <?= $isExpired ? __('Premium Expired Desc') : __('API Locked Desc') ?>
+                            <?= $isExpired 
+                                ? __('Premium Expired Desc')
+                                : __('API Locked Desc') ?>
                         </p>
                     </div>
                 </div>
@@ -257,9 +258,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
         
         try {
-            // 🚨 核心升級：產生防偽密碼學簽章 Payload 送畀後端
+            // 🚀 核心安全升級：產生防偽密碼學簽章 Payload (Ed25519) 送給後端
             const authPayload = await window.generateNearAuthPayload(accountId);
             authPayload.action = 'bind';
+            authPayload.wallet = accountId;
 
             const res = await fetch('/api/bind-wallet', {
                 method: 'POST',
@@ -323,7 +325,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('key-display').innerText = data.new_api_key;
                 showFeedbackNotification(true, '<?= addslashes(__('Key generated successfully!')) ?>');
             } else {
-                showFeedbackNotification(false, data.error || 'Operation failed');
+                showFeedbackNotification(false, data.error || '<?= addslashes(__('Operation failed')) ?>');
             }
         } catch(e) {
             showFeedbackNotification(false, '<?= addslashes(__('Network Error')) ?>');
@@ -387,7 +389,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 walletCallbackUrl: window.location.href
             });
             
-            // 🚨 靜默簽署修復：加入過渡延遲
             text.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> Syncing...';
             await new Promise(resolve => setTimeout(resolve, 2000));
             
