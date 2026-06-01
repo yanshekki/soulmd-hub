@@ -1,51 +1,63 @@
 <?php
+/**
+ * SoulMD Hub - Intro & Core Engine Language Dictionary
+ * Target: /docs/intro (Enterprise Technical Blueprint Edition)
+ */
 return [
     'en' => [
-        'Ecosystem Architectural Blueprint' => 'Ecosystem Architectural Blueprint',
-        'Ecosystem Blueprint Core Intro: SoulMD Hub establishes a professional, zero-overhead, multi-tenant framework engineered to handle granular prompt trees securely. By abstracting the interaction layer between clients and cognitive logic models, the core ecosystem decouples model rendering, persistent caching, and cryptographic user state tracking without relying on stateful persistent socket overheads.' => 'Ecosystem Blueprint Core Intro: SoulMD Hub establishes a professional, zero-overhead, multi-tenant framework engineered to handle granular prompt trees securely. By abstracting the interaction layer between clients and cognitive logic models, the core ecosystem decouples model rendering, persistent caching, and cryptographic user state tracking without relying on stateful persistent socket overheads.',
-        'Infrastructure Isolation Firewall' => 'Infrastructure Isolation Firewall',
-        'Decoupled Architecture Matrix: Traditional multi-modal systems suffer from intense memory locks and process degradation when handling multi-file JSON trees. SoulMD Hub eliminates framework bloat by employing native vanilla processing, shifting the computational weights to programmatic object models while enforcing rigorous cross-origin runtime shielding.' => 'Decoupled Architecture Matrix: Traditional multi-modal systems suffer from intense memory locks and process degradation when handling multi-file JSON trees. SoulMD Hub eliminates framework bloat by employing native vanilla processing, shifting the computational weights to programmatic object models while enforcing rigorous cross-origin runtime shielding.',
-        'Bare-Metal Compiling Core' => 'Bare-Metal Compiling Core',
-        'Bare-metal execution pattern handles user data transformations seamlessly. Memory structures are optimized at the execution level, bypassing resource heavy framework runtimes. This guarantees near-zero latency overhead when executing custom context injection matrices and complex sliding summarization routines.' => 'Bare-metal execution pattern handles user data transformations seamlessly. Memory structures are optimized at the execution level, bypassing resource heavy framework runtimes. This guarantees near-zero latency overhead when executing custom context injection matrices and complex sliding summarization routines.',
-        'Headless Cross-Origin Perimeter' => 'Headless Cross-Origin Perimeter',
-        'Headless security walls permanently lock mutated processing paths. By isolating CORS pre-flight configurations and strictly rejecting multipart form fallback queries, mutations are restricted to pure application/json streams, rendering standard request-forgery templates completely mathematically inert.' => 'Headless security walls permanently lock mutated processing paths. By isolating CORS pre-flight configurations and strictly rejecting multipart form fallback queries, mutations are restricted to pure application/json streams, rendering standard request-forgery templates completely mathematically inert.',
-        'Cascading Semantic Compiler' => 'Cascading Semantic Compiler',
-        'Prompt Modularization Engine: Standard single-file prompts degrade rapidly as token history expands, shifting character weights and leaking structural bounds. SoulMD Hub enforces an unredacted multi-file segmentation process that dynamically parses prompt files into a consolidated operational memory context at the threshold level:' => 'Prompt Modularization Engine: Standard single-file prompts degrade rapidly as token history expands, shifting character weights and leaking structural bounds. SoulMD Hub enforces an unredacted multi-file segmentation process that dynamically parses prompt files into a consolidated operational memory context at the threshold level:',
-        'SOUL.md Foundational Layer' => 'SOUL.md Foundational Layer',
-        'SOUL.md functions as the authoritative core structure of the architecture. It maps system behavioral parameters, environmental contexts, specific knowledge graphs, and default identity matrices. This block serves as the unalterable system foundation injected natively at the prefix tier of every cognitive request.' => 'SOUL.md functions as the authoritative core structure of the architecture. It maps system behavioral parameters, environmental contexts, specific knowledge graphs, and default identity matrices. This block serves as the unalterable system foundation injected natively at the prefix tier of every cognitive request.',
-        'STYLE.md Acoustic & Linguistic Modifiers' => 'STYLE.md Acoustic & Linguistic Modifiers',
-        'STYLE.md controls the acoustic variables and lexical distributions of the output generation layer. It dynamically configures vocabulary weights, response density metrics, markdown formatting structures, and syntax trees. This enforces strict linguistic filtering, ensuring output style remains unredacted across long execution logs.' => 'STYLE.md controls the acoustic variables and lexical distributions of the output generation layer. It dynamically configures vocabulary weights, response density metrics, markdown formatting structures, and syntax trees. This enforces strict linguistic filtering, ensuring output style remains unredacted across long execution logs.',
-        'RULES.md Negative Rails & Security Boundaries' => 'RULES.md Negative Rails & Security Boundaries',
-        'RULES.md constructs unbreakable compliance rails and strict hallucination safeguards. By establishing a rigid list of negative constraints, character escape restrictions, and output boundaries, this module dynamically overrides volatile token states, ensuring absolute functional alignment and safety.' => 'RULES.md constructs unbreakable compliance rails and strict hallucination safeguards. By establishing a rigid list of negative constraints, character escape restrictions, and output boundaries, this module dynamically overrides volatile token states, ensuring absolute functional alignment and safety.',
-        'Dual-Track Decoupled Gateway' => 'Dual-Track Decoupled Gateway',
-        'Stateless Gateway Routing: To guarantee uncompressed operational throughput, the processing engine intercept inputs instantly, splitting structural processing workflows into localized text processing components or multimodal vision processing arrays based on programmatic data validation layers.' => 'Stateless Gateway Routing: To guarantee uncompressed operational throughput, the processing engine intercept inputs instantly, splitting structural processing workflows into localized text processing components or multimodal vision processing arrays based on programmatic data validation layers.',
-        'High-Performance Text Reasoning Engine Cluster' => 'High-Performance Text Reasoning Engine Cluster',
-        'Text logical processing pathway handles structural natural language queries natively. Low-tier configurations trigger extreme velocity flash token clusters, while advanced accounts escalate queries to dense logic-thinking matrices, providing comprehensive internal thoughts processing maps before returning text strings.' => 'Text logical processing pathway handles structural natural language queries natively. Low-tier configurations trigger extreme velocity flash token clusters, while advanced accounts escalate queries to dense logic-thinking matrices, providing comprehensive internal thoughts processing maps before returning text strings.',
-        'Multimodal Serverless Vision Grid' => 'Multimodal Serverless Vision Grid',
-        'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.' => 'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.',
+        // Master Section
+        'Intro_Master_Title' => 'Ecosystem Architectural Blueprint & Core Engines',
+        'Intro_Master_Desc' => 'SoulMD Hub implements a professional, zero-overhead, multi-tenant hybrid Web2.5 framework engineered to handle granular prompt trees securely. By abstracting the interaction layer between users and upstream cognitive runtimes, the network decouples execution memory, persistent caching, and blockchain-verified state tracking.',
+        
+        // Block 1: Gateway
+        'Intro_Gateway_Title' => '1. High-Performance Dual-Track Stateless Gateway',
+        'Intro_Gateway_Desc' => 'To guarantee maximum operational throughput, the application core intercept incoming payloads instantly at the execution level, splitting structural workflows into pure textual logic processing or asynchronous multimodal vision grids based on strict algorithmic input validation.',
+        'Gateway_Text_Node' => 'Stateless Pure Text Reasoning Engine',
+        'Gateway_Text_Desc' => 'Text logical pathways process natural language vectors natively. Low-tier requests map to flash token configurations, while advanced requests scale queries into dense logic-thinking matrices, computing complete internal thinking chains before executing text string delivery.',
+        'Gateway_Vision_Node' => 'Multimodal Serverless Vision Grid',
+        'Gateway_Vision_Desc' => 'Multimodal streams process image assets asynchronously. The backend proxy handles base64 matrix transformations, spatial layout mapping, and high-density chart calculations within a hard window boundary.',
+
+        // Block 2: Semantic Compiler
+        'Intro_Compiler_Title' => '2. Cascading Semantic Prompt Compiler & Trinity Tree',
+        'Intro_Compiler_Desc' => 'Standard single-file prompt architectures degrade rapidly as token dialogue history expands, causing identity leakage and constraint breaking. SoulMD Hub forces an unredacted multi-file segmentation routine, assembling an absolute operational context tree inside ephemeral execution stacks:',
+        'Layer_Soul_Title' => 'SOUL.md Foundational Base Layer',
+        'Layer_Soul_Desc' => 'Functions as the authoritative identifier. It maps core system behavioral boundaries, specific knowledge vectors, and default archetype matrices injected natively at the topmost prefix tier.',
+        'Layer_Style_Title' => 'STYLE.md Acoustic & Lexical Modifiers',
+        'Layer_Style_Desc' => 'Controls output acoustic variables and vocabulary distribution. It hardcodes formatting density, token reply length boundaries, and strict markdown trees to preserve linguistic purity across long logs.',
+        'Layer_Rules_Title' => 'RULES.md Negative Rails & Safety Firewall',
+        'Layer_Rules_Desc' => 'Constructs unbreakable safety rails and hallucination blocks. By enforcing strict character escape boundaries, it overrides volatile tokens to safeguard systemic alignment.',
+
+        // Block 3: Mounting Matrix
+        'Intro_Mount_Title' => '3. Ephemeral Stacking & Prompt Execution Topology',
+        'Intro_Mount_Desc' => 'The compilation middleware executes left-to-right cascading concatenation inside a stateless sandbox. Below is the unredacted technological structural sequence mounted natively during runtime dialogue loops:',
+        'Mount_Code_Header' => 'CORE PROMPT COMPILER SEGMENTATION GRID',
     ],
     'zh' => [
-        'Ecosystem Architectural Blueprint' => '全生態底層架構藍圖',
-        'Ecosystem Blueprint Core Intro: SoulMD Hub establishes a professional, zero-overhead, multi-tenant framework engineered to handle granular prompt trees securely. By abstracting the interaction layer between clients and cognitive logic models, the core ecosystem decouples model rendering, persistent caching, and cryptographic user state tracking without relying on stateful persistent socket overheads.' => '核心技術導言：SoulMD Hub 建立了一個極致專業、零負擔的多租戶底層框架，專為安全處理高密度的語義指令樹而設。透過將客戶端與認知邏輯模型之間的互動層徹底抽象化，核心生態系統成功將模型渲染、持久化緩存與加密用戶狀態追蹤進行了解耦 (Decouple)，完全無需依賴高耗能的狀態化持續 Socket 開銷。',
-        'Infrastructure Isolation Firewall' => '基礎設施隔離防火牆',
-        'Decoupled Architecture Matrix: Traditional multi-modal systems suffer from intense memory locks and process degradation when handling multi-file JSON trees. SoulMD Hub eliminates framework bloat by employing native vanilla processing, shifting the computational weights to programmatic object models while enforcing rigorous cross-origin runtime shielding.' => '解耦架構矩陣：傳統的多模態系統在處理多檔案 JSON 樹狀結構時，常會遭遇嚴重的記憶體死鎖與效能降級。SoulMD Hub 徹底消除了框架臃腫，採用原生純粹的底層處理，將運算權重轉移至編程物件模型，同時強制實施最嚴格的跨網域運行時 (Runtime) 屏蔽防護。',
-        'Bare-Metal Compiling Core' => 'Bare-Metal (裸機) 編譯核心',
-        'Bare-metal execution pattern handles user data transformations seamlessly. Memory structures are optimized at the execution level, bypassing resource heavy framework runtimes. This guarantees near-zero latency overhead when executing custom context injection matrices and complex sliding summarization routines.' => 'Bare-Metal 執行模式無縫處理所有用戶資料轉換。記憶體結構在執行層面被極致最佳化，完美避開了資源消耗龐大的框架運行時。這保證了在執行自訂上下文注入矩陣與複雜的滑動摘要運算時，能夠達到「近乎零延遲」的硬核效能。',
-        'Headless Cross-Origin Perimeter' => '無頭 (Headless) 跨域邊界防禦',
-        'Headless security walls permanently lock mutated processing paths. By isolating CORS pre-flight configurations and strictly rejecting multipart form fallback queries, mutations are restricted to pure application/json streams, rendering standard request-forgery templates completely mathematically inert.' => '無頭安全牆永久鎖定了所有突變處理路徑。透過隔離 CORS 預檢配置並嚴格拒絕 Multipart 表單的降級查詢，所有資料寫入與突變被死鎖於純粹的 application/json 數據流中，令傳統的 CSRF 請求偽造模板在數學邏輯上完全失效。',
-        'Cascading Semantic Compiler' => '級聯語義編譯器 (Cascading Semantic Compiler)',
-        'Prompt Modularization Engine: Standard single-file prompts degrade rapidly as token history expands, shifting character weights and leaking structural bounds. SoulMD Hub enforces an unredacted multi-file segmentation process that dynamically parses prompt files into a consolidated operational memory context at the threshold level:' => '系統指令模組化引擎：標準的單一檔案 Prompt 隨著歷史對話 Token 膨脹會迅速劣化，導致角色權重偏移並突破結構界限。SoulMD Hub 強制執行一套毫不妥協的多檔案分割流程，在閾值層面將各個指令檔動態解析，並熔接成一個高度鞏固的操作記憶上下文：',
-        'SOUL.md Foundational Layer' => 'SOUL.md 基礎底層 (Foundational Layer)',
-        'SOUL.md functions as the authoritative core structure of the architecture. It maps system behavioral parameters, environmental contexts, specific knowledge graphs, and default identity matrices. This block serves as the unalterable system foundation injected natively at the prefix tier of every cognitive request.' => 'SOUL.md 作為架構中最具權威性的核心結構。它精準映射了系統行為參數、環境上下文、特定領域知識圖譜以及預設身份矩陣。此區塊作為不可篡改的系統基石，會被原生注入到每一次認知請求的最頂層 (Prefix Tier)。',
-        'STYLE.md Acoustic & Linguistic Modifiers' => 'STYLE.md 聲學與語言修飾層 (Linguistic Modifiers)',
-        'STYLE.md controls the acoustic variables and lexical distributions of the output generation layer. It dynamically configures vocabulary weights, response density metrics, markdown formatting structures, and syntax trees. This enforces strict linguistic filtering, ensuring output style remains unredacted across long execution logs.' => 'STYLE.md 絕對控制了輸出生成層的聲學變量與詞彙分佈。它會動態配置詞彙權重、回覆密度指標、Markdown 排版結構以及語法樹。這強制實施了嚴格的語言過濾，確保輸出風格在漫長的執行日誌中依然保持純粹。',
-        'RULES.md Negative Rails & Security Boundaries' => 'RULES.md 負面軌道與安全邊界 (Security Boundaries)',
-        'RULES.md constructs unbreakable compliance rails and strict hallucination safeguards. By establishing a rigid list of negative constraints, character escape restrictions, and output boundaries, this module dynamically overrides volatile token states, ensuring absolute functional alignment and safety.' => 'RULES.md 構築了堅不可摧的合規軌道與嚴格的防幻覺保護機制。透過建立一份死板的負面約束清單、字元逃逸限制與輸出邊界，此模組能動態覆寫任何不穩定的 Token 狀態，確保絕對的功能對齊與系統安全。',
-        'Dual-Track Decoupled Gateway' => '雙軌解耦路由閘道 (Dual-Track Gateway)',
-        'Stateless Gateway Routing: To guarantee uncompressed operational throughput, the processing engine intercept inputs instantly, splitting structural processing workflows into localized text processing components or multimodal vision processing arrays based on programmatic data validation layers.' => '無狀態網關路由：為了保證無損的運算吞吐量，處理引擎會以毫秒級攔截輸入，並基於編程資料驗證層，將結構化處理工作流瞬間拆分為「文本邏輯推理元件」或「多模態視覺陣列」。',
-        'High-Performance Text Reasoning Engine Cluster' => '高效能純文字邏輯推理叢集',
-        'Text logical processing pathway handles structural natural language queries natively. Low-tier configurations trigger extreme velocity flash token clusters, while advanced accounts escalate queries to dense logic-thinking matrices, providing comprehensive internal thoughts processing maps before returning text strings.' => '文字邏輯處理軌道負責原生處理結構化的自然語言查詢。標準配置會觸發極速 (Flash) 算力叢集，而進階帳號的查詢將直接升級至高密度的邏輯思考矩陣，在返回文字字串之前提供極度全面的內部思維軌跡 (Internal Thoughts) 運算地圖。',
-        'Multimodal Serverless Vision Grid' => '多模態 Serverless 視覺解耦網格',
-        'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.' => '多模態資料分析以非同步方式攔截二進制封包與 Base64 結構。請求會被串流至專門的視覺運算節點，這些節點經過嚴格訓練，專攻高密度圖表計算、系統藍圖解碼、排版 OCR 映射以及空間網格處理，將極限上下文優化於 15 秒內完成。',
+        // Master Section
+        'Intro_Master_Title' => '全生態底層架構藍圖與核心雙引擎',
+        'Intro_Master_Desc' => 'SoulMD Hub 建立了一個極致專業、零耗能的多租戶 Web2.5 混合型底層框架，專為安全處理高密度的語義指令樹而設。透過將客戶端與上游認知模型之間的互動層徹底抽象化，核心網關成功將運行內存、持久化緩存與區塊鏈確權狀態進行了解耦。',
+        
+        // Block 1: Gateway
+        'Intro_Gateway_Title' => '一、 高效能無狀態雙軌中繼路由閘道 (Stateless Gateway)',
+        'Intro_Gateway_Desc' => '為了保證無損的運算吞吐量，系統核心在 Vanilla PHP 執行緒層面以毫秒級攔截傳入的 JSON 載荷，並基於嚴格的類型學編程數據驗證，將工作流瞬間分流拆分為「純文字推理引擎」或「非同步多模態視覺網格」：',
+        'Gateway_Text_Node' => '純文字邏輯推理叢集軌道',
+        'Gateway_Text_Desc' => '純文字處理路徑負責原生運算結構化自然語言向量。標準配置調用極速算力叢集，而進階帳號查詢則直接升級至高密度的邏輯思考矩陣，在返回最終文本前，完整計算出內置的「內部思維鏈軌跡 (Internal Thoughts Map)」。',
+        'Gateway_Vision_Node' => '多模態 Serverless 視覺解耦網格',
+        'Gateway_Vision_Desc' => '多模態數據流以非同步方式攔截二進制圖像資產。後端代理在硬件加速邊界內，專攻高頻 Base64 數據流矩陣轉換、空間排版映射以及高密度圖表藍圖解碼。',
+
+        // Block 2: Semantic Compiler
+        'Intro_Compiler_Title' => '二、 級聯語義編譯器與三位一體提示詞指令樹',
+        'Intro_Compiler_Desc' => '傳統的單一檔案 Prompt 隨著歷史對話 Token 的膨脹會迅速劣化，導致角色權重偏移並突破安全界限。SoulMD Hub 強制執行一套多檔案分割編譯流程，在內存執行緒中將各指令檔動態解析，熔接成高度鞏固的操作記憶上下文：',
+        'Layer_Soul_Title' => 'SOUL.md 靈魂基礎基石層 (Authoritative Base)',
+        'Layer_Soul_Desc' => '作為整個智能體最權威的身份標識結構。它精準映射了核心系統行為邊界、特定領域知識圖譜以及身份基調矩陣，並被原生注入到每一次對話的最頂層 (Prefix Tier)。',
+        'Layer_Style_Title' => 'STYLE.md 聲學與詞彙修飾層 (Acoustic Modifiers)',
+        'Layer_Style_Desc' => '絕對控制輸出生成層的聲學變量與詞彙分佈。它硬編碼了回覆密度指標、Token 長度限制以及 Markdown 語法樹，確保輸出风格在漫長的歷史日誌中依然保持純粹。',
+        'Layer_Rules_Title' => 'RULES.md 負面軌道與合規防火牆 (Constraint Firewall)',
+        'Layer_Rules_Desc' => '構築堅不可摧的安全防禦線與防幻覺保護機制。透過建立死板的負面約束清單與字元逃逸限制，強行覆寫任何不穩定的 Token 狀態，確保絕對的安全對齊。',
+
+        // Block 3: Mounting Matrix
+        'Intro_Mount_Title' => '三、 臨時內存堆疊與提示詞掛載拓撲結構 (Mounting Topology)',
+        'Intro_Mount_Desc' => '編譯中間件在無狀態沙盒內執行由上至下、由左至右的級聯拼接（Concatenation）。以下是系統在運行時對話循環中，原生組裝提示詞的真實技術結構序列：',
+        'Mount_Code_Header' => '核心提示詞編譯器上下文熔接網絡 (Prompt Assembly Map)',
     ]
 ];

@@ -2,91 +2,136 @@
 /**
  * SoulMD Hub - Grand Unified Documentation Sub-module
  * Target: /docs/usecases
- * Layout: Enterprise Production Workflows & Cross-Origin Automation
- * 🚀 Patched: 100% Pure Brand-Agnostic Edition. Completely removed all third-party branding.
- * 🚀 Expanded: Multi-layered deeply professional technical use cases & operational matrices.
+ * 🚀 Patched: 100% Parameterized i18n Translation Architecture (No Hardcoded Plain Text).
+ * 🚀 Patched: Beautiful Institutional Technical Whitepaper Layout with Real Code and Topology Blocks.
  */
-
-// 確保此檔案不被直接存取，必須由 docs.php 引入
-if (!defined('BASE_URL')) {
-    header("HTTP/1.0 404 Not Found");
-    exit;
-}
+if (!defined('BASE_URL')) exit;
 ?>
 
-<div class="space-y-12 animate-fade-in">
+<div class="space-y-14 animate-fade-in text-zinc-300">
     
-    <!-- 🧭 頂部日常跨域應用場景導引 -->
     <div class="border-b border-white/10 pb-6">
-        <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight mb-4">
-            <?= __('Production Workflows & Enterprise Automation') ?>
+        <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+            <?= __('UseCases_Master_Title') ?>
         </h2>
-        <p class="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-5xl">
-            <?= __('UseCases Main Desc: SoulMD Hub transitions prompts from primitive hobbyist play-sandboxes into rigid enterprise-grade production architectures. By utilizing an infrastructure optimized for high-concurrency token routing and unredacted multi-file isolation, development crews and data analytic teams deploy specialized prompt nodes natively inside existing cross-origin operational loops.') ?>
+        <p class="text-sm sm:text-base leading-relaxed max-w-5xl text-zinc-400">
+            <?= __('UseCases_Master_Desc') ?>
         </p>
     </div>
 
-    <!-- 🗂️ 核心場景三軌制解耦佈局 -->
-    <div class="space-y-8">
+    <div class="space-y-10">
         
-        <!-- 場景 1：資深代碼審查與 AST 抽象語法樹分析模擬 -->
-        <div class="bg-zinc-950/40 border border-white/5 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-emerald-500/20 transition-all duration-300 flex flex-col xl:flex-row gap-6 items-start group relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div class="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition duration-300 shadow-lg shadow-emerald-500/5 mt-1">
-                <i class="fas fa-code-branch text-2xl"></i>
+        <div class="bg-zinc-950/40 border border-emerald-500/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-emerald-500/40 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fas fa-code-branch text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20 text-base"></i>
+                <?= __('Usecase1_Title') ?>
+            </h3>
+            <p class="text-sm text-zinc-400 leading-relaxed mb-6"><?= __('Usecase1_Desc') ?></p>
+            
+            <div class="bg-[#0d1117] p-5 sm:p-6 rounded-2xl border border-white/10 font-mono text-xs sm:text-sm text-zinc-300 shadow-2xl leading-relaxed">
+                <div class="text-white font-bold mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
+                    <i class="fas fa-folder-open text-emerald-400"></i> <?= __('Usecase1_Tree_Header') ?>
+                </div>
+                <ul class="space-y-3 list-none pl-1">
+                    <li class="hover:text-emerald-300 transition-colors">📂 <span class="text-zinc-400">workspace/expert-linter-soul/</span></li>
+                    <li class="pl-4 border-l border-white/10 py-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span class="text-emerald-400 font-bold">├── 📄 SOUL.md</span> 
+                        <span class="text-zinc-500 text-xs font-sans"><?= __('Usecase1_Bullet1') ?></span>
+                    </li>
+                    <li class="pl-4 border-l border-white/10 py-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span class="text-purple-400 font-bold">├── 📄 STYLE.md</span> 
+                        <span class="text-zinc-500 text-xs font-sans"><?= __('Usecase1_Bullet2') ?></span>
+                    </li>
+                    <li class="pl-4 border-l border-white/10 py-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span class="text-red-400 font-bold">└── 📄 RULES.md</span> 
+                        <span class="text-zinc-500 text-xs font-sans"><?= __('Usecase1_Bullet3') ?></span>
+                    </li>
+                </ul>
             </div>
-            <div class="space-y-4 flex-1">
-                <h3 class="text-xl sm:text-2xl font-bold text-white"><?= __('Usecase Engineering Title') ?></h3>
-                <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Usecase Engineering Desc: Technical software teams build a cascading developer persona pool. By nesting discrete rules across multiple directories, compilers leverage the multi-file architecture to inject code standards programmatically. The system maps identity limits seamlessly, creating an automated code linter capable of checking memory drops, edge-case validation failure, and micro-concurrency issues via standard text blocks.') ?></p>
-                
-                <div class="bg-zinc-900/50 p-4 sm:p-5 rounded-2xl border border-white/5 font-mono text-xs text-zinc-400 leading-relaxed">
-                    <div class="text-white font-bold mb-2 flex items-center gap-1.5"><i class="fas fa-folder-open text-emerald-400"></i> [REPOSITORY COMPILATION INDEX]</div>
-                    <ul class="space-y-1.5 list-none pl-1">
-                        <li>📂 <span class="text-zinc-300">workspace/expert-coder/</span></li>
-                        <li>├── 📄 <span class="text-emerald-400">SOUL.md</span> <span class="opacity-40">// Core logic parsing instructions & type-checking architecture</span></li>
-                        <li>├── 📄 <span class="text-purple-400">STYLE.md</span> <span class="opacity-40">// Code compression specifications (forces sparse text, maximizes code-blocks)</span></li>
-                        <li>└── 📄 <span class="text-red-400">RULES.md</span> <span class="opacity-40">// Compilation constraints (prohibits ancient legacy patterns, locks security rails)</span></li>
-                    </ul>
+        </div>
+
+        <div class="bg-zinc-950/40 border border-amber-500/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-amber-500/40 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fas fa-network-wired text-amber-400 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-base"></i>
+                <?= __('Usecase2_Title') ?>
+            </h3>
+            <p class="text-sm text-zinc-400 leading-relaxed mb-6"><?= __('Usecase2_Desc') ?></p>
+            
+            <div class="bg-[#0d1117] p-5 sm:p-6 rounded-2xl border border-white/10 font-mono text-xs sm:text-sm text-zinc-300 shadow-2xl leading-relaxed">
+                <div class="text-white font-bold mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
+                    <i class="fas fa-terminal text-amber-400"></i> <?= __('Usecase2_Payload_Header') ?>
+                </div>
+                <p class="text-xs text-zinc-500 mb-3 font-sans"><?= __('Usecase2_Payload_Desc') ?></p>
+                <pre class="bg-black/40 p-4 rounded-xl text-cyan-300 overflow-x-auto border border-white/5 leading-relaxed select-all">
+curl -X POST https://soulmd-hub.ysk.hk/api/chat \
+  -H "Authorization: Bearer YOUR_ENCRYPTED_ROTATION_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "chat",
+    "soul_id": 1024,
+    "session_token": "client_session_nonce_hash",
+    "content": "Execute automated system diagnostic optimization routines."
+  }'</pre>
+            </div>
+        </div>
+
+        <div class="bg-zinc-950/40 border border-blue-500/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-blue-500/40 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fas fa-file-contract text-blue-400 bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/20 text-base"></i>
+                <?= __('Usecase3_Title') ?>
+            </h3>
+            <p class="text-sm text-zinc-400 leading-relaxed mb-8"><?= __('Usecase3_Desc') ?></p>
+
+            <div class="flex flex-col lg:flex-row gap-6 relative z-10 font-mono text-xs sm:text-sm">
+                <div class="flex-1 bg-black/30 border border-white/10 p-5 rounded-2xl">
+                    <div class="text-blue-400 font-bold mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
+                        <i class="fas fa-project-diagram"></i> <?= __('Usecase3_Flow_Header') ?>
+                    </div>
+                    <div class="space-y-4 font-sans text-sm text-zinc-400">
+                        <div class="flex gap-3">
+                            <span class="bg-blue-500/20 text-blue-400 font-mono font-bold text-xs px-2.5 py-1 h-fit rounded border border-blue-500/20">STEP 1</span>
+                            <p class="text-xs sm:text-sm leading-relaxed"><?= __('Usecase3_Step1') ?></p>
+                        </div>
+                        <div class="flex gap-3 border-t border-white/5 pt-3">
+                            <span class="bg-purple-500/20 text-purple-400 font-mono font-bold text-xs px-2.5 py-1 h-fit rounded border border-purple-500/20">STEP 2</span>
+                            <p class="text-xs sm:text-sm leading-relaxed"><?= __('Usecase3_Step2') ?></p>
+                        </div>
+                        <div class="flex gap-3 border-t border-white/5 pt-3">
+                            <span class="bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs px-2.5 py-1 h-fit rounded border border-emerald-500/20">STEP 3</span>
+                            <p class="text-xs sm:text-sm leading-relaxed"><?= __('Usecase3_Step3') ?></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- 場景 2：Headless 遠端自動化與多租戶跨境 API 閘道 -->
-        <div class="bg-zinc-950/40 border border-white/5 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-amber-500/20 transition-all duration-300 flex flex-col xl:flex-row gap-6 items-start group relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div class="w-14 h-14 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-110 transition duration-300 shadow-lg shadow-amber-500/5 mt-1">
-                <i class="fas fa-network-wired text-2xl"></i>
-            </div>
-            <div class="space-y-4 flex-1">
-                <h3 class="text-xl sm:text-2xl font-bold text-white"><?= __('Usecase Automation Title') ?></h3>
-                <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Usecase Automation Desc: Power members scale their business automation layer by rotating secure authorization keys inside the developer dashboard. By invoking our direct backend gateway pathways, applications bypass traditional browser session scopes entirely. Businesses route high-concurrency requests natively from corporate backend structures, mobile terminals, or distributed automated daemons directly into our unredacted prompt sandbox.') ?></p>
-                
-                <div class="bg-zinc-900/50 p-4 sm:p-5 rounded-2xl border border-white/5 font-mono text-xs text-zinc-400 space-y-2">
-                    <div class="text-white font-bold mb-1 flex items-center gap-1.5"><i class="fas fa-terminal text-amber-400"></i> [HEADLESS API GATEWAY ROUTING FRAME]</div>
-                    <div class="bg-zinc-950 p-3 rounded-xl border border-white/5 text-cyan-300 overflow-x-auto leading-tight select-all">
-POST /api/chat
-Authorization: Bearer YOUR_ENCRYPTED_ROTATION_KEY
-Content-Type: application/json
-
-{
-  "action": "chat",
-  "soul_id": 1024,
-  "session_token": "client_session_nonce_hash",
-  "content": "Execute automated system diagnostic optimization routines."
-}</div>
+        <div class="bg-zinc-950/40 border border-purple-500/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-purple-500/40 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fas fa-compress text-purple-400 bg-purple-500/10 p-2.5 rounded-xl border border-purple-500/20 text-base"></i>
+                <?= __('Usecase4_Title') ?>
+            </h3>
+            <p class="text-sm text-zinc-400 leading-relaxed mb-6"><?= __('Usecase4_Desc') ?></p>
+            
+            <div class="bg-purple-900/10 border border-purple-500/30 p-5 sm:p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-transparent pointer-events-none"></div>
+                <div class="text-purple-400 font-black text-sm mb-3 flex items-center gap-2 border-b border-purple-500/10 pb-2 font-mono tracking-wide">
+                    <i class="fas fa-memory animate-pulse"></i> <?= __('Usecase4_Core_Logic') ?>
                 </div>
-            </div>
-        </div>
-
-        <!-- 場景 3：開源組裝協作與複合成型依賴樹 -->
-        <div class="bg-zinc-950/40 border border-white/5 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner hover:border-purple-500/20 transition-all duration-300 flex flex-col xl:flex-row gap-6 items-start group relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div class="w-14 h-14 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-purple-400 shrink-0 group-hover:scale-110 transition duration-300 shadow-lg shadow-purple-500/5 mt-1">
-                <i class="fas fa-boxes text-2xl"></i>
-            </div>
-            <div class="space-y-4 flex-1">
-                <h3 class="text-xl sm:text-2xl font-bold text-white"><?= __('Usecase Composable Title') ?></h3>
-                <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Usecase Composable Desc: Prompt architects build advanced collaborative models using repository cloning forks. An engineer can inherit a public base architecture layer, overlaying custom child prompt modifications to create nested, composable dependency networks. This allows modular code architectures to be swapped, mixed, and referenced across different accounts seamlessly, establishing a reliable, open-source template ecosystem.') ?></p>
+                <p class="text-xs sm:text-sm text-zinc-200 leading-relaxed font-sans">
+                    <?= __('Usecase4_Core_Desc') ?>
+                </p>
             </div>
         </div>
 
