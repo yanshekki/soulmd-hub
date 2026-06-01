@@ -13,6 +13,7 @@ return [
         'Billing' => 'Billing',
         'Premium' => 'Premium',
         'API Docs' => 'API Docs',
+        'Documentation' => 'Documentation',
         'Marketplace' => 'Marketplace',
         
         // Legal & Copyright Notice
@@ -28,6 +29,7 @@ return [
         'Billing' => '帳單管理',
         'Premium' => '升級尊貴版',
         'API Docs' => 'API 說明文件',
+        'Documentation' => '官方文檔',
         'Marketplace' => 'AgentFi 市集',
         
         // Legal & Copyright Notice

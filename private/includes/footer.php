@@ -24,6 +24,7 @@ loadTranslations('footer');
                 <a href="<?= url('/billing') ?>" class="hover:text-emerald-400 transition"><?= __('Billing') ?></a>
                 <a href="<?= url('/upgrade') ?>" class="text-amber-400 hover:text-amber-300 transition flex items-center gap-1"><i class="fas fa-crown"></i> <?= __('Premium') ?></a>
                 <a href="<?= url('/api-docs') ?>" class="text-emerald-500 hover:text-emerald-400 transition flex items-center gap-1"><i class="fas fa-code"></i> <?= __('API Docs') ?></a>
+                <a href="<?= url('/docs/intro') ?>" class="text-purple-400 hover:text-purple-300 transition flex items-center gap-1"><i class="fas fa-book"></i> <?= __('Documentation') ?></a>
                 <a href="https://github.com/yanshekki/soulmd-hub" target="_blank" rel="noopener noreferrer" class="hover:text-white transition flex items-center gap-1"><i class="fab fa-github"></i> GitHub</a>
             </div>
         </div>
