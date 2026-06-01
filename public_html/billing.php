@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Billing & Subscription Management Dashboard
  * (V5 Dual-Track Web2.5 Hybrid Ledger & Asynchronous Blockchain Radar Edition)
- * 🚀 Patched: Wrapped all hardcoded Web3 texts and Loading Spinners with i18n functions
+ * 🚀 Patched: Auto-Pagination While Loop for 100% Rented/Owned/Created NFT RPC Polling
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -355,7 +355,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         return encodeURIComponent(str.toLowerCase().replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-').replace(/^-+|-+$/g, ''));
     }
 
-    // 🚀 核心升級：Web3 去中心化雷達掃描與分流渲染庫
+    // 🚀 核心升級：Web3 去中心化雷達掃描與分流渲染庫 (支援無限翻頁 Chunking Polling)
     async function scanWeb3Positions() {
         if (!boundWallet) return;
         const body = document.getElementById('web3-ledger-body');
@@ -365,11 +365,25 @@ require_once __DIR__ . '/../private/includes/header.php';
         if(loader) loader.classList.remove('hidden');
 
         try {
-            // 1. 撈取目前所有進入過合約的 NFT 靈魂清單 candidates
-            const res = await fetch('/api/souls?limit=1000&is_nft=1');
-            const data = await res.json();
+            // 🌟 1. 自動翻頁撈取所有 NFT 候選清單，無視 API 的 100 筆硬限制
+            let allFetchedNfts = [];
+            let page = 1;
+            let totalPages = 1;
             
-            if (!data.success || data.data.length === 0) {
+            while (page <= totalPages) {
+                const res = await fetch(`/api/souls?is_nft=1&limit=100&page=${page}&sort=newest`);
+                const data = await res.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    allFetchedNfts.push(...data.data);
+                    totalPages = data.total_pages || 1;
+                    page++;
+                } else {
+                    break;
+                }
+            }
+            
+            if (allFetchedNfts.length === 0) {
                 if(loader) loader.classList.add('hidden');
                 body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500"><?= addslashes(__('No Web3 positions')) ?></td></tr>`;
                 return;
@@ -378,92 +392,98 @@ require_once __DIR__ . '/../private/includes/header.php';
             const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             let matchedCount = 0;
 
-            // 2. 平行發動 RPC Poll 檢查擁有權或租客名單
-            const scanPromises = data.data.map(async (soul) => {
-                try {
-                    const rpcRes = await fetch(safeRpcUrl, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            jsonrpc: "2.0", id: "dontcare", method: "query",
-                            params: { request_type: "call_function", finality: "final", account_id: "<?= NEAR_CONTRACT_ID ?>" , method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                        })
-                    });
-                    const rpcData = await rpcRes.json();
-                    if (rpcData.result && rpcData.result.result) {
-                        const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                        if (!tokenInfo) return;
+            // 🌟 2. 批次處理 (Chunking) RPC 查詢，避免伺服器超載
+            const chunkSize = 20; 
+            for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
+                const batch = allFetchedNfts.slice(i, i + chunkSize);
+                
+                const scanPromises = batch.map(async (soul) => {
+                    try {
+                        const rpcRes = await fetch(safeRpcUrl, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                jsonrpc: "2.0", id: "dontcare", method: "query",
+                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                            })
+                        });
+                        const rpcData = await rpcRes.json();
+                        if (rpcData.result && rpcData.result.result) {
+                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                            if (!tokenInfo) return;
 
-                        let isMyAsset = false;
-                        let roleLabel = '';
-                        let typeLabel = '';
-                        let statusHtml = '';
-                        let actionHtml = '';
+                            let isMyAsset = false;
+                            let roleLabel = '';
+                            let typeLabel = '';
+                            let statusHtml = '';
+                            let actionHtml = '';
 
-                        const nowMs = Date.now();
-                        const isOwner = tokenInfo.owner_id === boundWallet;
-                        const isCreator = tokenInfo.metadata?.creator_id === boundWallet;
-                        
-                        let isRenter = false;
-                        let leaseExpiryStr = '';
-                        if (tokenInfo.renters && tokenInfo.renters[boundWallet]) {
-                            const expiryMs = Number(BigInt(tokenInfo.renters[boundWallet]) / 1000000n);
-                            if (expiryMs > nowMs) {
-                                isRenter = true;
-                                leaseExpiryStr = new Date(expiryMs).toLocaleString();
-                            }
-                        }
-
-                        // 判斷分流
-                        if (isOwner) {
-                            isMyAsset = true;
-                            typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1"></i><?= addslashes(__('Ownership')) ?></span>`;
-                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Legal Owner')) ?></span>`;
+                            const nowMs = Date.now();
+                            const isOwner = tokenInfo.owner_id === boundWallet;
+                            const isCreator = tokenInfo.metadata?.creator_id === boundWallet;
                             
-                            if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
-                                statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1"></i><?= addslashes(__('Listed for Sale')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
-                            } else if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
-                                statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1"></i><?= addslashes(__('Listed for Rent')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
-                            } else {
-                                statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1"></i><?= addslashes(__('Idle')) ?></span>`;
-                            }
-                        } else if (isRenter) {
-                            isMyAsset = true;
-                            typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1"></i><?= addslashes(__('Active Lease')) ?></span>`;
-                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Active Renter')) ?></span>`;
-                            statusHtml = `<div class="text-[11px] text-zinc-400"><div class="text-zinc-500 text-[9px] uppercase tracking-wider"><?= addslashes(__('Lease Expires At')) ?></div><div class="font-bold font-mono text-emerald-400">${leaseExpiryStr}</div></div>`;
-                        } else if (isCreator) {
-                            isMyAsset = true;
-                            typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1"></i><?= addslashes(__('Royalty Node')) ?></span>`;
-                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Creator')) ?></span>`;
-                            statusHtml = `<span class="text-xs text-zinc-500"><?= addslashes(__('Perpetual 5% Royalty')) ?></span>`;
-                        }
-
-                        if (isMyAsset) {
-                            matchedCount++;
-                            const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
-                            
-                            // 🚨 為 Action 按鈕強制加配 點擊 Loading 機制
-                            if (isOwner || isRenter) {
-                                actionHtml = `<a href="<?= url('/chat/') ?>${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments"></i> <?= addslashes(__('Enter Chat')) ?></a>`;
-                            } else {
-                                actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye"></i> <?= addslashes(__('View Codebase')) ?></a>`;
+                            let isRenter = false;
+                            let leaseExpiryStr = '';
+                            if (tokenInfo.renters && tokenInfo.renters[boundWallet]) {
+                                const expiryMs = Number(BigInt(tokenInfo.renters[boundWallet]) / 1000000n);
+                                if (expiryMs > nowMs) {
+                                    isRenter = true;
+                                    leaseExpiryStr = new Date(expiryMs).toLocaleString();
+                                }
                             }
 
-                            body.innerHTML += `
-                                <tr class="hover:bg-white/5 transition-colors duration-150 animate-fade-in">
-                                    <td class="p-4 whitespace-nowrap">${typeLabel}</td>
-                                    <td class="p-4 text-white font-bold max-w-[200px] truncate select-all" title="${String(soul.title)}">${String(soul.title)}</td>
-                                    <td class="p-4 whitespace-nowrap">${roleLabel}</td>
-                                    <td class="p-4">${statusHtml}</td>
-                                    <td class="p-4 text-right whitespace-nowrap">${actionHtml}</td>
-                                </tr>
-                            `;
-                        }
-                    }
-                } catch(e) { console.error("RPC scan row failed", e); }
-            });
+                            // 判斷分流
+                            if (isOwner) {
+                                isMyAsset = true;
+                                typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1"></i><?= addslashes(__('Ownership')) ?></span>`;
+                                roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Legal Owner')) ?></span>`;
+                                
+                                if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
+                                    statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1"></i><?= addslashes(__('Listed for Sale')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
+                                } else if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
+                                    statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1"></i><?= addslashes(__('Listed for Rent')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
+                                } else {
+                                    statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1"></i><?= addslashes(__('Idle')) ?></span>`;
+                                }
+                            } else if (isRenter) {
+                                isMyAsset = true;
+                                typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1"></i><?= addslashes(__('Active Lease')) ?></span>`;
+                                roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Active Renter')) ?></span>`;
+                                statusHtml = `<div class="text-[11px] text-zinc-400"><div class="text-zinc-500 text-[9px] uppercase tracking-wider"><?= addslashes(__('Lease Expires At')) ?></div><div class="font-bold font-mono text-emerald-400">${leaseExpiryStr}</div></div>`;
+                            } else if (isCreator) {
+                                isMyAsset = true;
+                                typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1"></i><?= addslashes(__('Royalty Node')) ?></span>`;
+                                roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Creator')) ?></span>`;
+                                statusHtml = `<span class="text-xs text-zinc-500"><?= addslashes(__('Perpetual 5% Royalty')) ?></span>`;
+                            }
 
-            await Promise.all(scanPromises);
+                            if (isMyAsset) {
+                                matchedCount++;
+                                const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                                
+                                if (isOwner || isRenter) {
+                                    actionHtml = `<a href="<?= url('/chat/') ?>${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments"></i> <?= addslashes(__('Enter Chat')) ?></a>`;
+                                } else {
+                                    actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye"></i> <?= addslashes(__('View Codebase')) ?></a>`;
+                                }
+
+                                body.innerHTML += `
+                                    <tr class="hover:bg-white/5 transition-colors duration-150 animate-fade-in">
+                                        <td class="p-4 whitespace-nowrap">${typeLabel}</td>
+                                        <td class="p-4 text-white font-bold max-w-[200px] truncate select-all" title="${String(soul.title)}">${String(soul.title)}</td>
+                                        <td class="p-4 whitespace-nowrap">${roleLabel}</td>
+                                        <td class="p-4">${statusHtml}</td>
+                                        <td class="p-4 text-right whitespace-nowrap">${actionHtml}</td>
+                                    </tr>
+                                `;
+                            }
+                        }
+                    } catch(e) { console.error("RPC scan row failed", e); }
+                });
+
+                // 等待這一個 Chunk 處理完，再進行下一個 Chunk
+                await Promise.all(scanPromises);
+            }
+            
             if(loader) loader.classList.add('hidden');
             
             if (matchedCount === 0) {

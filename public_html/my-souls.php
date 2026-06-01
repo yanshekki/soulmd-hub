@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Added Active Rented NFT Display and Bypass Limit RPC Scanning
+ * 🚀 Patched: Auto-Pagination While Loop for 100% Rented NFT RPC Polling
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -31,16 +31,6 @@ $username = $currentUserRow['username'] ?? 'anonymous';
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $topDomains = $pdo->query("SELECT name FROM tags_domain ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
 $topCompatibilities = $pdo->query("SELECT name FROM tags_compatibility ORDER BY usage_count DESC, name ASC LIMIT 30")->fetchAll(PDO::FETCH_COLUMN);
-
-// 🚀 核心升級：直接由 PHP 拉出全庫所有的 NFT 名單，交給前端批次驗證租約，無視 /api/souls 的 100 筆上限！
-$nftStmt = $pdo->query("
-    SELECT s.id, s.title, s.role, s.description, u.username, c.icon as role_icon, c.name as role_name 
-    FROM souls s 
-    LEFT JOIN users u ON s.user_id = u.id 
-    LEFT JOIN categories c ON s.role = c.slug 
-    WHERE s.is_nft = 1
-");
-$allNfts = $nftStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $sort = $_GET['sort'] ?? 'newest';
 
@@ -162,7 +152,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_ExpiresAt = <?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoActiveRenters = <?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>;
 
-    // 🌟 新增：租用資產語言變數
     const lang_NoRentedAssets = <?= json_encode(__('No rented assets'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_RentExpiresAt = <?= json_encode(__('Rent Expires At'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_EnterChat = <?= json_encode(__('Enter Chat'), JSON_UNESCAPED_UNICODE) ?>;
@@ -173,9 +162,9 @@ require_once __DIR__ . '/../private/includes/header.php';
     const url_versions = <?= json_encode(url('/soul-versions/'), JSON_UNESCAPED_UNICODE) ?>;
     const currentUsername = <?= json_encode($username, JSON_UNESCAPED_UNICODE) ?>;
     const hasWallet = <?= !empty($nearWallet) ? 'true' : 'false' ?>;
-    
-    // 🚀 PHP 注入的所有 NFT 陣列 (解決 API limit 及市集過濾的痛點)
-    const allNfts = <?= json_encode($allNfts, JSON_UNESCAPED_UNICODE) ?>;
+
+    // 🚀 從資料庫取得綁定嘅錢包，不受前端登出影響！
+    const boundWallet = <?= json_encode($nearWallet, JSON_UNESCAPED_UNICODE) ?>;
 
     let web2Page = 1;
     let web3Page = 1;
@@ -444,27 +433,49 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     }
 
-    // 🌟 核心新增：直接批次掃描全庫 NFT，精準拉出未過期的租用資產
+    // 🌟 核心升級：全自動翻頁撈出全站 NFT，然後分批 RPC 校對租約
     async function loadRentedSouls() {
-        if (!hasWallet) return;
+        if (!boundWallet) return;
         const container = document.getElementById('rented-container');
         container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>`;
         
         try {
-            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
-            const rentedSouls = [];
+            // 1. 自動翻頁撈取全站所有 NFT
+            let allFetchedNfts = [];
+            let page = 1;
+            let totalPages = 1;
             
-            const wallet = await initNearWallet();
-            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
-            if (!myWallet) {
-                container.innerHTML = '';
+            while (page <= totalPages) {
+                const res = await fetch(`/api/souls?is_nft=1&limit=100&page=${page}&sort=newest`);
+                const data = await res.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    allFetchedNfts.push(...data.data);
+                    totalPages = data.total_pages || 1;
+                    page++;
+                } else {
+                    break;
+                }
+            }
+
+            if (allFetchedNfts.length === 0) {
+                container.innerHTML = `
+                <div class="text-center py-12 bg-blue-950/10 border border-dashed border-blue-500/30 rounded-3xl p-8">
+                    <i class="fas fa-handshake text-blue-400 text-4xl mb-4"></i>
+                    <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6">${lang_NoRentedAssets}</p>
+                    <a href="<?= url('/marketplace') ?>" class="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1"></i> ${lang_GoToMarketplace}</a>
+                </div>`;
                 return;
             }
 
-            // 批次掃描，每次 20 筆，避免 RPC Rate Limit 或瀏覽器卡死
+            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+            const rentedSouls = [];
+
+            // 2. 分批發送 RPC 請求 (Chunking)，每次 20 筆
             const chunkSize = 20;
-            for (let i = 0; i < allNfts.length; i += chunkSize) {
-                const batch = allNfts.slice(i, i + chunkSize);
+            for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
+                const batch = allFetchedNfts.slice(i, i + chunkSize);
+                
                 const rpcPromises = batch.map(async (soul) => {
                     try {
                         const rpcRes = await fetch(safeRpcUrl, {
@@ -477,8 +488,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                         const rpcData = await rpcRes.json();
                         if (rpcData.result && rpcData.result.result) {
                             const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                            if (tokenInfo && tokenInfo.renters && tokenInfo.renters[myWallet]) {
-                                const expiryMs = Number(BigInt(tokenInfo.renters[myWallet]) / 1000000n);
+                            
+                            // 判斷是否為活躍租客 (未到期)
+                            if (tokenInfo && tokenInfo.renters && tokenInfo.renters[boundWallet]) {
+                                const expiryMs = Number(BigInt(tokenInfo.renters[boundWallet]) / 1000000n);
                                 if (expiryMs > Date.now()) {
                                     soul.rent_expiry = expiryMs;
                                     rentedSouls.push(soul);
@@ -487,12 +500,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                         }
                     } catch(e) {}
                 });
+                
                 await Promise.all(rpcPromises);
             }
 
+            // 3. 渲染租賃資產
             if (rentedSouls.length > 0) {
                 let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">`;
-                // 根據到期時間由早到晚排序
                 rentedSouls.sort((a,b) => a.rent_expiry - b.rent_expiry).forEach(soul => {
                     const expiryDate = new Date(soul.rent_expiry).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
@@ -524,7 +538,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                         </div>
                         <div class="pt-4 border-t border-white/5 flex gap-2 mt-auto">
-                            <a href="${chatUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
+                            <a href="${chatUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
                                 <i class="fas fa-comments"></i> ${lang_EnterChat}
                             </a>
                             <a href="${seoUrl}" class="px-5 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition text-center shadow-sm shrink-0 border border-white/5 flex items-center justify-center">
@@ -538,10 +552,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 container.innerHTML = html;
             } else {
                 container.innerHTML = `
-                <div class="text-center py-12 bg-zinc-900/20 border border-dashed border-white/5 rounded-3xl">
-                    <div class="mx-auto w-12 h-12 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-xl mb-4 text-zinc-500"><i class="fas fa-handshake text-xl"></i></div>
-                    <p class="text-zinc-400 text-sm">${lang_NoRentedAssets}</p>
-                    <a href="<?= url('/marketplace') ?>" class="inline-block mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1"></i> ${lang_GoToMarketplace}</a>
+                <div class="text-center py-12 bg-blue-950/10 border border-dashed border-blue-500/30 rounded-3xl p-8">
+                    <i class="fas fa-handshake text-blue-400 text-4xl mb-4"></i>
+                    <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6">${lang_NoRentedAssets}</p>
+                    <a href="<?= url('/marketplace') ?>" class="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1"></i> ${lang_GoToMarketplace}</a>
                 </div>`;
             }
         } catch(e) {
@@ -659,44 +673,59 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function proactiveAssetSync() {
-        if (typeof initNearWallet !== 'function') return;
-        const wallet = await initNearWallet();
-        if (!wallet || !wallet.isSignedIn()) return;
-        const myWallet = wallet.getAccountId();
+        if (!boundWallet) return;
 
         try {
-            const res = await fetch('/api/souls?limit=1000&is_nft=1');
-            const data = await res.json();
-            if (!data.success || !data.data) return;
+            // 同樣套用自動翻頁拉取全庫 NFT
+            let allFetchedNfts = [];
+            let page = 1;
+            let totalPages = 1;
+            
+            while (page <= totalPages) {
+                const res = await fetch(`/api/souls?is_nft=1&limit=100&page=${page}`);
+                const data = await res.json();
+                if (data.success && data.data && data.data.length > 0) {
+                    allFetchedNfts.push(...data.data);
+                    totalPages = data.total_pages || 1;
+                    page++;
+                } else { break; }
+            }
+
+            if (allFetchedNfts.length === 0) return;
 
             let needsReload = false;
             const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
             
-            const syncPromises = data.data.map(async (soul) => {
-                if (soul.nft_owner_wallet === myWallet) return; 
+            const chunkSize = 20;
+            for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
+                const batch = allFetchedNfts.slice(i, i + chunkSize);
+                
+                const syncPromises = batch.map(async (soul) => {
+                    if (soul.nft_owner_wallet === boundWallet) return; 
 
-                try {
-                    const rpcRes = await fetch(safeRpcUrl, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            jsonrpc: "2.0", id: "dontcare", method: "query",
-                            params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
-                        })
-                    });
-                    const rpcData = await rpcRes.json();
-                    if (rpcData.result && rpcData.result.result) {
-                        const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
-                        
-                        if (tokenInfo && tokenInfo.owner_id === myWallet) {
-                            await fetch(`/api/soul/${soul.id}`);
-                            needsReload = true;
+                    try {
+                        const rpcRes = await fetch(safeRpcUrl, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                jsonrpc: "2.0", id: "dontcare", method: "query",
+                                params: { request_type: "call_function", finality: "final", account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                            })
+                        });
+                        const rpcData = await rpcRes.json();
+                        if (rpcData.result && rpcData.result.result) {
+                            const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                            
+                            // 發現擁有權轉移給當前綁定者，立刻觸發 Lazy Sync 更新資料庫
+                            if (tokenInfo && tokenInfo.owner_id === boundWallet) {
+                                await fetch(`/api/soul/${soul.id}`);
+                                needsReload = true;
+                            }
                         }
-                    }
-                } catch(e) {}
-            });
+                    } catch(e) {}
+                });
+                await Promise.all(syncPromises);
+            }
 
-            await Promise.all(syncPromises);
-            // 🚨 租務資料更新後一併重載
             if (needsReload) { loadWeb2Souls(); loadWeb3Souls(); loadRentedSouls(); }
         } catch(e) {}
     }
