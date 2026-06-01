@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Grand Unified Documentation Controller
  * (i18n Fully Bound, Mobile-Responsive Tabs & Strict LFI Whitelist Engine)
- * 🚀 Step 2: Implementation of Master Controller Page Framework
+ * 🚀 Patched: Changed sidebar menu links to use clean SEO URLs (/docs/xxxx)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -33,22 +33,22 @@ require_once __DIR__ . '/../private/includes/header.php';
     
     <div class="w-full lg:w-64 shrink-0 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 custom-scrollbar select-none">
         
-        <a href="<?= url('/docs?tab=intro') ?>" 
+        <a href="<?= url('/docs/intro') ?>" 
            class="w-fit lg:w-full shrink-0 text-left px-5 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 border whitespace-nowrap flex items-center gap-3 <?= $currentTab === 'intro' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg shadow-emerald-500/5' : 'bg-transparent text-zinc-400 border-transparent hover:bg-white/5 hover:text-zinc-200' ?>">
             <?= __('Tab Intro') ?>
         </a>
         
-        <a href="<?= url('/docs?tab=solutions') ?>" 
+        <a href="<?= url('/docs/solutions') ?>" 
            class="w-fit lg:w-full shrink-0 text-left px-5 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 border whitespace-nowrap flex items-center gap-3 <?= $currentTab === 'solutions' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg shadow-emerald-500/5' : 'bg-transparent text-zinc-400 border-transparent hover:bg-white/5 hover:text-zinc-200' ?>">
             <?= __('Tab Solutions') ?>
         </a>
         
-        <a href="<?= url('/docs?tab=usecases') ?>" 
+        <a href="<?= url('/docs/usecases') ?>" 
            class="w-fit lg:w-full shrink-0 text-left px-5 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 border whitespace-nowrap flex items-center gap-3 <?= $currentTab === 'usecases' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg shadow-emerald-500/5' : 'bg-transparent text-zinc-400 border-transparent hover:bg-white/5 hover:text-zinc-200' ?>">
             <?= __('Tab UseCases') ?>
         </a>
         
-        <a href="<?= url('/docs?tab=future') ?>" 
+        <a href="<?= url('/docs/future') ?>" 
            class="w-fit lg:w-full shrink-0 text-left px-5 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 border whitespace-nowrap flex items-center gap-3 <?= $currentTab === 'future' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-lg shadow-purple-500/5' : 'bg-transparent text-zinc-400 border-transparent hover:bg-white/5 hover:text-zinc-200' ?>">
             <?= __('Tab Future') ?>
         </a>
