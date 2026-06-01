@@ -1,26 +1,25 @@
 <?php
 /**
  * SoulMD Hub - Homepage
- * (Dynamic i18n Internationalization Edition)
+ * (Dynamic i18n Internationalization & V5 Web2 Isolation Edition)
+ * 🚀 Patched: NULL is_nft handling for legacy data in STATS query
  */
 
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
-// 🌍 載入首頁的專屬語言包
 loadTranslations('index');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
-// 獲取平台統計數據
-$statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1")->fetchColumn();
+// 🚨 完美修復：加入 OR is_nft IS NULL 確保舊模型被計算在全站分享數內
+$statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)")->fetchColumn();
 $statsUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $statsTags = $pdo->query("SELECT COUNT(*) FROM tags_domain")->fetchColumn() ?: 0;
 $categories = $pdo->query("SELECT name, slug, icon FROM categories LIMIT 6")->fetchAll();
 
-// 🌍 SEO Meta 多語言化
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
@@ -155,16 +154,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
 
         try {
-            const res = await fetch('/api/souls?limit=6&sort=popular'); 
+            const res = await fetch('/api/souls?limit=6&sort=popular&is_nft=0'); 
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
                 let html = '';
                 data.data.forEach(soul => {
-                    // 🌍 動態編譯 SEO URL 並支援語系前綴
                     const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
-                    
-                    // 🌍 翻譯檔案類型與使用者名稱
                     const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= addslashes(__('Modular')) ?>' : '<?= addslashes(__('Single .md')) ?>';
                     const userLabel = soul.username ? escapeHTML(soul.username) : '<?= addslashes(__('Anonymous')) ?>';
 

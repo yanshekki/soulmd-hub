@@ -1,5 +1,10 @@
 # SoulMD Hub
 
+# Node
+/contract/node_modules/*
+/contract/build/*
+package-lock.json
+
 # PHP
 /vendor/
 .env

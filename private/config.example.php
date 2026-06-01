@@ -2,7 +2,12 @@
 /**
  * SoulMD Hub - Core Configuration Matrix
  * (Includes Multi-Tier Permissions, PayPal SDK, DeepSeek Core & Dynamic i18n Engine)
+ * 🚀 Web2.5 Mainnet AgentFi Production Edition (RPC Nodes Centralized)
  */
+
+// 🚨 系統級安全加密金鑰 (請務必將下面堆亂碼換成你自己專屬的 32 位元強密碼)
+// 此金鑰用於 AES-256 雙向加密，一旦遺失將無法解密所有用戶的 API Key！
+define('APP_ENCRYPTION_KEY', 'xK9vP2mN4qL8zR1wT7jY5cB3hF6dG0sA');
 
 // ==========================================
 // 🗄️ Database & Core Server Environment
@@ -19,14 +24,32 @@ define('SITE_BILLING_EMAIL', 'billing@ysk.hk');
 define('GOOGLE_ANALYTICS_ID', 'YOUR_GOOGLE_ANALYTICS_ID_HERE');
 
 // ==========================================
+// 🌐 Web3 & AgentFi Mainnet Network Matrix
+// ==========================================
+define('NEAR_NETWORK_ID', 'mainnet');
+define('NEAR_CONTRACT_ID', 'soulmd-hub.near');         // 🚀 主網智能合約地址
+define('NEAR_TOKEN_CONTRACT_ID', 'soul.tkn.near');     // 🚀 $SOUL 代幣合約地址
+define('NEAR_REF_FINANCE_ID', 'v2.ref-finance.near');  // Ref Finance 主網 AMM Router 地址
+define('NEAR_POOL_ID', 8546);                          // 🚀 流動性池 ID
+
+// 🌟 全域高可用 RPC 備援池 (Failover Nodes)
+define('NEAR_RPC_NODES', [
+    "https://free.rpc.fastnear.com",   // 極速、無 CORS 限制
+    "https://near.lava.build",         // 去中心化高可用
+    "https://rpc.mainnet.pagoda.co",   // 官方企業節點
+    "https://rpc.mainnet.near.org"     // 官方預設 (最後備用)
+]);
+
+// 保留單一 URL 供舊有單節點調用向後相容
+define('NEAR_RPC_URL', NEAR_RPC_NODES[0]);
+
+// ==========================================
 // 🌍 i18n Multi-Language Engine (全域動態擴充架構)
 // ==========================================
-// 🚨 日後擴充語言，只需在此陣列新增！
 global $SUPPORTED_LANGS;
 $SUPPORTED_LANGS = [
     'en' => ['label' => 'EN',   'name' => 'English',  'hreflang' => 'en'],
     'zh' => ['label' => '中文', 'name' => '繁體中文', 'hreflang' => 'zh-Hant']
-    // 'ja' => ['label' => '日文', 'name' => '日本語',   'hreflang' => 'ja'], // 日後擴充範例
 ];
 define('DEFAULT_LANG', 'en');
 
@@ -39,20 +62,15 @@ $is_api = (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false);
 $current_lang = DEFAULT_LANG;
 
 if ($is_api) {
-    // 🤖 API 請求模式：因為 API 路由沒有語言前綴，所以完全依賴 Cookie 決定回傳語言
     if (array_key_exists($cookie_lang, $SUPPORTED_LANGS)) {
         $current_lang = $cookie_lang;
     }
 } else {
-    // 🖥️ 網頁渲染模式：URL 是唯一真理 (URL is King)
     if (!empty($req_lang) && array_key_exists($req_lang, $SUPPORTED_LANGS)) {
         $current_lang = $req_lang;
     }
-    // 💡 關鍵修復：如果 $req_lang 為空，代表用戶點擊了預設語言 (EN) 的乾淨網址 (例如 /browse)
-    // 這時 $current_lang 會維持是 DEFAULT_LANG ('en')，並且會在下方強制覆蓋掉舊的中文 Cookie！
 }
 
-// 同步 Cookie，確保接下來的 API 請求能正確對應當前頁面的語言
 if ($cookie_lang !== $current_lang) {
     setcookie('soulmd_lang', $current_lang, time() + (86400 * 30), '/'); 
 }
@@ -63,18 +81,16 @@ define('CURRENT_LANG', $current_lang);
 $GLOBALS['i18n_strings'] = [];
 
 /**
- * 載入指定頁面的翻譯檔 (例如: browse)
+ * 載入指定頁面的翻譯檔
  */
 function loadTranslations($pageName) {
     $langFile = __DIR__ . "/includes/languages/{$pageName}.php";
     if (file_exists($langFile)) {
         $translations = require $langFile;
         
-        // 1. 先載入預設語言 (Fallback)
         if (isset($translations[DEFAULT_LANG])) {
             $GLOBALS['i18n_strings'] = array_merge($GLOBALS['i18n_strings'], $translations[DEFAULT_LANG]);
         }
-        // 2. 用當前語言覆蓋
         if (CURRENT_LANG !== DEFAULT_LANG && isset($translations[CURRENT_LANG])) {
             $GLOBALS['i18n_strings'] = array_merge($GLOBALS['i18n_strings'], $translations[CURRENT_LANG]);
         }
@@ -83,7 +99,6 @@ function loadTranslations($pageName) {
 
 /**
  * 全域翻譯助手函數
- * 支援變數替換: __('hello_name', ['name' => 'Ki'])
  */
 function __($key, $replacements = []) {
     $str = $GLOBALS['i18n_strings'][$key] ?? $key;
@@ -92,7 +107,6 @@ function __($key, $replacements = []) {
             $str = str_replace(':' . $k, $v, $str);
         }
     }
-    // 💡 移除 htmlspecialchars，允許翻譯檔內正常渲染 <br>, <b>, <code> 等 HTML 標籤
     return $str;
 }
 

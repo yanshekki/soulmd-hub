@@ -35,10 +35,11 @@ return [
         'Copied!' => 'Copied!',
         'Rendering Markdown...' => 'Rendering Markdown...',
         
-        // JS Alerts & Prompts
+        // JS Alerts & Prompts & Pagination
         'Restore Confirm' => "Are you sure you want to restore this version?\n\nThe currently active version will be automatically backed up as a new history record.",
         'Restore failed' => 'Restore failed',
         'Network error while restoring.' => 'Network error while restoring. Please try again.',
+        'Page' => 'Page',
     ],
     
     'zh' => [
@@ -71,9 +72,10 @@ return [
         'Copied!' => '已複製！',
         'Rendering Markdown...' => '正在渲染 Markdown 畫面...',
         
-        // JS Alerts & Prompts
+        // JS Alerts & Prompts & Pagination
         'Restore Confirm' => "您確定要還原至此歷史版本嗎？\n\n當前生效的版本將會自動被備份為一筆新的歷史紀錄。",
         'Restore failed' => '還原失敗',
         'Network error while restoring.' => '還原時發生網絡錯誤，請重試。',
+        'Page' => '頁數',
     ]
 ];

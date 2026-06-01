@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub - Login Page
- * (Dynamic i18n Internationalization & Perfect API Alignment Edition)
+ * (Dynamic i18n Internationalization & Pure Native MyNearWallet Redirect Edition)
+ * 🚀 Patched: 100% Pure Redirect Mode & Non-Black Emerald Contrast UI with Strict RPC Loading Locks
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -9,24 +10,20 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('login');
 
-// 如果已經登入（或者 header.php 自動登入成功），直接跳轉到管理後台
 if (isset($_SESSION['user_id'])) {
-    // 🚨 完美跳轉：使用 url() 保留語系前綴
     header('Location: ' . url('/my-souls'));
     exit;
 }
 
-// 🌍 SEO Meta 多語言化
 $pageTitle = __('Log in');
 $pageDesc = __('Login Desc');
-$hideNavLinks = true; // 隱藏多餘導覽列連結保持畫面簡潔
+$hideNavLinks = true;
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="flex-grow flex items-center justify-center p-4 mt-16 animate-fade-in">
+<div class="flex-grow flex items-center justify-center p-4 mt-10 sm:mt-16 animate-fade-in">
     <div class="w-full max-w-md">
         <div class="text-center mb-10">
             <h1 class="text-3xl font-semibold mb-2"><?= __('Welcome back') ?></h1>
@@ -40,12 +37,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         <form id="login-form" class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 space-y-6 backdrop-blur-sm shadow-2xl">
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400"><?= __('Username') ?></label>
-                <input type="text" id="username" name="username" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner">
+                <input type="text" id="username" name="username" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner text-white">
             </div>
 
             <div>
                 <label class="block text-sm font-medium mb-2 text-zinc-400"><?= __('Password') ?></label>
-                <input type="password" id="password" name="password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner">
+                <input type="password" id="password" name="password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner text-white">
             </div>
 
             <div class="flex items-center text-xs text-zinc-400">
@@ -58,6 +55,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <span id="submit-text"><?= __('Log in') ?></span>
                 <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
             </button>
+            
+            <div class="mt-6 pt-6 border-t border-white/10 relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-950 text-zinc-500 text-[10px] px-2 font-bold tracking-widest">WEB3</div>
+                
+                <button type="button" onclick="handleNearLogin()" id="near-login-btn" class="w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200">
+                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="near-btn-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
+                    <span id="near-btn-text"><?= __('Connect NEAR Wallet') ?></span>
+                </button>
+            </div>
         </form>
 
         <div class="text-center mt-8 text-sm text-zinc-400">
@@ -66,7 +72,100 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
+
 <script>
+    async function handleNearLogin() {
+        const btn = document.getElementById('near-login-btn');
+        const btnText = document.getElementById('near-btn-text');
+        const btnIcon = document.getElementById('near-btn-icon');
+        const originalText = btnText.innerHTML;
+
+        // 🚨 鎖定 Web3 登入按鈕
+        btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        if(btnIcon) btnIcon.classList.add('hidden');
+
+        try {
+            const wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            } else {
+                await verifyNearWallet(wallet.getAccountId());
+            }
+        } catch(e) {
+            btnText.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            if(btnIcon) btnIcon.classList.remove('hidden');
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('account_id') || urlParams.has('all_keys')) {
+            const wallet = await initNearWallet();
+            setTimeout(async () => {
+                if (wallet.isSignedIn()) {
+                    await verifyNearWallet(wallet.getAccountId());
+                }
+            }, 500);
+        }
+    });
+
+    async function verifyNearWallet(accountId) {
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+        const btn = document.getElementById('near-login-btn');
+        const btnText = document.getElementById('near-btn-text');
+        const btnIcon = document.getElementById('near-btn-icon');
+        
+        // 🚨 驗證期間持續鎖定按鈕
+        if(btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            if(btnIcon) btnIcon.classList.add('hidden');
+        }
+        if(btnText) btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Verifying Session...')) ?>';
+
+        try {
+            const res = await fetch('/api/wallet-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account_id: accountId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = '<?= url("/my-souls") ?>';
+            } else {
+                errorMsg.innerText = data.error || '<?= addslashes(__('Wallet not bound')) ?>';
+                errorBox.classList.remove('hidden');
+                if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+                if(btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    if(btnIcon) btnIcon.classList.remove('hidden');
+                }
+                
+                const wallet = await initNearWallet();
+                wallet.signOut();
+                
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+            }
+        } catch (e) {
+            errorMsg.innerText = '<?= addslashes(__('Network Error.')) ?>';
+            errorBox.classList.remove('hidden');
+            if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+            if(btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                if(btnIcon) btnIcon.classList.remove('hidden');
+            }
+        }
+    }
+
     const form = document.getElementById('login-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -76,13 +175,14 @@ require_once __DIR__ . '/../private/includes/header.php';
         const errorBox = document.getElementById('error-box');
         const errorMsg = document.getElementById('error-msg');
 
-        // Reset UI States
         errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
+        
+        // 🚨 鎖定傳統登入按鈕
+        btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-        // Construct JSON Payload
         const payload = {
             username: document.getElementById('username').value,
             password: document.getElementById('password').value,
@@ -98,14 +198,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                // 🚨 完美跳轉：登入成功後，使用 url() 動態繼承當前的語系前綴跳轉到儀表板
                 window.location.href = '<?= url("/my-souls") ?>';
             } else {
-                // 💡 超強優化：直接讀取後端經由 i18n 翻譯好吐出來的 data.error，實現百分百語系同步
                 errorMsg.innerText = data.error || '<?= addslashes(__('Login failed.')) ?>';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');
                 loading.classList.add('hidden');
+                btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch (e) {
@@ -113,6 +212,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             errorBox.classList.remove('hidden');
             text.classList.remove('hidden');
             loading.classList.add('hidden');
+            btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     });

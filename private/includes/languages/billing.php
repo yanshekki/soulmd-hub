@@ -33,12 +33,16 @@ return [
         'Free Tier Desc' => 'You are currently running on standard sandbox trial limits. Upgrade to expand context size.',
         'View Premium Plans' => 'View Premium Plans',
         
-        // Transaction Ledger
+        // Ledger Tabs
+        'Web2 Pass' => 'Platform Subscription (Web2 Pass)',
+        'AgentFi Web3' => 'On-Chain Assets (AgentFi Web3)',
+        
+        // Transaction Ledger (Web2)
         'Transaction Ledger' => 'Transaction Ledger',
         'No billing rows located' => 'No billing rows located',
         'No billing desc' => 'You haven\'t executed any gateway premium orders inside this account cluster yet.',
         
-        // Table Headers
+        // Table Headers (Web2)
         'Timestamp' => 'Timestamp',
         'Transaction ID' => 'Transaction ID',
         'Plan' => 'Plan',
@@ -54,6 +58,34 @@ return [
         'Transaction was declined by the issuer or expired.' => 'Transaction was declined by the issuer or expired.',
         'Manual refund executed. Assets revoked.' => 'Manual refund executed. Assets revoked.',
         'Dispute / Chargeback filed. Access terminated.' => 'Dispute / Chargeback filed. Access terminated.',
+        
+        // AgentFi Web3 Ledger (Web3)
+        'No Web3 Wallet Detected' => 'No Web3 Wallet Detected',
+        'Wallet bind prompt' => 'You must permanently bind a NEAR mainnet wallet to your account to track decentralized rentals and market positions here.',
+        'Go to Bind Wallet' => 'Go to Settings to Bind',
+        'Scanning Blockchain...' => 'Scanning Blockchain Contract Ledger...',
+        'No Web3 positions' => 'No Web3 positions or transactions related to your current wallet were found on the smart contract.',
+        'Blockchain connection failed' => 'Blockchain connection failed. Please try again later.',
+        
+        // Table Headers & Dynamic Statuses (Web3)
+        'Asset Type' => 'Asset Type',
+        'Agent Asset' => 'Agent Asset',
+        'On-Chain Role' => 'On-Chain Role',
+        'Market Status' => 'Market Status',
+        'Live Action' => 'Live Action',
+        'Ownership' => 'Ownership',
+        'Legal Owner' => 'Legal Owner',
+        'Listed for Sale' => 'Listed for Sale',
+        'Listed for Rent' => 'Listed for Rent',
+        'Idle' => 'Idle (Stored)',
+        'Active Lease' => 'Active Lease',
+        'Active Renter' => 'Active Renter',
+        'Lease Expires At' => 'Lease Expires At',
+        'Royalty Node' => 'Royalty Node',
+        'Creator' => 'Creator',
+        'Perpetual 5% Royalty' => 'Perpetual 5% Royalty',
+        'Enter Chat' => 'Enter Chat',
+        'View Codebase' => 'View Codebase',
         
         // Pagination & Footer
         'Page' => 'Page',
@@ -89,12 +121,16 @@ return [
         'Free Tier Desc' => '您目前正在使用標準免費沙盒的額度限制。升級以擴充記憶體與運算效能。',
         'View Premium Plans' => '檢視尊貴計劃',
         
-        // Transaction Ledger
+        // Ledger Tabs
+        'Web2 Pass' => '平台方案通行證 (Web2 Pass)',
+        'AgentFi Web3' => '鏈上智能體資產 (AgentFi Web3)',
+        
+        // Transaction Ledger (Web2)
         'Transaction Ledger' => '交易分類帳 (Ledger)',
         'No billing rows located' => '找不到任何帳單紀錄',
         'No billing desc' => '您尚未在此帳號內執行過任何支付網關的尊貴訂閱訂單。',
         
-        // Table Headers
+        // Table Headers (Web2)
         'Timestamp' => '時間標記',
         'Transaction ID' => '交易編號 (ID)',
         'Plan' => '訂閱計劃',
@@ -110,6 +146,34 @@ return [
         'Transaction was declined by the issuer or expired.' => '交易遭發卡行拒絕或已過期。',
         'Manual refund executed. Assets revoked.' => '已執行手動退款。權限已被撤銷。',
         'Dispute / Chargeback filed. Access terminated.' => '已提出交易爭議/退單。帳號存取權限已終止。',
+        
+        // AgentFi Web3 Ledger (Web3)
+        'No Web3 Wallet Detected' => '未綁定區塊鏈錢包',
+        'Wallet bind prompt' => '您需要先將帳號永久綁定一個 NEAR 主網錢包，才能在此處追蹤所有去中心化租務與買賣帳本。',
+        'Go to Bind Wallet' => '前往綁定錢包',
+        'Scanning Blockchain...' => '正在掃描區塊鏈智能合約帳本...',
+        'No Web3 positions' => '區塊鏈合約中暫無任何與您目前錢包相關的交易持倉。',
+        'Blockchain connection failed' => '連線至區塊鏈失敗，請稍後重試。',
+        
+        // Table Headers & Dynamic Statuses (Web3)
+        'Asset Type' => '資產類型 (Type)',
+        'Agent Asset' => '智能體靈魂 (Agent Asset)',
+        'On-Chain Role' => '鏈上身分 (On-Chain Role)',
+        'Market Status' => '流動性狀態 (Market Status)',
+        'Live Action' => '即時操作 (Action)',
+        'Ownership' => '買斷產權',
+        'Legal Owner' => '合法持有人',
+        'Listed for Sale' => '掛售中',
+        'Listed for Rent' => '出租中',
+        'Idle' => '閒置 (原型內藏)',
+        'Active Lease' => '合約租約',
+        'Active Renter' => '活躍租客',
+        'Lease Expires At' => '租約有效至',
+        'Royalty Node' => '版稅樹節點',
+        'Creator' => '創作者',
+        'Perpetual 5% Royalty' => '永續 5% 鏈上版稅',
+        'Enter Chat' => '進入對話',
+        'View Codebase' => '查看代碼庫',
         
         // Pagination & Footer
         'Page' => '頁數',

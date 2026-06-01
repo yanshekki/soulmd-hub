@@ -18,6 +18,7 @@ loadTranslations('footer');
             
             <div class="flex flex-wrap justify-center md:justify-end gap-6 text-sm font-medium text-zinc-400">
                 <a href="<?= url('/browse') ?>" class="hover:text-emerald-400 transition"><?= __('Browse Souls') ?></a>
+                <a href="<?= url('/marketplace') ?>" class="hover:text-blue-400 transition flex items-center gap-1"><i class="fas fa-gem"></i> <?= __('Marketplace') ?></a>
                 <a href="<?= url('/my-chats') ?>" class="hover:text-emerald-400 transition"><?= __('My Chats') ?></a>
                 <a href="<?= url('/generate') ?>" class="hover:text-emerald-400 transition"><?= __('AI Generator') ?></a>
                 <a href="<?= url('/billing') ?>" class="hover:text-emerald-400 transition"><?= __('Billing') ?></a>

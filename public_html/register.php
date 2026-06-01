@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Registration Gateway
  * (Dynamic i18n Multi-Language, Secure Nonce Modals & Perfect Mobile Modal Edition)
+ * 🚀 Patched: Added Strict Button Loading UI & Disable Lock to prevent double submissions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -120,7 +121,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     // 🚨 Modal 鎖定背景滾動修復
     function openModal(modalId) {
-        document.body.style.overflow = 'hidden'; // 鎖定背景滾動
+        document.body.style.overflow = 'hidden'; 
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
         modal.classList.remove('hidden');
@@ -128,7 +129,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
     
     function closeModal(modalId) {
-        document.body.style.overflow = ''; // 恢復背景滾動
+        document.body.style.overflow = ''; 
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('div');
         modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
@@ -147,6 +148,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
+        
+        // 🚨 鎖定註冊按鈕
+        btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         const payload = {
@@ -170,6 +174,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 errorBox.classList.remove('hidden');
                 text.classList.remove('hidden');
                 loading.classList.add('hidden');
+                // 🚨 錯誤時解除鎖定
+                btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch(e) {
@@ -177,6 +183,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             errorBox.classList.remove('hidden');
             text.classList.remove('hidden');
             loading.classList.add('hidden');
+            // 🚨 錯誤時解除鎖定
+            btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     });

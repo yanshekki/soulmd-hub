@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Public AI Souls Catalog
- * (Dynamic i18n Internationalization & Fully Responsive Mobile Edition)
+ * (Dynamic i18n Internationalization & V5 Web2-Only Isolation Edition)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -182,7 +182,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = html;
     }
 
-    // 🚨 完美多語言化：JavaScript 動態卡片渲染整合
     async function loadSouls() {
         const container = document.getElementById('results-container');
         const pagination = document.getElementById('pagination-container');
@@ -195,19 +194,25 @@ require_once __DIR__ . '/../private/includes/header.php';
         const role = document.getElementById('role-filter').value;
         const type = document.getElementById('type-filter').value;
 
-        const params = new URLSearchParams();
-        if (q) params.append('q', q);
-        if (sort && sort !== 'newest') params.append('sort', sort);
-        if (role) params.append('role', role);
-        if (type) params.append('file_type', type);
-        params.append('page', currentPage);
-        params.append('limit', 12); 
+        // 🚨 僅用於瀏覽器網址列顯示的參數 (保持乾淨)
+        const urlParams = new URLSearchParams();
+        if (q) urlParams.append('q', q);
+        if (sort && sort !== 'newest') urlParams.append('sort', sort);
+        if (role) urlParams.append('role', role);
+        if (type) urlParams.append('file_type', type);
+        if (currentPage > 1) urlParams.append('page', currentPage);
 
-        const newUrl = window.location.pathname + '?' + params.toString();
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
         window.history.replaceState({}, '', newUrl);
 
+        // 🚨 實際發送給 API 伺服器的過濾參數 (加入系統級安全過濾)
+        const fetchParams = new URLSearchParams(urlParams);
+        fetchParams.set('page', currentPage);
+        fetchParams.append('limit', 12); 
+        fetchParams.append('is_nft', 0); // 🔒 強制只撈取 Web2 原創模型，隔離市集資產！
+
         try {
-            const res = await fetch(`/api/souls?${params.toString()}`);
+            const res = await fetch(`/api/souls?${fetchParams.toString()}`);
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
@@ -221,11 +226,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                         });
                     }
 
-                    const seoUrl = `/soul/${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     
                     // 🌍 將 JS 模板內嵌之文字進行後端多語言編譯
-                    const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= __('Modular') ?>' : '<?= __('Single .md') ?>';
-                    const roleLabel = soul.role ? escapeHTML(soul.role) : '<?= __('Unassigned') ?>';
+                    const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= addslashes(__('Modular')) ?>' : '<?= addslashes(__('Single .md')) ?>';
+                    const roleLabel = soul.role ? escapeHTML(soul.role) : '<?= addslashes(__('Unassigned')) ?>';
 
                     html += `
                         <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
@@ -295,7 +300,58 @@ require_once __DIR__ . '/../private/includes/header.php';
     document.getElementById('role-filter').addEventListener('change', resetAndLoad);
     document.getElementById('type-filter').addEventListener('change', resetAndLoad);
 
-    window.onload = loadSouls;
+    async function loadTrending() {
+        const container = document.getElementById('trending-souls');
+        if (!container) return;
+        
+        container.innerHTML = `<div class="col-span-3 flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+
+        try {
+            // 🔒 確保 Trending 榜單也不會出現 NFT 資產
+            const res = await fetch('/api/souls?limit=6&sort=popular&is_nft=0'); 
+            const data = await res.json();
+
+            if (data.success && data.data.length > 0) {
+                let html = '';
+                data.data.forEach(soul => {
+                    const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    const typeLabel = soul.file_type === 'full_soul_folder' ? '<?= addslashes(__('Modular')) ?>' : '<?= addslashes(__('Single .md')) ?>';
+                    const userLabel = soul.username ? escapeHTML(soul.username) : '<?= addslashes(__('Anonymous')) ?>';
+
+                    html += `
+                        <a href="${seoUrl}" class="group bg-zinc-900/60 border border-white/10 rounded-3xl p-6 hover:border-emerald-400/50 transition-all shadow-lg flex flex-col justify-between h-full backdrop-blur-sm">
+                            <div>
+                                <div class="flex justify-between items-start gap-3 mb-4">
+                                    <div class="font-bold text-xl text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
+                                    <div class="text-[10px] px-2 py-1 rounded font-medium border shrink-0 ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">
+                                        ${typeLabel}
+                                    </div>
+                                </div>
+                                ${soul.description ? `<p class="text-sm text-zinc-400 line-clamp-3 mb-6 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-zinc-500 pt-4 border-t border-white/5 mt-auto">
+                                <div class="truncate max-w-[120px]"><i class="fas fa-user-circle text-zinc-600 mr-1"></i> ${userLabel}</div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <span><i class="fas fa-code-branch text-emerald-500"></i> <b class="text-zinc-300">${soul.fork_count}</b></span>
+                                    <span><i class="fas fa-heart text-red-500"></i> <b class="text-zinc-300">${soul.like_count}</b></span>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `<div class="col-span-3 text-center py-12 text-zinc-400 bg-zinc-900/20 rounded-3xl border border-white/5"><?= addslashes(__('No trending souls')) ?></div>`;
+            }
+        } catch (e) {
+            container.innerHTML = `<div class="col-span-3 text-center py-12 text-red-400"><?= addslashes(__('Failed trending souls')) ?></div>`;
+        }
+    }
+
+    window.onload = () => {
+        loadSouls();
+        loadTrending();
+    };
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

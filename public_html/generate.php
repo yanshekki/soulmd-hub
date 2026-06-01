@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Modular AI Generator
  * (Dynamic i18n Internationalization Edition with Localized Prompt Templates)
+ * 🚀 Patched: Added Strict Button Loading UI & Disable Lock to prevent double submissions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -153,6 +154,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         const text = document.getElementById('submit-text');
         const loading = document.getElementById('submit-loading');
         
+        // 🚨 鎖死按鈕，防止雙重發送
+        btn.disabled = true;
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
@@ -196,6 +199,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch(err) {
             alert('<?= addslashes(__('Error generating preset.')) ?>');
         } finally {
+            // 🚨 完成或錯誤後解鎖按鈕
+            btn.disabled = false;
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

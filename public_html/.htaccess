@@ -7,10 +7,9 @@ ErrorDocument 404 /404.php
 
     # ==========================================
     # 0. 多語言 (i18n) 預處理 (支援未來無限擴充)
-    # 規則：動態捕捉任何 /xx/ 開頭的路由 (例如 /zh/, /ja/, /fr/)
-    # 排除 /api/, /images/, /uploads/, /download/
     # ==========================================
     RewriteCond %{REQUEST_URI} ^/([a-z]{2})(/|$) [NC]
+    # 🚨 漏洞修復：從排除名單中拔除 edit，讓 /zh/edit/123 可以成功被解析
     RewriteCond %{REQUEST_URI} !^/([a-z]{2})/(api|images|uploads|download)(/|$) [NC]
     RewriteRule ^([a-z]{2})(?:/(.*))?$ /$2?lang=$1 [QSA,E=LANG:$1]
 
@@ -25,12 +24,17 @@ ErrorDocument 404 /404.php
 
     RewriteCond %{THE_REQUEST} \s/+soul-versions\.php\?id=([0-9]+) [NC]
     RewriteRule ^soul-versions\.php$ /soul-versions/%1? [R=301,L]
+    
+    RewriteCond %{THE_REQUEST} \s/+edit\.php\?id=([0-9]+) [NC]
+    RewriteRule ^edit\.php$ /edit/%1? [R=301,L]
 
     RewriteCond %{THE_REQUEST} \s/+api/soul\.php\?id=([0-9]+) [NC]
     RewriteRule ^api/soul\.php$ /api/soul/%1? [R=301,L]
 
     RewriteCond %{THE_REQUEST} \s/+api-docs\.php[\s?] [NC]
     RewriteRule ^api-docs\.php$ /api-docs [R=301,L]
+
+    RewriteRule ^change-password/?$ /my-setting [R=301,L]
 
     RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
     RewriteRule ^(.*)\.php$ /$1 [R=301,L]
@@ -42,24 +46,37 @@ ErrorDocument 404 /404.php
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
     
-    # 核心商業、個人紀錄、帳單路由
-    RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
+    # 🌟 核心商業、個人紀錄、帳單與公開頁面路由
+    RewriteRule ^marketplace/?$ marketplace.php [L,QSA]
+    RewriteRule ^generate/?$ generate.php [L,QSA]
+    RewriteRule ^upload/?$ upload.php [L,QSA]
+    RewriteRule ^my-souls/?$ my-souls.php [L,QSA]
     RewriteRule ^my-chats/?$ my-chats.php [L,QSA]
+    RewriteRule ^my-setting/?$ my-setting.php [L,QSA]
+    RewriteRule ^my-api/?$ my-api.php [L,QSA]
     RewriteRule ^billing/?$ billing.php [L,QSA]
+    RewriteRule ^upgrade/?$ upgrade.php [L,QSA]
+    RewriteRule ^login/?$ login.php [L,QSA]
+    RewriteRule ^register/?$ register.php [L,QSA]
+    RewriteRule ^logout/?$ logout.php [L,QSA]
+    
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
 
-    # Invoice 乾淨路由規則
+    # 乾淨路由
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^invoice/([0-9]+)/?$ invoice.php?id=$1 [L,QSA]
     RewriteRule ^invoice/?$ invoice.php [L,QSA]
 
-    # 用戶主頁
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^profile/([^/]+)/?$ profile.php?username=$1 [L,QSA]
     
-    # 聊天室路由
+    # 編輯器路由 🌟
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^edit/([0-9]+)/?$ edit.php?id=$1 [L,QSA]
+    
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^chat/([0-9]+)/([a-zA-Z0-9_-]+)/?$ chat.php?soul_id=$1&session_token=$2 [L,QSA]
@@ -67,7 +84,6 @@ ErrorDocument 404 /404.php
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^chat/([0-9]+)/?$ chat.php?soul_id=$1 [L,QSA]
 
-    # 下載模組 (不受語言前綴影響)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/([^/]+)\.zip$ download.php?username=$1&id=$2&format=zip [B,L,QSA]
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -77,7 +93,6 @@ ErrorDocument 404 /404.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^download/soul/([^/]+)/([0-9]+)/([^/]+)/(.*)$ download.php?username=$1&id=$2&file=$4 [B,L,QSA]
 
-    # Soul 詳情頁
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^soul/([^/]+)/([0-9]+)/([^/]+)/([^/]+)/?$ soul.php?id=$2 [L,QSA]
@@ -85,20 +100,23 @@ ErrorDocument 404 /404.php
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^soul/([0-9]+)/?$ soul.php?id=$1 [L,QSA]
 
-    # 版本歷史
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^soul-versions/([0-9]+)/?$ soul-versions.php?id=$1 [L,QSA]
 
-    # API 模組
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/soul/([0-9]+)/?$ api/soul.php?id=$1 [L,QSA]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/souls/?$ api/souls.php [L,QSA]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/self-chat/?$ api/self-chat.php [L,QSA]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/settings/?$ api/settings.php [L,QSA]
 
-    # 通用自動隱藏 .php
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}.php -f
     RewriteRule ^(.*?)/?$ $1.php [L,QSA]

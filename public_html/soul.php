@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
- * (Dynamic i18n Internationalization, 4-Layer SEO Routing & Perfect Mobile Grid Edition)
+ * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
+ * 🚀 Patched: Dynamic Back Button Routing (Marketplace vs Hub) & NFT IP Protection
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,13 +11,13 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('soul');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 $id = (int)($_GET['id'] ?? 0);
+$userId = $_SESSION['user_id'] ?? 0;
 
 if (!$id) {
     header('Location: ' . url('/browse'));
@@ -28,9 +29,9 @@ $stmt = $pdo->prepare("
     FROM souls s 
     LEFT JOIN users u ON s.user_id = u.id 
     LEFT JOIN categories c ON s.role = c.slug 
-    WHERE s.id = ? AND s.is_public = 1
+    WHERE s.id = ? AND (s.is_public = 1 OR s.is_nft = 1 OR s.user_id = ?)
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $userId]);
 $soul = $stmt->fetch();
 
 if (!$soul) {
@@ -39,7 +40,33 @@ if (!$soul) {
     exit;
 }
 
-// 🚨 PHP 端 SEO 友善助手
+$isOwner = ($userId > 0 && $userId === $soul['user_id']);
+$currentUserWallet = null;
+if ($userId > 0) {
+    $wStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $wStmt->execute([$userId]);
+    $currentUserWallet = $wStmt->fetchColumn();
+}
+$isChainOwner = (!empty($currentUserWallet) && $currentUserWallet === $soul['nft_owner_wallet']);
+
+$canViewContent = ($soul['is_public'] == 1 || $isOwner || $isChainOwner);
+
+if (!$canViewContent) {
+    $protectedMsg = "🔒 **" . __('Protected') . "**\n\n" . __('Protected NFT Msg');
+    
+    if ($soul['file_type'] === 'full_soul_folder') {
+        $contentData = json_encode([
+            'SOUL.md' => $protectedMsg,
+            'STYLE.md' => "🔒 " . __('Protected'),
+            'RULES.md' => "🔒 " . __('Protected')
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        $contentData = $protectedMsg;
+    }
+} else {
+    $contentData = $soul['content'];
+}
+
 function makeSlug($str) {
     if (empty($str)) return 'unassigned';
     $str = mb_strtolower($str, 'UTF-8');
@@ -51,7 +78,6 @@ $encodedUsername = rawurlencode($soul['username'] ?? 'anonymous');
 $slugRole = makeSlug($soul['role']);
 $slugTitle = makeSlug($soul['title']);
 
-// 🚨 完美 SEO 301 跳轉機制：若果 URL 是舊版短網址，自動跳轉去完整及正確語系的前綴 SEO Path
 $canonicalUrl = url("/soul/{$encodedUsername}/{$id}/{$slugRole}/{$slugTitle}");
 $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -68,9 +94,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $isFolder = $soul['file_type'] === 'full_soul_folder';
-$contentData = $soul['content'];
 
-// 🚨 完美 JSON 容錯修復機制
 if ($isFolder) {
     $cleanedContent = str_replace("\\'", "'", $contentData);
     $files = json_decode($cleanedContent, true);
@@ -116,10 +140,12 @@ $pageDesc = $soul['description'] ?: __('View this AI soul on SoulMD Hub.');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
+
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
-            <i class="fas fa-arrow-left"></i> <?= __('Back to Hub') ?>
+        <a href="<?= $soul['is_nft'] == 1 ? url('/marketplace') : url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
+            <i class="fas fa-arrow-left"></i> <?= $soul['is_nft'] == 1 ? __('Back to Market') : __('Back to Hub') ?>
         </a>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full md:w-auto mt-2 md:mt-0">
@@ -127,12 +153,44 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>"></i>
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
+            
+            <?php if ($soul['is_nft'] == 0): ?>
             <button onclick="forkSoul()" id="fork-btn" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
                 <i class="fas fa-code-branch text-emerald-400"></i> <?= __('Fork') ?>
             </button>
+            <?php endif; ?>
             
-            <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
-                <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
+            <?php if ($canViewContent): ?>
+                <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
+                    <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
+                </button>
+            <?php else: ?>
+                <button disabled class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-800 text-zinc-500 rounded-xl font-bold cursor-not-allowed border border-white/5 transition shadow-sm">
+                    <i class="fas fa-lock"></i> <?= __('Protected') ?>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div id="agentfi-market-block" class="hidden mb-6 bg-zinc-950 border border-emerald-500/30 rounded-3xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg animate-fade-in relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+        <div>
+            <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                <span><i class="fas fa-gem"></i> <?= __('AgentFi Marketplace') ?></span>
+                <span class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 cursor-help" title="<?= __('Floor Desc') ?>">
+                    <?= __('Floor Price') ?>: 0.45 NEAR
+                </span>
+            </div>
+            <div class="text-sm text-zinc-300 mt-1">
+                <span class="text-zinc-500"><?= __('Current Owner') ?>:</span> <span id="market-owner" class="font-mono text-emerald-300 tracking-tight"></span>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2 w-full md:w-auto" id="market-actions">
+            <button id="btn-buy" onclick="buySoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
+                <span id="text-buy"><i class="fas fa-shopping-cart mr-1"></i> <span id="price-buy"></span> NEAR</span>
+            </button>
+            <button id="btn-rent" onclick="rentSoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
+                <span id="text-rent"><i class="fas fa-handshake mr-1"></i> <span id="price-rent"></span> NEAR</span>
             </button>
         </div>
     </div>
@@ -187,12 +245,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="flex items-center gap-2">
                     <i class="far fa-calendar-alt"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
                 </div>
+                
+                <?php if ($soul['is_nft'] == 0): ?>
                 <div class="flex items-center gap-2">
                     <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> <?= __('forks') ?>
                 </div>
                 <a href="<?= url('/soul-versions/' . $id) ?>" class="flex items-center gap-2 hover:text-emerald-400 transition">
                     <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> <?= __('versions') ?>
                 </a>
+                <?php endif; ?>
                 
                 <div class="flex items-center gap-2 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-white/5">
                     <div class="flex text-lg" id="rating-stars">
@@ -260,13 +321,19 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
             
             <div class="flex items-center justify-end gap-2 p-3 md:py-2 md:px-4 bg-zinc-900/30 md:bg-transparent border-t border-white/5 md:border-t-0 shrink-0">
-                <?php if ($isFolder): ?>
-                    <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-file-archive text-amber-400"></i> .zip
-                    </a>
-                    <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-copy"></i> <?= __('JSON') ?>
-                    </button>
+                <?php if ($isFolder && $soul['is_nft'] == 0): ?>
+                    <?php if ($canViewContent): ?>
+                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-file-archive text-amber-400"></i> .zip
+                        </a>
+                        <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-copy"></i> <?= __('JSON') ?>
+                        </button>
+                    <?php else: ?>
+                        <button disabled class="px-4 py-2 text-xs font-bold bg-zinc-800 text-zinc-500 border border-white/5 rounded-lg cursor-not-allowed flex items-center gap-2">
+                            <i class="fas fa-lock"></i> .zip
+                        </button>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -282,13 +349,17 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
                         
-                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
-                        </a>
-                        
-                        <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                            <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
-                        </button>
+                        <?php if ($soul['is_nft'] == 0): ?>
+                            <?php if ($canViewContent): ?>
+                                <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                    <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
+                                </a>
+                            <?php endif; ?>
+                            
+                            <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
+                            </button>
+                        <?php endif; ?>
                     </div>
                     
                     <textarea id="raw-<?= $i ?>" class="hidden"><?= htmlspecialchars($safeContent) ?></textarea>
@@ -305,8 +376,156 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     const soulDataFiles = <?= json_encode($files, JSON_UNESCAPED_UNICODE) ?>;
     const isFolder = <?= $isFolder ? 'true' : 'false' ?>;
+    const soulDbId = <?= $id ?>;
 
-    // 🚨 完美多語言化：JavaScript 終極 Mega-Prompt 提示詞建構核心
+    function getCallbackUrl(actionType) {
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('id', soulDbId);
+        url.searchParams.set('tx_action', actionType);
+        return url.toString();
+    }
+
+    async function fetchMarketStatus() {
+        try {
+            const wallet = await initNearWallet();
+            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
+
+            const rpcPayload = {
+                jsonrpc: "2.0", id: "dontcare", method: "query",
+                params: {
+                    request_type: "call_function", finality: "final",
+                    account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                    method_name: "get_soul",
+                    args_base64: btoa(JSON.stringify({ token_id: "soul_" + soulDbId }))
+                }
+            };
+            const rpcRes = await fetch(window.activeNearRpcUrl || 'https://free.rpc.fastnear.com', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rpcPayload)
+            });
+            const rpcData = await rpcRes.json();
+            if (rpcData.result && rpcData.result.result) {
+                const resString = new TextDecoder().decode(new Uint8Array(rpcData.result.result));
+                const tokenInfo = JSON.parse(resString);
+                
+                if (tokenInfo) {
+                    document.getElementById('agentfi-market-block').classList.remove('hidden');
+                    document.getElementById('market-owner').innerText = tokenInfo.owner_id;
+
+                    const isOwner = myWallet && tokenInfo.owner_id === myWallet;
+
+                    if (tokenInfo.sale_price) {
+                        const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                        document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
+                        const btnBuy = document.getElementById('btn-buy');
+                        btnBuy.classList.remove('hidden');
+                        btnBuy.dataset.price = tokenInfo.sale_price; 
+                        
+                        if (isOwner) {
+                            btnBuy.disabled = true;
+                            btnBuy.classList.add('opacity-50', 'cursor-not-allowed');
+                            btnBuy.classList.remove('hover:bg-blue-600');
+                            btnBuy.removeAttribute('onclick');
+                        }
+                    }
+                    if (tokenInfo.rent_price) {
+                        const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                        document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
+                        const btnRent = document.getElementById('btn-rent');
+                        btnRent.classList.remove('hidden');
+                        btnRent.dataset.price = tokenInfo.rent_price; 
+                        
+                        if (isOwner) {
+                            btnRent.disabled = true;
+                            btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
+                            btnRent.classList.remove('hover:bg-purple-600');
+                            btnRent.removeAttribute('onclick');
+                        }
+                    }
+                }
+            }
+        } catch(e) { console.log('Not an NFT or RPC failed'); }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.has('transactionHashes')) {
+            const txAction = urlParams.get('tx_action');
+            
+            await fetch(`/api/soul/${soulDbId}`);
+
+            if (txAction === 'buy') {
+                alert('<?= addslashes(__('Buy success')) ?>');
+            } else if (txAction === 'rent') {
+                alert('<?= addslashes(__('Rent success')) ?>');
+            } else {
+                alert('<?= addslashes(__('Transaction Success')) ?>');
+            }
+            
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + soulDbId;
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        }
+
+        const tabs = document.querySelectorAll('.file-tab');
+        tabs.forEach((tab, idx) => {
+            const i = idx + 1;
+            const rawContent = document.getElementById(`raw-${i}`).value;
+            const parsedHTML = marked.parse(rawContent);
+            document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
+        });
+
+        fetchMarketStatus();
+    });
+
+    async function buySoul() {
+        const btn = document.getElementById('btn-buy');
+        const textSpan = document.getElementById('text-buy');
+        const originalText = textSpan.innerHTML;
+        
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        
+        const price = btn.dataset.price;
+        
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+        
+        try {
+            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('buy') });
+        } catch (e) {
+            textSpan.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    }
+
+    async function rentSoul() {
+        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
+
+        const btn = document.getElementById('btn-rent');
+        const textSpan = document.getElementById('text-rent');
+        const originalText = textSpan.innerHTML;
+        
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        
+        const price = btn.dataset.price;
+        
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
+        btn.disabled = true;
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
+        
+        try {
+            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('rent') });
+        } catch (e) {
+            textSpan.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    }
+
     function copyMegaPrompt(btn) {
         let megaPrompt = '';
         
@@ -356,16 +575,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         } 
     });
 
-    window.addEventListener('DOMContentLoaded', () => {
-        const tabs = document.querySelectorAll('.file-tab');
-        tabs.forEach((tab, idx) => {
-            const i = idx + 1;
-            const rawContent = document.getElementById(`raw-${i}`).value;
-            const parsedHTML = marked.parse(rawContent);
-            document.getElementById(`render-${i}`).innerHTML = DOMPurify.sanitize(parsedHTML);
-        });
-    });
-
     function showFile(n, activeBorder, activeColor) {
         document.querySelectorAll('.file-tab').forEach(el => { el.classList.remove('block'); el.classList.add('hidden'); });
         document.getElementById('file-' + n).classList.remove('hidden');
@@ -403,7 +612,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php endif; ?>
     }
 
-    // 🚨 完美多語言化：社交與評分異步控制台提示詞
     async function rateSoul(stars) {
         const btns = document.querySelectorAll('#rating-stars i');
         btns.forEach(btn => btn.style.pointerEvents = 'none');

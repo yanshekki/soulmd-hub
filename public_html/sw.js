@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soulmd-hub-v1';
+const CACHE_NAME = 'soulmd-hub-v3'; // 升級緩存版本強制刷新
 const ASSETS_TO_CACHE = [
     '/',
     '/browse',
@@ -13,7 +13,7 @@ self.addEventListener('install', event => {
             return cache.addAll(ASSETS_TO_CACHE);
         })
     );
-    self.skipWaiting();
+    self.skipWaiting(); // 🚨 強制新的 Service Worker 立即接管，踢走舊的壞版本
 });
 
 // 清理舊快取
@@ -32,26 +32,44 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-// 攔截請求 (Network First 策略，保證 API 資料實時性)
+// 攔截請求 (Network First 策略)
 self.addEventListener('fetch', event => {
-    // 忽略非 GET 請求及 API 請求
-    if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+    // 忽略非 GET 請求、API 請求及 CDN 外部腳本 (避免快取壞掉的腳本)
+    if (event.request.method !== 'GET' || 
+        event.request.url.includes('/api/') || 
+        event.request.url.includes('esm.sh') || 
+        event.request.url.includes('jsdelivr')) {
         return;
     }
 
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                // 如果成功獲取，則更新快取
-                const responseClone = response.clone();
-                caches.open(CACHE_NAME).then(cache => {
-                    cache.put(event.request, responseClone);
-                });
+                // 🚨 嚴格修復：只緩存成功的請求 (200 OK)，防止把錯誤存入緩存
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                }
                 return response;
             })
             .catch(() => {
                 // 如果無網絡，回退到快取
-                return caches.match(event.request);
+                return caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    // 🚨 終極修復 TypeError：如果快取都無，必須回傳一個標準的 Response，絕對不能回傳 undefined
+                    return new Response(
+                        'Network error. Please check your internet connection.',
+                        { 
+                            status: 503, 
+                            statusText: 'Service Unavailable',
+                            headers: new Headers({'Content-Type': 'text/plain'})
+                        }
+                    );
+                });
             })
     );
 });

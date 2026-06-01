@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - My Souls Modals & Scripts Component
  * Included dynamically at the bottom of my-souls.php
+ * 🚀 Patched: Added Loading UI + 2s Delay + API Sync for Silent Transactions
  */
 ?>
 
@@ -92,6 +93,47 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="p-5 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner">
+                    <h4 class="text-emerald-400 font-bold text-sm mb-4 flex items-center gap-2"><i class="fas fa-gem"></i> <?= __('AgentFi Actions') ?></h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                            <div class="flex justify-between items-start mb-2">
+                                <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400"></i> <?= __('List for Sale') ?></label>
+                                <button type="button" onclick="agentfiAction('cancel_sale', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden min-w-[90px]" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
+                            </div>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Sale Desc') ?></p>
+                            <div class="flex gap-2">
+                                <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner font-mono">
+                                <button type="button" onclick="agentfiAction('list_sale', this)" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm min-w-[120px] flex items-center justify-center gap-1.5"><?= __('List on Market') ?></button>
+                            </div>
+                        </div>
+
+                        <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                            <div class="flex justify-between items-start mb-2">
+                                <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400"></i> <?= __('List for Rent') ?></label>
+                                <button type="button" onclick="agentfiAction('cancel_rent', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden min-w-[90px]" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
+                            </div>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Rent Desc') ?></p>
+                            <div class="flex gap-2">
+                                <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner font-mono">
+                                <button type="button" onclick="agentfiAction('list_rent', this)" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm min-w-[120px] flex items-center justify-center gap-1.5"><?= __('List on Market') ?></button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="p-4 sm:p-5 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 border border-emerald-500/30 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
+                    <div>
+                        <h3 class="text-white font-bold text-sm flex items-center gap-2"><i class="fas fa-sync-alt text-emerald-400"></i> <?= __('Sync to NEAR') ?></h3>
+                        <p class="text-[11px] sm:text-xs text-zinc-400 mt-1"><?= __('Sync Desc') ?></p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" id="sync-toggle" class="sr-only peer">
+                        <div class="w-12 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
             </div>
 
             <input type="hidden" id="edit-final-payload" name="content">
@@ -141,6 +183,49 @@
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
+    async function mintExistingSoul(id) {
+        if (!confirm("<?= addslashes(__('Mint Confirm')) ?>")) return;
+
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            await window.connectOrBindWallet();
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/soul/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_minting: true })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                const deposit = nearApi.utils.format.parseNearAmount("0.6");
+                const args = {
+                    token_id: "soul_" + id,
+                    title: data.soul_title,
+                    description: data.soul_description || "<?= addslashes(__('No description provided')) ?>",
+                    hash: data.hash,
+                    reference: data.url
+                };
+                
+                await wallet.account().functionCall({
+                    contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                    methodName: "mint_soul",
+                    args: args,
+                    gas: "30000000000000",
+                    attachedDeposit: deposit,
+                    walletCallbackUrl: window.location.href
+                });
+            } else {
+                alert(data.error || <?= json_encode(__('Failed to prepare minting.'), JSON_UNESCAPED_UNICODE) ?>);
+            }
+        } catch(e) {
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>);
+        }
     }
 
     const modalTagInputs = {};
@@ -207,7 +292,7 @@
         loadData(rawContent) {
             this.files = {};
             try {
-                let cleaned = rawContent.replace(/\\'/g, "'");
+                let cleaned = rawContent.replace(/\'/g, "'");
                 if (cleaned.trim().startsWith('{')) { 
                     this.files = JSON.parse(cleaned); 
                 } else { 
@@ -232,7 +317,7 @@
                 else if(nameUpper.includes('STYLE')) icon = 'fa-palette text-purple-400';
                 else if(nameUpper.includes('RULE')) icon = 'fa-shield-alt text-red-400';
                 else if(nameUpper.includes('SKILL')) icon = 'fa-tools text-amber-400';
-                else if(nameUpper.includes('MEMORY')) icon = 'fa-memory text-blue-400';
+                else if(nameUpper.includes('MEMORY')) icon = 'fa-blue-400';
                 else if(nameUpper.includes('CONTEXT')) icon = 'fa-globe text-cyan-400';
                 else if(nameUpper.includes('PROMPT')) icon = 'fa-terminal text-green-400';
                 else if(nameUpper.endsWith('.JSON')) icon = 'fa-code text-yellow-400';
@@ -299,7 +384,7 @@
 
     function processNewFileName(name) {
         if (!name) return;
-        name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''); 
+        name = name.trim().replace(/\/g, '/').replace(/^\/+|\/+$/g, ''); 
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
         if (editModalFileEditor.files[name] !== undefined) return alert(<?= json_encode(__('File already exists!'), JSON_UNESCAPED_UNICODE) ?>);
@@ -317,6 +402,12 @@
         currentEditId = id;
         document.getElementById('edit-id').value = id;
         document.getElementById('edit-title').value = <?= json_encode(__('Loading...'), JSON_UNESCAPED_UNICODE) ?>;
+        document.getElementById('sync-toggle').checked = false; 
+        
+        document.getElementById('agentfi-sale-price').value = '';
+        document.getElementById('agentfi-rent-price').value = '';
+        document.getElementById('btn-cancel-sale').classList.add('hidden');
+        document.getElementById('btn-cancel-rent').classList.add('hidden');
         
         document.body.style.overflow = 'hidden'; 
         
@@ -343,11 +434,114 @@
                 modalTagInputs['compatibility'].setTags(soul.compatibility);
                 
                 editModalFileEditor.loadData(soul.content);
+
+                fetchOnChainData(id);
+
             } else {
                 alert(result.error || <?= json_encode(__('Failed to fetch soul details'), JSON_UNESCAPED_UNICODE) ?>); 
                 closeModal();
             }
         } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); closeModal(); }
+    }
+
+    async function fetchOnChainData(id) {
+        try {
+            const rpcPayload = {
+                jsonrpc: "2.0", id: "dontcare", method: "query",
+                params: {
+                    request_type: "call_function", finality: "final",
+                    account_id: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                    method_name: "get_soul",
+                    args_base64: btoa(JSON.stringify({ token_id: "soul_" + id }))
+                }
+            };
+            const rpcRes = await fetch(window.activeNearRpcUrl || 'https://free.rpc.fastnear.com', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rpcPayload)
+            });
+            const rpcData = await rpcRes.json();
+            if (rpcData.result && rpcData.result.result) {
+                const resString = new TextDecoder().decode(new Uint8Array(rpcData.result.result));
+                const tokenInfo = JSON.parse(resString);
+                
+                if (tokenInfo) {
+                    if (tokenInfo.sale_price) {
+                        document.getElementById('agentfi-sale-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                        document.getElementById('btn-cancel-sale').classList.remove('hidden');
+                    }
+                    if (tokenInfo.rent_price) {
+                        document.getElementById('agentfi-rent-price').value = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                        document.getElementById('btn-cancel-rent').classList.remove('hidden');
+                    }
+                }
+            }
+        } catch(e) { console.log('RPC Fetch Error for NFT status', e); }
+    }
+
+    // 🚨 支援 Button Loading UI + 2s Delay Sync
+    async function agentfiAction(actionType, btn) {
+        if (!currentEditId) return;
+        const wallet = await initNearWallet();
+        if (!wallet.isSignedIn()) {
+            await window.connectOrBindWallet();
+            return;
+        }
+
+        const args = { token_id: "soul_" + currentEditId };
+        let methodName = '';
+        
+        if (actionType === 'list_sale') {
+            const price = document.getElementById('agentfi-sale-price').value;
+            if(!price || parseFloat(price) <= 0) {
+                args.price = "0";
+            } else {
+                args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            }
+            methodName = 'list_for_sale';
+        } else if (actionType === 'list_rent') {
+            const price = document.getElementById('agentfi-rent-price').value;
+            if(!price || parseFloat(price) <= 0) {
+                args.price = "0";
+            } else {
+                args.price = nearApi.utils.format.parseNearAmount(price.toString());
+            }
+            methodName = 'list_for_rent';
+        } else if (actionType === 'cancel_sale') {
+            methodName = 'list_for_sale'; args.price = "0"; 
+        } else if (actionType === 'cancel_rent') {
+            methodName = 'list_for_rent'; args.price = "0";
+        }
+
+        // 鎖定按鈕並顯示 Processing UI
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        try {
+            await wallet.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: methodName,
+                args: args,
+                gas: "30000000000000",
+                attachedDeposit: "0",
+                walletCallbackUrl: window.location.href
+            });
+            
+            // 🚨 靜默簽署完成，進入 2秒退避等待，顯示 Syncing UI
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing to DB...';
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 強制敲擊後端 API 更新 MySQL 價錢庫
+            await fetch(`/api/soul/${currentEditId}`);
+            
+            window.location.reload();
+        } catch(e) { 
+            alert(<?= json_encode(__('Blockchain transaction failed or rejected.'), JSON_UNESCAPED_UNICODE) ?>); 
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     }
 
     async function handleEdit(e) {
@@ -357,6 +551,18 @@
         const btn = e.target.querySelector('button[type="submit"]');
         const text = btn.querySelector('#save-text');
         const spinner = btn.querySelector('#loading-spinner');
+        
+        const wantSync = document.getElementById('sync-toggle').checked;
+        let wallet = null;
+
+        if (wantSync) {
+            wallet = await initNearWallet();
+            if (!wallet.isSignedIn()) {
+                await window.connectOrBindWallet();
+                return;
+            }
+        }
+
         text.classList.add('hidden'); spinner.classList.remove('hidden');
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
@@ -379,7 +585,34 @@
             const data = await res.json();
             
             if (data.success) { 
-                closeModal(); location.reload(); 
+                if (wantSync) {
+                    // 🚨 更新 Hash 為 0 Deposit 操作，加入 2s 等待與同步
+                    text.innerText = "Processing...";
+                    text.classList.remove('hidden');
+                    spinner.classList.remove('hidden');
+                    
+                    const args = {
+                        token_id: "soul_" + currentEditId,
+                        new_hash: data.hash
+                    };
+                    
+                    await wallet.account().functionCall({
+                        contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                        methodName: "update_soul_hash",
+                        args: args,
+                        gas: "30000000000000", 
+                        attachedDeposit: "0",
+                        walletCallbackUrl: window.location.href
+                    });
+                    
+                    text.innerText = "Syncing to DB...";
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await fetch(`/api/soul/${currentEditId}`);
+                    
+                    closeModal(); location.reload(); 
+                } else {
+                    closeModal(); location.reload(); 
+                }
             } else { 
                 alert(data.error); 
                 text.classList.remove('hidden'); spinner.classList.add('hidden'); 
@@ -401,14 +634,5 @@
         content.classList.remove('scale-100'); 
         content.classList.add('scale-95');
         setTimeout(() => { modal.classList.add('hidden'); currentEditId = null; }, 300);
-    }
-
-    async function deleteSoul(id) {
-        if (!confirm(<?= json_encode(__('Are you sure you want to permanently delete this AI soul?'), JSON_UNESCAPED_UNICODE) ?>)) return;
-        try {
-            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) { location.reload(); } else { alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); }
-        } catch(e) { alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); }
     }
 </script>

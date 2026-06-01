@@ -1,7 +1,8 @@
 <?php
 /**
- * SoulMD Hub - Billing & Subscription Management
- * (Dynamic i18n Internationalization Edition)
+ * SoulMD Hub - Billing & Subscription Management Dashboard
+ * (V5 Dual-Track Web2.5 Hybrid Ledger & Asynchronous Blockchain Radar Edition)
+ * 🚀 Patched: Wrapped all hardcoded Web3 texts and Loading Spinners with i18n functions
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -25,18 +26,19 @@ $userId = (int)$_SESSION['user_id'];
 // =========================================================
 // 1. 撈取訂閱狀態與過期判定 (Expiration Logic)
 // =========================================================
-$stmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT tier, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
 $currentTier = $user['tier'] ?? 'free';
 $expiresAt = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
+$nearWallet = $user['near_wallet_address'] ?? null;
 
 $isActivePremium = ($currentTier !== 'free' && $expiresAt > time());
 $isExpired = (!$isActivePremium && $expiresAt > 0 && $expiresAt <= time());
 
 // =========================================================
-// 2. 分頁計算與查詢帳單紀錄
+// 2. 分頁計算與查詢帳單紀錄 (Web2 PayPal Invoices)
 // =========================================================
 $countStmt = $pdo->prepare("SELECT COUNT(*) FROM payments WHERE user_id = ?");
 $countStmt->execute([$userId]);
@@ -73,7 +75,9 @@ $pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow flex flex-col">
+<?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
+
+<div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow flex flex-col">
     
     <div class="flex flex-col sm:flex-row justify-between sm:items-end mb-10 border-b border-white/10 pb-6 gap-4 animate-fade-in">
         <div>
@@ -85,7 +89,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </a>
     </div>
 
-    <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl backdrop-blur-sm relative overflow-hidden">
+    <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-8 shadow-xl backdrop-blur-sm relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r <?= $isExpired ? 'from-red-500 to-amber-500' : 'from-emerald-400 to-cyan-400' ?>"></div>
         <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <i class="fas <?= $isExpired ? 'fa-exclamation-triangle text-red-400' : 'fa-shield-check text-emerald-400' ?>"></i> <?= __('Current Subscription Status') ?>
@@ -133,7 +137,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         </p>
                     </div>
                 </div>
-                <a href="<?= url('/upgrade') ?>" class="px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-red-500/20 whitespace-nowrap flex items-center justify-center gap-2 shrink-0">
+                <a href="<?= url('/upgrade') ?>" class="px-6 py-3 bg-red-500 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-red-500/20 whitespace-nowrap flex items-center justify-center gap-2 shrink-0">
                     <i class="fas fa-sync-alt"></i> <?= __('Renew Plan') ?>
                 </a>
             </div>
@@ -151,9 +155,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php endif; ?>
     </div>
 
-    <div class="flex-grow flex flex-col">
-        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><i class="fas fa-file-invoice text-zinc-400"></i> <?= __('Transaction Ledger') ?></h2>
-        
+    <div class="flex border-b border-white/10 mb-6 gap-2">
+        <button onclick="switchLedgerTab('web2')" id="tab-btn-web2" class="px-5 py-3 text-sm font-bold border-b-2 border-emerald-400 text-emerald-400 transition-all flex items-center gap-2">
+            <i class="fab fa-paypal"></i> <?= __('Web2 Pass') ?>
+        </button>
+        <button onclick="switchLedgerTab('web3')" id="tab-btn-web3" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-zinc-400 hover:text-white transition-all flex items-center gap-2">
+            <i class="fas fa-gem"></i> <?= __('AgentFi Web3') ?>
+        </button>
+    </div>
+
+    <div id="ledger-web2-panel" class="block flex-grow flex flex-col">
         <?php if (empty($payments)): ?>
             <div class="bg-zinc-900/20 border border-dashed border-white/10 rounded-3xl p-16 text-center text-zinc-500 flex flex-col items-center justify-center flex-grow min-h-[250px]">
                 <div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center mb-4 shadow-inner">
@@ -227,7 +238,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     </td>
                                     <td class="p-4 font-bold text-white whitespace-nowrap font-mono"><?= htmlspecialchars($pay['currency']) ?> $<?= number_format($pay['amount'], 2) ?></td>
                                     <td class="p-4 text-right whitespace-nowrap">
-                                        <a href="<?= url('/invoice/' . $pay['id']) ?>" target="_blank" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg border border-white/10 transition shadow-sm hover:text-white">
+                                        <a href="<?= url('/invoice/' . $pay['id']) ?>" target="_blank" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg border border-white/10 transition shadow-sm hover:text-white">
                                             <i class="fas fa-file-invoice text-zinc-500"></i> <?= __('Receipt') ?>
                                         </a>
                                     </td>
@@ -268,12 +279,201 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
             <?php endif; ?>
-
-            <p class="text-[10px] text-zinc-600 mt-6 text-center leading-relaxed select-none max-w-2xl mx-auto uppercase tracking-wide">
-                <?= __('Legal Footer 1') ?> <strong class="text-zinc-500"><?= __('NON-REFUNDABLE') ?></strong>.
-            </p>
         <?php endif; ?>
     </div>
+
+    <div id="ledger-web3-panel" class="hidden flex-grow flex flex-col">
+        <?php if (empty($nearWallet)): ?>
+            <div class="text-center py-12 bg-purple-950/10 border border-dashed border-purple-500/30 rounded-3xl p-8">
+                <i class="fas fa-wallet text-purple-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-2"><?= __('No Web3 Wallet Detected') ?></h3>
+                <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
+                <a href="<?= url('/my-setting?tab=web3') ?>" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?></a>
+            </div>
+        <?php else: ?>
+            <div class="bg-zinc-900/60 border border-white/10 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-zinc-950/80 text-zinc-500 text-xs uppercase tracking-widest border-b border-white/10 select-none">
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Asset Type') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Agent Asset') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('On-Chain Role') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap"><?= __('Market Status') ?></th>
+                                <th class="p-4 font-semibold whitespace-nowrap text-right"><?= __('Live Action') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody id="web3-ledger-body" class="text-sm divide-y divide-white/5 font-medium">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="web3-scanning-loading" class="flex flex-col items-center justify-center py-20 bg-zinc-950/20">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-3"></div>
+                    <p class="text-zinc-400 text-xs animate-pulse"><?= __('Scanning Blockchain...') ?></p>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <p class="text-[10px] text-zinc-600 mt-6 text-center leading-relaxed select-none max-w-2xl mx-auto uppercase tracking-wide">
+        <?= __('Legal Footer 1') ?> <strong class="text-zinc-500"><?= __('NON-REFUNDABLE') ?></strong>.
+    </p>
 </div>
+
+<script>
+    const boundWallet = <?= json_encode($nearWallet) ?>;
+
+    function switchLedgerTab(type) {
+        document.querySelectorAll('.tab-btn-ledger').forEach(el => {
+            el.classList.remove('border-emerald-400', 'text-emerald-400');
+            el.classList.add('border-transparent', 'text-zinc-400', 'hover:text-white');
+        });
+        
+        // 切換控制
+        if (type === 'web2') {
+            document.getElementById('tab-btn-web2').className = "px-5 py-3 text-sm font-bold border-b-2 border-emerald-400 text-emerald-400 transition-all flex items-center gap-2";
+            document.getElementById('tab-btn-web3').className = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-zinc-400 hover:text-white transition-all flex items-center gap-2";
+            document.getElementById('ledger-web2-panel').classList.remove('hidden');
+            document.getElementById('ledger-web2-panel').classList.add('block');
+            document.getElementById('ledger-web3-panel').classList.remove('block','flex');
+            document.getElementById('ledger-web3-panel').classList.add('hidden');
+        } else {
+            document.getElementById('tab-btn-web3').className = "px-5 py-3 text-sm font-bold border-b-2 border-purple-500 text-purple-400 transition-all flex items-center gap-2";
+            document.getElementById('tab-btn-web2').className = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-zinc-400 hover:text-white transition-all flex items-center gap-2";
+            document.getElementById('ledger-web3-panel').classList.remove('hidden');
+            document.getElementById('ledger-web3-panel').classList.add('block','flex');
+            document.getElementById('ledger-web2-panel').classList.remove('block');
+            document.getElementById('ledger-web2-panel').classList.add('hidden');
+            
+            // 每次切換至 Web3 重新觸發鏈上數據雷達
+            scanWeb3Positions();
+        }
+    }
+
+    function makeSlug(str) {
+        if (!str) return 'unassigned';
+        return encodeURIComponent(str.toLowerCase().replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-').replace(/^-+|-+$/g, ''));
+    }
+
+    // 🚀 核心升級：Web3 去中心化雷達掃描與分流渲染庫
+    async function scanWeb3Positions() {
+        if (!boundWallet) return;
+        const body = document.getElementById('web3-ledger-body');
+        const loader = document.getElementById('web3-scanning-loading');
+        
+        body.innerHTML = '';
+        if(loader) loader.classList.remove('hidden');
+
+        try {
+            // 1. 撈取目前所有進入過合約的 NFT 靈魂清單 candidates
+            const res = await fetch('/api/souls?limit=1000&is_nft=1');
+            const data = await res.json();
+            
+            if (!data.success || data.data.length === 0) {
+                if(loader) loader.classList.add('hidden');
+                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500"><?= addslashes(__('No Web3 positions')) ?></td></tr>`;
+                return;
+            }
+
+            const safeRpcUrl = window.activeNearRpcUrl || "https://free.rpc.fastnear.com";
+            let matchedCount = 0;
+
+            // 2. 平行發動 RPC Poll 檢查擁有權或租客名單
+            const scanPromises = data.data.map(async (soul) => {
+                try {
+                    const rpcRes = await fetch(safeRpcUrl, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            jsonrpc: "2.0", id: "dontcare", method: "query",
+                            params: { request_type: "call_function", finality: "final", account_id: "<?= NEAR_CONTRACT_ID ?>" , method_name: "get_soul", args_base64: btoa(JSON.stringify({ token_id: "soul_" + soul.id })) }
+                        })
+                    });
+                    const rpcData = await rpcRes.json();
+                    if (rpcData.result && rpcData.result.result) {
+                        const tokenInfo = JSON.parse(new TextDecoder().decode(new Uint8Array(rpcData.result.result)));
+                        if (!tokenInfo) return;
+
+                        let isMyAsset = false;
+                        let roleLabel = '';
+                        let typeLabel = '';
+                        let statusHtml = '';
+                        let actionHtml = '';
+
+                        const nowMs = Date.now();
+                        const isOwner = tokenInfo.owner_id === boundWallet;
+                        const isCreator = tokenInfo.metadata?.creator_id === boundWallet;
+                        
+                        let isRenter = false;
+                        let leaseExpiryStr = '';
+                        if (tokenInfo.renters && tokenInfo.renters[boundWallet]) {
+                            const expiryMs = Number(BigInt(tokenInfo.renters[boundWallet]) / 1000000n);
+                            if (expiryMs > nowMs) {
+                                isRenter = true;
+                                leaseExpiryStr = new Date(expiryMs).toLocaleString();
+                            }
+                        }
+
+                        // 判斷分流
+                        if (isOwner) {
+                            isMyAsset = true;
+                            typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1"></i><?= addslashes(__('Ownership')) ?></span>`;
+                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Legal Owner')) ?></span>`;
+                            
+                            if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
+                                statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1"></i><?= addslashes(__('Listed for Sale')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
+                            } else if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
+                                statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1"></i><?= addslashes(__('Listed for Rent')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
+                            } else {
+                                statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1"></i><?= addslashes(__('Idle')) ?></span>`;
+                            }
+                        } else if (isRenter) {
+                            isMyAsset = true;
+                            typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1"></i><?= addslashes(__('Active Lease')) ?></span>`;
+                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Active Renter')) ?></span>`;
+                            statusHtml = `<div class="text-[11px] text-zinc-400"><div class="text-zinc-500 text-[9px] uppercase tracking-wider"><?= addslashes(__('Lease Expires At')) ?></div><div class="font-bold font-mono text-emerald-400">${leaseExpiryStr}</div></div>`;
+                        } else if (isCreator) {
+                            isMyAsset = true;
+                            typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1"></i><?= addslashes(__('Royalty Node')) ?></span>`;
+                            roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Creator')) ?></span>`;
+                            statusHtml = `<span class="text-xs text-zinc-500"><?= addslashes(__('Perpetual 5% Royalty')) ?></span>`;
+                        }
+
+                        if (isMyAsset) {
+                            matchedCount++;
+                            const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                            
+                            // 🚨 為 Action 按鈕強制加配 點擊 Loading 機制
+                            if (isOwner || isRenter) {
+                                actionHtml = `<a href="<?= url('/chat/') ?>${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments"></i> <?= addslashes(__('Enter Chat')) ?></a>`;
+                            } else {
+                                actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye"></i> <?= addslashes(__('View Codebase')) ?></a>`;
+                            }
+
+                            body.innerHTML += `
+                                <tr class="hover:bg-white/5 transition-colors duration-150 animate-fade-in">
+                                    <td class="p-4 whitespace-nowrap">${typeLabel}</td>
+                                    <td class="p-4 text-white font-bold max-w-[200px] truncate select-all" title="${String(soul.title)}">${String(soul.title)}</td>
+                                    <td class="p-4 whitespace-nowrap">${roleLabel}</td>
+                                    <td class="p-4">${statusHtml}</td>
+                                    <td class="p-4 text-right whitespace-nowrap">${actionHtml}</td>
+                                </tr>
+                            `;
+                        }
+                    }
+                } catch(e) { console.error("RPC scan row failed", e); }
+            });
+
+            await Promise.all(scanPromises);
+            if(loader) loader.classList.add('hidden');
+            
+            if (matchedCount === 0) {
+                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500"><?= addslashes(__('No Web3 positions')) ?></td></tr>`;
+            }
+        } catch(e) {
+            if(loader) loader.classList.add('hidden');
+            body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400"><?= addslashes(__('Blockchain connection failed')) ?></td></tr>`;
+        }
+    }
+</script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

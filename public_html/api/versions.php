@@ -1,9 +1,10 @@
 <?php
 /**
  * SoulMD Hub Public API
- * GET  /api/versions?soul_id={id} - List all versions of a specific soul
- * POST /api/versions              - Restore a specific version (Requires Auth)
- * (100% Dynamic i18n Internationalized Error Stack & UNESCAPED Edition)
+ * GET  /api/versions?soul_id={id}&page={page} - List versions (Paginated)
+ * POST /api/versions - Restore a specific version (Requires Auth)
+ * (100% Dynamic i18n Internationalized Error Stack & Paginated Edition)
+ * 🚀 Patched: Dual-Track Permission Verification for Version Restore
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
-// 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
+// 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
 $db = Database::getInstance();
@@ -47,17 +48,20 @@ function getAuthUserId($pdo) {
 // 路由處理
 // ==========================================
 if ($method === 'GET') {
-    // 獲取歷史版本列表
     $soulId = (int)($_GET['soul_id'] ?? 0);
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $limit = min((int)($_GET['limit'] ?? 10), 50); 
+    
     if (!$soulId) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => __('soul_id required')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // 🚨 安全修復：檢查該 Soul 是否公開，或者請求者是否為作者本人
     $userId = getAuthUserId($pdo);
-    $checkStmt = $pdo->prepare("SELECT is_public, user_id FROM souls WHERE id = ?");
+    
+    // 🚨 完美修復 3：允許 Web3 持有人讀取歷史
+    $checkStmt = $pdo->prepare("SELECT is_public, user_id, is_nft, nft_owner_wallet FROM souls WHERE id = ?");
     $checkStmt->execute([$soulId]);
     $soulCheck = $checkStmt->fetch();
 
@@ -67,20 +71,52 @@ if ($method === 'GET') {
         exit;
     }
 
-    if (!$soulCheck['is_public'] && $soulCheck['user_id'] !== $userId) {
+    $hasReadAccess = false;
+    if ($soulCheck['is_public'] == 1) {
+        $hasReadAccess = true;
+    } elseif ($soulCheck['user_id'] == $userId) {
+        $hasReadAccess = true;
+    } elseif ($soulCheck['is_nft'] == 1) {
+        $wStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+        $wStmt->execute([$userId]);
+        $myWallet = $wStmt->fetchColumn();
+        if (!empty($myWallet) && $myWallet === $soulCheck['nft_owner_wallet']) {
+            $hasReadAccess = true;
+        }
+    }
+
+    if (!$hasReadAccess) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT id, soul_id, title, content, edited_at FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC");
-    $stmt->execute([$soulId]);
+    // 🚀 分頁計算
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM soul_versions WHERE soul_id = ?");
+    $countStmt->execute([$soulId]);
+    $totalCount = (int)$countStmt->fetchColumn();
+    
+    $totalPages = max(1, ceil($totalCount / $limit));
+    $offset = ($page - 1) * $limit;
+
+    $stmt = $pdo->prepare("SELECT id, soul_id, title, content, edited_at FROM soul_versions WHERE soul_id = ? ORDER BY edited_at DESC LIMIT ? OFFSET ?");
+    $stmt->bindValue(1, $soulId, PDO::PARAM_INT);
+    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+    $stmt->execute();
     $versions = $stmt->fetchAll();
 
-    echo json_encode(['success' => true, 'count' => count($versions), 'data' => $versions], JSON_UNESCAPED_UNICODE);
+    echo json_encode([
+        'success' => true, 
+        'count' => count($versions), 
+        'total_count' => $totalCount,
+        'current_page' => $page,
+        'total_pages' => $totalPages,
+        'data' => $versions
+    ], JSON_UNESCAPED_UNICODE);
 
 } elseif ($method === 'POST') {
-    // 還原歷史版本
+    // 還原歷史版本 (Restore Logic)
     $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
@@ -98,12 +134,29 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 確認用戶擁有該 Soul
-    $stmt = $pdo->prepare("SELECT title, content FROM souls WHERE id = ? AND user_id = ?");
-    $stmt->execute([$soulId, $userId]);
+    // 🚨 完美修復 4：改用雙軌制驗證是否有還原權限
+    $stmt = $pdo->prepare("SELECT title, content, user_id, is_nft, nft_owner_wallet FROM souls WHERE id = ?");
+    $stmt->execute([$soulId]);
     $soul = $stmt->fetch();
 
     if (!$soul) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => __('Soul not found')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
+    $walletStmt->execute([$userId]);
+    $myWallet = $walletStmt->fetchColumn();
+
+    $hasRestoreAccess = false;
+    if ($soul['user_id'] == $userId) {
+        $hasRestoreAccess = true;
+    } elseif ($soul['is_nft'] == 1 && !empty($myWallet) && $myWallet === $soul['nft_owner_wallet']) {
+        $hasRestoreAccess = true;
+    }
+
+    if (!$hasRestoreAccess) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Soul not found or access denied')], JSON_UNESCAPED_UNICODE);
         exit;
@@ -129,8 +182,8 @@ if ($method === 'GET') {
 
         // 還原目標版本
         $fileType = strpos(trim($version['content']), '{') === 0 ? 'full_soul_folder' : 'single_md';
-        $pdo->prepare("UPDATE souls SET title = ?, content = ?, file_type = ? WHERE id = ? AND user_id = ?")
-            ->execute([$version['title'], $version['content'], $fileType, $soulId, $userId]);
+        $pdo->prepare("UPDATE souls SET title = ?, content = ?, file_type = ? WHERE id = ?")
+            ->execute([$version['title'], $version['content'], $fileType, $soulId]);
 
         $pdo->commit();
         echo json_encode(['success' => true, 'message' => __('Version restored successfully')], JSON_UNESCAPED_UNICODE);
@@ -144,3 +197,4 @@ if ($method === 'GET') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }
+?>
