@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - i18n Translation Dictionary
  * Target: my-api.php (Developer API Settings)
+ * 🚀 Patched: Added missing translation keys for UI elements and alerts
  */
 
 return [
@@ -13,6 +14,9 @@ return [
         'API Subtitle' => 'Integrate your custom AI personas directly into your own applications using our Headless API.',
         'Back to Dashboard' => 'Workspace',
         'API Documentation' => 'API Docs',
+        'Back to Hub' => 'Back to Hub',
+        'Back to My Souls' => 'Back to My Souls',
+        'API_Driven_Desc' => 'Integrate SoulMD Hub programmatically. 100% API-Driven Architecture.',
         
         // API Key Section
         'Your Secret API Key' => 'Your Secret API Key',
@@ -21,6 +25,16 @@ return [
         'Hide Key' => 'Hide Key',
         'Copy Key' => 'Copy',
         'Copied!' => 'Copied!',
+        'Roll API Key' => 'Roll API Key',
+        'Download Postman Collection' => 'Download Postman Collection',
+
+        // API Lock & Expiration
+        'Premium Expired Title' => 'Your Premium Subscription has Expired!',
+        'API Locked Title' => 'Headless Chat API is Locked (Free Tier)',
+        'Premium Expired Desc' => 'Your VIP/PRO access has lapsed. Direct headless access to the <code>/api/chat</code> endpoint has been restricted. Please renew your pass to restore full API integration capabilities.',
+        'API Locked Desc' => 'Direct headless access to the core Chat Engine (<code>/api/chat</code>) is exclusively reserved for VIP and PRO members. Upgrade now to build automated agents.',
+        'Renew Subscription' => 'Renew Subscription',
+        'Upgrade to Unlock' => 'Upgrade to Unlock',
 
         // Web3 Wallet Binding Section
         'Web3 Wallet Binding' => 'Web3 Wallet Binding',
@@ -61,9 +75,10 @@ return [
         'Key generated successfully!' => 'API Key regenerated successfully!',
         'Network Error' => 'Network error. Please try again.',
         'Please enter a valid NEAR amount.' => 'Please enter a valid NEAR amount.',
-        'Buyback Confirm' => "Are you absolutely sure you want to trigger the Deflationary Spiral? \n\nThis will take :amount NEAR from the treasury and swap it into $SOUL to burn forever!",
+        'Buyback Confirm' => "Are you absolutely sure you want to trigger the Deflationary Spiral? \n\nThis will take :amount NEAR from the treasury and swap it into \$SOUL to burn forever!",
         'Please connect NEAR wallet first' => 'Please connect NEAR wallet first.',
         'Buyback Failed' => 'Blockchain transaction failed. Make sure you are logged in with the official Treasury account (:contract).',
+        'Operation failed' => 'Operation failed.',
     ],
     
     'zh' => [
@@ -74,6 +89,9 @@ return [
         'API Subtitle' => '使用我們的 Headless API，將您自訂的 AI 角色與智能體直接整合至您專屬的應用程式中。',
         'Back to Dashboard' => '創作者工作區',
         'API Documentation' => 'API 說明文件',
+        'Back to Hub' => '返回探索大廳',
+        'Back to My Souls' => '返回我的模型',
+        'API_Driven_Desc' => '透過程式碼無縫整合 SoulMD Hub。100% API 驅動架構。',
         
         // API Key Section
         'Your Secret API Key' => '您的專屬 Secret API 金鑰',
@@ -82,6 +100,16 @@ return [
         'Hide Key' => '隱藏金鑰',
         'Copy Key' => '複製',
         'Copied!' => '已複製！',
+        'Roll API Key' => '輪替金鑰 (Roll Key)',
+        'Download Postman Collection' => '下載 Postman 測試集',
+
+        // API Lock & Expiration
+        'Premium Expired Title' => '您的尊貴會員訂閱已經過期！',
+        'API Locked Title' => 'Headless Chat API 已鎖定 (免費方案)',
+        'Premium Expired Desc' => '您的 VIP/PRO 存取權限已失效。對 <code>/api/chat</code> 端點的直接 Headless 存取已被限制。請續期您的通行證以恢復完整的 API 整合能力。',
+        'API Locked Desc' => '對核心 Chat Engine (<code>/api/chat</code>) 的直接 Headless 存取是 VIP 與 PRO 會員的專屬功能。立即升級以建立自動化智能體。',
+        'Renew Subscription' => '續期訂閱',
+        'Upgrade to Unlock' => '升級以解鎖',
 
         // Web3 Wallet Binding Section
         'Web3 Wallet Binding' => 'Web3 錢包綁定 (AgentFi)',
@@ -122,8 +150,9 @@ return [
         'Key generated successfully!' => '金鑰生成成功！',
         'Network Error' => '網絡異常，請檢查您的連線狀態。',
         'Please enter a valid NEAR amount.' => '請輸入有效的 NEAR 數量。',
-        'Buyback Confirm' => "您絕對肯定要啟動「通縮螺旋」嗎？\n\n此操作將從平台國庫中提取 :amount NEAR，全數閃兌為 $SOUL 代幣並打入黑洞永久銷毀！",
+        'Buyback Confirm' => "您絕對肯定要啟動「通縮螺旋」嗎？\n\n此操作將從平台國庫中提取 :amount NEAR，全數閃兌為 \$SOUL 代幣並打入黑洞永久銷毀！",
         'Please connect NEAR wallet first' => '請先連接您的 NEAR 錢包。',
         'Buyback Failed' => '區塊鏈交易失敗。請確保您已登入官方國庫錢包賬號 (:contract)。',
+        'Operation failed' => '操作失敗。',
     ]
 ];

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
- * 🚀 Patched: Added comprehensive Loading UI & Button Locks for all async actions
+ * 🚀 Patched: Fully stripped of hardcoded text. 100% i18n compliant.
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -62,7 +62,7 @@ $baseUrl = defined('BASE_URL') ? BASE_URL : ("https://" . $_SERVER['HTTP_HOST'])
 loadTranslations('my-api');
 
 $pageTitle = $isPublicApiPage ? __('API Reference') : __('Developer API Access');
-$pageDesc = 'Manage your API key and read integration docs for SoulMD Hub.';
+$pageDesc = __('API Subtitle');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
@@ -74,16 +74,16 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div>
             <?php if ($isPublicApiPage): ?>
                 <a href="<?= url('/browse') ?>" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
-                    <i class="fas fa-arrow-left"></i> Back to Hub
+                    <i class="fas fa-arrow-left"></i> <?= __('Back to Hub') ?>
                 </a>
             <?php else: ?>
                 <a href="<?= url('/my-souls') ?>" class="text-sm text-zinc-400 hover:text-emerald-400 flex items-center gap-2 mb-3 transition w-fit">
-                    <i class="fas fa-arrow-left"></i> Back to My Souls
+                    <i class="fas fa-arrow-left"></i> <?= __('Back to My Souls') ?>
                 </a>
             <?php endif; ?>
             
             <h1 class="text-4xl font-bold tracking-tighter"><?= $isPublicApiPage ? __('API Reference') : __('Developer API Access') ?></h1>
-            <p class="text-zinc-400 mt-2">Integrate SoulMD Hub programmatically. 100% API-Driven Architecture.</p>
+            <p class="text-zinc-400 mt-2"><?= __('API_Driven_Desc') ?></p>
         </div>
     </div>
 
@@ -95,18 +95,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="text-red-400 text-3xl mt-1"><i class="fas fa-lock"></i></div>
                     <div>
                         <h3 class="text-xl font-bold text-white mb-1">
-                            <?= $isExpired ? 'Your Premium Subscription has Expired!' : 'Headless Chat API is Locked (Free Tier)' ?>
+                            <?= $isExpired ? __('Premium Expired Title') : __('API Locked Title') ?>
                         </h3>
                         <p class="text-sm text-zinc-300 leading-relaxed">
-                            <?= $isExpired 
-                                ? "Your VIP/PRO access has lapsed. Direct headless access to the <code>/api/chat</code> endpoint has been restricted. Please renew your pass to restore full API integration capabilities." 
-                                : "Direct headless access to the core Chat Engine (<code>/api/chat</code>) is exclusively reserved for VIP and PRO members. Upgrade now to build automated agents." ?>
+                            <?= $isExpired ? __('Premium Expired Desc') : __('API Locked Desc') ?>
                         </p>
                     </div>
                 </div>
                 <div class="shrink-0 z-10 w-full md:w-auto">
                     <a href="<?= url('/upgrade') ?>" class="w-full md:w-auto px-6 py-3 bg-red-500 hover:bg-red-400 text-zinc-950 font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
-                        <?= $isExpired ? '<i class="fas fa-sync-alt"></i> Renew Subscription' : '<i class="fas fa-crown"></i> Upgrade to Unlock' ?>
+                        <?= $isExpired ? '<i class="fas fa-sync-alt"></i> ' . __('Renew Subscription') : '<i class="fas fa-crown"></i> ' . __('Upgrade to Unlock') ?>
                     </a>
                 </div>
             </div>
@@ -138,12 +136,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
 
                 <button type="button" id="roll-btn" onclick="rollApiKey()" class="mb-3 w-full py-3 bg-zinc-800 hover:bg-red-500/20 text-zinc-300 hover:text-red-400 border border-white/5 hover:border-red-500/30 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2">
-                    <span id="roll-text"><i class="fas fa-redo text-xs"></i> Roll API Key</span>
+                    <span id="roll-text"><i class="fas fa-redo text-xs"></i> <?= __('Roll API Key') ?></span>
                     <span id="roll-loading" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
                 </button>
                 
                 <button onclick="downloadPostmanCollection()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10">
-                    <i class="fas fa-file-download"></i> Download Postman Collection
+                    <i class="fas fa-file-download"></i> <?= __('Download Postman Collection') ?>
                 </button>
             </div>
 
@@ -206,7 +204,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     <?php if (!$isPublicApiPage): ?>
     window.addEventListener('DOMContentLoaded', async () => {
-        // 🚨 完美修復：必須在 initNearWallet() 執行前先讀取網址參數
         const urlParams = new URLSearchParams(window.location.search);
         const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
 
@@ -320,7 +317,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('key-display').innerText = data.new_api_key;
                 showFeedbackNotification(true, '<?= addslashes(__('Key generated successfully!')) ?>');
             } else {
-                showFeedbackNotification(false, data.error || 'Operation failed');
+                showFeedbackNotification(false, data.error || '<?= addslashes(__('Operation failed')) ?>');
             }
         } catch(e) {
             showFeedbackNotification(false, '<?= addslashes(__('Network Error')) ?>');
