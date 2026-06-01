@@ -3,6 +3,7 @@
  * SoulMD Hub - i18n Translation Dictionary
  * Target: docs.php (Grand Unified Ecosystem Documentation)
  * 🚀 Patched: 100% Brand-Agnostic Edition & Deeply Expanded Technical Key-Value Grid.
+ * 🚀 Includes: Complete $SOUL Tokenomics Allocation & DAO Governance Matrices.
  */
 
 return [
@@ -19,7 +20,7 @@ return [
         'Tab Intro' => '🚀 Introduction & Engine',
         'Tab Solutions' => '🛡️ Problems Solved',
         'Tab UseCases' => '💻 Daily Use Cases',
-        'Tab Future' => '💎 AgentFi & Tokenomics',
+        'Tab Future' => '💎 Tokenomics & DAO',
 
         // Global Dynamic UI
         'Page' => 'Page',
@@ -67,7 +68,7 @@ return [
         // =========================================================
         'Enterprise Security & Mitigation Engineering' => 'Enterprise Security & Mitigation Engineering',
         'Solutions Core Intro' => 'Operating multi-modal agents exposes platforms to severe bottlenecks: computation debt from runtime inflation, gateway congestion from uncompressed binary streams, exponential token bleeding from history leakage, and direct asset duplication from transparent configurations. SoulMD Hub bypasses these obstacles via programmatic isolation fences at the transport layer.',
-        'Stateless BYOK Proxy' => '1. Stateless BYOK (Bring Your Own Key)的中繼代理機制',
+        'Stateless BYOK Proxy' => '1. Stateless BYOK (Bring Your Own Key) Proxy Gateways',
         'Problem Analysis:' => 'Problem Analysis:',
         'BYOK Problem Analysis' => 'Standard architectures absorb immense text token overheads when processing complex user workflows. Malicious adversarial scripts manipulate dialogue prompts, forcing standard backend applications to expend official server balances, triggering API bankruptcy loops.',
         'Core Solution:' => 'Core Solution:',
@@ -108,31 +109,58 @@ return [
         'Usecase Composable Desc: Prompt architects build advanced collaborative models using repository cloning forks. An engineer can inherit a public base architecture layer, overlaying custom child prompt modifications to create nested, composable dependency networks. This allows modular code architectures to be swapped, mixed, and referenced across different accounts seamlessly, establishing a reliable, open-source template ecosystem.' => 'Usecase Composable Desc: Prompt architects build advanced collaborative models using repository cloning forks. An engineer can inherit a public base architecture layer, overlaying custom child prompt modifications to create nested, composable dependency networks. This allows modular code architectures to be swapped, mixed, and referenced across different accounts seamlessly, establishing a reliable, open-source template ecosystem.',
 
         // =========================================================
-        // 5. Tab 4: AgentFi & Tokenomics (智能體金融與未來)
+        // 5. Tab 4: AgentFi, Tokenomics & DAO Governance
         // =========================================================
-        'Future Main Title' => 'AgentFi: Tokenized AI Ownership & Deflationary Spiral',
-        'Future Main Desc' => 'SoulMD Hub moves beyond standard Web2 subscription blocks by transforming AI agent architectures into secure, on-chain liquid assets on the NEAR blockchain.',
-        'Assetization Core Engine' => '1. Updatable NFT & Prompt IP Shielding',
-        'Assetization Core Desc' => 'To protect prompt engineers from direct raw piracy or source leaking, AI modules are minted into updatable NEP-171 NFT frames. The public blockchain ledger records only the SHA-256 fingerprint hash: <code>sha256(content + random_salt)</code>. The underlying source prompt stays securely dark inside the stateless backend sandbox.',
+        'Future Main Title' => 'AgentFi Whitepaper: $SOUL Capital Ledger & DAO Governance Blueprint',
+        'Future Main Desc' => 'SoulMD Hub breaks away from volatile Web2 software infrastructure restrictions by formatting prompt models into updatable on-chain liquid frameworks powered by absolute scarcity token networks.',
+        'Tokenomics Allocation Matrix' => '$SOUL Hard-Capped Capital Allocation Matrix',
+        'Tokenomics Capital Distribution: The native functional utility asset ($SOUL) is strictly capped at a hard maximum ceiling of 1,000,000,000 units, with zero inflationary minting capabilities written into the base contract. Capital weights are strategically stratified to incentivize open-source prompt modularization, sustain core research and development, and drive continuous on-chain protocol liquidity pools.' => 'Tokenomics Capital Distribution: The native functional utility asset ($SOUL) is strictly capped at a hard maximum ceiling of 1,000,000,000 units, with zero inflationary minting capabilities written into the base contract. Capital weights are strategically stratified to incentivize open-source prompt modularization, sustain core research and development, and drive continuous on-chain protocol liquidity pools.',
+        'Allocation Segment' => 'Allocation Segment',
+        'Percentage' => 'Percentage',
+        'Total Supply (Tokens)' => 'Total Supply (Tokens)',
+        'Cryptographic Lock & Vesting Schedule' => 'Cryptographic Lock & Vesting Schedule',
+        'Creator & Ecosystem Mining' => 'Prompt Engineering & Open-Source Creator Mining Pool',
+        'Ecosystem Vesting Desc: Allocated directly for prompt-engineering contribution incentives, modular repository forks bonuses, and collaborative template mining loops.' => 'Ecosystem Vesting Desc: Allocated directly for prompt-engineering contribution incentives, modular repository forks bonuses, and collaborative template mining loops.',
+        'Platform Treasury Vault' => 'Platform Treasury Vault & Liquidity Provision Reserves',
+        'Treasury Vesting Desc: Reserved for continuous core infrastructure scaling, AMM liquidity injection, protocol failover reserve staking, and operating costs.' => 'Treasury Vesting Desc: Reserved for continuous core infrastructure scaling, AMM liquidity injection, protocol failover reserve staking, and operating costs.',
+        'Early Backers & Seed Investors' => 'Early Strategic Backers & Private Seed Investors',
+        'Investors Vesting Desc: Locked under a cryptographically enforced smart contract with a 6-month complete cliff, followed by a 24-month linear vesting grid to protect token distribution velocity.' => 'Investors Vesting Desc: Locked under a cryptographically enforced smart contract with a 6-month complete cliff, followed by a 24-month linear vesting grid to protect token distribution velocity.',
+        'Decentralized Staking Rewards' => 'Decentralized High-Yield Validation Staking Core',
+        'Staking Vesting Desc: Allocated for high-yield validation staking, context summary backup staking, and model lease security deposit staking loops.' => 'Staking Vesting Desc: Allocated for high-yield validation staking, context summary backup staking, and model lease security deposit staking loops.',
+        'Assetization Core Engine' => 'I. Updatable NFT & Prompt IP Blackbox Protection Frame',
+        'Assetization Core Desc' => 'To permanently eliminate immediate reverse-engineering or unredacted duplication of original prompting matrices, models are wrapped natively inside tokenized NEP-171 structures. The public contract logs strictly the SHA-256 fingerprint hash: sha256(content + salt), leaving the logic instructions safely compiled within the dark headless runtime environment.',
         'NFT Structure Matrix' => 'DECENTRALIZED MEMORY METADATA STRUCT',
         'NFT Structure Desc' => 'The on-chain NEP-171 state register secures creator data pointers with rigid cryptographic properties:',
-        'Decentralized Rental Architecture' => '2. Blackbox Leasing & Composable Royalty Trees',
-        'Decentralized Rental Desc' => 'NFT owners can list their tokenized agents for sale or rent on the decentralized Marketplace. Users buy active rental windows to call the agent via the Chat Engine, but can never peep inside the prompt layer. Furthermore, smart contract trees automatically route leasing revenues: 90% streams straight to the active creator wallet, and 5% splits recursively to nested model dependencies.',
-        'Blackbox Exec Matrix' => '无状态智能体黑盒代理執行鏈路',
-        'Blackbox Exec Desc' => 'Renters activate specialized token-gated windows. The proxy engine processes requests via Lef-to-Right memory forwarding. Prompt structures execute safely inside the isolated host environment, protecting intellectual data blocks natively from standard interface exposure.',
+        'Token Identification Asset Name' => 'Asset Identification Matrix Token Name',
+        'On-Chain Public Decentralized Bio Description' => 'On-Chain Public Functional Abstract Bio Description',
+        'Cryptographic Fingerprint Hash: sha256(content + random_salt)' => '🔒 Encrypted Payload Hash Signature: sha256(content + random_salt)',
+        'Authoritative Platform Verification API Pointer' => 'Authoritative Verification Gateway API Pointer',
+        'Permanent Creator Account Address for Composable Royalty Routing' => 'Permanent Originator Ledger Address for Recursive Royalty Distribution',
+        'Decentralized Rental Architecture' => 'II. Blackbox Leasing Matrices & Composable Royalty Trees',
+        'Decentralized Rental Desc' => 'Asset owners list active token models on the permissionless marketplace. Renters lock operational windows to tap model features via the headless engine but remain locked out from structural code exposure. Concurrently, native micro-transactions trigger split-settlement conditions across dependencies.',
+        'Blackbox Exec Matrix' => 'Stateless Sandboxed Execution Bridge',
+        'Blackbox Exec Desc' => 'Renters activate specialized token-gated windows. The proxy engine processes requests via Left-to-Right memory forwarding. Prompt structures execute safely inside the isolated host environment, protecting intellectual data blocks natively from standard interface exposure.',
         'Royalty Distribution Tree' => 'NEP-199 Composable Value Routing Tree',
         'Royalty Tree Desc' => 'When downstream monetization events happen, the immutable contract scans the dependency branch array. Settlement credits are fragmented programmatically, distributing royalties dynamically across original structural nodes.',
-        'Deflationary Spiral Title' => '3. The Platform Treasury Deflationary Spiral',
-        'Deflationary Spiral Desc' => 'Every lifecycle action across the contract matrix captures value directly into the official treasury vault at <code>soulmd-hub.near</code>:',
+        'Deflationary Spiral Title' => 'III. Complete Burn Deflationary Blackhole Network Model',
+        'Deflationary Spiral Desc' => 'The core protocol captures dynamic values at every computational milestone, shifting revenues immediately to the authoritative platform treasury vault at soulmd-hub.near:',
         'Treasury Inflow Channels' => 'Treasury Capital Inflow Channel',
-        'Inflow Mint Tax' => '<strong>Minting Fee</strong>: A strict 0.1 NEAR network issuance tax is committed upon every newly registered tokenization event, accumulating baseline capital assets natively.',
-        'Inflow Market Tax' => '<strong>Velocity Fees</strong>: The protocol intercepts secondary market activities, redirecting a 5% tax on structural ownership changes and a 10% leasing tax on all blackbox rentals.',
-        'Automated Market Maker Loop' => 'Automated Market Maker Deflationary Engine',
-        'Inflow AMM Execution' => 'The treasury contract dynamically triggers programmatic buybacks. Accumulated NEAR reserves are pushed directly into decentralized AMM pools, purchasing native liquidity assets to burn them permanently into blackhole addresses.',
+        'Inflow Mint Tax' => '<strong>Issuance Mint Fee</strong>: Every Web2 template transformation into a Web3 NFT pays a flat 0.1 NEAR protocol network tax, fortifying the platform baseline value.',
+        'Inflow Market Tax' => '<strong>Velocity Trading Fee</strong>: Secondary transfer queries face a rigid 5% buyout royalty friction, while lease agreements automatically capture a 10% rental tax into the treasury.',
+        'Automated Market Maker Loop' => 'Automated Market Maker Buyback Loop (Net Operating Revenues)',
+        'Inflow AMM Execution' => '<strong>Net Income Burning</strong>: The protocol tracks platform operational costs continuously. 100% of collected net revenues (gross treasury revenue minus infrastructure failover maintenance costs) are programmatically routed into automated AMM liquidity pools via cross-contract calls, non-discretionarily buying back $SOUL tokens and burning them permanently into dead addresses.',
+        'Decentralized DAO Governance Direction' => 'IV. Decentralized Token-Gated DAO Governance & Upgrades',
+        'DAO Governance Core Desc' => 'To ensure the platform scales with mathematical antifragility, system parameter controls are fully transferred to a native token-gated DAO structure. $SOUL token holders form the ultimate decision-making body, directly adjusting contract weights and approving upgrades via proportional snapshot voting arrays.',
+        'Parameter Optimization Proposals' => 'Proportional Metric Adjustments Proposals',
+        'Parameter Proposal Desc' => 'Token holders vote linearly on system runtime variables. This includes modifying the platform storage deposit tiers, adjusting secondary buyout royalties percentages, and shifting memory window summaries thresholds across global subscription accounts dynamically.',
+        'Contract Upgradeability & TEE Execution' => 'Immutable Compiler Upgrades & Trusted Hardware Sandbox Verification',
+        'Vesting Upgradeability Desc' => 'Future core contract optimizations or migrations to hardware-isolated Trusted Execution Environments (TEE) require explicit DAO threshold approvals. No single administrative root key can manipulate model code paths without a verifiable consensus quorum.',
     ],
     
     'zh' => [
-        // SEO & Master Headers
+        // =========================================================
+        // 1. SEO & Master Layout Headers
+        // =========================================================
         'SEO Title' => '官方技術文檔與智能體金融生態 - SoulMD Hub',
         'SEO Desc' => '深入了解 SoulMD Hub 的極致模組化架構、無狀態代理網關、硬核底層壓縮技術以及 AgentFi 區塊鏈通縮模型。',
         'Platform Documentation' => '平台官方技術文檔',
@@ -142,7 +170,7 @@ return [
         'Tab Intro' => '🚀 運作原理與雙引擎',
         'Tab Solutions' => '🛡️ 安全與痛點解決',
         'Tab UseCases' => '💻 跨網域應用場景',
-        'Tab Future' => '💎 AgentFi 與通縮螺旋',
+        'Tab Future' => '💎 經濟學與 DAO 治理',
 
         // Global Dynamic UI
         'Page' => '頁數',
@@ -150,7 +178,7 @@ return [
         'Close' => '關閉',
 
         // =========================================================
-        // Tab 1: Introduction (運作原理與雙引擎)
+        // 2. Tab 1: Introduction (運作原理與雙引擎)
         // =========================================================
         'Ecosystem Architectural Blueprint' => '全生態底層架構藍圖',
         'Ecosystem Blueprint Core Intro: SoulMD Hub establishes a professional, zero-overhead, multi-tenant framework engineered to handle granular prompt trees securely. By abstracting the interaction layer between clients and cognitive logic models, the core ecosystem decouples model rendering, persistent caching, and cryptographic user state tracking without relying on stateful persistent socket overheads.' => '核心技術導言：SoulMD Hub 建立了一個極致專業、零負擔的多租戶底層框架，專為安全處理高密度的語義指令樹而設。透過將客戶端與認知邏輯模型之間的互動層徹底抽象化，核心生態系統成功將模型渲染、持久化緩存與加密用戶狀態追蹤進行了解耦 (Decouple)，完全無需依賴高耗能的狀態化持續 Socket 開銷。',
@@ -183,10 +211,10 @@ return [
         'Text logical processing pathway handles structural natural language queries natively. Low-tier configurations trigger extreme velocity flash token clusters, while advanced accounts escalate queries to dense logic-thinking matrices, providing comprehensive internal thoughts processing maps before returning text strings.' => '文字邏輯處理軌道負責原生處理結構化的自然語言查詢。標準配置會觸發極速 (Flash) 算力叢集，而進階帳號的查詢將直接升級至高密度的邏輯思考矩陣，在返回文字字串之前提供極度全面的內部思維軌跡 (Internal Thoughts) 運算地圖。',
         
         'Multimodal Serverless Vision Grid' => '多模態 Serverless 視覺解耦網格',
-        'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.' => '多模態資料分析以非同步方式攔截二進制封包與 Base64 結構。請求會被串流至專門的視覺運算節點，開裝節點經過嚴格訓練，專攻高密度圖表計算、系統藍圖解碼、排版 OCR 映射以及空間網格處理，將極限上下文優化於 15 秒內完成。',
+        'Multimodal data analysis intercepts binary packages and base64 structures asynchronously. Requests are streamed across specialized multi-modal nodes trained for dense chart calculations, system blueprint decoding, layout OCR mapping, and spatial grid processing, optimizing context limits under 15 seconds.' => '多模態資料分析以非同步方式攔截二進制封包與 Base64 結構。請求會被串流至專門的視覺運算節點，這些節點經過嚴格訓練，專攻高密度圖表計算、系統藍圖解碼、排版 OCR 映射以及空間網格處理，將極限上下文優化於 15 秒內完成。',
 
         // =========================================================
-        // Tab 2: Problems Solved (解決的痛點)
+        // 3. Tab 2: Problems Solved (解決的痛點)
         // =========================================================
         'Enterprise Security & Mitigation Engineering' => '安全邊界防禦與技術優化治理工程',
         'Solutions Core Intro' => 'SaaS 平台在營運多模態智能體架構時，傳統上面臨四大毀滅性瓶頸：惡意刷量導致的算力財政破產、大體積二進制資產上傳引發的網關超時熔斷、漫長對話歷史造成的 Token 幾何級數通脹、以及開源提示詞產權全透明暴露的資產危機。SoulMD Hub 從底層通信鏈路出發，全面實施雙軌安全邊界隔離，提供無狀態解耦的極致優化方案。',
@@ -216,7 +244,7 @@ return [
         'Off-Chain Fingerprint' => '四、 產權洩漏與線下篡改：鏈下數據指紋與鏈上防篡改熔斷機制',
         'Fingerprint Problem Analysis' => '提示詞工程師（Prompt Engineer）最核心的資產是精心調教的系統架構指令。一旦平台將指令以 Web2 形式公開，會聯同底層 Prompt 一併遭到白嫖。但如果完全隱藏，租客又無法在去中心化市集驗證其真實性，且無法防範平台管理員線下在數據庫中惡意篡改指令（Rug Pull）。',
         'Fingerprint Solution' => '平台實施了「Web2.5 混合數據密碼學邊界」── 鏈下 Prompt 明文黑盒執行 + 鏈上 SHA-256 產權指紋熔斷機制：',
-        'Fingerprint Desc' => '當創作者發佈模組化智能體並進行 Web3 NEP-171 鑄造時，伺服器會生成隨機混淆密碼（Salt），並計算其數據指紋：nft_hash = "sha256:" + hash(\'sha256\', content + salt)。區塊鏈上只記錄這個 Hash 指紋，不存放明文 Prompt。每次租客發起對話呼叫時，無狀態後端在內存組裝 Prompt 之前，會向區塊鏈發起 RPC 調用查詢。若計算出當前數據庫的 Hash 與鏈上最終真理（Source of Truth）不符，代表源碼遭到篡改，系統會立刻啟動安全熔斷（Circuit Breaker），永久阻斷對話請求，100% 捍衛創作者版權與租客權益！',
+        'Fingerprint Desc' => '當創作者發佈模組化智能體並進行 Web3 NEP-171 鑄造時，伺服器會生成隨機混淆密碼（Salt），並計算其數據指紋：nft_hash = "sha256:" + hash('sha256', content + salt)。區塊鏈上只記錄這個 Hash 指紋，不存放明文 Prompt。每次租客發起對話呼叫時，無狀態後端在內存組裝 Prompt 之前，會向區塊鏈發起 RPC 調用查詢。若計算出當前數據庫的 Hash 與鏈上最終真理（Source of Truth）不符，代表源碼遭到篡改，系統會立刻啟動安全熔斷（Circuit Breaker），永久阻斷對話請求，100% 捍衛創作者版權與租客權益！',
 
         // =========================================================
         // 4. Tab 3: Daily Use Cases (日常應用場景)
@@ -231,26 +259,51 @@ return [
         'Usecase Composable Desc: Prompt architects build advanced collaborative models using repository cloning forks. An engineer can inherit a public base architecture layer, overlaying custom child prompt modifications to create nested, composable dependency networks. This allows modular code architectures to be swapped, mixed, and referenced across different accounts seamlessly, establishing a reliable, open-source template ecosystem.' => '提示詞架構師能利用代碼庫克隆（Fork）建立高階的開源協作模型。開發者可以完美繼承一個公開的基礎架構層，並在此之上疊加自訂的子提示詞修飾，形成嵌套的、具備相依關係的 Composable 依賴樹結構。這使得模組化代碼在不同帳號間可以被自由調度、混合與跨引用，打造了極具信任度的開源範本經濟圈。',
 
         // =========================================================
-        // 5. Tab 4: AgentFi & Tokenomics (智能體金融與未來)
+        // 5. Tab 4: AgentFi, Tokenomics & DAO Governance
         // =========================================================
-        'Future Main Title' => 'AgentFi: 智能體去中心化產權與代幣強通縮模型',
-        'Future Main Desc' => 'SoulMD Hub 徹底打破傳統 Web2 SaaS 的訂閱牆限制，將 AI 智能體架構轉化為安全、可信且具備極高鏈上流動性的合約資產。',
+        'Future Main Title' => 'AgentFi 白皮書：$SOUL 資本賬本與 DAO 治理底層藍圖',
+        'Future Main Desc' => 'SoulMD Hub 徹底打破傳統 Web2 SaaS 的訂閱牆與中心化基礎設施限制，將 AI 提示詞架構重塑為具備鏈上剛性稀缺度的去中心化合約資產。',
+        'Tokenomics Allocation Matrix' => '$SOUL 原生通縮資產全域分配矩陣',
+        'Tokenomics Capital Distribution: The native functional utility asset ($SOUL) is strictly capped at a hard maximum ceiling of 1,000,000,000 units, with zero inflationary minting capabilities written into the base contract. Capital weights are strategically stratified to incentivize open-source prompt modularization, sustain core research and development, and drive continuous on-chain protocol liquidity pools.' => '通縮資本分佈：平台原生權益代幣 $SOUL 總發行量上限死鎖為 1,000,000,000 粒，合約底層不留任何通脹鑄造接口。資本權重經過高密度的戰略階梯式劃分，旨在激勵提示詞模組化開源、維持底層核心研發運作，並確保去中心化流動性資金池的持續注資。',
+        'Allocation Segment' => '代幣分配板塊',
+        'Percentage' => '分配比例',
+        'Total Supply (Tokens)' => '供應量總計 (粒)',
+        'Cryptographic Lock & Vesting Schedule' => '密碼學鎖倉與釋放網格時程表',
+        'Creator & Ecosystem Mining' => '提示詞創作者激勵與全生態協作開採池',
+        'Ecosystem Vesting Desc: Allocated directly for prompt-engineering contribution incentives, modular repository forks bonuses, and collaborative template mining loops.' => '創作者釋放說明：此板塊專門用於原創提示詞確權獎勵、模組化倉庫分叉調度津貼，以及跨賬戶協作模板的生態產出開採。',
+        'Platform Treasury Vault' => '平台官方發展國庫與資金池流動性儲備',
+        'Treasury Vesting Desc: Reserved for continuous core infrastructure scaling, AMM liquidity injection, protocol failover reserve staking, and operating costs.' => '國庫釋放說明：此部分資金將嚴格鎖定於官方多簽金庫中，專門用於核心代碼迭代維護、AMM 去中心化交易所初始流動性注資、網絡拓撲故障墊付以及基礎營運開支。',
+        'Early Backers & Seed Investors' => '早期戰略支持者與私募種子輪投資人',
+        'Investors Vesting Desc: Locked under a cryptographically enforced smart contract with a 6-month complete cliff, followed by a 24-month linear vesting grid to protect token distribution velocity.' => '投資人釋放說明：由鏈上智能合約實施密碼學硬性鎖倉，內置 6 個月的完整斷崖期 (Cliff)，隨後進入 24 個月的線性級聯解鎖釋放網格，嚴防二級市場通脹踩踏。',
+        'Decentralized Staking Rewards' => '去中心化節點高收益質押與安全池補貼',
+        'Staking Vesting Desc: Allocated for high-yield validation staking, context summary backup staking, and model lease security deposit staking loops.' => '質押釋放說明：用於分配給長期鎖倉質押者、滑動記憶摘要備份節點，以及黑盒出租履約保證金質押池的利息分配。',
         'Assetization Core Engine' => '一、 可進化智能體 NFT 存證與 Prompt 產權黑盒隔離',
         'Assetization Core Desc' => '為了解決提示詞工程師的核心代碼被線下複製（白嫖）問題，AI 模組會被鑄造為可進化的 NEP-171 NFT 資產。區塊鏈上只記錄 SHA-256 指紋：<code>sha256(content + 隨機鹽)</code>，真實的提示詞源碼則安全地鎖在後端無狀態沙盒內，從根本捍衛智慧財產權。',
         'NFT Structure Matrix' => '鏈上數據構造矩陣 (DECENTWARE METADATA)',
         'NFT Structure Desc' => '鏈上 NEP-171 狀態寄存器以剛性的密碼學屬性鎖定了創作者的數據指針：',
+        'Token Identification Asset Name' => '資產識別標誌 Token 名稱',
+        'On-Chain Public Decentralized Bio Description' => '鏈上公開去中心化功能抽象描述',
+        'Cryptographic Fingerprint Hash: sha256(content + random_salt)' => '🔒 加密源碼哈希安全存證指紋：sha256(content + 隨機鹽)',
+        'Authoritative Platform Verification API Pointer' => '平台官方驗證網關 API 指針',
+        'Permanent Creator Account Address for Composable Royalty Routing' => '永久創作者錢包地址 (級聯版稅分潤唯一憑證)',
         'Decentralized Rental Architecture' => '二、 去中心化黑盒租賃市集與樹狀版稅分潤結構',
         'Decentralized Rental Desc' => 'NFT 擁有者可將智能體在去中心化市集掛牌出售或出租。租客支付租金後可獲得 30 天的對話授權視窗，但永遠無法窺探底層 Prompt 明文。同時，智能合約內置 Composable Royalty 版稅機制，收益中的 90% 將即時自動路由結算至創作者錢包。',
         'Blackbox Exec Matrix' => '無狀態智能體黑盒代理執行鏈路',
         'Blackbox Exec Desc' => '租客激活受合約門禁（Token-Gating）保護的對話視窗，中繼引擎採用「左手交右手」的內存轉發機制。Prompt 結構完全隔離在安全後端執行，在硬體級別防止了原始數據塊暴露給前端界面。',
         'Royalty Distribution Tree' => 'NEP-199 複合成型版稅路由樹',
-        'Royalty Tree Desc' => '當發生商業變現或轉手事件時，不可篡改的智能合約會自動掃描該智能體的依賴樹分支陣列，將版稅收益程式化切分，即時分潤給底層被引用的原創代碼節點。',
-        'Deflationary Spiral Title' => '三、 平台官方金庫與 $SOUL 代幣通縮螺旋機制',
-        'Deflationary Spiral Desc' => '智能合約在整個智能體生命週期的各個關鍵節點上，都會自動為平台官方金庫地址 <code>soulmd-hub.near</code> 進行動態價值捕獲：',
+        'Royalty Tree Desc' => '當發生商業變現或轉手事件時，不可篡改的智能合約會自動掃描該智能體的文件依賴樹分支陣列，將版稅收益程式化切分，即時分潤給底層被引用的開源提示詞代碼節點。',
+        'Deflationary Spiral Title' => '三、 淨收入全量回購與代幣強通縮黑洞網絡模型',
+        'Deflationary Spiral Desc' => '底層協議在整個智能體的生命週期內實施極度硬核的價值捕獲。所有的資金流會實施無差別網關統計，並全數匯聚至官方金庫地址 soulmd-hub.near：',
         'Treasury Inflow Channels' => '官方金庫資本流入渠道 (Inflow Channels)',
-        'Inflow Mint Tax' => '<strong>發行鑄造稅</strong>: 每次將 Web2 模型升級鑄造為 Web3 NFT 時，合約會硬性收取 0.1 NEAR 平台發行稅，直接積累金庫的底層資產淨值。',
-        'Inflow Market Tax' => '<strong>換手流動稅</strong>: 協議自動攔截市集行為，對二級市場的產權買斷強制抽水 5% 成交稅，對黑盒出租則自動扣留 10% 租賃稅。',
-        'Automated Market Maker Loop' => 'AMM 自動回購通縮螺旋黑洞',
-        'Inflow AMM Execution' => '國庫合約會定期自動發動跨合約呼叫，將積累的 100% NEAR 收益全數灌入去中心化交易所的 <strong>$SOUL / $NEAR</strong> 流動性池內，以市價不計成本全數回購我們的原生代幣 <code>$SOUL</code>，並直接打入區塊鏈黑洞地址永久銷毀！市集對話越火熱，代幣通縮速度越呈幾何級數飆升！',
+        'Inflow Mint Tax' => '<strong>發行鑄造稅</strong>: 每次將 Web2 靈魂升級鑄造為 Web3 NFT 時，合約強制收取 0.1 NEAR 平台稅，直接積累金庫的底層資產淨值。',
+        'Inflow Market Tax' => '<strong>換手流動稅</strong>: 協議自動攔截市集行為，對二級市場的產權買斷強制抽水 5% 成交稅；對黑盒出租成交則自動扣留 10% 租賃稅。',
+        'Automated Market Maker Loop' => 'AMM 自動回購通縮螺旋黑洞 (淨收入銷毀機制)',
+        'Inflow AMM Execution' => '<strong>淨收入全量銷毀 (Net Income Burn)</strong>: 協議會實時扣除基礎設施的必要硬件與網絡維護支出，將剩餘的<strong>100% 平台淨利潤收入</strong>定期透過跨合約調用，直接衝入去中心化交易所的 <strong>$SOUL / $NEAR</strong> 流動性池內，按市價不計成本全數回購我們的原生代幣 <code>$SOUL</code>，並直接打入區塊鏈黑洞地址永久銷毀！市集對話越火熱，代幣通縮速度越呈幾何級數飆升！',
+        'Decentralized DAO Governance Direction' => '四、 去中心化 DAO 代幣治理與可升級合約未來方向',
+        'DAO Governance Core Desc' => '為了確保平台具備數學上的反脆弱性 (Antifragility)，全站所有核心參數的控制權將逐步完全移交給原生的 Token-Gated DAO 治理結構。 $SOUL 代幣持有人將組成最高決策群體，通過成比例的快照投票陣列直接微調合約權重並審批升級提案。',
+        'Parameter Optimization Proposals' => '成比例系統指標動態微調提案',
+        'Parameter Proposal Desc' => '代幣持有者可對系統運行時變數進行線性投票，這包括動態修改平台存儲質押階梯、微調二級市場轉手版稅抽水比例，以及跨賬戶滑動視窗記憶摘要的硬性輪數閾值。',
+        'Contract Upgradeability & TEE Execution' => '不可篡改編譯器升級與可信硬件沙盒驗證',
+        'Vesting Upgradeability Desc' => '未來任何核心合約代碼的最佳化更新，或向硬件隔離型「可信執行環境 (TEE)」的沙盒遷移，均必須獲得 DAO 絕對多數的門檻通過。任何單一行政根密鑰均無法在缺乏共識的情況下擅自篡改智能體邏輯路徑。',
     ]
 ];
