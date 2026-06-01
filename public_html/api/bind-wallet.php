@@ -1,15 +1,17 @@
 <?php
 /**
  * SoulMD Hub API - Bind NEAR Wallet
- * 🚀 Patched: Added HTTP Status Codes, i18n, and cross-account wallet duplication check.
+ * (V5 Web2.5 AgentFi Architecture: Hardened Signature Verification Edition)
+ * 🚀 Patched: Enforced Ed25519 Cryptographic verification & Anti-Twin vulnerability checks.
  */
+
+header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/NearAuthService.php'; // 🚀 引入密碼學驗證服務
 
-header('Content-Type: application/json; charset=utf-8');
 session_start();
-
 loadTranslations('api');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -24,13 +26,25 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$action = $input['action'] ?? '';
-$wallet = trim($input['wallet'] ?? '');
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
 
-if ($action !== 'bind' || empty($wallet)) {
+$action    = $input['action'] ?? '';
+$wallet    = trim($input['wallet'] ?? $input['account_id'] ?? ''); // 兼容前端兩種 Payload 命名
+$publicKey = trim($input['public_key'] ?? '');
+$signature = trim($input['signature'] ?? '');
+$message   = trim($input['message'] ?? '');
+
+// 🚨 嚴格攔截：密碼學驗證所需之金鑰指紋，缺一不可！
+if ($action !== 'bind' || empty($wallet) || empty($publicKey) || empty($signature) || empty($message)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// 🚨 密碼學核心熔斷：利用 libsodium 物理校驗 Ed25519 簽章 + RPC 鏈上 AccessKey 確權
+if (!NearAuthService::verifySignature($wallet, $publicKey, $signature, $message)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -39,7 +53,7 @@ $pdo = $db->getConnection();
 $userId = $_SESSION['user_id'];
 
 try {
-    // 1. 檢查當前用戶是否已經綁定過錢包
+    // 1. 檢查當前用戶是否已經綁定過錢包 (One-time Bind Lock)
     $stmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $currentWallet = $stmt->fetchColumn();
@@ -59,7 +73,7 @@ try {
         exit;
     }
 
-    // 3. 執行綁定
+    // 3. 執行永久綁定
     $updStmt = $pdo->prepare("UPDATE users SET near_wallet_address = ? WHERE id = ?");
     $updStmt->execute([$wallet, $userId]);
 

@@ -3,6 +3,7 @@
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
  * 🚀 Patched: Fully stripped of hardcoded text. 100% i18n compliant.
+ * 🚀 Security: Added Cryptographic Signature Payload for Wallet Binding
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -256,18 +257,23 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
         
         try {
+            // 🚨 核心升級：產生防偽密碼學簽章 Payload 送畀後端
+            const authPayload = await window.generateNearAuthPayload(accountId);
+            authPayload.action = 'bind';
+
             const res = await fetch('/api/bind-wallet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'bind', wallet: accountId })
+                body: JSON.stringify(authPayload)
             });
             const data = await res.json();
+            
             if (data.success) {
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                 window.location.reload();
             } else {
-                showFeedbackNotification(false, '<?= addslashes(__('Bind Failed')) ?>' + (data.error || ''));
+                showFeedbackNotification(false, '<?= addslashes(__('Bind Failed')) ?> ' + (data.error || ''));
                 const wallet = await initNearWallet();
                 wallet.signOut();
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
@@ -317,7 +323,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('key-display').innerText = data.new_api_key;
                 showFeedbackNotification(true, '<?= addslashes(__('Key generated successfully!')) ?>');
             } else {
-                showFeedbackNotification(false, data.error || '<?= addslashes(__('Operation failed')) ?>');
+                showFeedbackNotification(false, data.error || 'Operation failed');
             }
         } catch(e) {
             showFeedbackNotification(false, '<?= addslashes(__('Network Error')) ?>');

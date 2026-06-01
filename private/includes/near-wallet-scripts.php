@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
  * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER (V5 Centralized Config Edition)
- * 🚨 Patched: Added Unified nearRpcQuery() for Global Smart Contract Read-Calls
+ * 🚨 Patched: Added Cryptographic Signature Generation for secure Wallet Login/Binding
  */
 
 $sync_isPhpLoggedIn = isset($_SESSION['user_id']) ? 'true' : 'false';
@@ -50,7 +50,6 @@ if (isset($_SESSION['user_id'])) {
     // 🚀 全新核心服務：全域通用 RPC 查詢引擎 (View Call)
     window.nearRpcQuery = async function(methodName, args = {}, finality = 'optimistic') {
         const contractId = "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>";
-        // 處理 Unicode 字符的 Base64 編碼
         const argsBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(args))));
         
         const payload = {
@@ -70,13 +69,12 @@ if (isset($_SESSION['user_id'])) {
             window.activeNearRpcUrl = await getHealthyRpc();
         }
 
-        // 優先嘗試當前活躍節點，若失敗則輪詢整個節點池
         const nodesToTry = [window.activeNearRpcUrl, ...window.rpcNodesPool.filter(url => url !== window.activeNearRpcUrl)];
 
         for (const url of nodesToTry) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5秒超時容忍
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
 
                 const res = await fetch(url, {
                     method: 'POST',
@@ -89,13 +87,9 @@ if (isset($_SESSION['user_id'])) {
 
                 if (res.ok) {
                     const data = await res.json();
-                    
-                    // 合約層級錯誤
                     if (data.error) {
                         return { success: false, error: data.error, status: 'error' };
                     }
-                    
-                    // 成功取回並解析 Bytes Array
                     if (data.result && data.result.result) {
                         const resString = new TextDecoder().decode(new Uint8Array(data.result.result));
                         if (resString.trim() === 'null') {
@@ -105,14 +99,44 @@ if (isset($_SESSION['user_id'])) {
                     }
                 }
             } catch (e) {
-                console.warn(`⚠️ RPC Query failed on ${url}, trying next...`);
                 if (url === window.activeNearRpcUrl) {
-                    window.activeNearRpcUrl = null; // 清除失效緩存
+                    window.activeNearRpcUrl = null; 
                 }
             }
         }
         
         return { success: false, error: 'All RPC nodes failed', status: 'timeout' };
+    };
+
+    // 🚀 全新核心服務：生成防偽密碼學簽章 (用於 Login 與 Bind)
+    window.generateNearAuthPayload = async function(accountId) {
+        const { keyStores } = window.nearApi;
+        const keyStore = new keyStores.BrowserLocalStorageKeyStore();
+        const networkId = "<?= defined('NEAR_NETWORK_ID') ? NEAR_NETWORK_ID : 'mainnet' ?>";
+        
+        // 從 LocalStorage 獲取已經被授權的 Session Private Key
+        const keyPair = await keyStore.getKey(networkId, accountId);
+        
+        if (!keyPair) {
+            throw new Error("No local key found for this account. Please reconnect wallet.");
+        }
+
+        // 建立帶有時間戳的防重放攻擊 Nonce
+        const timestamp = Date.now();
+        const message = "soulmd_auth:" + timestamp;
+        const msgBytes = new TextEncoder().encode(message);
+        
+        // 進行 Ed25519 簽名
+        const { signature } = keyPair.sign(msgBytes);
+        const signatureB64 = btoa(String.fromCharCode(...signature));
+        const publicKey = keyPair.getPublicKey().toString();
+
+        return {
+            account_id: accountId,
+            public_key: publicKey,
+            signature: signatureB64,
+            message: message
+        };
     };
 
     // 🚀 錢包初始化與包裝器
@@ -213,7 +237,7 @@ if (isset($_SESSION['user_id'])) {
             return window.nearHubWalletWrapper;
         } catch (err) {
             console.error("NEAR Wallet Init Error:", err);
-            alert("<?= addslashes(__('RPC Connection Failed')) ?>");
+            alert("RPC Connection Failed");
         }
     };
 
@@ -239,6 +263,7 @@ if (isset($_SESSION['user_id'])) {
         }
     };
 
+    // 🚨 修正：自動背景登入驗證時，加入簽章 Payload
     window.addEventListener('DOMContentLoaded', async () => {
         const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
         
@@ -251,10 +276,13 @@ if (isset($_SESSION['user_id'])) {
                 const currentWeb3Wallet = wallet.getAccountId();
 
                 if (!isPhpLoggedIn) {
+                    // 自動生成安全 Payload
+                    const authPayload = await window.generateNearAuthPayload(currentWeb3Wallet);
+
                     const res = await fetch('/api/wallet-login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ account_id: currentWeb3Wallet })
+                        body: JSON.stringify(authPayload)
                     });
                     const data = await res.json();
                     
@@ -265,10 +293,9 @@ if (isset($_SESSION['user_id'])) {
                             window.location.href = '<?= url("/my-souls") ?>';
                         }
                     } else {
-                        console.warn("Web3 Wallet not bound to Web2 account. Forcing sync logout.");
+                        console.warn("Web3 Wallet auth failed. Forcing sync logout.");
                         wallet.signOut();
                         if (!isAuthPage) {
-                            alert("<?= addslashes(__('Wallet not bound alert')) ?>");
                             window.location.href = '<?= url("/login") ?>';
                         }
                     }
@@ -276,7 +303,7 @@ if (isset($_SESSION['user_id'])) {
                     if (phpWalletAddress && currentWeb3Wallet !== phpWalletAddress) {
                         console.warn("Web2 and Web3 Wallet mismatch. Forcing Web3 sync.");
                         wallet.signOut();
-                        alert("<?= addslashes(__('Wallet mismatch alert')) ?>");
+                        alert("Wallet mismatch detected. For your security, the Web3 session has been disconnected.");
                         window.location.reload();
                     }
                 }
