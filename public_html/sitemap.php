@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Dynamic Sitemap.xml
  * (Dynamic i18n SEO Multi-Language Edition)
- * 🚀 Patched: Anti-DDoS DB Join Optimization
+ * 🚀 Patched: Integrated Grand Unified Docs & Tabs for Complete Search Indexing
  */
 
 header('Content-Type: application/xml; charset=utf-8');
@@ -55,7 +55,13 @@ $staticPages = [
     'api-docs' => ['changefreq' => 'monthly', 'priority' => '0.7'],
     'upgrade' => ['changefreq' => 'weekly', 'priority' => '0.8'],
     'login' => ['changefreq' => 'monthly', 'priority' => '0.5'],
-    'register' => ['changefreq' => 'monthly', 'priority' => '0.5']
+    'register' => ['changefreq' => 'monthly', 'priority' => '0.5'],
+    // 🌟 新增：全域官方文檔及各自 Tab 子路由節點，完美支援 Google 雙語多態抓取
+    'docs' => ['changefreq' => 'weekly', 'priority' => '0.8'],
+    'docs/intro' => ['changefreq' => 'weekly', 'priority' => '0.7'],
+    'docs/solutions' => ['changefreq' => 'weekly', 'priority' => '0.7'],
+    'docs/usecases' => ['changefreq' => 'weekly', 'priority' => '0.7'],
+    'docs/future' => ['changefreq' => 'weekly', 'priority' => '0.7']
 ];
 
 $today = date('Y-m-d');

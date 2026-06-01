@@ -34,6 +34,12 @@ ErrorDocument 404 /404.php
     RewriteCond %{THE_REQUEST} \s/+api-docs\.php[\s?] [NC]
     RewriteRule ^api-docs\.php$ /api-docs [R=301,L]
 
+    # 🌟 新增：Docs 文件路由外部重定向
+    RewriteCond %{THE_REQUEST} \s/+docs\.php\?tab=([a-zA-Z0-9_-]+) [NC]
+    RewriteRule ^docs\.php$ /docs/%1? [R=301,L]
+    RewriteCond %{THE_REQUEST} \s/+docs\.php[\s?] [NC]
+    RewriteRule ^docs\.php$ /docs [R=301,L]
+
     RewriteRule ^change-password/?$ /my-setting [R=301,L]
 
     RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
@@ -59,6 +65,10 @@ ErrorDocument 404 /404.php
     RewriteRule ^login/?$ login.php [L,QSA]
     RewriteRule ^register/?$ register.php [L,QSA]
     RewriteRule ^logout/?$ logout.php [L,QSA]
+    
+    # 🌟 新增：Docs 乾淨路由
+    RewriteRule ^docs/([a-zA-Z0-9_-]+)/?$ docs.php?tab=$1 [L,QSA]
+    RewriteRule ^docs/?$ docs.php [L,QSA]
     
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
 
