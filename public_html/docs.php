@@ -3,6 +3,7 @@
  * SoulMD Hub - Grand Unified Documentation Controller
  * (i18n Fully Bound, Mobile-Responsive Tabs & Strict LFI Whitelist Engine)
  * 🚀 Patched: Changed sidebar menu links to use clean SEO URLs (/docs/xxxx)
+ * 🚀 Patched: Support for split language dictionaries to prevent context bloat.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -11,15 +12,21 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
-// 🌍 載入 Step 1 建立好的 docs 語言包
-loadTranslations('docs');
-
 // 🛡️ 安全校驗：設定防禦路徑穿越 (Path Traversal) 與區域檔案引入 (LFI) 的硬核白名單
 $allowedTabs = ['intro', 'solutions', 'usecases', 'future'];
 $currentTab = $_GET['tab'] ?? 'intro';
 
 if (!in_array($currentTab, $allowedTabs)) {
     $currentTab = 'intro'; // 熔斷機制：一旦不匹配直接降級回首頁
+}
+
+// 🌍 載入全域 docs 語言包
+loadTranslations('docs');
+
+// 🌍 動態載入專屬 Tab 的擴充語言包 (防止單一檔案過大爆 Context)
+$tabLangPath = __DIR__ . '/../private/includes/languages/docs/' . $currentTab . '.php';
+if (file_exists($tabLangPath)) {
+    loadTranslations('docs/' . $currentTab);
 }
 
 // 🌍 編譯全域多語言 Meta 標題與敘述
@@ -31,6 +38,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-8 flex-grow">
     
+    <!-- 🎛️ 左側側邊欄 (行動端自動化為頂部滑動導覽 Pills) -->
     <div class="w-full lg:w-64 shrink-0 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 custom-scrollbar select-none">
         
         <a href="<?= url('/docs/intro') ?>" 
@@ -55,6 +63,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         
     </div>
 
+    <!-- 📄 內容渲染主板塊 (動態引入獨立的子模組檔案) -->
     <div class="flex-1 bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 md:p-10 backdrop-blur-sm shadow-2xl relative overflow-hidden min-h-[500px]">
         
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r <?= $currentTab === 'future' ? 'from-purple-500 to-indigo-500' : 'from-emerald-400 to-cyan-400' ?>"></div>
