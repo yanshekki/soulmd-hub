@@ -3,6 +3,7 @@
  * SoulMD Hub - API Reference Documentation UI Component
  * Included by my-api.php and api-docs.php
  * (Dynamic i18n Internationalization & Fully Fluid Schema Edition - Full Unredacted Version)
+ * 🚀 Patched: Added missing wallet-login/my-chats APIs, fixed logout route, updated bind-wallet crypto schema.
  */
 
 // 🌍 載入 API 說明文檔組件的專屬獨立語言包
@@ -108,13 +109,39 @@ loadTranslations('api-docs');
                 <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Request Body Sample') ?></summary>
                     <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
   "action": "bind",
-  "wallet": "yanshekki.near"
+  "wallet": "yanshekki.near",
+  "public_key": "ed25519:G1...",
+  "signature": "L/xN...",
+  "message": "soulmd_auth:1716330000000"
 }</pre>
                 </details>
                 <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
                     <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
   "message": "Wallet bound successfully!"
+}</pre>
+                </details>
+            </div>
+        </div>
+
+        <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                <code class="text-base font-bold text-white">/api/wallet-login</code>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_wallet_login') ?></p>
+            <div class="pt-1 flex flex-col gap-2">
+                <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Request Body Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
+  "account_id": "yanshekki.near",
+  "public_key": "ed25519:G1...",
+  "signature": "L/xN...",
+  "message": "soulmd_auth:1716330000000"
+}</pre>
+                </details>
+                <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true
 }</pre>
                 </details>
             </div>
@@ -204,6 +231,28 @@ loadTranslations('api-docs');
 }</pre>
                 </details>
             </div>
+        </div>
+
+        <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
+                <code class="text-base font-bold text-white">/api/my-chats</code>
+                <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20"><?= __('Auth Required') ?></span>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_my_chats') ?></p>
+            <details class="text-xs group"><summary class="text-emerald-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "sessions": [
+    {
+      "session_token": "unique_session_id_123",
+      "soul_id": 1,
+      "summary": "User asked about architecture layout...",
+      "last_updated": "2026-05-21 14:00:00"
+    }
+  ]
+}</pre>
+            </details>
         </div>
 
         <h3 class="text-xl font-bold text-purple-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-brain"></i> <?= __('Core Souls Hub') ?></h3>
@@ -562,7 +611,7 @@ loadTranslations('api-docs');
         <div class="mb-10 border-l-2 border-zinc-800 pl-6 space-y-3">
             <div class="flex items-center gap-3">
                 <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
-                <code class="text-base font-bold text-white">/logout</code>
+                <code class="text-base font-bold text-white">/api/logout</code>
                 <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded ml-2 border border-amber-500/20">Session Cookie Required</span>
             </div>
             <p class="text-sm text-zinc-400"><?= __('desc_logout') ?></p>

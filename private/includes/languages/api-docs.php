@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - i18n Translation Dictionary
  * Target: api-docs.php (API Reference Component)
+ * 🚀 Patched: Added missing endpoints (wallet-login, my-chats) and updated bind-wallet crypto requirements.
  */
 
 return [
@@ -23,11 +24,13 @@ return [
         'desc_register' => 'Register a new user and generate an API key. Enforces secure alpha-numeric URL constraints.',
         'desc_login' => 'Authenticate user. Returns API Key and sets a secure 30-day web session if requested.',
         'desc_change_password' => 'Change the current logged-in user\'s password securely.',
-        'desc_bind_wallet' => 'Bind a Web3 NEAR wallet to the current session account. Required to unlock AgentFi capabilities. This action is permanent and irreversible.',
+        'desc_bind_wallet' => 'Bind a Web3 NEAR wallet to the current session account. Requires a valid Ed25519 cryptographic signature payload to prevent identity spoofing. This action is permanent.',
+        'desc_wallet_login' => 'Authenticate user via Web3 wallet. Requires an Ed25519 cryptographic signature signed by the wallet\'s local session key. Returns a secure web session if the wallet is bound.',
         
         'desc_chat_get' => 'Headless API access to retrieve conversation history. Strict permission controls prevent accessing private sessions.',
         'desc_chat_post' => 'Headless API access to interact with the core routing engine. Send messages, optionally attach base64 images (Vision AI), and receive responses. Free tier requests to this endpoint will be strictly rejected with a 403 Forbidden status.',
         'desc_self_chat' => 'Headless BYOK proxy endpoint. Uses the user\'s custom encrypted keys stored in the database. Bypasses platform daily limits but enforces Web3 NFT token-gating.',
+        'desc_my_chats' => 'Retrieve a list of all active chat sessions and compressed memory summaries for the authenticated user.',
         
         'desc_categories' => 'Fetch the complete white-list of roles/categories including their corresponding slug names and emoji icons.',
         'desc_souls_get' => 'List, search and filter public souls. Optimized with strict DB select limits.',
@@ -78,11 +81,13 @@ return [
         'desc_register' => '註冊新創作者帳號並自動發配 Secret API Key。內部強化網址安全規範校驗。',
         'desc_login' => '使用者身份驗證。成功後回傳開發者金鑰，並可依要求自動綁定 30 天 Cookie 保持登入狀態。',
         'desc_change_password' => '安全地變更當前登入使用者的系統密碼。',
-        'desc_bind_wallet' => '將 Web3 NEAR 錢包綁定至當前帳號。解鎖 AgentFi 資產交易與黑盒租用功能所需。此綁定操作為永久性且不可逆。',
+        'desc_bind_wallet' => '將 Web3 NEAR 錢包綁定至當前帳號。為防止身份偽造，必須攜帶有效的 Ed25519 密碼學簽章 Payload。此操作不可逆。',
+        'desc_wallet_login' => '透過 Web3 錢包靜默登入。必須傳入以本地錢包金鑰簽署的 Ed25519 密碼學防偽簽章。若錢包已綁定則核發安全會話。',
         
         'desc_chat_get' => '以無頭（Headless）端遠端查詢指定對話工作階段的歷史紀錄訊息陣列。受權限隔離安全機制保護。',
         'desc_chat_post' => '遠端發送對話呼叫。系統會自動調度智能雙引擎（純文字投遞 DeepSeek，帶圖片投遞 Together AI 視覺模態）並自動刷新滑動內存。免費或過期帳戶直接阻斷並回傳 403 Forbidden。',
         'desc_self_chat' => '無狀態 BYOK 代理端點。使用用戶儲存於資料庫的加密專屬金鑰。此端點不扣除平台每日額度，但嚴格執行 Web3 NFT 門禁檢查。',
+        'desc_my_chats' => '獲取當前登入用戶所有活躍的歷史對話列表，以及系統自動壓縮的記憶體摘要紀錄。',
         
         'desc_categories' => '拉取目前系統白名單允許的所有 AI 適用角色分類、對應的 Slug 別名及前端 Emoji 圖標。',
         'desc_souls_get' => '分頁撈取、檢索大廳中公開的靈魂模型列表。內部經過極致索引優化。',

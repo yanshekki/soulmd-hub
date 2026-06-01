@@ -3,6 +3,7 @@
  * SoulMD Hub - Postman Collection Generator
  * Included by my-api.php and api-docs.php
  * (Web2.5 AgentFi & BYOK Proxy Edition)
+ * 🚀 Patched: Added missing endpoints, updated Ed25519 payloads, and fully integrated i18n.
  */
 ?>
 <script>
@@ -14,12 +15,12 @@
             "info": {
                 "name": "SoulMD Hub Public API",
                 "_postman_id": "soulmd_hub_collection_" + Date.now(),
-                "description": "Official API Collection for SoulMD Hub - Modular AI Agent SaaS Ecosystem.",
+                "description": "<?= addslashes(__('API_Driven_Desc')) ?>",
                 "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
             },
             "item": [
                 {
-                    "name": "Authentication & Account",
+                    "name": "<?= addslashes(__('Authentication & Account')) ?>",
                     "item": [
                         {
                             "name": "Register User",
@@ -94,7 +95,13 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": JSON.stringify({"action": "bind", "wallet": "yanshekki.near"}, null, 2)
+                                    "raw": JSON.stringify({
+                                        "action": "bind", 
+                                        "wallet": "yanshekki.near",
+                                        "public_key": "ed25519:G1...",
+                                        "signature": "L/xN...",
+                                        "message": "soulmd_auth:1716330000000"
+                                    }, null, 2)
                                 },
                                 "url": { "raw": "{{baseUrl}}/api/bind-wallet", "host": ["{{baseUrl}}"], "path": ["api", "bind-wallet"] }
                             },
@@ -106,11 +113,38 @@
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": JSON.stringify({"success": true, "message": "Wallet bound successfully!"}, null, 2)
                             }]
+                        },
+                        {
+                            "name": "Web3 Wallet Login",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Content-Type", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": JSON.stringify({
+                                        "account_id": "yanshekki.near",
+                                        "public_key": "ed25519:G1...",
+                                        "signature": "L/xN...",
+                                        "message": "soulmd_auth:1716330000000"
+                                    }, null, 2)
+                                },
+                                "url": { "raw": "{{baseUrl}}/api/wallet-login", "host": ["{{baseUrl}}"], "path": ["api", "wallet-login"] }
+                            },
+                            "response": [{
+                                "name": "Login Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true}, null, 2)
+                            }]
                         }
                     ]
                 },
                 {
-                    "name": "Interaction & Chat Engine",
+                    "name": "<?= addslashes(__('Interaction & Chat Engine')) ?>",
                     "item": [
                         {
                             "name": "Retrieve Chat History",
@@ -134,6 +168,26 @@
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": JSON.stringify({"success": true, "messages": [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there!"}]}, null, 2)
+                            }]
+                        },
+                        {
+                            "name": "Retrieve My Chats List",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{apiKey}}"}],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/my-chats",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "my-chats"]
+                                }
+                            },
+                            "response": [{
+                                "name": "Sessions Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "sessions": [{"session_token": "unique_session_id_123", "soul_id": 1, "summary": "User asked about architecture layout...", "last_updated": "2026-05-21 14:00:00"}]}, null, 2)
                             }]
                         },
                         {
@@ -185,7 +239,7 @@
                     ]
                 },
                 {
-                    "name": "Core Souls",
+                    "name": "<?= addslashes(__('Core Souls Hub')) ?>",
                     "item": [
                         {
                             "name": "List Available Categories/Roles",
@@ -282,7 +336,7 @@
                                 "code": 201,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "message": "Soul created successfully", "id": 42, "url": "<?= $baseUrl ?? 'https://soulmd-hub.ysk.hk' ?>/soul/42"}, null, 2)
+                                "body": JSON.stringify({"success": true, "message": "Soul created successfully", "id": 42, "url": "<?= defined('BASE_URL') ? BASE_URL : 'https://soulmd-hub.ysk.hk' ?>/soul/42"}, null, 2)
                             }]
                         },
                         {
@@ -337,7 +391,7 @@
                     ]
                 },
                 {
-                    "name": "Profiles & Social Actions",
+                    "name": "<?= addslashes(__('Profiles & Social Interactions')) ?>",
                     "item": [
                         {
                             "name": "Get User Profile Data",
@@ -424,7 +478,7 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "new_soul_id": 43, "url": "<?= $baseUrl ?? 'https://soulmd-hub.ysk.hk' ?>/soul/43", "message": "Soul forked successfully!"}, null, 2)
+                                "body": JSON.stringify({"success": true, "new_soul_id": 43, "url": "<?= defined('BASE_URL') ? BASE_URL : 'https://soulmd-hub.ysk.hk' ?>/soul/43", "message": "Soul forked successfully!"}, null, 2)
                             }]
                         },
                         {
