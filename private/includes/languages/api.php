@@ -120,6 +120,8 @@ return [
         'Access Denied Web3' => "⛔ **Access Denied (Token-Gating)**\nThis AI Agent is an exclusive on-chain asset (NFT). You must purchase ownership or rent this model via the marketplace to interact with it.",
         'RPC Pool Blocked' => "🔒 **RPC Timeout:** Unable to connect to the blockchain to verify your access rights. If you are the owner, please ensure your Web3 wallet is properly bound.",
         'Custom API Engine Error' => "Custom API Engine Error: :error",
+        'Wallet already bound' => 'Your account is already permanently bound to a wallet.',
+        'Wallet already exists' => 'Action Blocked: This wallet address is already bound to another SoulMD Hub account!',
     ],
     
     'zh' => [
@@ -237,5 +239,7 @@ return [
         'Access Denied Web3' => "⛔ **存取被拒 (Token-Gating 門禁)**\n此 AI 模型已綁定為區塊鏈資產 (NFT)。您必須成為其擁有者，或者在市集支付租金才能與其對話。",
         'RPC Pool Blocked' => "🔒 **RPC 連線逾時:** 所有網絡節點連線逾時，無法驗證您的區塊鏈存取權限。若您是模型擁有者，請確認您的 Web3 錢包已正確綁定。",
         'Custom API Engine Error' => "自訂 API 引擎錯誤：:error",
+        'Wallet already bound' => '操作被拒：您的帳號已經永久綁定過錢包了。',
+        'Wallet already exists' => '綁定失敗：此錢包地址已經被其他帳號綁定過了！',
     ]
 ];
