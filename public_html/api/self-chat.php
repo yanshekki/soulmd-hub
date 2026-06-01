@@ -4,7 +4,7 @@
  * 100% 左手交右手無狀態代理，不扣除平台 Daily Limit (Fallback 例外)。
  * 包含 Web3 Token-Gating, 自訂記憶壓縮, 及 Vision Fallback。
  * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
- * 🚀 Patched: Replaced hardcoded cURL loops with centralized NearRpcService
+ * 🚀 Patched: Fixed Phantom NFT is_public=0 bug & Removed redundant curl_getinfo typo
  */
 
 set_time_limit(180);
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
-require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
+require_once __DIR__ . '/../../private/src/NearRpcService.php';
 
 // 🌍 載入全域 API 語言包
 loadTranslations('api');
@@ -224,14 +224,13 @@ if ($soul['is_nft'] == 1) {
     $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
     $rpc = NearRpcService::getInstance();
     
-    // 🌟 呼叫中央 RPC 服務
     $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId]);
     
     $rpcStatus = $rpcRes['status'];
     $tokenInfo = $rpcRes['data'];
 
     if ($rpcStatus === 'not_found') {
-        // 🚨 自癒降級：鏈上找不到，剝奪 NFT 狀態，交還 Web2 持有者
+        // 🚨 修復點 1：自癒降級時，強制加上 is_public = 0，保護模型知識產權
         $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?")->execute([$soulId]);
         $soul['is_nft'] = 0;
         $soul['is_public'] = 0;
@@ -338,7 +337,6 @@ if (count($unsummarized) >= $compressThreshold) {
         $sumPrompt .= strtoupper($m['role']) . ": " . $txt . "\n";
     }
 
-    // 🌟 使用用戶自己的 Text API 進行壓縮，免扣平台錢
     $chSum = curl_init();
     curl_setopt_array($chSum, [
         CURLOPT_URL => $settings['text_api_url'],
@@ -408,7 +406,8 @@ curl_setopt_array($ch, [
 ]);
 
 $response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+// 🚨 修復點 2：直接並唯一地取得 HTTP_CODE
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); 
 curl_close($ch);
 
 $responseData = json_decode($response, true);
@@ -425,11 +424,8 @@ $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 // 8. 儲存對話紀錄 (無縫接軌前端 UI)
 // ==========================================
 try {
-    $freshPdo = new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset='.DB_CHARSET, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT => 15
-    ]);
+    // 🚀 核心升級：使用 Database 類別取得全新的獨立連線，避免 MySQL Timeout
+    $freshPdo = Database::getFreshConnection();
     
     $freshPdo->beginTransaction();
     

@@ -3,7 +3,7 @@
  * SoulMD Hub Public API - Platform Official Channel (chat.php)
  * 官方計費通道：嚴格執行 Tier 限制、扣除 Daily Limit、Web3 門禁及平台官方金鑰調用。
  * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
- * 🚀 Patched: Replaced hardcoded cURL loops with centralized NearRpcService
+ * 🚀 Patched: Replaced hardcoded new PDO with Database::getFreshConnection()
  */
 
 set_time_limit(180);
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
+require_once __DIR__ . '/../../private/src/NearRpcService.php';
 
 loadTranslations('api');
 
@@ -337,7 +337,7 @@ if ($method === 'POST') {
                     echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); exit;
                 }
 
-                // 🔄 易手懶同步 (Lazy Sync)
+                // 🔄 Lazy Sync 擁有權移交
                 $chainOwner = $tokenInfo['owner_id'];
                 if ($chainOwner !== $soul['nft_owner_wallet']) {
                     $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
@@ -569,11 +569,8 @@ if ($method === 'POST') {
 
         // 寫入數據庫與次數計費結算
         try {
-            $freshPdo = new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset='.DB_CHARSET, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, 
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, 
-                PDO::ATTR_TIMEOUT => 15
-            ]);
+            // 🚀 核心升級：使用 Database 類別取得全新的獨立連線，避免 MySQL Timeout
+            $freshPdo = Database::getFreshConnection();
             
             $freshPdo->beginTransaction();
             
@@ -613,3 +610,4 @@ if ($method === 'POST') {
     http_response_code(405); 
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
 }
+?>
