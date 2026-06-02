@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Login Page
  * (Dynamic i18n Internationalization & Pure Native MyNearWallet Redirect Edition)
- * 🚀 Patched: 100% Pure Redirect Mode & Non-Black Emerald Contrast UI with Strict RPC Loading Locks
+ * 🚀 Patched: Fixed wallet login missing cryptographic signature parameters payload bug.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -45,7 +45,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <input type="password" id="password" name="password" required class="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-400 transition shadow-inner text-white">
             </div>
 
-            <div class="flex items-center text-xs text-zinc-400">
+            <div class="flex items-center text-xs text-zinc-400 select-none">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="remember" name="remember" class="accent-emerald-400 w-4 h-4 rounded bg-zinc-900 border-white/20"> <?= __('Remember me') ?>
                 </label>
@@ -81,7 +81,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btnIcon = document.getElementById('near-btn-icon');
         const originalText = btnText.innerHTML;
 
-        // 🚨 鎖定 Web3 登入按鈕
         btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -121,7 +120,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btnText = document.getElementById('near-btn-text');
         const btnIcon = document.getElementById('near-btn-icon');
         
-        // 🚨 驗證期間持續鎖定按鈕
         if(btn) {
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -130,10 +128,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         if(btnText) btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Verifying Session...')) ?>';
 
         try {
+            // 🚀 核心漏洞修復：在發送請求前，調用密碼學腳本生成安全的 Ed25519 簽章
+            const authPayload = await window.generateNearAuthPayload(accountId);
+
             const res = await fetch('/api/wallet-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ account_id: accountId })
+                body: JSON.stringify(authPayload) // 投遞包含簽章、公鑰、Nonce 的完整密碼學對帳單
             });
             const data = await res.json();
             if (data.success) {
@@ -179,7 +180,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         text.classList.add('hidden');
         loading.classList.remove('hidden');
         
-        // 🚨 鎖定傳統登入按鈕
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 
