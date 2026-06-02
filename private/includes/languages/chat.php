@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub - i18n Translation Dictionary
- * Target: chat.php (Smart Chat Engine & Paywall Modals)
+ * Target: chat.php (Smart Chat Engine, Multiplayer Sync & Paywall Modals)
+ * 🚀 Patched: Added Multiplayer Chat identities (Anonymous, You, etc.)
  */
 
 return [
@@ -62,6 +63,11 @@ return [
         // 🚨 IP Protection (Anti-Peeping)
         'Protected' => 'Protected Asset',
         'Protected NFT Msg' => 'This AI Agent is an on-chain NFT asset. The core prompt is protected to preserve the creator\'s IP.',
+        
+        // 👨‍💻 Multiplayer Identities
+        'Anonymous' => 'Anonymous',
+        'You' => 'You',
+        'AI Assistant' => 'AI Assistant',
     ],
     
     'zh' => [
@@ -121,5 +127,10 @@ return [
         // 🚨 IP Protection (Anti-Peeping)
         'Protected' => '受保護的資產',
         'Protected NFT Msg' => '此 AI 智能體為鏈上 NFT 資產。其核心系統指令 (Prompt) 已被隱藏以保護創作者的知識產權 (IP)。',
+        
+        // 👨‍💻 Multiplayer Identities
+        'Anonymous' => '匿名者',
+        'You' => '您',
+        'AI Assistant' => 'AI 助手',
     ]
 ];

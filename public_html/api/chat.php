@@ -3,7 +3,7 @@
  * SoulMD Hub Public API - Platform Official Channel (chat.php)
  * 官方計費通道：嚴格執行 Tier 限制、扣除 Daily Limit、Web3 門禁及平台官方金鑰調用。
  * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
- * 🚀 Patched: Token DoS Injection regex & Undefined Variable fixed. Multiplayer shared session retained.
+ * 🚀 Patched: Added sender_name identity tracking for Multiplayer Chat.
  */
 
 set_time_limit(180);
@@ -23,6 +23,7 @@ require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 
 loadTranslations('api');
+loadTranslations('chat'); // 載入 chat 語言包以獲取 Anonymous / AI Assistant 等翻譯
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -62,14 +63,15 @@ function getCurrentUser($pdo, $apiUserId = null) {
             $_SESSION['guest_daily_count'] = 0;
             $_SESSION['guest_last_chat_date'] = $today;
         }
-        return ['id' => null, 'tier' => 'free', 'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0), 'is_expired' => false, 'near_wallet' => null];
+        return ['id' => null, 'username' => null, 'tier' => 'free', 'daily_count' => (int)($_SESSION['guest_daily_count'] ?? 0), 'is_expired' => false, 'near_wallet' => null];
     }
 
-    $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
+    // 🚀 加入撈取 username
+    $stmt = $pdo->prepare("SELECT id, username, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
 
-    if (!$user) return ['id' => null, 'tier' => 'free', 'daily_count' => 0, 'is_expired' => false, 'near_wallet' => null];
+    if (!$user) return ['id' => null, 'username' => null, 'tier' => 'free', 'daily_count' => 0, 'is_expired' => false, 'near_wallet' => null];
 
     $isExpired = false;
     if ($user['tier'] !== 'free' && $user['vip_expires_at'] && strtotime($user['vip_expires_at']) < time()) {
@@ -85,6 +87,7 @@ function getCurrentUser($pdo, $apiUserId = null) {
 
     return [
         'id' => $user['id'],
+        'username' => $user['username'],
         'tier' => $user['tier'],
         'daily_count' => $user['daily_chat_count'],
         'is_expired' => $isExpired,
@@ -120,7 +123,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // 🚨 修復 2：正則表達式攔截，防止 Token 注入與 DoS
     if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken)) {
         http_response_code(400); 
         echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
@@ -140,9 +142,10 @@ if ($method === 'GET') {
     }
 
     try {
+        // 🚀 撈取埋 sender_name
         $stmt = $pdo->prepare("
-            SELECT role, content FROM (
-                SELECT id, role, content 
+            SELECT role, sender_name, content FROM (
+                SELECT id, role, sender_name, content 
                 FROM chat_messages 
                 WHERE soul_id = ? AND session_token = ? 
                 ORDER BY id DESC 
@@ -204,8 +207,7 @@ if ($method === 'POST') {
         $chatSession = $sessStmt->fetch();
 
         if ($chatSession) {
-            // 擁有者權限檢查
-            if ($currentUser['id'] !== null && $chatSession['user_id'] == $currentUser['id']) {
+            if ($currentUser['id'] !== null && $chatSession['user_id'] === $currentUser['id']) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
             } else {
@@ -233,11 +235,8 @@ if ($method === 'POST') {
     $userMessageText = trim($input['content'] ?? '');
     $imageBase64 = $input['image'] ?? null;
     $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
-    
-    // 🚀 修復 3：預先定義 Vision Request 判斷變數
     $isVisionRequest = !empty($imageBase64);
 
-    // 🚨 修復 2：Token 格式校驗
     if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
         http_response_code(400); 
         echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
@@ -272,7 +271,6 @@ if ($method === 'POST') {
         $sessStmt->execute([$sessionToken]);
         $chatSession = $sessStmt->fetch();
 
-        // 🌟 撤銷防護 1：允許多人共享同一個 URL 進行群聊！只阻擋 Private
         if ($chatSession) {
             if ($chatSession['is_private'] && $currentUser['id'] !== $chatSession['user_id']) {
                 http_response_code(403); 
@@ -549,13 +547,26 @@ if ($method === 'POST') {
 
         $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 
+        // 🚀 判定發送者身份 Sender Name
+        $senderName = '';
+        if ($currentUser['id']) {
+            $senderName = $currentUser['username'];
+        } else {
+            if (empty($_SESSION['guest_id'])) {
+                $_SESSION['guest_id'] = bin2hex(random_bytes(8));
+            }
+            $shortId = strtoupper(substr($_SESSION['guest_id'], 0, 4));
+            $senderName = __('Anonymous') . ' #' . $shortId;
+        }
+
         try {
             $freshPdo = Database::getFreshConnection();
             $freshPdo->beginTransaction();
             
-            $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, content) VALUES (?, ?, ?, ?)");
-            $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
-            $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
+            // 🚀 將 sender_name 寫入資料庫
+            $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, sender_name, content) VALUES (?, ?, ?, ?, ?)");
+            $ins->execute([$soulId, $sessionToken, 'user', $senderName, $dbContentToSave]);
+            $ins->execute([$soulId, $sessionToken, 'assistant', __('AI Assistant'), $aiReply]);
             
             if ($currentUser['id']) {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
@@ -573,7 +584,9 @@ if ($method === 'POST') {
             }
 
             $freshPdo->commit();
-            echo json_encode(['success' => true, 'reply' => $aiReply], JSON_UNESCAPED_UNICODE);
+            
+            // 🚀 回傳埋 sender_name
+            echo json_encode(['success' => true, 'reply' => $aiReply, 'sender_name' => __('AI Assistant')], JSON_UNESCAPED_UNICODE);
 
         } catch (Throwable $e) {
             if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();

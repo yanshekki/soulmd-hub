@@ -3,7 +3,7 @@
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
  * (Web2.5 BYOK Dual-Track Router Edition)
- * 🚀 Patched: Added Multiplayer Heartbeat & Live Presence Tracking
+ * 🚀 Patched: Full Multiplayer Delta Sync, Sender Identity UI & Message Deduplication.
  */
 ?>
 <script>
@@ -17,6 +17,9 @@
     const chatForm = document.getElementById('chat-form');
     
     let userMessageCount = 0;
+    let lastMessageId = 0; // 🚀 追蹤目前畫面上最新嘅訊息 ID
+    window.renderedContents = new Set(); // 🚀 用於防止本地訊息與 API 同步訊息重複顯示
+
     const MAX_TURNS = <?= $maxTurns ?>;
     const MAX_INPUT_CHARS = <?= $maxInputChars ?>;
     const ALLOW_IMAGE = <?= $allowImage ?>;
@@ -270,11 +273,34 @@
         });
     }
 
-    // --- 訊息渲染 ---
-    function appendMessage(role, content) {
+    // 🚀 訊息渲染 (支援 Sender Identity UI 及 去重緩存)
+    function appendMessage(role, content, senderName = null, msgId = null) {
+        if (msgId && msgId > lastMessageId) {
+            lastMessageId = msgId;
+        }
+
+        // 建立特徵指紋，防重複渲染
+        let strContent = typeof content === 'string' ? content : JSON.stringify(content);
+        let dedupKey = role + '_' + strContent;
+        if (window.renderedContents.has(dedupKey) && content !== '...') {
+            return null; // 如果已經顯示過（例如本地剛發送過），忽略！
+        }
+        if (content !== '...') window.renderedContents.add(dedupKey);
+
         const msgDiv = document.createElement('div');
-        msgDiv.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+        msgDiv.className = `flex flex-col w-full mb-4 ${role === 'user' ? 'items-end' : 'items-start'}`;
+
+        // 🚀 加入發送者名字
+        if (senderName) {
+            const nameDiv = document.createElement('div');
+            nameDiv.className = `text-[10px] text-zinc-500 mb-1 px-2 ${role === 'user' ? 'text-right' : 'text-left'}`;
+            nameDiv.innerText = senderName;
+            msgDiv.appendChild(nameDiv);
+        }
         
+        const bubbleWrapper = document.createElement('div');
+        bubbleWrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
         const bubble = document.createElement('div');
         bubble.className = `max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${
             role === 'user' 
@@ -308,7 +334,8 @@
         }
 
         bubble.innerHTML = innerHTML;
-        msgDiv.appendChild(bubble);
+        bubbleWrapper.appendChild(bubble);
+        msgDiv.appendChild(bubbleWrapper);
         chatBox.appendChild(msgDiv);
         
         scrollToBottom();
@@ -345,7 +372,7 @@
             if (data.success) {
                 if (data.messages && data.messages.length > 0) {
                     data.messages.forEach(msg => {
-                        appendMessage(msg.role, msg.content);
+                        appendMessage(msg.role, msg.content, msg.sender_name, msg.id);
                         if (msg.role === 'user') userMessageCount++;
                     });
                     
@@ -357,27 +384,27 @@
                         showPaywall();
                     }
                 } else {
-                    appendMessage('assistant', <?= json_encode(__('Init message'), JSON_UNESCAPED_UNICODE) ?>);
+                    appendMessage('assistant', <?= json_encode(__('Init message'), JSON_UNESCAPED_UNICODE) ?>, '<?= addslashes(__('AI Assistant')) ?>');
                 }
             } else {
                 const errMsg = data.error || 'Access Denied';
                 if (errMsg.includes('Access Denied') || errMsg.includes('拒絕存取')) {
-                    appendMessage('assistant', <?= json_encode(__('Private Session warning'), JSON_UNESCAPED_UNICODE) ?>);
+                    appendMessage('assistant', <?= json_encode(__('Private Session warning'), JSON_UNESCAPED_UNICODE) ?>, '<?= addslashes(__('AI Assistant')) ?>');
                     chatInput.disabled = true; sendBtn.disabled = true;
                 } else {
-                    appendMessage('assistant', `⚠️ Error: ${escapeHTML(errMsg)}`);
+                    appendMessage('assistant', `⚠️ Error: ${escapeHTML(errMsg)}`, '<?= addslashes(__('AI Assistant')) ?>');
                 }
             }
         } catch (e) {
             if (loading) {
                 loading.innerHTML = '<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> ' + <?= json_encode(__('Failed to load conversation history.'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
             } else {
-                appendMessage('assistant', "⚠️ " + <?= json_encode(__('Browser core exception while compiling logs frame.'), JSON_UNESCAPED_UNICODE) ?>);
+                appendMessage('assistant', "⚠️ " + <?= json_encode(__('Browser core exception while compiling logs frame.'), JSON_UNESCAPED_UNICODE) ?>, '<?= addslashes(__('AI Assistant')) ?>');
             }
         }
     }
 
-    // 🌟 3. 發送訊息
+    // 🌟 發送訊息
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -411,10 +438,11 @@
         if (currentImageBase64) displayPayload.push({ type: 'image_url', image_url: { url: currentImageBase64 } });
         
         let contentToAppend = currentImageBase64 ? displayPayload : messageText;
-        appendMessage('user', contentToAppend);
         
+        // 🚀 本地立即顯示，並帶上 "You" 身份
+        appendMessage('user', contentToAppend, '<?= addslashes(__('You')) ?>');
         userMessageCount++;
-        const aiBubble = appendMessage('assistant', '...');
+        const aiBubble = appendMessage('assistant', '...', '<?= addslashes(__('AI Assistant')) ?>');
         
         const privacyToggle = document.getElementById('privacy-toggle');
         const payload = {
@@ -445,7 +473,6 @@
             try {
                 data = JSON.parse(rawText);
             } catch (parseErr) {
-                console.error("Raw Server Response:", rawText);
                 if (rawText.includes('524') || rawText.includes('timeout') || rawText.includes('Cloudflare')) {
                     aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-hourglass-end"></i> ` + <?= json_encode(__('Cloudflare Timeout'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
                 } else {
@@ -455,6 +482,8 @@
             }
 
             if (data.success) {
+                // 🚀 將 API 回傳的最終對話內容加入特徵去重 Set，防止稍後同步時被二次渲染
+                window.renderedContents.add('assistant_' + (data.reply || ''));
                 aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
             } else {
                 if (data.needs_upgrade) {
@@ -485,10 +514,10 @@
         }
     });
 
-    // 🌟 4. 多人在線心跳機制 (Heartbeat & Presence)
+    // 🌟 4. 多人在線心跳與增量同步 (Delta Sync)
     async function syncHeartbeat() {
         try {
-            const res = await fetch(`/api/chat-sync?soul_id=${soulId}&session_token=${sessionToken}&last_id=0`);
+            const res = await fetch(`/api/chat-sync?soul_id=${soulId}&session_token=${sessionToken}&last_id=${lastMessageId}`);
             const data = await res.json();
             
             if (data.success) {
@@ -499,7 +528,6 @@
                     badge.classList.remove('hidden');
                     countSpan.innerText = data.online_count;
                     
-                    // 當超過 1 個人，徽章變色提示「有人一齊傾緊」
                     if (data.online_count > 1) {
                         badge.classList.add('text-purple-400', 'flex');
                         badge.classList.remove('text-zinc-500');
@@ -508,13 +536,20 @@
                         badge.classList.remove('text-purple-400');
                     }
                 }
+
+                // 🚀 將新拉取到的訊息增量附加到畫面上
+                if (data.new_messages && data.new_messages.length > 0) {
+                    data.new_messages.forEach(msg => {
+                        appendMessage(msg.role, msg.content, msg.sender_name, msg.id);
+                    });
+                }
             }
         } catch (e) {
             console.warn('Heartbeat sync skipped.');
         }
     }
 
-    // 每 3.5 秒發送一次心跳
+    // 每 3.5 秒發送一次心跳及拉取最新對話
     setInterval(syncHeartbeat, 3500);
 
     window.onload = initChatEnvironment;

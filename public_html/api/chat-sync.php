@@ -2,6 +2,7 @@
 /**
  * SoulMD Hub - Multiplayer Chat Sync & Heartbeat API
  * 處理多人連線心跳、在線人數統計、以及增量下發新訊息 (Delta Sync)
+ * 🚀 Patched: Added sender_name retrieval for accurate Multiplayer UI rendering.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -18,6 +19,7 @@ $soulId = (int)($_GET['soul_id'] ?? 0);
 $sessionToken = trim($_GET['session_token'] ?? '');
 $lastMsgId = (int)($_GET['last_id'] ?? 0);
 
+// 🚨 嚴格校驗 Token 格式
 if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken)) {
     http_response_code(400); exit;
 }
@@ -48,10 +50,11 @@ try {
     $countStmt->execute([$sessionToken]);
     $onlineCount = (int)$countStmt->fetchColumn();
 
-    // 4. 撈取大於 $lastMsgId 的新訊息 (Delta Sync)，別人打的字會喺度出現
+    // 4. 🚀 撈取大於 $lastMsgId 的新訊息，並帶上 sender_name
     $newMessages = [];
-    if ($lastMsgId > 0) {
-        $msgStmt = $pdo->prepare("SELECT id, role, content FROM chat_messages WHERE soul_id = ? AND session_token = ? AND id > ? ORDER BY id ASC");
+    if ($lastMsgId >= 0) {
+        // LIMIT 50 防止一次過拉太多拖慢效能
+        $msgStmt = $pdo->prepare("SELECT id, role, sender_name, content FROM chat_messages WHERE soul_id = ? AND session_token = ? AND id > ? ORDER BY id ASC LIMIT 50");
         $msgStmt->execute([$soulId, $sessionToken, $lastMsgId]);
         $newMessages = $msgStmt->fetchAll();
     }
@@ -62,7 +65,7 @@ try {
         'new_messages' => $newMessages
     ], JSON_UNESCAPED_UNICODE);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500); exit;
 }
 ?>

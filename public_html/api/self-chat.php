@@ -4,7 +4,7 @@
  * 100% 左手交右手無狀態代理，不扣除平台 Daily Limit (Fallback 例外)。
  * 包含 Web3 Token-Gating, 自訂記憶壓縮, 及 Vision Fallback。
  * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
- * 🚀 Patched: Token DoS Injection regex fixed. Multiplayer shared session retained.
+ * 🚀 Patched: Added sender_name identity tracking for Multiplayer Chat support.
  */
 
 set_time_limit(180);
@@ -24,8 +24,9 @@ require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 
-// 🌍 載入全域 API 語言包
+// 🌍 載入全域 API 與 Chat 語言包以獲取 Anonymous 翻譯
 loadTranslations('api');
+loadTranslations('chat');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -54,7 +55,8 @@ function getCurrentUser($pdo) {
     $userId = $_SESSION['user_id'];
     $today = date('Y-m-d');
 
-    $stmt = $pdo->prepare("SELECT id, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
+    // 🚀 補上撈取 username
+    $stmt = $pdo->prepare("SELECT id, username, tier, daily_chat_count, last_chat_date, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
 
@@ -74,6 +76,7 @@ function getCurrentUser($pdo) {
 
     return [
         'id' => $user['id'],
+        'username' => $user['username'],
         'tier' => $user['tier'],
         'daily_count' => $user['daily_chat_count'],
         'is_expired' => $isExpired,
@@ -113,11 +116,8 @@ $sessionToken = trim($input['session_token'] ?? '');
 $userMessageText = trim($input['content'] ?? '');
 $imageBase64 = $input['image'] ?? null;
 $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
-
-// 🚀 修復：預先定義 Vision Request 判斷變數
 $isVisionRequest = !empty($imageBase64);
 
-// 🚨 修復 2：Token 格式校驗 (防止 DoS 注入或記憶體溢出)
 if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
     http_response_code(400); 
     echo json_encode(['success' => false, 'error' => __('Invalid request parameters')], JSON_UNESCAPED_UNICODE); 
@@ -144,10 +144,8 @@ $targetModel = '';
 
 if ($isVisionRequest) {
     if (empty($settings['vision_api_key'])) {
-        // 🚨 嚴格攔截：若無自備 Vision Key 且平台配額不符，立即擋下
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
-            $msg = $currentUser['is_expired'] ? __('API restricted expired') : __('Vision AI exclusive');
             echo json_encode(['success' => false, 'error' => __('Vision BYOK fallback error'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE);
             exit;
         }
@@ -161,7 +159,6 @@ if ($isVisionRequest) {
             exit;
         }
         
-        // 觸發 Fallback 降級為平台官方 Vision 模型 (準備扣費)
         $isVisionFallback = true;
         $targetApiUrl = defined('VISION_API_URL') ? VISION_API_URL : 'https://api.openai.com/v1/chat/completions';
         $targetApiKey = defined('VISION_API_KEY') ? VISION_API_KEY : '';
@@ -172,13 +169,11 @@ if ($isVisionRequest) {
             $targetModel = defined('VIP_VISION_MODEL') ? VIP_VISION_MODEL : 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo';
         }
     } else {
-        // 使用用戶自訂 Vision 模型
         $targetApiUrl = $settings['vision_api_url'];
         $targetApiKey = decryptData($settings['vision_api_key']);
         $targetModel = $settings['vision_model'];
     }
 } else {
-    // 🌟 純文字 LLM
     if (empty($settings['text_api_key'])) {
         http_response_code(403); 
         echo json_encode(['success' => false, 'error' => __('Text API Key is not set in your BYOK settings.')], JSON_UNESCAPED_UNICODE); 
@@ -203,7 +198,6 @@ if ($chatSession) {
         echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
-    // 只有 Session 擁有者才可以切換公開私密狀態
     if ($currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
         $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
     }
@@ -225,10 +219,8 @@ $chatUserWallet = $currentUser['near_wallet'] ?? '';
 $hasAccess = false;
 
 if ($soul['is_nft'] == 1) {
-    // 🚀 Web3 AgentFi 權威門禁：Lazy Sync + Failover + Integrity Radar
     $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
     $rpc = NearRpcService::getInstance();
-    
     $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId]);
     
     $rpcStatus = $rpcRes['status'];
@@ -276,7 +268,6 @@ if ($soul['is_nft'] == 1) {
     }
 }
 
-// 🛡️ Web2 權限判定
 if ($soul['is_nft'] == 0) {
     if ($soul['is_public'] == 1 || ($currentUser['id'] !== null && $soul['user_id'] === $currentUser['id'])) {
         $hasAccess = true;
@@ -419,6 +410,18 @@ if ($httpCode !== 200 || !empty($responseData['error'])) {
 
 $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 
+// 🚀 決定發送者身份 Sender Name
+$senderName = '';
+if ($currentUser['id']) {
+    $senderName = $currentUser['username'];
+} else {
+    if (empty($_SESSION['guest_id'])) {
+        $_SESSION['guest_id'] = bin2hex(random_bytes(8));
+    }
+    $shortId = strtoupper(substr($_SESSION['guest_id'], 0, 4));
+    $senderName = __('Anonymous') . ' #' . $shortId;
+}
+
 // ==========================================
 // 8. 儲存對話紀錄 (無縫接軌前端 UI)
 // ==========================================
@@ -426,9 +429,10 @@ try {
     $freshPdo = Database::getFreshConnection();
     $freshPdo->beginTransaction();
     
-    $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, content) VALUES (?, ?, ?, ?)");
-    $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
-    $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
+    // 🚀 將 sender_name 寫入資料庫
+    $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, sender_name, content) VALUES (?, ?, ?, ?, ?)");
+    $ins->execute([$soulId, $sessionToken, 'user', $senderName, $dbContentToSave]);
+    $ins->execute([$soulId, $sessionToken, 'assistant', __('AI Assistant'), $aiReply]);
     
     if ($isVisionFallback && $currentUser['id']) {
         $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
@@ -441,7 +445,7 @@ try {
     
     $freshPdo->commit();
 
-    echo json_encode(['success' => true, 'reply' => $aiReply], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => true, 'reply' => $aiReply, 'sender_name' => __('AI Assistant')], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
     if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();
