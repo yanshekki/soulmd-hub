@@ -1,129 +1,57 @@
-# SoulMD Hub 🚀
+# 🌌 SoulMD Hub (V5 Web2.5 AgentFi Architecture)
 
-**The Ultimate Multi-Modal AI Agent SaaS Ecosystem.**
+[![PHP](https://img.shields.io/badge/PHP-8.0+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
+[![NEAR Protocol](https://img.shields.io/badge/NEAR-Protocol-black?style=flat-square&logo=near&logoColor=white)](https://near.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-A lightweight, high-performance, API-first PHP + MySQL platform designed to build, discover, monetize, and interact with modular AI personas (`SOUL.md`). Powered by a dual-engine routing architecture integrating **DeepSeek** (Logic/Reasoning) and **Together AI** (Vision).
+Welcome to **SoulMD Hub**, the enterprise-grade platform bridging traditional Web2 user experiences with Web3 decentralized AI asset ownership (AgentFi). 
 
-Built with a Single Page Application (SPA) feel, completely free of heavy frontend frameworks, and fully equipped with an automated PayPal subscription system.
-
----
-
-## ✨ Enterprise-Grade Features
-
-### 🧠 Dual-Engine AI & Vision
-* **Smart Model Routing**: Seamlessly routes pure text requests to DeepSeek (V4/Pro) and image analysis requests to Together AI (Qwen/Llama Vision).
-* **Client-Side Image Compression**: Utilizes GPU-accelerated HTML5 `<canvas>` to compress images to 800px/60% quality *before* upload, permanently solving Cloudflare 524 Timeouts and Nginx payload limits.
-* **Smart Memory Compression**: Dynamic sliding-window summarization keeps AI context highly relevant without exceeding API token limits.
-
-### 💳 Built-in SaaS Billing & Entitlement
-* **PayPal Integration**: Financial-grade checkout flow via PayPal REST API.
-* **Tiered Access (Free / VIP / PRO)**: Granular control over daily limits, maximum input characters, memory thresholds, and Vision AI capabilities.
-* **Prorated Upgrades**: Automatically calculates remaining time value when a user upgrades from VIP to PRO.
-* **Downgrade Protection**: Pre-flight guards prevent users from accidentally downgrading their active premium tiers.
-
-### 🛡️ Bulletproof Security
-* **Zero-Day Defenses**: 100% PDO Prepared Statements (SQLi proof), `DOMPurify` (XSS proof), strict JSON-only payload parsing (CSRF & Form-hijacking proof).
-* **API Key Management**: Secure key rolling mechanism.
-* **Guest Rate Limiting**: Strict session-based tracking prevents unauthorized API abuse and bankruptcy loops.
-* **Path Traversal Protection**: Regex-filtered client-side `.zip` extraction (JSZip) and secure file downloading.
-
-### 👨‍💻 Headless API & Developer Tools
-* **Public & Private APIs**: Build your own external apps using the headless `/api/chat` endpoint (Exclusive for VIP/PRO members).
-* **Auto Postman Generation**: One-click download of a fully configured Postman Collection (`.json`) populated with the user's active API Key.
-
-### 🎨 Ultimate UX
-* **Visual Modular Editor**: Build multi-file AI architectures directly in the browser.
-* **Seamless Chat UI**: Auto-expanding textareas, `Ctrl+V` clipboard image pasting, `Ctrl+Enter` sending, and silent background privacy syncing.
-* **Safari & iOS Optimized**: Fixed cross-browser date parsing bugs.
+Version 5 introduces a mathematically verifiable security model, a zero-latency multiplayer chat engine, and a dual-track Bring-Your-Own-Key (BYOK) proxy architecture.
 
 ---
 
-## 🚀 Quick Start (Self-Hosting)
+## ✨ Core Innovations
 
-### 1. Clone the repository
-```bash
-git clone [https://github.com/yanshekki/soulmd-hub.git](https://github.com/yanshekki/soulmd-hub.git)
-cd soulmd-hub
-
-```
-
-### 2. Setup Database & Configuration
-
-* Import `private/sql/init.sql` to your MySQL server (MySQL 8.0+ recommended).
-* Copy the configuration template:
-
-```bash
-cp private/config.example.php private/config.php
-
-```
-
-* Edit `private/config.php` and configure your critical keys:
-* **Database**: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`
-* **AI APIs**: `DEEPSEEK_API_KEY` and `VISION_API_KEY` (Together AI)
-* **Billing**: `PAYPAL_CLIENT_ID` and `PAYPAL_SECRET`
-
-
-
-### 3. Launch the Server
-
-Ensure your web server (Apache/Nginx) points its document root to the `public_html` directory.
-For local testing using PHP's built-in server:
-
-```bash
-php -S localhost:8000 -t public_html
-
-```
-
-*(Default seeded admin accounts: `yanshekki`, `ysk`, `ki`. Password: `password`)*
+* **🔐 Cryptographic Web3 Authentication:** Eliminates identity spoofing by requiring physical Ed25519 detached signatures generated via `near-api-js` and verified natively by backend `libsodium`.
+* **⛓️ AgentFi & Token-Gating:** AI Agents can be minted as NFTs on the NEAR blockchain. The engine utilizes real-time RPC view calls to enforce strict owner/renter access control.
+* **⚡ Multiplayer Delta Sync Engine:** Enables real-time, shared AI interactions using a highly optimized Short-Polling Heartbeat mechanism, complete with localized deduplication to prevent echo-rendering.
+* **🧠 Dual-Track Routing (Platform vs. BYOK):** Seamlessly routes traffic through official paywalled AI gateways (DeepSeek / Together AI Vision) or acts as a stateless, unmetered proxy for users utilizing custom AES-256-CBC encrypted API keys.
+* **🗜️ Sliding-Window Memory Compression:** Automatically condenses deep conversation histories to prevent context window overflow while preserving factual continuity.
 
 ---
 
-## 🔗 Clean Routing Architecture (Apache `.htaccess`)
+## 📚 Technical Documentation
 
-The platform utilizes `mod_rewrite` to provide SEO-friendly, clean URLs, securely hiding the underlying `.php` extensions.
+For deep dives into the system mechanics, security audits, or API integrations, please refer to the official documentation suite located in the `docs/` directory:
 
-* `/soul/yanshekki/123/developer/expert-coder` → Secure 4-layer SEO path
-* `/profile/yanshekki` → Public portfolio
-* `/invoice/123` → Dynamic printable financial receipts
-* `/api/chat` → Headless LLM engine
-
----
-
-## 📡 Headless API Overview
-
-SoulMD Hub is API-first. Authenticate requests by passing your generated Secret Key in the header:
-
-```http
-Authorization: Bearer YOUR_API_KEY_HERE
-
-```
-
-### Interact with AI (VIP/PRO Only)
-
-```http
-POST /api/chat
-Content-Type: application/json
-
-{
-  "action": "chat",
-  "soul_id": 1,
-  "session_token": "your_unique_session_string",
-  "content": "Analyze this architecture.",
-  "is_private": true
-}
-
-```
-
-*For the complete API reference, log in to your account and navigate to the **Developer API** section to download the Postman Collection.*
+1. [**Architecture Overview**](docs/01_ARCHITECTURE.md)
+   * High-level topology, tech stack, and the Grand Unified Schema.
+2. [**Security & Web3 Integration**](docs/02_SECURITY_AND_WEB3.md)
+   * Ed25519 payload mechanics, Token-Gating RPC interception, and anti-twin vulnerabilities.
+3. [**Chat Engine & Multiplayer**](docs/03_CHAT_ENGINE.md)
+   * Dual-track routing logic, Delta Sync, and Sliding-Window Memory Compression.
+4. [**RESTful API Reference**](docs/04_API_REFERENCE.md)
+   * Headless integration endpoints, strict schemas, and error responses.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-* **Backend**: PHP 8.2+ (Vanilla, No Frameworks, Exponential Backoff enabled)
-* **Database**: MySQL 8.0+ / MariaDB
-* **Frontend**: Vanilla JavaScript, Tailwind CSS (CDN), FontAwesome
-* **Parsers/Libs**: Marked.js (Markdown), DOMPurify (Sanitization), Highlight.js (Syntax), JSZip (Client-side ZIP packaging)
+* **Frontend:** Vanilla JS, TailwindCSS, `near-api-js`, DOMPurify, Marked.js.
+* **Backend:** PHP 8+ (PDO, Libsodium, cURL), RESTful Controllers.
+* **Database:** MySQL (InnoDB) with heavily optimized indexing for high-concurrency.
+* **Blockchain:** NEAR Protocol Mainnet (`soulmd-hub.near` Smart Contract).
+
+---
+
+## 🚀 Quick Start (Development)
+
+1. Clone the repository to your local LAMP/LEMP server.
+2. Import the latest database schema from `private/sql/init.sql`.
+3. Copy `private/config.example.php` to `private/config.php` and fill in your database credentials and API keys (DeepSeek, Together AI).
+4. Configure your local virtual host to point to the `public_html/` directory as the document root.
+5. Access the local URL and log in using the pre-seeded admin accounts.
 
 ---
 
