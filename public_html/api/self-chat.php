@@ -4,7 +4,7 @@
  * 100% 左手交右手無狀態代理，不扣除平台 Daily Limit (Fallback 例外)。
  * 包含 Web3 Token-Gating, 自訂記憶壓縮, 及 Vision Fallback。
  * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
- * 🚀 Patched: Fixed Phantom NFT is_public=0 bug & Removed redundant curl_getinfo typo
+ * 🚀 Patched: Token DoS Injection regex fixed. Multiplayer shared session retained.
  */
 
 set_time_limit(180);
@@ -114,9 +114,13 @@ $userMessageText = trim($input['content'] ?? '');
 $imageBase64 = $input['image'] ?? null;
 $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
 
-if (!$soulId || empty($sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
+// 🚀 修復：預先定義 Vision Request 判斷變數
+$isVisionRequest = !empty($imageBase64);
+
+// 🚨 修復 2：Token 格式校驗 (防止 DoS 注入或記憶體溢出)
+if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
     http_response_code(400); 
-    echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
+    echo json_encode(['success' => false, 'error' => __('Invalid request parameters')], JSON_UNESCAPED_UNICODE); 
     exit;
 }
 
@@ -133,7 +137,6 @@ if (!$settings || $settings['use_byok'] != 1) {
 // ==========================================
 // 3. 智能 Fallback 與 API 分流邏輯
 // ==========================================
-$isVisionRequest = !empty($imageBase64);
 $isVisionFallback = false;
 $targetApiUrl = '';
 $targetApiKey = '';
@@ -193,12 +196,14 @@ $sessStmt = $pdo->prepare("SELECT user_id, is_private FROM chat_sessions WHERE s
 $sessStmt->execute([$sessionToken]);
 $chatSession = $sessStmt->fetch();
 
+// 🌟 允許多人共享同一個 URL 進行群聊！只阻擋 Private
 if ($chatSession) {
     if ($chatSession['is_private'] && $currentUser['id'] !== $chatSession['user_id']) {
         http_response_code(403); 
         echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE); 
         exit;
     }
+    // 只有 Session 擁有者才可以切換公開私密狀態
     if ($currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
         $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
     }
@@ -230,18 +235,15 @@ if ($soul['is_nft'] == 1) {
     $tokenInfo = $rpcRes['data'];
 
     if ($rpcStatus === 'not_found') {
-        // 🚨 修復點 1：自癒降級時，強制加上 is_public = 0，保護模型知識產權
         $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?")->execute([$soulId]);
         $soul['is_nft'] = 0;
         $soul['is_public'] = 0;
     } elseif ($rpcStatus === 'success' && $tokenInfo) {
-        // 🛡️ 防篡改指紋核對 (結合 Server 獨家 Salt)
         $currentDbHash = 'sha256:' . hash('sha256', $soul['content'] . $soul['nft_salt']);
         if (isset($tokenInfo['metadata']['extra']) && $tokenInfo['metadata']['extra'] !== $currentDbHash) {
             echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); exit;
         }
 
-        // 🔄 Lazy Sync 擁有權移交
         $chainOwner = $tokenInfo['owner_id'];
         if ($chainOwner !== $soul['nft_owner_wallet']) {
             $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
@@ -253,7 +255,6 @@ if ($soul['is_nft'] == 1) {
             $soul['nft_owner_wallet'] = $chainOwner;
         }
 
-        // 🔑 Token-Gating 存取權校驗 (買家或租約生效中之租客)
         if ($chainOwner === $chatUserWallet) {
             $hasAccess = true;
         } elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
@@ -266,7 +267,6 @@ if ($soul['is_nft'] == 1) {
             exit;
         }
     } elseif ($rpcStatus === 'timeout' || $rpcStatus === 'error') {
-        // ⚠️ 區塊鏈 RPC 節點全數塞車或報錯，依賴資料庫中的 nft_owner_wallet 緩存作最後放行判斷
         if ($chatUserWallet === $soul['nft_owner_wallet']) {
             $hasAccess = true;
         } else {
@@ -276,7 +276,7 @@ if ($soul['is_nft'] == 1) {
     }
 }
 
-// 🛡️ Web2 權限判定 (處理普通模型，或剛被降級回 Web2 狀態的模型)
+// 🛡️ Web2 權限判定
 if ($soul['is_nft'] == 0) {
     if ($soul['is_public'] == 1 || ($currentUser['id'] !== null && $soul['user_id'] === $currentUser['id'])) {
         $hasAccess = true;
@@ -387,7 +387,7 @@ if ($isVisionRequest) {
 // ==========================================
 // 7. 發送請求至 OpenAI-Compatible API (BYOK)
 // ==========================================
-session_write_close(); // 解鎖 Session，避免卡死其他分頁
+session_write_close(); 
 
 $ch = curl_init();
 curl_setopt_array($ch, [
@@ -406,7 +406,6 @@ curl_setopt_array($ch, [
 ]);
 
 $response = curl_exec($ch);
-// 🚨 修復點 2：直接並唯一地取得 HTTP_CODE
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); 
 curl_close($ch);
 
@@ -424,16 +423,13 @@ $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 // 8. 儲存對話紀錄 (無縫接軌前端 UI)
 // ==========================================
 try {
-    // 🚀 核心升級：使用 Database 類別取得全新的獨立連線，避免 MySQL Timeout
     $freshPdo = Database::getFreshConnection();
-    
     $freshPdo->beginTransaction();
     
     $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, content) VALUES (?, ?, ?, ?)");
     $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
     $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
     
-    // 🌟 僅在觸發 Vision Fallback 的情況下，才扣除平台每日官方配額
     if ($isVisionFallback && $currentUser['id']) {
         $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
     }

@@ -3,7 +3,7 @@
  * SoulMD Hub Public API - Platform Official Channel (chat.php)
  * 官方計費通道：嚴格執行 Tier 限制、扣除 Daily Limit、Web3 門禁及平台官方金鑰調用。
  * (V5 Web2.5 AgentFi Architecture: Unified NearRpcService & Self-Healing Edition)
- * 🚀 Patched: Replaced hardcoded new PDO with Database::getFreshConnection()
+ * 🚀 Patched: Token DoS Injection regex & Undefined Variable fixed. Multiplayer shared session retained.
  */
 
 set_time_limit(180);
@@ -110,7 +110,7 @@ function getTierConfig($tier) {
 // ==========================================
 if ($method === 'GET') {
     $soulId = (int)($_GET['soul_id'] ?? 0);
-    $sessionToken = $_GET['session_token'] ?? '';
+    $sessionToken = trim($_GET['session_token'] ?? '');
     $currentUser = getCurrentUser($pdo, $apiUserId);
 
     if ($isApiCall && $currentUser['tier'] === 'free') {
@@ -120,7 +120,8 @@ if ($method === 'GET') {
         exit;
     }
 
-    if (!$soulId || empty($sessionToken)) {
+    // 🚨 修復 2：正則表達式攔截，防止 Token 注入與 DoS
+    if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken)) {
         http_response_code(400); 
         echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
         exit;
@@ -164,7 +165,6 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $currentUser = getCurrentUser($pdo, $apiUserId);
 
-    // Headless API 安全校驗
     if ($isApiCall) {
         if ($currentUser['tier'] === 'free') {
             http_response_code(403);
@@ -173,7 +173,6 @@ if ($method === 'POST') {
             exit;
         }
     } else {
-        // 瀏覽器 UI CSRF 安全校驗
         $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (empty($userCsrfToken) && function_exists('getallheaders')) {
             $headers = getallheaders();
@@ -196,7 +195,7 @@ if ($method === 'POST') {
     // 公私密切換更新同步
     if ($action === 'update_privacy') {
         $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
-        if (!$soulId || empty($sessionToken)) { 
+        if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken)) { 
             http_response_code(400); echo json_encode(['success' => false]); exit; 
         }
         
@@ -205,7 +204,8 @@ if ($method === 'POST') {
         $chatSession = $sessStmt->fetch();
 
         if ($chatSession) {
-            if ($currentUser['id'] !== null && $chatSession['user_id'] === $currentUser['id']) {
+            // 擁有者權限檢查
+            if ($currentUser['id'] !== null && $chatSession['user_id'] == $currentUser['id']) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
                 echo json_encode(['success' => true]);
             } else {
@@ -221,7 +221,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    // 頻率防護 (Rate Limiting)
     if (!$isApiCall) {
         $currentTime = time();
         if (($currentTime - ($_SESSION['last_chat_time'] ?? 0)) < 3) {
@@ -234,8 +233,12 @@ if ($method === 'POST') {
     $userMessageText = trim($input['content'] ?? '');
     $imageBase64 = $input['image'] ?? null;
     $isPrivate = isset($input['is_private']) ? (bool)$input['is_private'] : false;
+    
+    // 🚀 修復 3：預先定義 Vision Request 判斷變數
+    $isVisionRequest = !empty($imageBase64);
 
-    if (!$soulId || empty($sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
+    // 🚨 修復 2：Token 格式校驗
+    if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken) || (empty($userMessageText) && empty($imageBase64))) {
         http_response_code(400); 
         echo json_encode(['success' => false, 'error' => __('Missing required parameters')], JSON_UNESCAPED_UNICODE); 
         exit;
@@ -243,7 +246,6 @@ if ($method === 'POST') {
 
     $tierConfig = getTierConfig($currentUser['tier']);
 
-    // 嚴格平台 Daily Quota 配額攔截
     if ($currentUser['daily_count'] >= $tierConfig['daily_limit']) {
         http_response_code(403);
         $upgradeMsg = $currentUser['tier'] === 'free' ? __('Upgrade suffix') : "";
@@ -252,7 +254,6 @@ if ($method === 'POST') {
         exit;
     }
 
-    // 單次字元限制過濾
     if (mb_strlen($userMessageText, 'UTF-8') > $tierConfig['max_input']) {
         http_response_code(400);
         $errorMsg = __('Message exceeds chars', ['limit' => $tierConfig['max_input']]);
@@ -260,26 +261,25 @@ if ($method === 'POST') {
         exit;
     }
 
-    // 視覺分析模態限制攔截
-    if ($imageBase64 && !$tierConfig['allow_image']) {
+    if ($isVisionRequest && !$tierConfig['allow_image']) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => __('Vision AI exclusive'), 'needs_upgrade' => true], JSON_UNESCAPED_UNICODE); 
         exit;
     }
 
     try {
-        // 工作階段同步與狀態鎖定
         $sessStmt = $pdo->prepare("SELECT user_id, is_private FROM chat_sessions WHERE session_token = ?");
         $sessStmt->execute([$sessionToken]);
         $chatSession = $sessStmt->fetch();
 
+        // 🌟 撤銷防護 1：允許多人共享同一個 URL 進行群聊！只阻擋 Private
         if ($chatSession) {
             if ($chatSession['is_private'] && $currentUser['id'] !== $chatSession['user_id']) {
                 http_response_code(403); 
                 echo json_encode(['success' => false, 'error' => __('Access Denied Private')], JSON_UNESCAPED_UNICODE); 
                 exit;
             }
-            if ($currentUser['id'] !== null && $currentUser['id'] === $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
+            if ($currentUser['id'] !== null && $currentUser['id'] == $chatSession['user_id'] && $chatSession['is_private'] != $isPrivate) {
                 $pdo->prepare("UPDATE chat_sessions SET is_private = ? WHERE session_token = ?")->execute([(int)$isPrivate, $sessionToken]);
             }
         } else {
@@ -288,7 +288,6 @@ if ($method === 'POST') {
                 ->execute([$sessionToken, $soulId, $currentUser['id'], $actualPrivate]);
         }
 
-        // 免費沙盒對話輪數限制攔截
         $countStmt = $pdo->prepare("SELECT COUNT(*) FROM chat_messages WHERE soul_id = ? AND session_token = ? AND role = 'user'");
         $countStmt->execute([$soulId, $sessionToken]);
         $userMsgCount = (int)$countStmt->fetchColumn();
@@ -309,9 +308,6 @@ if ($method === 'POST') {
             exit; 
         }
 
-        // =================================================================
-        // 🚀 V5 核心：高可用 RPC Pool 混合門禁機制 (NearRpcService)
-        // =================================================================
         $chatUserWallet = $currentUser['near_wallet'] ?? '';
         $hasAccess = false;
 
@@ -319,25 +315,20 @@ if ($method === 'POST') {
             $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
             $rpc = NearRpcService::getInstance();
             
-            // 🌟 呼叫中央 RPC 服務
             $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId]);
-            
             $rpcStatus = $rpcRes['status'];
             $tokenInfo = $rpcRes['data'];
 
             if ($rpcStatus === 'not_found') {
-                // 🚨 降級自癒：鏈上查無此代幣，秒級解除 Web3 狀態並還原 Web2 模型
                 $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?")->execute([$soulId]);
                 $soul['is_nft'] = 0;
                 $soul['is_public'] = 0;
             } elseif ($rpcStatus === 'success' && $tokenInfo) {
-                // 🛡️ 版權指紋防篡改熔斷 (結合中央 Salt 混淆比對)
                 $currentDbHash = 'sha256:' . hash('sha256', $soul['content'] . $soul['nft_salt']);
                 if (isset($tokenInfo['metadata']['extra']) && $tokenInfo['metadata']['extra'] !== $currentDbHash) {
                     echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); exit;
                 }
 
-                // 🔄 Lazy Sync 擁有權移交
                 $chainOwner = $tokenInfo['owner_id'];
                 if ($chainOwner !== $soul['nft_owner_wallet']) {
                     $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
@@ -349,7 +340,6 @@ if ($method === 'POST') {
                     $soul['nft_owner_wallet'] = $chainOwner;
                 }
 
-                // 🔑 鏈上合約權限核實 (買斷持有人 或 租期活躍中之租客)
                 if ($chainOwner === $chatUserWallet) {
                     $hasAccess = true;
                 } elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
@@ -362,7 +352,6 @@ if ($method === 'POST') {
                     exit;
                 }
             } elseif ($rpcStatus === 'timeout' || $rpcStatus === 'error') {
-                // ⚠️ 鏈上大塞車或節點故障：降級依賴 MySQL 緩存的 nft_owner_wallet 防禦放行
                 if ($chatUserWallet === $soul['nft_owner_wallet']) {
                     $hasAccess = true;
                 } else {
@@ -372,7 +361,6 @@ if ($method === 'POST') {
             }
         }
 
-        // 🛡️ 普通 Web2 模型 (或剛被自癒降級的模型) 權限查核
         if ($soul['is_nft'] == 0) {
             if ($soul['is_public'] == 1 || ($currentUser['id'] !== null && $soul['user_id'] === $currentUser['id'])) {
                 $hasAccess = true;
@@ -382,9 +370,7 @@ if ($method === 'POST') {
                 exit;
             }
         }
-        // =================================================================
 
-        // 組合 System Prompt (支援多模組 JSON 解析)
         $systemPrompt = "";
         if ($soul['file_type'] === 'full_soul_folder') {
             $systemPrompt .= "Please adopt the following modular AI persona:\n\n";
@@ -402,7 +388,6 @@ if ($method === 'POST') {
         $maxWords = max(50, floor($tierConfig['max_tokens'] * 0.6));
         $systemPrompt .= "\n\n[CRITICAL DIRECTIVE: Keep responses extremely concise and under {$maxWords} words.]";
 
-        // 平台官方滑動視窗記憶體壓縮邏輯
         $memStmt = $pdo->prepare("SELECT summary, last_message_id FROM chat_memory WHERE session_token = ?");
         $memStmt->execute([$sessionToken]);
         $memoryRow = $memStmt->fetch();
@@ -477,7 +462,6 @@ if ($method === 'POST') {
             $apiMessages[] = ["role" => "user", "content" => $userMessageText];
         }
 
-        // 調度平台官方 API
         $targetApiUrl = DEEPSEEK_API_URL;
         $targetApiKey = DEEPSEEK_API_KEY;
         $targetModel = $tierConfig['model'];
@@ -511,10 +495,8 @@ if ($method === 'POST') {
             $_SESSION['last_chat_time'] = time(); 
         }
         
-        // 🌟 解鎖鎖定，防止大模型 TTFT 延遲導致 cross-page 同步阻塞
         session_write_close(); 
 
-        // 啟動 Exponential Backoff 指數退避重試矩陣
         $maxRetries = 3;      
         $retryDelay = 2;      
         $response = '';
@@ -567,18 +549,14 @@ if ($method === 'POST') {
 
         $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
 
-        // 寫入數據庫與次數計費結算
         try {
-            // 🚀 核心升級：使用 Database 類別取得全新的獨立連線，避免 MySQL Timeout
             $freshPdo = Database::getFreshConnection();
-            
             $freshPdo->beginTransaction();
             
             $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, content) VALUES (?, ?, ?, ?)");
             $ins->execute([$soulId, $sessionToken, 'user', $dbContentToSave]);
             $ins->execute([$soulId, $sessionToken, 'assistant', $aiReply]);
             
-            // 扣減用量額度
             if ($currentUser['id']) {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
             } else {
