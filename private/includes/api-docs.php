@@ -3,7 +3,7 @@
  * SoulMD Hub - API Reference Documentation UI Component
  * Included by my-api.php and api-docs.php
  * (Dynamic i18n Internationalization & Fully Fluid Schema Edition - Full Unredacted Version)
- * 🚀 Patched: Added missing wallet-login/my-chats APIs, fixed logout route, updated bind-wallet crypto schema.
+ * 🚀 Patched: Added /api/chat-sync endpoint and integrated sender_name parameter across all chat response samples.
  */
 
 // 🌍 載入 API 說明文檔組件的專屬獨立語言包
@@ -164,11 +164,35 @@ loadTranslations('api-docs');
   "messages": [
     {
       "role": "user",
+      "sender_name": "developer101",
       "content": "Hello! How can you help me today?"
     },
     {
       "role": "assistant",
+      "sender_name": "AI Assistant",
       "content": "I am an expert assistant. I can help you with coding and reasoning tasks."
+    }
+  ]
+}</pre>
+            </details>
+        </div>
+
+        <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
+                <code class="text-base font-bold text-white">/api/my-chats</code>
+                <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20"><?= __('Auth Required') ?></span>
+            </div>
+            <p class="text-sm text-zinc-400"><?= __('desc_my_chats') ?></p>
+            <details class="text-xs group"><summary class="text-emerald-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "sessions": [
+    {
+      "session_token": "unique_session_id_123",
+      "soul_id": 1,
+      "summary": "User asked about architecture layout...",
+      "last_updated": "2026-05-21 14:00:00"
     }
   ]
 }</pre>
@@ -199,7 +223,8 @@ loadTranslations('api-docs');
                 <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
                     <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
-  "reply": "Based on the provided architecture diagram, here is the technical breakdown..."
+  "reply": "Based on the provided architecture diagram, here is the technical breakdown...",
+  "sender_name": "AI Assistant"
 }</pre>
                 </details>
             </div>
@@ -227,7 +252,8 @@ loadTranslations('api-docs');
                 <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
                     <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
-  "reply": "Optimizing memory structures using stateless concurrent relays..."
+  "reply": "Optimizing memory structures using stateless concurrent relays...",
+  "sender_name": "AI Assistant"
 }</pre>
                 </details>
             </div>
@@ -236,19 +262,20 @@ loadTranslations('api-docs');
         <div class="mb-10 border-l-2 border-amber-500 pl-6 space-y-3 relative">
             <div class="flex items-center flex-wrap gap-2">
                 <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
-                <code class="text-base font-bold text-white">/api/my-chats</code>
-                <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20"><?= __('Auth Required') ?></span>
+                <code class="text-base font-bold text-white">/api/chat-sync</code>
             </div>
-            <p class="text-sm text-zinc-400"><?= __('desc_my_chats') ?></p>
+            <p class="text-sm text-zinc-400"><?= __('desc_chat_sync') ?></p>
+            <p class="text-xs text-zinc-500 font-mono"><?= __('Query params:') ?> ?soul_id=1&session_token=random_token_here&last_id=142</p>
             <details class="text-xs group"><summary class="text-emerald-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
                 <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
-  "sessions": [
+  "online_count": 2,
+  "new_messages": [
     {
-      "session_token": "unique_session_id_123",
-      "soul_id": 1,
-      "summary": "User asked about architecture layout...",
-      "last_updated": "2026-05-21 14:00:00"
+      "id": 143,
+      "role": "user",
+      "sender_name": "Anonymous #E5A1",
+      "content": "Is anyone else monitoring this cluster thread?"
     }
   ]
 }</pre>

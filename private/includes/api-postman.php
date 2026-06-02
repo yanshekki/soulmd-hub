@@ -3,7 +3,7 @@
  * SoulMD Hub - Postman Collection Generator
  * Included by my-api.php and api-docs.php
  * (Web2.5 AgentFi & BYOK Proxy Edition)
- * 🚀 Patched: Added missing endpoints, updated Ed25519 payloads, and fully integrated i18n.
+ * 🚀 Patched: Added chat-sync endpoint and integrated sender_name into all chat response samples.
  */
 ?>
 <script>
@@ -167,7 +167,7 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "messages": [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there!"}]}, null, 2)
+                                "body": JSON.stringify({"success": true, "messages": [{"role": "user", "sender_name": "developer101", "content": "Hello!"}, {"role": "assistant", "sender_name": "AI Assistant", "content": "Hi there!"}]}, null, 2)
                             }]
                         },
                         {
@@ -210,7 +210,7 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "reply": "Based on the provided architecture..."}, null, 2)
+                                "body": JSON.stringify({"success": true, "reply": "Based on the provided architecture...", "sender_name": "AI Assistant"}, null, 2)
                             }]
                         },
                         {
@@ -233,7 +233,32 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "reply": "Optimizing memory structures using stateless concurrent relays..."}, null, 2)
+                                "body": JSON.stringify({"success": true, "reply": "Optimizing memory structures using stateless concurrent relays...", "sender_name": "AI Assistant"}, null, 2)
+                            }]
+                        },
+                        {
+                            "name": "Multiplayer Sync & Presence Heartbeat",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/chat-sync?soul_id=1&session_token=unique_session_id_123&last_id=142",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "chat-sync"],
+                                    "query": [
+                                        {"key": "soul_id", "value": "1"},
+                                        {"key": "session_token", "value": "unique_session_id_123"},
+                                        {"key": "last_id", "value": "142"}
+                                    ]
+                                }
+                            },
+                            "response": [{
+                                "name": "Delta Sync Returned",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "online_count": 2, "new_messages": [{"id": 143, "role": "user", "sender_name": "Anonymous #E5A1", "content": "Is anyone else monitoring this cluster thread?"}]}, null, 2)
                             }]
                         }
                     ]
