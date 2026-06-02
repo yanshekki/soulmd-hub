@@ -1,5 +1,6 @@
 -- SoulMD Hub Grand Unified Schema (V5 AgentFi Mainnet Production Edition)
 -- Fully optimized with explicit keys, constraints, cascade triggers, and high-concurrency indexes.
+-- 🚀 Patched: Upgraded session_token to VARCHAR(128) & Added chat_presence for Multiplayer Sync.
 
 CREATE DATABASE IF NOT EXISTS ki_soulmd_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ki_soulmd_hub;
@@ -157,9 +158,10 @@ CREATE TABLE IF NOT EXISTS soul_likes (
 
 -- ==========================================
 -- 8. Chat Sessions Table (Crypto Nonces mapping)
+-- 🚀 Patched: session_token upgraded to VARCHAR(128)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_sessions (
-    session_token VARCHAR(64) PRIMARY KEY,
+    session_token VARCHAR(128) PRIMARY KEY,
     soul_id INT NOT NULL,
     user_id INT NULL,
     is_private BOOLEAN DEFAULT FALSE,
@@ -170,11 +172,12 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
 
 -- ==========================================
 -- 9. Chat Messages Table (Multimodal Medium Ledger)
+-- 🚀 Patched: session_token upgraded to VARCHAR(128)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     soul_id INT NOT NULL,
-    session_token VARCHAR(64) NOT NULL,
+    session_token VARCHAR(128) NOT NULL,
     role ENUM('user', 'assistant') NOT NULL,
     content MEDIUMTEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -184,9 +187,10 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 -- ==========================================
 -- 10. Chat Memory Table (Sliding Windows)
+-- 🚀 Patched: session_token upgraded to VARCHAR(128)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chat_memory (
-    session_token VARCHAR(64) PRIMARY KEY,
+    session_token VARCHAR(128) PRIMARY KEY,
     summary TEXT,
     last_message_id INT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -227,4 +231,16 @@ CREATE TABLE IF NOT EXISTS user_llm_settings (
   updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
   PRIMARY KEY (user_id),
   CONSTRAINT fk_user_llm FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==========================================
+-- 13. Multiplayer Sync & Presence Table (Short-polling)
+-- 🚀 New: Added for real-time presence and heartbeat
+-- ==========================================
+CREATE TABLE IF NOT EXISTS chat_presence (
+  session_token VARCHAR(128) NOT NULL,
+  identifier VARCHAR(128) NOT NULL,
+  last_seen INT NOT NULL,
+  PRIMARY KEY (session_token, identifier),
+  INDEX idx_last_seen (last_seen)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

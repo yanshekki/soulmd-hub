@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Core Intelligent Chat Interface
  * (Slim & Modular Master Controller Edition with Dynamic i18n Support)
- * 🚀 Patched: Added Loading Spinner UI Structure for Send Button
+ * 🚀 Patched: Added Multiplayer Online Counter UI
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -30,7 +30,6 @@ if (!$soulId) {
     exit;
 }
 
-// 🚨 解除 is_public 限制：允許 NFT (is_nft=1) 進入頁面
 $stmt = $pdo->prepare("SELECT title, role, content, file_type, description, is_nft, user_id FROM souls WHERE id = ? AND (is_public = 1 OR is_nft = 1 OR user_id = ?)");
 $stmt->execute([$soulId, $userId]);
 $soul = $stmt->fetch();
@@ -47,7 +46,6 @@ if (empty($sessionToken)) {
     exit;
 }
 
-// 🛡️ Web3 權限核對與防偷睇機制 (Anti-Peeping)
 $isOwner = ($userId > 0 && $userId === $soul['user_id']);
 $maskContent = ($soul['is_nft'] == 1 && !$isOwner); 
 
@@ -94,7 +92,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
 require_once __DIR__ . '/../private/includes/chat-modals.php';
 
-// 🚨 Apply Masking for non-owners of NFTs
 if ($maskContent) {
     $rawContentForModal = "🔒 **" . __('Protected') . "**\n\n" . __('Protected NFT Msg');
 } else {
@@ -131,6 +128,12 @@ if ($maskContent) {
                 
                 <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
                     <span class="flex items-center gap-1"><i class="fas fa-circle text-emerald-500 text-[8px] animate-pulse"></i> <?= __('Active Persona Session') ?></span>
+                    
+                    <span class="opacity-50 hidden sm:inline">•</span>
+                    <span id="online-badge" class="hidden items-center gap-1 font-bold transition-colors duration-300">
+                        <i class="fas fa-users"></i> <span id="online-count">1</span>
+                    </span>
+
                     <span class="opacity-50">•</span>
                     <button type="button" onclick="openSoulModal()" class="text-emerald-400 hover:text-emerald-300 font-medium transition flex items-center gap-1 focus:outline-none">
                         <i class="fas fa-info-circle"></i> <?= __('More Info') ?>

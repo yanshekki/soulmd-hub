@@ -2,8 +2,8 @@
 /**
  * SoulMD Hub - Chat Core JavaScript Engine
  * Included dynamically in chat.php
- * (Web2.5 BYOK Dual-Track Router Edition - 100% Full Unredacted Version)
- * 🚀 Patched: Integrated Send Button Loading Spinner Controls
+ * (Web2.5 BYOK Dual-Track Router Edition)
+ * 🚀 Patched: Added Multiplayer Heartbeat & Live Presence Tracking
  */
 ?>
 <script>
@@ -24,7 +24,7 @@
     const IMG_QUALITY = <?= defined('IMAGE_QUALITY') ? IMAGE_QUALITY : 0.6 ?>;
 
     let currentImageBase64 = null;
-    let isByokMode = false; // 🌟 雙軌制核心 Flag
+    let isByokMode = false;
 
     // --- 免責聲明 Modal ---
     const agreementKey = `soulmd_agreement_${soulId}_${sessionToken}`;
@@ -61,7 +61,7 @@
         }
     }
 
-    // --- UI Modals (Soul Info, Image Viewer, Paywall) ---
+    // --- UI Modals ---
     function openSoulModal() {
         document.body.style.overflow = 'hidden';
         const modal = document.getElementById('soul-info-modal');
@@ -129,7 +129,7 @@
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    // --- Privacy Toggle (公私切換) ---
+    // --- Privacy Toggle ---
     async function updatePrivacyUI() {
         const toggle = document.getElementById('privacy-toggle');
         if(!toggle) return;
@@ -168,7 +168,7 @@
         } catch(e) { console.error('Privacy sync failed'); }
     }
 
-    // --- Image Processing (上傳與縮放) ---
+    // --- Image Processing ---
     function triggerImageUpload() {
         if (!ALLOW_IMAGE) {
             showPaywall();
@@ -224,7 +224,7 @@
         if (file) processImageFile(file);
     }
 
-    // --- Event Listeners (Paste & Keyboard) ---
+    // --- Event Listeners ---
     chatInput.addEventListener('paste', (e) => {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let item of items) {
@@ -249,7 +249,6 @@
         }
     });
 
-    // --- Char Count & Share ---
     function updateCharCount(el) {
         const len = el.value.length;
         charCount.innerText = `${len}/${MAX_INPUT_CHARS}`;
@@ -316,7 +315,7 @@
         return bubble;
     }
 
-    // 🌟 1. BYOK 雙軌制初始化：判定用戶是否處於 BYOK 模式
+    // 🌟 初始化
     async function initChatEnvironment() {
         try {
             const res = await fetch('/api/settings');
@@ -331,11 +330,10 @@
             }
         } catch(e) {}
         
-        // 環境判定完畢後才載入歷史紀錄
         loadChatHistory();
     }
 
-    // 🌟 2. 載入歷史紀錄
+    // 🌟 載入歷史紀錄
     async function loadChatHistory() {
         const loading = document.getElementById('loading-history');
         try {
@@ -355,7 +353,6 @@
                     setTimeout(scrollToBottom, 50);
                     setTimeout(scrollToBottom, 250);
 
-                    // 如果不是 BYOK 模式，且超過輪數，則彈出付費牆
                     if (!isByokMode && userMessageCount >= MAX_TURNS) {
                         showPaywall();
                     }
@@ -380,11 +377,10 @@
         }
     }
 
-    // 🌟 3. 發送訊息與智能路由分發 (Router)
+    // 🌟 3. 發送訊息
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // 如果不是 BYOK 模式，嚴格攔截次數
         if (!isByokMode && userMessageCount >= MAX_TURNS) {
             showPaywall();
             return;
@@ -398,7 +394,6 @@
             return;
         }
 
-        // 🚨 UI 鎖定：隱藏飛機 icon，顯示轉圈圈 Spinner
         const sendIcon = document.getElementById('send-icon');
         const sendSpinner = document.getElementById('send-spinner');
         if(sendIcon) sendIcon.classList.add('hidden');
@@ -432,7 +427,6 @@
 
         removeImage();
 
-        // 🎯 決定目標 API (使用平台配額 還是 左手交右手)
         const targetApiEndpoint = isByokMode ? '/api/self-chat' : '/api/chat';
 
         try {
@@ -473,7 +467,6 @@
         } catch (err) {
             aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> ` + <?= json_encode(__('Network error. Connection failed.'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
         } finally {
-            // 🚨 UI 解鎖：還原按鈕與 icon
             chatInput.disabled = false;
             sendBtn.disabled = false;
             sendBtn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -492,6 +485,37 @@
         }
     });
 
-    // 啟動入口
+    // 🌟 4. 多人在線心跳機制 (Heartbeat & Presence)
+    async function syncHeartbeat() {
+        try {
+            const res = await fetch(`/api/chat-sync?soul_id=${soulId}&session_token=${sessionToken}&last_id=0`);
+            const data = await res.json();
+            
+            if (data.success) {
+                const badge = document.getElementById('online-badge');
+                const countSpan = document.getElementById('online-count');
+                
+                if (badge && countSpan) {
+                    badge.classList.remove('hidden');
+                    countSpan.innerText = data.online_count;
+                    
+                    // 當超過 1 個人，徽章變色提示「有人一齊傾緊」
+                    if (data.online_count > 1) {
+                        badge.classList.add('text-purple-400', 'flex');
+                        badge.classList.remove('text-zinc-500');
+                    } else {
+                        badge.classList.add('text-zinc-500', 'flex');
+                        badge.classList.remove('text-purple-400');
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Heartbeat sync skipped.');
+        }
+    }
+
+    // 每 3.5 秒發送一次心跳
+    setInterval(syncHeartbeat, 3500);
+
     window.onload = initChatEnvironment;
 </script>
