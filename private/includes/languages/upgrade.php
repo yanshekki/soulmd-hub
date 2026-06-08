@@ -2,54 +2,54 @@
 /**
  * SoulMD Hub - i18n Translation Dictionary
  * Target: upgrade.php (Premium Plans & Checkout)
+ * 🚀 V5 SEO Optimized: Targeted SaaS & Web3 AI Conversion Keywords
  */
-
 return [
     'en' => [
         // SEO & Headers
-        'SEO Title' => 'Upgrade Your AI Architecture - SoulMD Hub',
-        'SEO Desc' => 'Unlock unlimited turns, advanced deep reasoning, and multi-modal vision AI capabilities.',
-        'SoulMD Premium SaaS Ecosystem' => 'SoulMD Premium SaaS Ecosystem',
+        'SEO Title' => 'Premium Web3 AI Subscription & API Access | SoulMD Hub',
+        'SEO Desc' => 'Unlock unlimited turns, elite deep reasoning, and multi-modal vision AI capabilities for your decentralized Web3 agents. Upgrade your SaaS tier today.',
+        'SoulMD Premium SaaS Ecosystem' => 'Decentralized Web3 AI SaaS Ecosystem',
         'Upgrade Your' => 'Upgrade Your',
-        'AI Brain' => 'AI Brain',
-        'Upgrade Subtitle' => 'Get unlimited messaging turns, longer context windows, real-time image analysis, and exclusive access to our brand-new <b>Advanced Smart Model</b> architecture.',
+        'AI Brain' => 'AI Agent Architecture',
+        'Upgrade Subtitle' => 'Get unlimited messaging turns, extended context windows, real-time image analysis, and exclusive Developer API access to our <b>Elite Reasoning Engine</b>.',
         
         // Active Subscription Status
         'Active Tier' => 'Active Tier: @:username is currently [:tier]',
         'Subscription active until' => 'Subscription active until: <b class="text-zinc-200">:date</b>',
         'Prorated Upgrade Active' => '<b>Prorated Upgrade Active:</b> Upgrading to PRO now will automatically convert your remaining VIP days into extra PRO balance!',
-        'View Billing History' => 'View Billing History',
+        'View Billing History' => 'View Billing Ledger & Invoices',
         
         // VIP Plan Card
-        'Standard Plan' => 'Standard Plan',
+        'Standard Plan' => 'Standard SaaS API Plan',
         'VIP Member' => 'VIP Member',
-        'Current' => 'Current',
+        'Current' => 'Active',
         '/ 30 Days' => '/ 30 Days',
-        'VIP Desc' => 'Perfect for daily general interactions, prompt engineering testing, and standard multi-file bot testing.',
-        'Unlimited turns per session' => '<b>Unlimited</b> turns per session',
-        'Up to chars input' => 'Up to <b>:chars</b> chars input',
-        'Vision AI' => '<b>Vision AI</b>: JPG / PNG analysis',
-        'Smart sliding memory retention' => 'Smart sliding memory retention',
-        'Private Mode switch lock' => 'Private Mode switch lock',
-        'Elite Reasoning Engine' => 'Elite Reasoning Engine',
-        'Included in plan' => 'Included in plan',
+        'VIP Desc' => 'Perfect for daily interactions, prompt engineering, and standard multi-file bot testing via the Chat Engine.',
+        'Unlimited turns per session' => '<b>Unlimited</b> interactions per session',
+        'Up to chars input' => 'Up to <b>:chars</b> characters per prompt',
+        'Vision AI' => '<b>Vision AI</b>: Multi-modal image analysis',
+        'Smart sliding memory retention' => 'Smart sliding context memory retention',
+        'Private Mode switch lock' => 'Private Mode session lock (IP Protection)',
+        'Elite Reasoning Engine' => 'Elite Deep Reasoning Engine',
+        'Included in plan' => 'Currently Subscribed',
         
         // PRO Plan Card
-        'Ultimate Brain' => 'Ultimate Brain',
-        'Advanced Plan' => 'Advanced Plan',
+        'Ultimate Brain' => 'Ultimate Developer Access',
+        'Advanced Plan' => 'Advanced SaaS API Plan',
         'PRO Member' => 'PRO Member',
-        'PRO Desc' => 'Designed for developers, quantitative quants, and power users requiring absolute complex logic and mathematical reasoning.',
+        'PRO Desc' => 'Designed for Web3 developers, quantitative quants, and power users requiring absolute complex logic and mathematical reasoning capabilities.',
         'Elite Reasoning Engine Access' => '<b>Elite Reasoning Engine</b> Access',
-        'Unlimited advanced messages' => '<b>Unlimited</b> advanced messages',
-        'Massive chars chars' => 'Massive <b>:chars</b> chars',
-        'Extended tokens output' => 'Extended :tokens tokens output',
-        'Multi-Modal Vision at highest quality' => 'Multi-Modal Vision at highest quality',
-        'Max memory retention (30 layers)' => 'Max memory retention (30 layers)',
+        'Unlimited advanced messages' => '<b>Unlimited</b> advanced reasoning slots',
+        'Massive chars chars' => 'Massive <b>:chars</b> characters per prompt',
+        'Extended tokens output' => 'Extended <b>:tokens</b> tokens maximum output',
+        'Multi-Modal Vision at highest quality' => 'Multi-Modal Vision AI at highest quality',
+        'Max memory retention (30 layers)' => 'Max memory retention (30 context layers)',
         'Highest Tier Reached' => 'Highest Tier Reached',
         
         // Legal Footer
         'Terms of Purchase & No Refund Policy:' => 'Terms of Purchase & No Refund Policy:',
-        'Legal Text' => 'By proceeding with the payment, you agree to our Terms of Service. All transactions are final and processed securely via PayPal. Because this service provides immediate access to digital API resources and premium server capacities, <span class="text-red-400/80 font-semibold">all payments are strictly non-refundable</span> under any circumstances, including partial usage or account termination.',
+        'Legal Text' => 'By proceeding with the payment, you agree to our Terms of Service. All transactions are final and processed securely via PayPal. Because this service provides immediate access to digital API resources, smart contract syncing, and premium server capacities, <span class="text-red-400/80 font-semibold">all payments are strictly non-refundable</span> under any circumstances, including partial usage or account termination.',
         
         // JavaScript Checkout States
         'Verifying transaction...' => 'Verifying cryptographic transaction signature. Do not close this browser...',
@@ -61,55 +61,55 @@ return [
     
     'zh' => [
         // SEO & Headers
-        'SEO Title' => '升級您的 AI 運算架構 - SoulMD Hub',
-        'SEO Desc' => '解鎖無限制對話次數、進階深度推理引擎及多模態視覺 AI 分析能力。',
-        'SoulMD Premium SaaS Ecosystem' => 'SoulMD 尊貴 SaaS 生態系統',
+        'SEO Title' => '升級 Web3 AI 訂閱與 API 權限 | SoulMD Hub',
+        'SEO Desc' => '解鎖無限對話次數、深度邏輯推理引擎，以及多模態視覺 AI 功能，為您的去中心化 Web3 智能體提供最強算力。',
+        'SoulMD Premium SaaS Ecosystem' => '去中心化 Web3 AI SaaS 生態系統',
         'Upgrade Your' => '升級您的',
-        'AI Brain' => 'AI 大腦',
-        'Upgrade Subtitle' => '獲取無限制的訊息對話次數、更長的上下文記憶視窗、實時圖像分析，以及獨家存取我們全新的 <b>進階智能模型 (Advanced Smart Model)</b> 架構。',
+        'AI Brain' => 'AI 智能體架構算力',
+        'Upgrade Subtitle' => '獲得無限的對話次數、更長的上下文記憶視窗、即時視覺圖像分析，以及獨家存取 <b>Elite 深度推理引擎</b> 的開發者 API 權限。',
         
         // Active Subscription Status
-        'Active Tier' => '目前階級：@:username 正在使用 [:tier]',
+        'Active Tier' => '目前方案：@:username 處於 [:tier] 級別',
         'Subscription active until' => '訂閱有效期限至：<b class="text-zinc-200">:date</b>',
-        'Prorated Upgrade Active' => '<b>自動按比例升級機制：</b> 現在升級至 PRO，系統將自動將您剩餘的 VIP 日數轉換為額外的 PRO 餘額補償！',
-        'View Billing History' => '檢視帳單紀錄',
+        'Prorated Upgrade Active' => '<b>按比例升級生效中：</b> 現在升級至 PRO，系統將自動把您剩餘的 VIP 天數轉換為對應的 PRO 方案天數！',
+        'View Billing History' => '查看帳單與交易紀錄',
         
         // VIP Plan Card
-        'Standard Plan' => '標準計劃',
+        'Standard Plan' => '標準 SaaS API 方案',
         'VIP Member' => 'VIP 會員',
         'Current' => '使用中',
-        '/ 30 Days' => '/ 30 日',
-        'VIP Desc' => '適合日常一般互動、提示詞工程 (Prompt Engineering) 測試，以及標準的多檔案機械人測試。',
-        'Unlimited turns per session' => '<b>無限制</b> 單次對話來回次數',
-        'Up to chars input' => '每次高達 <b>:chars</b> 字元輸入',
-        'Vision AI' => '<b>Vision AI</b>: JPG / PNG 圖像分析',
-        'Smart sliding memory retention' => '智能滑動記憶保留技術',
-        'Private Mode switch lock' => '私密模式 (Private Mode) 鎖定權限',
+        '/ 30 Days' => '/ 30 天',
+        'VIP Desc' => '非常適合日常互動、提示詞工程最佳化，以及透過聊天引擎測試多檔案架構的機器人。',
+        'Unlimited turns per session' => '每個對話會話 <b>無限次</b> 互動',
+        'Up to chars input' => '每次提示詞輸入最高支援 <b>:chars</b> 字元',
+        'Vision AI' => '<b>Vision AI</b>: 多模態視覺影像分析',
+        'Smart sliding memory retention' => '智能滑動上下文記憶保留系統',
+        'Private Mode switch lock' => '私密模式鎖定 (智慧財產權 IP 保護)',
         'Elite Reasoning Engine' => 'Elite 深度推理引擎',
-        'Included in plan' => '已包含在計劃內',
+        'Included in plan' => '已訂閱此方案',
         
         // PRO Plan Card
-        'Ultimate Brain' => '終極大腦',
-        'Advanced Plan' => '進階計劃',
+        'Ultimate Brain' => '終極開發者權限',
+        'Advanced Plan' => '進階 SaaS API 方案',
         'PRO Member' => 'PRO 會員',
-        'PRO Desc' => '專為開發者、量化分析師及需要絕對複雜邏輯與數學推理的專業用戶而設計。',
-        'Elite Reasoning Engine Access' => '<b>Elite 深度推理引擎</b> 存取權',
-        'Unlimited advanced messages' => '<b>無限制</b> 進階推理訊息',
-        'Massive chars chars' => '極高 <b>:chars</b> 字元輸入上限',
-        'Extended tokens output' => '擴充至 :tokens Tokens 超長輸出',
-        'Multi-Modal Vision at highest quality' => '最高畫質的多模態視覺分析',
-        'Max memory retention (30 layers)' => '頂級深度上下文記憶 (高達 30 層)',
-        'Highest Tier Reached' => '已達到最高階級',
+        'PRO Desc' => '專為 Web3 開發者、量化分析師，以及需要絕對複雜邏輯與數學推理能力的重度使用者而設計。',
+        'Elite Reasoning Engine Access' => '<b>Elite 深度推理引擎</b> 存取權限',
+        'Unlimited advanced messages' => '<b>無限次</b> 深度推理呼叫額度',
+        'Massive chars chars' => '海量 <b>:chars</b> 字元提示詞輸入上限',
+        'Extended tokens output' => '擴展至最高 <b>:tokens</b> Tokens 輸出長度',
+        'Multi-Modal Vision at highest quality' => '最高畫質的多模態 Vision AI 圖像解析',
+        'Max memory retention (30 layers)' => '最大記憶體保留 (高達 30 層上下文堆疊)',
+        'Highest Tier Reached' => '已達最高方案',
         
         // Legal Footer
-        'Terms of Purchase & No Refund Policy:' => '購買條款及不設退款政策：',
-        'Legal Text' => '繼續付款即表示您同意我們的服務條款。所有交易均為最終決定，並透過 PayPal 安全處理。由於本服務提供對數位 API 資源及高級伺服器容量的即時存取權，<span class="text-red-400/80 font-semibold">在任何情況下所有付款均嚴格不設退款</span>，包括部分使用或帳號終止。',
+        'Terms of Purchase & No Refund Policy:' => '購買條款與不退款政策：',
+        'Legal Text' => '繼續付款即表示您同意我們的服務條款。所有交易均透過 PayPal 安全處理且為最終決定。由於本服務提供即時的數位 API 資源存取、智能合約同步及優質的伺服器算力，<span class="text-red-400/80 font-semibold">在任何情況下所有付款皆嚴格禁止退款</span>，這包括部分使用或帳號終止之情形。',
         
         // JavaScript Checkout States
-        'Verifying transaction...' => '正在驗證加密交易簽章。請勿關閉此瀏覽器...',
-        'Syncing subscription...' => '正在同步訂閱權限... 即將重新導向至儀表板。',
-        'Integrity Verification Failed:' => '完整性驗證失敗：',
-        'Connection timeout.' => '連線握手逾時。請確保您的網絡穩定或稍後再試。',
-        'Unknown error.' => '未知錯誤。',
+        'Verifying transaction...' => '正在驗證加密交易簽章，請勿關閉此瀏覽器...',
+        'Syncing subscription...' => '正在同步訂閱權限... 即將導向至控制面板。',
+        'Integrity Verification Failed:' => '資料完整性驗證失敗：',
+        'Connection timeout.' => '連線交握超時，請確保網路穩定或稍後重試。',
+        'Unknown error.' => '發生未知錯誤。',
     ]
 ];

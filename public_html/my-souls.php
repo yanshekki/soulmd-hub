@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
+ * 🚀 V5 SEO Optimized: Semantic <main> / <section> tags and a11y ARIA labels
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -20,11 +20,12 @@ loadTranslations('my-souls');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
-$user_id = $_SESSION['user_id'];
 
+$user_id = $_SESSION['user_id'];
 $uStmt = $pdo->prepare("SELECT username, near_wallet_address FROM users WHERE id = ?");
 $uStmt->execute([$user_id]);
 $currentUserRow = $uStmt->fetch();
+
 $nearWallet = $currentUserRow['near_wallet_address'] ?? null;
 $username = $currentUserRow['username'] ?? 'anonymous';
 
@@ -36,84 +37,87 @@ $sort = $_GET['sort'] ?? 'newest';
 
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
+
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+<main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
     
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-6">
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-6">
         <div>
             <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter"><?= __('My Souls') ?></h1>
             <p class="text-sm sm:text-base text-zinc-400 mt-2"><?= __('Manage and edit your uploaded AI personalities') ?></p>
         </div>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full lg:w-auto">
-            <select id="sort-filter" onchange="changeSort(this.value)" class="col-span-2 sm:col-span-1 w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm bg-zinc-900 border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition focus:outline-none focus:border-emerald-400 shadow-inner cursor-pointer appearance-none">
-                <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>><?= __('✨ Newest') ?></option>
-                <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>><?= __('❤️ Like Count') ?></option>
-                <option value="forks" <?= $sort === 'forks' ? 'selected' : '' ?>><?= __('🌿 Fork Count') ?></option>
+            <select id="sort-filter" aria-label="Sort AI Models" onchange="changeSort(this.value)" class="col-span-2 sm:col-span-1 w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm bg-zinc-900 border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition focus:outline-none focus:border-emerald-400 shadow-inner cursor-pointer appearance-none">
+                <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>><?= __('  Newest') ?></option>
+                <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>><?= __('  Like Count') ?></option>
+                <option value="forks" <?= $sort === 'forks' ? 'selected' : '' ?>><?= __('  Fork Count') ?></option>
             </select>
             
-            <a href="<?= url('/profile/' . rawurlencode($username)) ?>" target="_blank" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center justify-center gap-2 whitespace-nowrap">
-                <i class="fas fa-external-link-alt text-[10px] text-zinc-500"></i> <?= __('Profile') ?>
+            <a href="<?= url('/profile/' . rawurlencode($username)) ?>" target="_blank" title="<?= __('Profile') ?>" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                <i class="fas fa-external-link-alt text-[10px] text-zinc-500" aria-hidden="true"></i> <?= __('Profile') ?>
             </a>
-            <a href="<?= url('/my-api') ?>" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition text-center whitespace-nowrap">
+            <a href="<?= url('/my-api') ?>" title="<?= __('My API Key') ?>" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition text-center whitespace-nowrap">
                 <?= __('My API Key') ?>
             </a>
-            <a href="<?= url('/upload') ?>" class="col-span-2 sm:col-span-1 px-6 py-3 sm:py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto">
-                <i class="fas fa-plus"></i> <?= __('New Soul') ?>
+            <a href="<?= url('/upload') ?>" aria-label="<?= __('New Soul') ?>" class="col-span-2 sm:col-span-1 px-6 py-3 sm:py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto">
+                <i class="fas fa-plus" aria-hidden="true"></i> <?= __('New Soul') ?>
             </a>
         </div>
-    </div>
+    </header>
 
-    <div class="mb-14">
-        <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-emerald-400 pl-3">
-            <i class="fas fa-tools text-emerald-400"></i> <?= __('Web2 Prototype Box') ?>
+    <section aria-labelledby="web2-heading" class="mb-14">
+        <h2 id="web2-heading" class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-emerald-400 pl-3">
+            <i class="fas fa-tools text-emerald-400" aria-hidden="true"></i> <?= __('Web2 Prototype Box') ?>
         </h2>
         
-        <div id="web2-container" class="min-h-[250px]"></div>
-        <div id="web2-pagination" class="mt-8 flex justify-center items-center w-full"></div>
-    </div>
+        <div id="web2-container" class="min-h-[250px]" aria-live="polite"></div>
+        <nav id="web2-pagination" aria-label="Web2 Models Pagination" class="mt-8 flex justify-center items-center w-full"></nav>
+    </section>
 
-    <div class="mb-14">
-        <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-purple-500 pl-3">
-            <i class="fas fa-gem text-purple-400"></i> <?= __('AgentFi NFT Asset Inventory') ?>
+    <section aria-labelledby="web3-heading" class="mb-14">
+        <h2 id="web3-heading" class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-purple-500 pl-3">
+            <i class="fas fa-gem text-purple-400" aria-hidden="true"></i> <?= __('AgentFi NFT Asset Inventory') ?>
         </h2>
         
         <?php if (empty($nearWallet)): ?>
             <div class="text-center py-12 bg-purple-950/10 border border-dashed border-purple-500/30 rounded-3xl p-8">
-                <i class="fas fa-wallet text-purple-400 text-4xl mb-4"></i>
+                <i class="fas fa-wallet text-purple-400 text-4xl mb-4" aria-hidden="true"></i>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('No Web3 Wallet Detected') ?></h3>
                 <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
-                <button type="button" onclick="window.connectOrBindWallet()" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?></button>
+                <button type="button" onclick="window.connectOrBindWallet()" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link" aria-hidden="true"></i> <?= __('Go to Bind Wallet') ?></button>
             </div>
         <?php else: ?>
-            <div id="web3-container" class="min-h-[250px]"></div>
-            <div id="web3-pagination" class="mt-8 flex justify-center items-center w-full"></div>
+            <div id="web3-container" class="min-h-[250px]" aria-live="polite"></div>
+            <nav id="web3-pagination" aria-label="Web3 Assets Pagination" class="mt-8 flex justify-center items-center w-full"></nav>
         <?php endif; ?>
-    </div>
+    </section>
 
-    <div>
-        <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-blue-500 pl-3">
-            <i class="fas fa-handshake text-blue-400"></i> <?= __('My Rented Agents') ?>
+    <section aria-labelledby="rented-heading">
+        <h2 id="rented-heading" class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-blue-500 pl-3">
+            <i class="fas fa-handshake text-blue-400" aria-hidden="true"></i> <?= __('My Rented Agents') ?>
         </h2>
         
         <?php if (empty($nearWallet)): ?>
             <div class="text-center py-12 bg-blue-950/10 border border-dashed border-blue-500/30 rounded-3xl p-8">
-                <i class="fas fa-wallet text-blue-400 text-4xl mb-4"></i>
+                <i class="fas fa-wallet text-blue-400 text-4xl mb-4" aria-hidden="true"></i>
                 <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
             </div>
         <?php else: ?>
-            <div id="rented-container" class="min-h-[250px]"></div>
+            <div id="rented-container" class="min-h-[250px]" aria-live="polite"></div>
         <?php endif; ?>
-    </div>
-</div>
+    </section>
 
-<div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()">
+</main>
+
+<!-- Renters Modal -->
+<div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()" aria-modal="true" role="dialog">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
         <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-users text-blue-400"></i> <?= __('Renter List') ?></h3>
-            <button type="button" onclick="closeRentersModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-users text-blue-400" aria-hidden="true"></i> <?= __('Renter List') ?></h3>
+            <button type="button" onclick="closeRentersModal()" aria-label="<?= __('Close') ?>" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
         <div class="p-5 overflow-y-auto custom-scrollbar flex-grow bg-zinc-900/50">
             <div id="renters-list-content" class="space-y-3"></div>
@@ -124,6 +128,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 </div>
 
+<?php require_once __DIR__ . '/../private/includes/my-souls-modals.php'; ?>
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
@@ -151,20 +156,19 @@ require_once __DIR__ . '/../private/includes/header.php';
     const lang_ActiveRenters = <?= json_encode(__('Active Renters'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_ExpiresAt = <?= json_encode(__('Expires At'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_NoActiveRenters = <?= json_encode(__('No active renters'), JSON_UNESCAPED_UNICODE) ?>;
-
     const lang_NoRentedAssets = <?= json_encode(__('No rented assets'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_RentExpiresAt = <?= json_encode(__('Rent Expires At'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_EnterChat = <?= json_encode(__('Enter Chat'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_GoToMarketplace = <?= json_encode(__('Go to Marketplace'), JSON_UNESCAPED_UNICODE) ?>;
-
+    
     const url_soul_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_edit_prefix = <?= json_encode(url('/edit/'), JSON_UNESCAPED_UNICODE) ?>;
     const url_versions = <?= json_encode(url('/soul-versions/'), JSON_UNESCAPED_UNICODE) ?>;
     const currentUsername = <?= json_encode($username, JSON_UNESCAPED_UNICODE) ?>;
+    
     const hasWallet = <?= !empty($nearWallet) ? 'true' : 'false' ?>;
-
     const boundWallet = <?= json_encode($nearWallet, JSON_UNESCAPED_UNICODE) ?>;
-
+    
     let web2Page = 1;
     let web3Page = 1;
     let currentSort = '<?= htmlspecialchars($sort) ?>';
@@ -173,7 +177,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
-
+    
     function makeSlug(str) {
         if (!str) return 'unassigned';
         return encodeURIComponent(str.toLowerCase().replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-').replace(/^-+|-+$/g, ''));
@@ -198,31 +202,31 @@ require_once __DIR__ . '/../private/includes/header.php';
     function renderPagination(containerId, current, totalPages, funcName) {
         const container = document.getElementById(containerId);
         if (totalPages <= 1) { container.innerHTML = ''; return; }
-
+        
         let html = '';
         html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
-        html += `<button onclick="${funcName}(${current - 1})" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left"></i></button>`;
+        html += `<button onclick="${funcName}(${current - 1})" aria-label="Previous Page" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left" aria-hidden="true"></i></button>`;
         html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
-        html += `<button onclick="${funcName}(${current + 1})" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right"></i></button>`;
+        html += `<button onclick="${funcName}(${current + 1})" aria-label="Next Page" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`;
         html += `</div>`;
 
         html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
-        html += `<button onclick="${funcName}(${current - 1})" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left text-xs"></i></button>`;
+        html += `<button onclick="${funcName}(${current - 1})" aria-label="Previous Page" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left text-xs" aria-hidden="true"></i></button>`;
 
         const windowSize = 2; 
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
                 if (i === current) {
-                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
+                    html += `<button aria-current="page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
                 } else {
-                    html += `<button onclick="${funcName}(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
+                    html += `<button aria-label="Page ${i}" onclick="${funcName}(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
                 }
             } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
-                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm" aria-hidden="true">...</span>`;
             }
         }
 
-        html += `<button onclick="${funcName}(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-purple-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += `<button onclick="${funcName}(${current + 1})" aria-label="Next Page" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right text-xs" aria-hidden="true"></i></button>`;
         html += `</div>`;
 
         container.innerHTML = html;
@@ -230,7 +234,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function loadWeb2Souls() {
         const container = document.getElementById('web2-container');
-        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" aria-label="Loading"></div></div>`;
         
         try {
             const res = await fetch(`/api/souls?scope=me&is_nft=0&page=${web2Page}&sort=${currentSort}`);
@@ -248,6 +252,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`;
                         });
                     }
+
                     const seoUrl = `${url_soul_prefix}${encodeURIComponent(currentUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
                     html += `
@@ -257,13 +262,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <div>
                                     <div class="font-bold text-lg sm:text-xl text-white tracking-tight mb-1 line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
                                     <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-1.5 flex-wrap">
-                                        <span>${escapeHTML(soul.role_icon || '✨')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span><span>•</span><span>${dateStr}</span>
+                                        <span>${escapeHTML(soul.role_icon || ' ')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span><span> </span><span>${dateStr}</span>
                                     </div>
                                 </div>
                                 <div class="flex gap-2 shrink-0 flex-col items-end">
                                     ${soul.is_public == 0 
-                                        ? `<span class="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-red-500/10 text-red-400 border-red-500/20 shadow-sm"><i class="fas fa-lock mr-1"></i>${lang_PrivateOnlyMe}</span>`
-                                        : `<span class="text-[10px] px-2.5 py-1 rounded-full font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-sm"><i class="fas fa-globe mr-1"></i>${lang_Public}</span>`
+                                        ? `<span class="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-red-500/10 text-red-400 border-red-500/20 shadow-sm"><i class="fas fa-lock mr-1" aria-hidden="true"></i>${lang_PrivateOnlyMe}</span>`
+                                        : `<span class="text-[10px] px-2.5 py-1 rounded-full font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-sm"><i class="fas fa-globe mr-1" aria-hidden="true"></i>${lang_Public}</span>`
                                     }
                                     <span class="text-[9px] px-2 py-0.5 rounded font-medium border ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'} shadow-sm">
                                         ${soul.file_type === 'full_soul_folder' ? lang_Modular : lang_SingleMd}
@@ -275,16 +280,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                         </div>
                         <div class="pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
                             <div class="flex items-center gap-4 text-xs text-zinc-500">
-                                <span title="${lang_Forks}"><i class="fas fa-code-branch mr-1 text-emerald-500"></i><b class="text-zinc-300">${soul.fork_count}</b></span>
-                                <span title="${lang_Likes}"><i class="fas fa-heart mr-1 text-red-500"></i><b class="text-zinc-300">${soul.like_count}</b></span>
+                                <span title="${lang_Forks}" aria-label="${soul.fork_count} Forks"><i class="fas fa-code-branch mr-1 text-emerald-500" aria-hidden="true"></i><b class="text-zinc-300">${soul.fork_count}</b></span>
+                                <span title="${lang_Likes}" aria-label="${soul.like_count} Likes"><i class="fas fa-heart mr-1 text-red-500" aria-hidden="true"></i><b class="text-zinc-300">${soul.like_count}</b></span>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
-                                <a href="${url_versions}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center" title="${lang_VersionHistory}"><i class="fas fa-history"></i></a>
+                                <a href="${url_edit_prefix}${soul.id}" title="${lang_Edit} - ${escapeHTML(soul.title)}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-xl border border-white/5 transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit" aria-hidden="true"></i> ${lang_Edit}</a>
+                                <a href="${url_versions}${soul.id}" title="${lang_VersionHistory} - ${escapeHTML(soul.title)}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl border border-white/5 transition flex items-center justify-center"><i class="fas fa-history" aria-hidden="true"></i></a>
                                 
-                                <button onclick="deleteWeb2Soul(${soul.id}, this)" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center min-w-[44px]" title="${lang_DeleteSoul}"><i class="far fa-trash-alt sm:text-base"></i></button>
+                                <button onclick="deleteWeb2Soul(${soul.id}, this)" aria-label="${lang_DeleteSoul}" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center min-w-[44px]"><i class="far fa-trash-alt sm:text-base" aria-hidden="true"></i></button>
                                 
-                                <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
+                                <a href="${seoUrl}" aria-label="${lang_View} - ${escapeHTML(soul.title)}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
                             </div>
                         </div>
                     </div>
@@ -296,27 +301,27 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 container.innerHTML = `
                 <div class="text-center py-12 bg-zinc-900/20 border border-dashed border-white/5 rounded-3xl">
-                    <div class="mx-auto w-12 h-12 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-xl mb-4 text-zinc-500"><i class="fas fa-code text-xl"></i></div>
+                    <div class="mx-auto w-12 h-12 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-xl mb-4 text-zinc-500"><i class="fas fa-code text-xl" aria-hidden="true"></i></div>
                     <p class="text-zinc-400 text-sm">${lang_NoSouls}</p>
                 </div>`;
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Network error.')) ?></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> <?= addslashes(__('Network error.')) ?></div>`;
         }
     }
 
     async function loadWeb3Souls() {
         if (!hasWallet) return;
         const container = document.getElementById('web3-container');
-        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" aria-label="Loading"></div></div>`;
         
         try {
             const res = await fetch(`/api/souls?scope=me&is_nft=1&page=${web3Page}&sort=${currentSort}`);
             const data = await res.json();
             
             if (data.success && data.data.length > 0) {
-                // 🌟 核心重構：改用 NearRpc 全域統一查詢引擎
+                // Fetch nearRPC concurrently
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
                     const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
@@ -337,8 +342,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                             tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`;
                         });
                     }
-                    const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
 
+                    const seoUrl = `${url_soul_prefix}${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
+                    
                     let activeRenters = [];
                     if (soul.market.renters) {
                         const nowMs = Date.now();
@@ -354,9 +360,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     let burnBtnHtml = '';
                     if (rentersCount > 0) {
-                        burnBtnHtml = `<button disabled class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center opacity-30 cursor-not-allowed min-w-[44px]" title="${lang_ActiveRentersError}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
+                        burnBtnHtml = `<button disabled aria-label="${lang_ActiveRentersError}" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center opacity-30 cursor-not-allowed min-w-[44px]"><i class="fas fa-fire-alt sm:text-base" aria-hidden="true"></i></button>`;
                     } else {
-                        burnBtnHtml = `<button onclick="burnWeb3Soul(${soul.id}, this)" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center min-w-[44px]" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base"></i></button>`;
+                        burnBtnHtml = `<button onclick="burnWeb3Soul(${soul.id}, this)" aria-label="${lang_BurnAndRefund}" class="px-4 py-2.5 sm:p-2 text-xs text-zinc-500 hover:text-red-400 transition bg-zinc-800 sm:bg-transparent rounded-xl sm:rounded-none border border-white/5 sm:border-none flex items-center justify-center min-w-[44px]" title="${lang_BurnAndRefund}"><i class="fas fa-fire-alt sm:text-base" aria-hidden="true"></i></button>`;
                     }
 
                     html += `
@@ -367,39 +373,37 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <div>
                                     <div class="font-bold text-lg sm:text-xl text-white tracking-tight mb-1 line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
                                     <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-1.5 flex-wrap">
-                                        <span>${escapeHTML(soul.role_icon || '✨')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span><span>•</span><span>${dateStr}</span>
+                                        <span>${escapeHTML(soul.role_icon || ' ')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span><span> </span><span>${dateStr}</span>
                                     </div>
                                 </div>
                                 <div class="flex gap-2 shrink-0 flex-col items-end">
                                     <span class="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-sm">
-                                        <i class="fas fa-cube mr-1"></i>${lang_AgentNFTAsset}
+                                        <i class="fas fa-cube mr-1" aria-hidden="true"></i>${lang_AgentNFTAsset}
                                     </span>
                                     <span class="text-[9px] px-2 py-0.5 rounded font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-sm cursor-help" title="${lang_FloorDesc}">
                                         ${lang_FloorPrice}: 0.45 N
                                     </span>
                                 </div>
                             </div>
-
                             <div class="mb-3 flex items-center gap-2">
-                                <button type="button" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md font-bold cursor-pointer shadow-sm transition inline-flex items-center gap-1.5">
-                                    <i class="fas fa-users"></i> ${rentersCount} ${lang_ActiveRenters}
+                                <button type="button" aria-label="View ${rentersCount} Renters" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md font-bold cursor-pointer shadow-sm transition inline-flex items-center gap-1.5">
+                                    <i class="fas fa-users" aria-hidden="true"></i> ${rentersCount} ${lang_ActiveRenters}
                                 </button>
                             </div>
-
                             ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                             <div class="flex flex-wrap gap-1.5 mb-6">${tagsHtml}</div>
                         </div>
                         <div class="pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
                             <div class="flex items-center gap-4 text-xs text-zinc-500 font-mono">
-                                <span><i class="fas fa-code-branch mr-1 text-emerald-500"></i><b>${soul.fork_count}</b></span>
-                                <span><i class="fas fa-heart mr-1 text-red-500"></i><b>${soul.like_count}</b></span>
+                                <span title="${lang_Forks}" aria-label="${soul.fork_count} Forks"><i class="fas fa-code-branch mr-1 text-emerald-500" aria-hidden="true"></i><b>${soul.fork_count}</b></span>
+                                <span title="${lang_Likes}" aria-label="${soul.like_count} Likes"><i class="fas fa-heart mr-1 text-red-500" aria-hidden="true"></i><b>${soul.like_count}</b></span>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <a href="${url_edit_prefix}${soul.id}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/20 rounded-xl transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit"></i> ${lang_Edit}</a>
+                                <a href="${url_edit_prefix}${soul.id}" aria-label="Edit Web3 Agent ${escapeHTML(soul.title)}" class="px-4 py-2.5 sm:py-2 text-xs bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/20 rounded-xl transition flex-1 sm:flex-auto text-center"><i class="fas fa-edit" aria-hidden="true"></i> ${lang_Edit}</a>
                                 
                                 ${burnBtnHtml}
                                 
-                                <a href="${seoUrl}" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
+                                <a href="${seoUrl}" aria-label="View Asset Details" class="px-5 py-2.5 sm:py-2 text-xs bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition text-center shadow flex-1 sm:flex-auto">${lang_View}</a>
                             </div>
                         </div>
                     </div>
@@ -411,20 +415,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 container.innerHTML = `
                 <div class="text-center py-12 bg-zinc-900/20 border border-dashed border-white/5 rounded-3xl">
-                    <div class="mx-auto w-12 h-12 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-xl mb-4 text-zinc-500"><i class="fas fa-box-open text-xl"></i></div>
+                    <div class="mx-auto w-12 h-12 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-xl mb-4 text-zinc-500"><i class="fas fa-box-open text-xl" aria-hidden="true"></i></div>
                     <p class="text-zinc-400 text-sm">${lang_NoNFTs}</p>
                 </div>`;
                 document.getElementById('web3-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network error.</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> Network error.</div>`;
         }
     }
 
     async function loadRentedSouls() {
         if (!boundWallet) return;
         const container = document.getElementById('rented-container');
-        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" aria-label="Loading"></div></div>`;
         
         try {
             let allFetchedNfts = [];
@@ -447,16 +451,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (allFetchedNfts.length === 0) {
                 container.innerHTML = `
                 <div class="text-center py-12 bg-blue-950/10 border border-dashed border-blue-500/30 rounded-3xl p-8">
-                    <i class="fas fa-handshake text-blue-400 text-4xl mb-4"></i>
+                    <i class="fas fa-handshake text-blue-400 text-4xl mb-4" aria-hidden="true"></i>
                     <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6">${lang_NoRentedAssets}</p>
-                    <a href="<?= url('/marketplace') ?>" class="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1"></i> ${lang_GoToMarketplace}</a>
+                    <a href="<?= url('/marketplace') ?>" class="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1" aria-hidden="true"></i> ${lang_GoToMarketplace}</a>
                 </div>`;
                 return;
             }
 
             const rentedSouls = [];
-
-            // 🌟 核心重構：改用 NearRpc 全域統一查詢引擎
             const chunkSize = 20;
             for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
                 const batch = allFetchedNfts.slice(i, i + chunkSize);
@@ -493,28 +495,28 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 <div>
                                     <div class="font-bold text-lg sm:text-xl text-white tracking-tight mb-1 line-clamp-2 leading-tight">${escapeHTML(soul.title)}</div>
                                     <div class="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-1.5 flex-wrap">
-                                        <span>${escapeHTML(soul.role_icon || '✨')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span>
+                                        <span>${escapeHTML(soul.role_icon || ' ')} ${escapeHTML(soul.role_name || lang_Unassigned)}</span>
                                     </div>
                                 </div>
                                 <div class="flex gap-2 shrink-0 flex-col items-end">
                                     <span class="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-sm">
-                                        <i class="fas fa-handshake mr-1"></i>Rented
+                                        <i class="fas fa-handshake mr-1" aria-hidden="true"></i>Rented
                                     </span>
                                 </div>
                             </div>
                             
                             <div class="bg-zinc-950 p-3 rounded-xl border border-white/5 mb-4 shadow-inner">
                                 <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">${lang_RentExpiresAt}</div>
-                                <div class="text-sm font-bold font-mono text-emerald-400"><i class="far fa-clock mr-1"></i> ${expiryDate}</div>
+                                <div class="text-sm font-bold font-mono text-emerald-400"><i class="far fa-clock mr-1" aria-hidden="true"></i> ${expiryDate}</div>
                             </div>
                             
                             ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                         </div>
                         <div class="pt-4 border-t border-white/5 flex gap-2 mt-auto">
-                            <a href="${chatUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
-                                <i class="fas fa-comments"></i> ${lang_EnterChat}
+                            <a href="${chatUrl}" aria-label="Enter Chat" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
+                                <i class="fas fa-comments" aria-hidden="true"></i> ${lang_EnterChat}
                             </a>
-                            <a href="${seoUrl}" class="px-5 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition text-center shadow-sm shrink-0 border border-white/5 flex items-center justify-center">
+                            <a href="${seoUrl}" aria-label="View Asset Details" class="px-5 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition text-center shadow-sm shrink-0 border border-white/5 flex items-center justify-center">
                                 ${lang_View}
                             </a>
                         </div>
@@ -526,13 +528,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 container.innerHTML = `
                 <div class="text-center py-12 bg-blue-950/10 border border-dashed border-blue-500/30 rounded-3xl p-8">
-                    <i class="fas fa-handshake text-blue-400 text-4xl mb-4"></i>
+                    <i class="fas fa-handshake text-blue-400 text-4xl mb-4" aria-hidden="true"></i>
                     <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6">${lang_NoRentedAssets}</p>
-                    <a href="<?= url('/marketplace') ?>" class="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1"></i> ${lang_GoToMarketplace}</a>
+                    <a href="<?= url('/marketplace') ?>" class="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs shadow-md"><i class="fas fa-shopping-cart mr-1" aria-hidden="true"></i> ${lang_GoToMarketplace}</a>
                 </div>`;
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> Network error</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> Network error</div>`;
         }
     }
 
@@ -540,7 +542,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         const renters = JSON.parse(decodeURIComponent(encodedJson));
         const listContainer = document.getElementById('renters-list-content');
         listContainer.innerHTML = '';
-
         if (renters.length === 0) {
             listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6">${lang_NoActiveRenters}</div>`;
         } else {
@@ -549,7 +550,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const dateStr = d.toLocaleString();
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
-                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5" aria-hidden="true"></i>${escapeHTML(r.account)}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
                             <div class="uppercase tracking-wider">${lang_ExpiresAt}</div>
                             <div class="text-zinc-300 font-bold">${dateStr}</div>
@@ -558,7 +559,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 `;
             });
         }
-
         document.body.style.overflow = 'hidden';
         const modal = document.getElementById('renters-modal');
         const content = modal.firstElementChild;
@@ -584,10 +584,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!confirm(lang_PermDelete)) return;
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base"></i>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base" aria-hidden="true"></i>';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
-
         try {
             const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
             const data = await res.json();
@@ -609,7 +608,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function burnWeb3Soul(id, btn) {
         if (!confirm(lang_BurnConfirm)) return;
-
         try {
             if (typeof initNearWallet !== 'function') return;
             const wallet = await initNearWallet();
@@ -618,12 +616,10 @@ require_once __DIR__ . '/../private/includes/header.php';
                 await window.connectOrBindWallet();
                 return;
             }
-
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base"></i>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base" aria-hidden="true"></i>';
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
-
             await wallet.account().functionCall({
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                 methodName: "burn_soul",
@@ -633,7 +629,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 walletCallbackUrl: window.location.href 
             });
             
-            btn.innerHTML = '<i class="fas fa-sync fa-spin sm:text-base"></i>';
+            btn.innerHTML = '<i class="fas fa-sync fa-spin sm:text-base" aria-hidden="true"></i>';
             window.location.reload();
         } catch (e) {
             console.error("Burn execution error:", e);
@@ -647,7 +643,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function proactiveAssetSync() {
         if (!boundWallet) return;
-
         try {
             let allFetchedNfts = [];
             let page = 1;
@@ -662,19 +657,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                     page++;
                 } else { break; }
             }
-
             if (allFetchedNfts.length === 0) return;
-
             let needsReload = false;
             
-            // 🌟 核心重構：改用 NearRpc 全域統一查詢引擎
             const chunkSize = 20;
             for (let i = 0; i < allFetchedNfts.length; i += chunkSize) {
                 const batch = allFetchedNfts.slice(i, i + chunkSize);
                 
                 const syncPromises = batch.map(async (soul) => {
                     if (soul.nft_owner_wallet === boundWallet) return; 
-
                     const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
                     if (rpcRes.success && rpcRes.data) {
                         const tokenInfo = rpcRes.data;
@@ -686,7 +677,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 });
                 await Promise.all(syncPromises);
             }
-
             if (needsReload) { loadWeb2Souls(); loadWeb3Souls(); loadRentedSouls(); }
         } catch(e) {}
     }

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
+ * 🚀 V5 SEO Optimized: Dynamic Meta Description, Semantic Headings, and a11y Links
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,7 +10,6 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-
 loadTranslations('soul');
 
 $db = Database::getInstance();
@@ -41,12 +40,14 @@ if (!$soul) {
 }
 
 $isOwner = ($userId > 0 && $userId === $soul['user_id']);
+
 $currentUserWallet = null;
 if ($userId > 0) {
     $wStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
     $wStmt->execute([$userId]);
     $currentUserWallet = $wStmt->fetchColumn();
 }
+
 $isChainOwner = (!empty($currentUserWallet) && $currentUserWallet === $soul['nft_owner_wallet']);
 
 $canViewContent = ($soul['is_public'] == 1 || $isOwner || $isChainOwner);
@@ -102,7 +103,8 @@ if ($isFolder) {
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($files) || empty($files)) {
         $errorMsg = json_last_error_msg();
         $files = [
-            'ERROR.md' => "## ⚠️ " . __('Parse Error') . "\n" . __('Failed to parse JSON folder structure.') . "\n\n**" . __('Error Details:') . "** `{$errorMsg}`\n\n---\n\n### " . __('Raw Output:') . "\n```json\n" . $contentData . "\n```"
+            'ERROR.md' => "## ⚠️ " . __('Parse Error') . "\n" . __('Failed to parse JSON folder structure.') . "\n\n**" . __('Error Details:') . "** `{$errorMsg}`\n\n---\n\n### " . __('Raw Output:') . "\n```json\n" . $contentData . "\n
+```"
         ];
     }
 } else {
@@ -135,37 +137,40 @@ function getFileStyle($filename) {
     return ['icon' => 'fa-file-alt', 'color' => 'text-zinc-400', 'border' => 'border-zinc-400'];
 }
 
-$pageTitle = $soul['title'];
-$pageDesc = $soul['description'] ?: __('View this AI soul on SoulMD Hub.');
+// 🚀 SEO Enhancement: Dynamic Title & Truncated Clean Description
+$pageTitle = $soul['title'] . ' | ' . ($soul['role_name'] ?: 'AI Persona');
+$pageDesc = $soul['description'] ? mb_substr(strip_tags(str_replace(["\r", "\n"], ' ', $soul['description'])), 0, 150) . '...' : __('View this AI soul on SoulMD Hub.');
+
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
+
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <a href="<?= $soul['is_nft'] == 1 ? url('/marketplace') : url('/browse') ?>" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
+        <a href="<?= $soul['is_nft'] == 1 ? url('/marketplace') : url('/browse') ?>" title="Return to directory" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
             <i class="fas fa-arrow-left"></i> <?= $soul['is_nft'] == 1 ? __('Back to Market') : __('Back to Hub') ?>
         </a>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full md:w-auto mt-2 md:mt-0">
-            <button onclick="likeSoul()" id="like-btn" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl hover:border-red-500/50 hover:text-red-400 transition shadow-sm">
+            <button onclick="likeSoul()" id="like-btn" aria-label="Like this AI Persona" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl hover:border-red-500/50 hover:text-red-400 transition shadow-sm">
                 <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>"></i>
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
             
             <?php if ($soul['is_nft'] == 0): ?>
-            <button onclick="forkSoul()" id="fork-btn" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
+            <button onclick="forkSoul()" id="fork-btn" title="Fork to your workspace" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
                 <i class="fas fa-code-branch text-emerald-400"></i> <?= __('Fork') ?>
             </button>
             <?php endif; ?>
             
             <?php if ($canViewContent): ?>
-                <button onclick="copyMegaPrompt(this)" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
+                <button onclick="copyMegaPrompt(this)" title="Copy the compiled AI prompt" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
                     <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
                 </button>
             <?php else: ?>
-                <button disabled class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-800 text-zinc-500 rounded-xl font-bold cursor-not-allowed border border-white/5 transition shadow-sm">
+                <button disabled aria-label="Content Protected" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-800 text-zinc-500 rounded-xl font-bold cursor-not-allowed border border-white/5 transition shadow-sm">
                     <i class="fas fa-lock"></i> <?= __('Protected') ?>
                 </button>
             <?php endif; ?>
@@ -186,10 +191,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
         </div>
         <div class="flex flex-wrap gap-2 w-full md:w-auto" id="market-actions">
-            <button id="btn-buy" onclick="buySoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
+            <button id="btn-buy" onclick="buySoul()" aria-label="Buy AI Ownership" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
                 <span id="text-buy"><i class="fas fa-shopping-cart mr-1"></i> <span id="price-buy"></span> NEAR</span>
             </button>
-            <button id="btn-rent" onclick="rentSoul()" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
+            <button id="btn-rent" onclick="rentSoul()" aria-label="Rent AI for 30 Days" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
                 <span id="text-rent"><i class="fas fa-handshake mr-1"></i> <span id="price-rent"></span> NEAR</span>
             </button>
         </div>
@@ -198,7 +203,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-10 backdrop-blur-sm shadow-xl">
         <div class="flex flex-wrap items-center gap-3 mb-4">
             <?php if ($soul['role_name']): ?>
-                <a href="<?= url('/browse?role=' . urlencode($soul['role'])) ?>" class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium hover:bg-white/10 transition">
+                <a href="<?= url('/browse?role=' . urlencode($soul['role'])) ?>" title="Explore role: <?= htmlspecialchars($soul['role_name']) ?>" class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium hover:bg-white/10 transition">
                     <?= htmlspecialchars($soul['role_icon'] ?? '✨') ?> <?= htmlspecialchars($soul['role_name']) ?>
                 </a>
             <?php endif; ?>
@@ -216,19 +221,19 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php endif; ?>
 
         <div class="bg-blue-900/10 border border-blue-500/20 rounded-3xl p-5 sm:p-6 mb-8 max-w-3xl shadow-inner">
-            <h3 class="text-blue-400 text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
+            <h2 class="text-blue-400 text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
                 <i class="fas fa-bolt text-blue-500"></i> <?= __('One-Click Interaction') ?>
-            </h3>
+            </h2>
             <p class="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
                 <?= __('Instantly interact with this AI soul directly in your browser. Start a live conversation based on the modular instructions provided in this repository. No complex API integrations required.') ?>
             </p>
             
-            <a href="<?= url('/chat/' . $id) ?>" target="_blank" class="flex sm:inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition shadow-lg shadow-blue-500/20 sm:hover:scale-[1.02] transform duration-200 w-full sm:w-auto">
+            <a href="<?= url('/chat/' . $id) ?>" target="_blank" title="Start Chat Session" class="flex sm:inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition shadow-lg shadow-blue-500/20 sm:hover:scale-[1.02] transform duration-200 w-full sm:w-auto">
                 <i class="fas fa-paper-plane"></i> <?= __('Start Conversation') ?>
             </a>
             
             <div class="mt-5 text-xs text-zinc-400 bg-black/30 p-4 rounded-xl border border-white/5 leading-relaxed">
-                <i class="fas fa-disabled fa-shield-alt text-amber-500 mr-1.5"></i> <strong><?= __('Privacy Notice:') ?></strong> <?= __('Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.') ?>
+                <i class="fas fa-shield-alt text-amber-500 mr-1.5"></i> <strong><?= __('Privacy Notice:') ?></strong> <?= __('Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.') ?>
             </div>
         </div>
 
@@ -238,7 +243,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-bold shrink-0">
                         <?= strtoupper(substr($soul['username'] ?? 'A', 0, 1)) ?>
                     </div>
-                    <a href="<?= url('/profile/' . rawurlencode($soul['username'] ?? 'anonymous')) ?>" class="font-medium text-white hover:text-emerald-400 transition truncate max-w-[120px] sm:max-w-none">
+                    <a href="<?= url('/profile/' . rawurlencode($soul['username'] ?? 'anonymous')) ?>" title="Creator Profile" class="font-medium text-white hover:text-emerald-400 transition truncate max-w-[120px] sm:max-w-none">
                         @<?= htmlspecialchars($soul['username'] ?? 'Anonymous') ?>
                     </a>
                 </div>
@@ -250,15 +255,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="flex items-center gap-2">
                     <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> <?= __('forks') ?>
                 </div>
-                <a href="<?= url('/soul-versions/' . $id) ?>" class="flex items-center gap-2 hover:text-emerald-400 transition">
+                <a href="<?= url('/soul-versions/' . $id) ?>" title="Version History" class="flex items-center gap-2 hover:text-emerald-400 transition">
                     <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> <?= __('versions') ?>
                 </a>
                 <?php endif; ?>
                 
                 <div class="flex items-center gap-2 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-white/5">
-                    <div class="flex text-lg" id="rating-stars">
+                    <div class="flex text-lg" id="rating-stars" role="radiogroup" aria-label="Rate this persona">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                            <i onclick="rateSoul(<?= $i ?>)" class="fas fa-star cursor-pointer hover:scale-110 transition <?= $i <= round($avgRating) ? 'text-amber-400' : 'text-zinc-600' ?>"></i>
+                            <i onclick="rateSoul(<?= $i ?>)" role="radio" aria-checked="<?= $i <= round($avgRating) ? 'true' : 'false' ?>" tabindex="0" class="fas fa-star cursor-pointer hover:scale-110 transition <?= $i <= round($avgRating) ? 'text-amber-400' : 'text-zinc-600' ?>"></i>
                         <?php endfor; ?>
                     </div>
                     <span class="text-xs ml-1">
@@ -288,10 +293,13 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
+    <!-- 🚀 SEO Enhancement: Semantic Heading for Source Code -->
+    <h2 class="sr-only">AI Agent Architecture Files</h2>
+
     <div class="bg-zinc-900/40 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
         
         <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-white/10 bg-zinc-950/50">
-            <div class="flex pt-2 px-2 overflow-x-auto custom-scrollbar w-full md:w-auto">
+            <div class="flex pt-2 px-2 overflow-x-auto custom-scrollbar w-full md:w-auto" role="tablist">
                 <?php 
                 $i = 0; 
                 foreach ($files as $filename => $fileContent): 
@@ -308,9 +316,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                         $pathPrefix = '<div class="text-[9px] opacity-50 -mb-1 truncate max-w-[100px] leading-tight">' . htmlspecialchars($pathOnly) . '/</div>';
                     }
                 ?>
-                    <button onclick="showFile(<?= $i ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-<?= $i ?>" class="tab-btn px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-900/50' ?> rounded-t-lg" data-border="<?= $fStyle['border'] ?>" data-color="<?= $fStyle['color'] ?>">
+                    <button onclick="showFile(<?= $i ?>, '<?= $fStyle['border'] ?>', '<?= $fStyle['color'] ?>')" id="tab-btn-<?= $i ?>" role="tab" aria-selected="<?= $i === 1 ? 'true' : 'false' ?>" aria-controls="file-<?= $i ?>" class="tab-btn px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition border-b-2 <?= $i === 1 ? $fStyle['border'] . ' ' . $fStyle['color'] : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-900/50' ?> rounded-t-lg" data-border="<?= $fStyle['border'] ?>" data-color="<?= $fStyle['color'] ?>">
                         <div class="flex items-center gap-2 text-left">
-                            <i class="fas <?= $fStyle['icon'] ?>"></i>
+                            <i class="fas <?= $fStyle['icon'] ?>" aria-hidden="true"></i>
                             <div class="flex flex-col justify-center min-h-[32px]">
                                 <?= $pathPrefix ?>
                                 <div class="truncate max-w-[120px] sm:max-w-[150px] leading-tight"><?= $displayName ?></div>
@@ -323,10 +331,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="flex items-center justify-end gap-2 p-3 md:py-2 md:px-4 bg-zinc-900/30 md:bg-transparent border-t border-white/5 md:border-t-0 shrink-0">
                 <?php if ($isFolder && $soul['is_nft'] == 0): ?>
                     <?php if ($canViewContent): ?>
-                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
+                        <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" title="Download ZIP Archive" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
                             <i class="fas fa-file-archive text-amber-400"></i> .zip
                         </a>
-                        <button onclick="copyFullFolder(this)" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
+                        <button onclick="copyFullFolder(this)" title="Copy Folder JSON" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
                             <i class="fas fa-copy"></i> <?= __('JSON') ?>
                         </button>
                     <?php else: ?>
@@ -346,17 +354,17 @@ require_once __DIR__ . '/../private/includes/header.php';
                 $encodedFilename = implode('/', array_map('rawurlencode', explode('/', $filename)));
                 $safeContent = is_string($fileContent) ? $fileContent : json_encode($fileContent, JSON_UNESCAPED_UNICODE);
             ?>
-                <div id="file-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
+                <div id="file-<?= $i ?>" role="tabpanel" aria-labelledby="tab-btn-<?= $i ?>" class="file-tab <?= $i === 1 ? 'block' : 'hidden' ?> relative">
                     <div class="sticky top-0 z-10 flex justify-end bg-gradient-to-b from-zinc-900/90 to-transparent p-4 pointer-events-none gap-2">
                         
                         <?php if ($soul['is_nft'] == 0): ?>
                             <?php if ($canViewContent): ?>
-                                <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                                <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" title="View Raw File" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
                                     <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
                                 </a>
                             <?php endif; ?>
                             
-                            <button onclick="copyRaw(<?= $i ?>, this)" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
+                            <button onclick="copyRaw(<?= $i ?>, this)" title="Copy File Content" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
                                 <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
                             </button>
                         <?php endif; ?>
@@ -385,12 +393,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         return url.toString();
     }
 
-    // 🚀 核心升級：直接採用全域 window.nearRpcQuery() 取代冗長 fetch
+    // Call window.nearRpcQuery() directly without PHP fetch
     async function fetchMarketStatus() {
         try {
             const wallet = typeof initNearWallet === 'function' ? await initNearWallet() : null;
             const myWallet = wallet && wallet.isSignedIn() ? wallet.getAccountId() : null;
-
             const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulDbId });
             
             if (rpcRes.success && rpcRes.data) {
@@ -405,7 +412,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
                     const btnBuy = document.getElementById('btn-buy');
                     btnBuy.classList.remove('hidden');
-                    btnBuy.dataset.price = tokenInfo.sale_price; 
+                    btnBuy.dataset.price = tokenInfo.sale_price;
                     
                     if (isOwner) {
                         btnBuy.disabled = true;
@@ -414,12 +421,13 @@ require_once __DIR__ . '/../private/includes/header.php';
                         btnBuy.removeAttribute('onclick');
                     }
                 }
+
                 if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
                     const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
                     document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
                     const btnRent = document.getElementById('btn-rent');
                     btnRent.classList.remove('hidden');
-                    btnRent.dataset.price = tokenInfo.rent_price; 
+                    btnRent.dataset.price = tokenInfo.rent_price;
                     
                     if (isOwner) {
                         btnRent.disabled = true;
@@ -488,7 +496,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function rentSoul() {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
-
         const btn = document.getElementById('btn-rent');
         const textSpan = document.getElementById('text-rent');
         const originalText = textSpan.innerHTML;
@@ -569,11 +576,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.className = btn.className.replace(/border-[a-z]+-400/g, 'border-transparent');
             btn.className = btn.className.replace(/text-[a-z]+-400/g, 'text-zinc-400');
             btn.classList.add('border-transparent', 'text-zinc-400');
+            btn.setAttribute('aria-selected', 'false');
         });
         
         const activeBtn = document.getElementById('tab-btn-' + n);
         activeBtn.classList.remove('border-transparent', 'text-zinc-400');
         activeBtn.classList.add(activeBorder, activeColor);
+        activeBtn.setAttribute('aria-selected', 'true');
     }
 
     function copyRaw(id, btn) {
@@ -607,7 +616,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars }) 
             });
             const data = await res.json();
-
             if (data.success) {
                 document.getElementById('avg-rating').innerText = parseFloat(data.avg_rating).toFixed(1);
                 document.getElementById('total-ratings').innerText = `(${data.total_ratings})`;
@@ -617,9 +625,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                     if (idx + 1 <= roundedAvg) {
                         btn.classList.remove('text-zinc-600');
                         btn.classList.add('text-amber-400');
+                        btn.setAttribute('aria-checked', 'true');
                     } else {
                         btn.classList.remove('text-amber-400');
                         btn.classList.add('text-zinc-600');
+                        btn.setAttribute('aria-checked', 'false');
                     }
                 });
             } else {
@@ -644,7 +654,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         const originalClassName = icon.className;
         icon.className = 'fas fa-spinner fa-spin text-zinc-400';
-
         try {
             const res = await fetch('/api/like', { 
                 method: 'POST', 
@@ -652,7 +661,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify({ soul_id: <?= $id ?> }) 
             });
             const data = await res.json();
-
             if (data.success) {
                 let currentCount = parseInt(countSpan.innerText);
                 if (data.liked) {
@@ -695,5 +703,4 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch (e) { alert(`<?= addslashes(__('Network error')) ?>`); btn.innerHTML = originalHtml; } finally { btn.style.pointerEvents = 'auto'; }
     }
 </script>
-
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

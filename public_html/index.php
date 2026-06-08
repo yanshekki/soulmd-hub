@@ -3,6 +3,8 @@
  * SoulMD Hub - Homepage
  * (Dynamic i18n Internationalization & V5 Web2 Isolation Edition)
  * 🚀 Patched: NULL is_nft handling for legacy data in STATS query
+ * 🚀 V5 SEO Optimized: Enhanced Content Depth, Semantic Headings, and Strategic Internal Linking
+ * 🚀 V5.1 Patched: 100% i18n Language Dictionary Compliance
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -27,6 +29,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-20 pt-8">
     
+    <!-- Hero Section -->
     <div class="text-center py-12 md:py-20 relative">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none -z-10"></div>
         
@@ -52,6 +55,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
+    <!-- Stats Section -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center mb-24 border-y border-white/5 py-10 bg-zinc-900/20">
         <div>
             <div class="text-4xl font-black text-white tracking-tight"><?= number_format($statsSouls) ?>+</div>
@@ -67,6 +71,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
+    <!-- Features Section -->
     <div class="mb-24">
         <div class="text-center mb-12">
             <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4"><?= __('Enterprise-Grade AI Features') ?></h2>
@@ -76,7 +81,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="bg-zinc-900/50 border border-white/10 p-6 rounded-3xl hover:border-emerald-500/30 transition group">
                 <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
-                    <i class="fas fa-eye text-2xl text-emerald-400"></i>
+                    <i class="fas fa-eye text-2xl text-emerald-400" aria-hidden="true"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('Vision AI Analysis') ?></h3>
                 <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Vision AI Desc') ?></p>
@@ -84,7 +89,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             <div class="bg-zinc-900/50 border border-white/10 p-6 rounded-3xl hover:border-amber-500/30 transition group">
                 <div class="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
-                    <i class="fas fa-brain text-2xl text-amber-400"></i>
+                    <i class="fas fa-brain text-2xl text-amber-400" aria-hidden="true"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('Elite Reasoning Engine') ?></h3>
                 <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Elite Reasoning Desc') ?></p>
@@ -92,7 +97,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <div class="bg-zinc-900/50 border border-white/10 p-6 rounded-3xl hover:border-purple-500/30 transition group">
                 <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
-                    <i class="fas fa-layer-group text-2xl text-purple-400"></i>
+                    <i class="fas fa-layer-group text-2xl text-purple-400" aria-hidden="true"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('Smart Memory') ?></h3>
                 <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Smart Memory Desc') ?></p>
@@ -100,7 +105,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <div class="bg-zinc-900/50 border border-white/10 p-6 rounded-3xl hover:border-blue-500/30 transition group">
                 <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
-                    <i class="fas fa-lock text-2xl text-blue-400"></i>
+                    <i class="fas fa-lock text-2xl text-blue-400" aria-hidden="true"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('Private Sessions') ?></h3>
                 <p class="text-sm text-zinc-400 leading-relaxed"><?= __('Private Sessions Desc') ?></p>
@@ -108,6 +113,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
+    <!-- Popular Domains -->
     <div class="mb-24">
         <div class="flex items-end justify-between mb-8">
             <div>
@@ -126,12 +132,47 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
+    <!-- 🚀 NEW SEO CARD BLOCK: Deep Semantic Content & Internal Linking Strategy -->
+    <div class="mb-24 bg-gradient-to-b from-zinc-900/40 to-black/20 border border-white/5 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-sm">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="space-y-3">
+                <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                    <i class="fas fa-project-diagram"></i> 
+                    <?= __('SEO_Card_1_Title') ?>
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                    <?= __('SEO_Card_1_Desc', ['docs_url' => url('/docs/intro')]) ?>
+                </p>
+            </div>
+            <div class="space-y-3">
+                <h2 class="text-xl font-bold text-purple-400 flex items-center gap-2">
+                    <i class="fas fa-gem"></i> 
+                    <?= __('SEO_Card_2_Title') ?>
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                    <?= __('SEO_Card_2_Desc', ['market_url' => url('/marketplace')]) ?>
+                </p>
+            </div>
+            <div class="space-y-3">
+                <h2 class="text-xl font-bold text-blue-400 flex items-center gap-2">
+                    <i class="fas fa-server"></i> 
+                    <?= __('SEO_Card_3_Title') ?>
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                    <?= __('SEO_Card_3_Desc', ['gen_url' => url('/generate')]) ?>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trending Souls -->
     <div>
         <div class="flex items-center justify-between mb-8">
             <h2 class="text-2xl font-bold flex items-center gap-2"><i class="fas fa-fire text-amber-500"></i> <?= __('Trending Souls') ?></h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="trending-souls">
-            </div>
+            <!-- Dynamic Injection via AJAX -->
+        </div>
     </div>
 </div>
 

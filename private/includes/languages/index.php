@@ -1,97 +1,118 @@
 <?php
 /**
- * SoulMD Hub - i18n Translation Dictionary
- * Target: index.php (Homepage)
+ * SoulMD Hub - Language Dictionary (Index / Homepage)
+ * 🚀 V5 SEO Optimized: Targeted long-tail keywords, SERP-optimized Meta constraints
+ * 🚀 V5.1 Patched: Full i18n support for SEO semantic content blocks
  */
 
 return [
     'en' => [
-        // SEO & Headers
-        'SEO Title' => 'SoulMD Hub - The Ultimate Multi-Modal AI Agent Platform',
-        'SEO Desc' => 'Discover, interact, and build powerful AI personas. Featuring Elite Reasoning Engine, Vision AI, and smart sliding memory.',
+        // Meta Tags (Strict constraints: Title < 60 chars, Desc < 160 chars)
+        'SEO Title' => 'Create Custom AI Personas | SoulMD Hub - Web3 Agent Platform',
+        'SEO Desc' => 'Discover, build, and monetize custom AI personas using modular .md files. The ultimate decentralized Web3 AI agent platform with vision and reasoning engines.',
         
         // Hero Section
-        'Banner Text' => 'Now supporting Vision AI & Elite Reasoning Engine!',
-        'Hero Title 1' => 'Give your AI a ',
-        'Hero Title 2' => 'Soul',
-        'Hero Title 3' => '.<br>Let the world talk to it.',
-        'Hero Subtitle' => 'The most advanced SaaS ecosystem to discover, interact, and monetize `.md` based AI personas. Powered by extreme logic reasoning and real-time image analysis.',
-        'Discover Souls' => 'Discover Souls',
-        'AI Generator' => 'AI Generator',
+        'Banner Text' => 'SoulMD Hub V5 Live: Decentralized AI Agent Marketplace',
+        'Hero Title 1' => 'Build Your ',
+        'Hero Title 2' => 'AI Personas',
+        'Hero Title 3' => ' in Web3',
+        'Hero Subtitle' => 'The ultimate multi-modal AI agent platform. Create, share, and monetize your custom AI souls via open-source .md files with token-gated security.',
+        'Discover Souls' => 'Browse Personas',
+        'AI Generator' => 'Build AI Soul',
         
-        // Stats Section
-        'Souls Shared' => 'Souls Shared',
-        'Active Creators' => 'Active Creators',
-        'Knowledge Domains' => 'Knowledge Domains',
+        // Stats
+        'Souls Shared' => 'AI Personas Shared',
+        'Active Creators' => 'Web3 Creators',
+        'Knowledge Domains' => 'AI Knowledge Domains',
         
-        // Features Section
+        // Features
         'Enterprise-Grade AI Features' => 'Enterprise-Grade AI Features',
-        'Upgrade Subtext' => 'Upgrade to Premium and unlock the ultimate agent ecosystem.',
+        'Upgrade Subtext' => 'Unlock multi-modal AI reasoning engines and secure your customized prompts.',
         'Vision AI Analysis' => 'Vision AI Analysis',
-        'Vision AI Desc' => 'Upload images directly in chat. Let the AI analyze charts, code snippets, and designs in real-time.',
+        'Vision AI Desc' => 'Upload images for your AI persona to analyze and interpret with deep contextual visual understanding.',
         'Elite Reasoning Engine' => 'Elite Reasoning Engine',
-        'Elite Reasoning Desc' => 'Unlock the PRO engine. Experience unmatched logical reasoning, complex math solving, and deep thinking.',
+        'Elite Reasoning Desc' => 'Experience logical deduction and complex problem-solving powered by top-tier large language models.',
         'Smart Memory' => 'Smart Memory',
-        'Smart Memory Desc' => 'Dynamic sliding-window compression ensures your agent never forgets important context over long conversations.',
-        'Private Sessions' => 'Private Sessions',
-        'Private Sessions Desc' => 'Keep your corporate secrets safe. Lock your chat sessions so only you can access the URLs and history.',
+        'Smart Memory Desc' => 'Context-aware sliding memory ensures your AI agent remembers crucial details without token bloat.',
+        'Private Sessions' => 'BYOK Private Sessions',
+        'Private Sessions Desc' => 'Secure AES-256 encrypted conversations using Bring Your Own Key (BYOK) for absolute privacy.',
         
-        // Categories & Trending
-        'Popular Domains' => 'Popular Domains',
-        'Popular Domains Subtext' => 'Find the perfect AI persona for your workflow.',
-        'Explore All' => 'Explore All &rarr;',
-        'Trending Souls' => 'Trending Souls',
+        // Domains
+        'Popular Domains' => 'Popular Knowledge Domains',
+        'Popular Domains Subtext' => 'Explore decentralized AI agents across various professional and creative fields.',
+        'Explore All' => 'Explore All Personas',
         
-        // Dynamic JS Content
-        'Modular' => 'Modular Folder',
+        // SEO Card Block (Deep Semantic Content)
+        'SEO_Card_1_Title' => 'Open-Source .md Modular AI Personas',
+        'SEO_Card_1_Desc' => 'Traditional monolithic prompts decay as conversation expands. SoulMD Hub splits cognitive instructions into isolated core files: <code>SOUL.md</code> for identity base, <code>STYLE.md</code> for voice tokens, and <code>RULES.md</code> for constraint firewalls. Explore our <a href=":docs_url" class="text-emerald-400 hover:underline">Technical Documentation Hub</a> to master cascade prompt tree compilation.',
+        
+        'SEO_Card_2_Title' => 'AgentFi Marketplace & On-Chain IP',
+        'SEO_Card_2_Desc' => 'Empower prompt engineering with authentic on-chain property sovereignty. Within our decentralized <a href=":market_url" class="text-purple-400 hover:underline">AgentFi Marketplace</a>, engineers transform Web2 prototypes into legally updatable NFTs on the NEAR blockchain, securing private blackbox leasing grids.',
+        
+        'SEO_Card_3_Title' => 'Stateless BYOK Proxy & Sliding Memory',
+        'SEO_Card_3_Desc' => 'Eliminate compute quota depletion and gateway timeout constraints. Access our <a href=":gen_url" class="text-blue-400 hover:underline">Modular AI Generator Pass</a> to assemble configurations. We deploy secure AES-256-CBC encrypted Bring Your Own Key channels with adaptive factual memory summary clusters.',
+
+        // Trending Souls
+        'Trending Souls' => 'Trending AI Personas',
+        'Modular' => 'Modular',
         'Single .md' => 'Single .md',
         'Anonymous' => 'Anonymous',
-        'No trending souls' => 'No trending souls yet. Be the first to upload!',
-        'Failed trending souls' => 'Failed to load trending souls.',
+        'No trending souls' => 'No trending AI personas found at the moment.',
+        'Failed trending souls' => 'Failed to load the decentralized AI marketplace data.'
     ],
     
     'zh' => [
-        // SEO & Headers
-        'SEO Title' => 'SoulMD Hub - 終極多模態 AI 智能體平台',
-        'SEO Desc' => '發掘、互動並建立強大的 AI 角色。搭載深度推理引擎 (Elite Reasoning Engine)、視覺 AI 與智能滑動記憶功能。',
+        // Meta Tags (Strict constraints: Title < 60 chars, Desc < 160 chars)
+        'SEO Title' => '建立自訂 AI 角色模型 | SoulMD Hub - Web3 智能體市集',
+        'SEO Desc' => '探索、建立並變現您的自訂 AI 角色。SoulMD Hub 是頂級去中心化 Web3 智能體市集，支援視覺與深度推理引擎，讓您透過 .md 檔案輕鬆打造專屬 AI 靈魂。',
         
         // Hero Section
-        'Banner Text' => '現已全面支援 Vision AI 與 Elite 深度推理引擎！',
-        'Hero Title 1' => '賦予你的 AI 一個',
-        'Hero Title 2' => '靈魂',
-        'Hero Title 3' => '。<br>讓世界與它對話。',
-        'Hero Subtitle' => '最先進的 SaaS 生態系統，讓你發掘、互動及將基於 `.md` 的 AI 角色變現。由極致邏輯推理與實時圖像分析技術驅動。',
-        'Discover Souls' => '探索模型',
-        'AI Generator' => 'AI 生成器',
+        'Banner Text' => 'SoulMD Hub V5 上線：去中心化 AI 智能體市集',
+        'Hero Title 1' => '在 Web3 打造你的',
+        'Hero Title 2' => '專屬 AI 靈魂',
+        'Hero Title 3' => '',
+        'Hero Subtitle' => '最強大的多模態 AI 智能體平台。透過開源 .md 檔案，建立、分享並將你的自訂 AI 角色變現，體驗代幣門禁級的安全防護。',
+        'Discover Souls' => '探索 AI 角色',
+        'AI Generator' => '建立 AI 靈魂',
         
-        // Stats Section
-        'Souls Shared' => '已分享模型',
-        'Active Creators' => '活躍創作者',
-        'Knowledge Domains' => '知識領域',
+        // Stats
+        'Souls Shared' => '共享 AI 靈魂數',
+        'Active Creators' => 'Web3 活躍創作者',
+        'Knowledge Domains' => 'AI 知識領域',
         
-        // Features Section
-        'Enterprise-Grade AI Features' => '企業級 AI 功能',
-        'Upgrade Subtext' => '升級至尊貴會員，解鎖終極智能體生態系統。',
-        'Vision AI Analysis' => 'Vision AI 視覺分析',
-        'Vision AI Desc' => '直接在對話中上傳圖片。讓 AI 為你實時分析圖表、程式碼截圖與設計圖。',
+        // Features
+        'Enterprise-Grade AI Features' => '企業級 AI 核心功能',
+        'Upgrade Subtext' => '解鎖多模態 AI 深度推理引擎，完美保護你的提示詞智慧財產權。',
+        'Vision AI Analysis' => 'Vision 視覺分析',
+        'Vision AI Desc' => '上傳圖片讓你的 AI 角色進行深度上下文解析與強大的多模態互動。',
         'Elite Reasoning Engine' => 'Elite 深度推理引擎',
-        'Elite Reasoning Desc' => '解鎖 PRO 引擎。體驗無可比擬的邏輯推理、複雜數學解答與深度思考能力。',
+        'Elite Reasoning Desc' => '透過頂尖大型語言模型 (LLMs) 體驗超越常規的邏輯演繹與複雜問題解決能力。',
         'Smart Memory' => '智能滑動記憶',
-        'Smart Memory Desc' => '動態滑動窗口壓縮技術，確保你的智能體在漫長的對話中絕不遺忘重要上下文。',
-        'Private Sessions' => '私密對話',
-        'Private Sessions Desc' => '保護你的企業機密。鎖定你的對話工作階段，只有你才能存取該網址與歷史紀錄。',
+        'Smart Memory Desc' => '具備上下文感知的滑動視窗記憶，確保 AI 智能體記住關鍵細節，同時避免 Token 通脹。',
+        'Private Sessions' => 'BYOK 私密會話',
+        'Private Sessions Desc' => '採用 AES-256 加密與自帶金鑰 (BYOK) 架構，確保對話內容與提示詞絕對私密安全。',
         
-        // Categories & Trending
-        'Popular Domains' => '熱門領域',
-        'Popular Domains Subtext' => '為你的工作流程尋找最完美的 AI 角色。',
-        'Explore All' => '探索全部 &rarr;',
-        'Trending Souls' => '熱門靈魂模型',
+        // Domains
+        'Popular Domains' => '熱門 AI 領域',
+        'Popular Domains Subtext' => '探索橫跨多種專業與創意領域的去中心化 AI 智能體。',
+        'Explore All' => '探索所有模型',
         
-        // Dynamic JS Content
-        'Modular' => '模組化 (Modular)',
-        'Single .md' => '單一 .md 文件',
-        'Anonymous' => '匿名使用者',
-        'No trending souls' => '暫時沒有熱門模型。成為第一個上傳的創作者吧！',
-        'Failed trending souls' => '載入熱門模型失敗。',
+        // SEO Card Block (Deep Semantic Content)
+        'SEO_Card_1_Title' => '開源 .md 模組化 AI 靈魂架構',
+        'SEO_Card_1_Desc' => '傳統提示詞容易因對話過長而遺忘設定。SoulMD Hub 引入核心編密技術，將指令切割為獨立的 <code>SOUL.md</code> 身份基石、<code>STYLE.md</code> 聲學修飾及 <code>RULES.md</code> 安全合規防禦線。您可以前往我們的 <a href=":docs_url" class="text-emerald-400 hover:underline">技術文檔系統</a> 深入了解 Trinity Tree 編譯堆疊拓撲。',
+        
+        'SEO_Card_2_Title' => 'AgentFi 市集與區塊鏈知識產權',
+        'SEO_Card_2_Desc' => '賦予提示詞工程真正的金融確權。在去中心化的 <a href=":market_url" class="text-purple-400 hover:underline">AgentFi 去中心化市集</a> 中，創作者能一鍵將模型鑄造為上鏈 NFT。系統支援安全的黑盒租賃機制與永續 5% 鏈上版稅流，全面保障原創智慧產權不外洩。',
+        
+        'SEO_Card_3_Title' => '無狀態 BYOK 代理與滑動記憶壓縮',
+        'SEO_Card_3_Desc' => '拒絕算力破產與網關超時！進入 <a href=":gen_url" class="text-blue-400 hover:underline">AI 智能體生成器</a> 組合出你的靈魂檔案。平台支援 AES-256 加密自訂金鑰 (BYOK) 管道，配合前端 GPU 畫布重採樣與確定性滑動視窗事實蒸餾網格，完美遏止 Token 通脹浪費。',
+
+        // Trending Souls
+        'Trending Souls' => '熱門 AI 模型',
+        'Modular' => '模組化',
+        'Single .md' => '單一 .md',
+        'Anonymous' => '匿名創作者',
+        'No trending souls' => '目前沒有熱門 AI 模型。',
+        'Failed trending souls' => '載入去中心化智能體市集資料失敗。'
     ]
 ];

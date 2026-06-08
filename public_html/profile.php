@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
+ * 🚀 V5 SEO Optimized: Semantic Sections, Accessible Pagination & Dynamic Link Titles
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -10,14 +10,12 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-
 loadTranslations('profile');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 $usernameParam = $_GET['username'] ?? '';
-
 $userStmt = $pdo->prepare("SELECT id, username, created_at FROM users WHERE username = ?");
 $userStmt->execute([$usernameParam]);
 $profileUser = $userStmt->fetch();
@@ -28,12 +26,12 @@ if (!$profileUser) {
     $pageDesc = __('User Not Found Desc');
     require_once __DIR__ . '/../private/includes/header.php';
     ?>
-    <div class="max-w-md w-full mx-auto px-4 py-24 text-center animate-fade-in flex-grow flex flex-col justify-center">
-        <div class="w-20 h-20 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-zinc-500"><i class="fas fa-user-slash text-3xl"></i></div>
+    <main class="max-w-md w-full mx-auto px-4 py-24 text-center animate-fade-in flex-grow flex flex-col justify-center">
+        <div class="w-20 h-20 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-zinc-500"><i class="fas fa-user-slash text-3xl" aria-hidden="true"></i></div>
         <h1 class="text-3xl font-bold mb-2 text-white"><?= __('User Not Found') ?></h1>
         <p class="text-sm text-zinc-400 mb-8"><?= __('User Not Found Desc') ?></p>
         <a href="<?= url('/browse') ?>" class="px-6 py-3 bg-emerald-500 text-zinc-950 font-bold rounded-2xl hover:bg-emerald-400 transition shadow-lg w-fit mx-auto"><?= __('Back to Hub') ?></a>
-    </div>
+    </main>
     <?php
     require_once __DIR__ . '/../private/includes/footer.php';
     exit;
@@ -42,10 +40,10 @@ if (!$profileUser) {
 $profileUserId = (int)$profileUser['id'];
 $safeUsername = htmlspecialchars($profileUser['username']);
 
-// 🚨 完美統計：只有 Web2公開 或 Web3有價錢 的資產才算入公共作品集！
+// Web2 and Web3 stats
 $statsStmt = $pdo->prepare("
-    SELECT COUNT(*) as total_souls, 
-           COALESCE(SUM(like_count), 0) as total_likes, 
+    SELECT COUNT(*) as total_souls,
+           COALESCE(SUM(like_count), 0) as total_likes,
            COALESCE(SUM(fork_count), 0) as total_forks 
     FROM souls 
     WHERE user_id = ? AND ((is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)) OR (is_nft = 1 AND (sale_price IS NOT NULL OR rent_price IS NOT NULL)))
@@ -59,12 +57,13 @@ $totalForks = (int)($stats['total_forks'] ?? 0);
 
 $pageTitle = __('SEO Title', ['username' => $safeUsername]);
 $pageDesc = __('SEO Desc', ['username' => $safeUsername]);
+
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
+<main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
     
-    <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-10 backdrop-blur-sm shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+    <header class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-10 backdrop-blur-sm shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-cyan-400"></div>
         <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 text-center sm:text-left">
             <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-black text-2xl sm:text-3xl shadow-lg shadow-emerald-500/10 select-none">
@@ -73,11 +72,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">@<?= $safeUsername ?></h1>
                 <p class="text-zinc-400 text-xs sm:text-sm mt-1 flex items-center gap-1.5 justify-center sm:justify-start">
-                    <i class="far fa-calendar-alt text-zinc-500"></i> <?= date('M Y', strtotime($profileUser['created_at'])) ?>
+                    <i class="far fa-calendar-alt text-zinc-500" aria-hidden="true"></i> <?= date('M Y', strtotime($profileUser['created_at'])) ?>
                 </p>
             </div>
         </div>
-
         <div class="grid grid-cols-3 gap-4 sm:gap-6 text-center border-t md:border-t-0 border-white/5 pt-5 md:pt-0 w-full md:w-auto">
             <div class="px-2 sm:px-4">
                 <div class="text-xl sm:text-2xl font-black text-white font-mono"><?= number_format($totalSouls) ?></div>
@@ -92,32 +90,34 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1"><?= __('Likes Received') ?></div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <div class="mb-14">
-        <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-emerald-400 pl-3">
-            <i class="fas fa-tools text-emerald-400"></i> <?= __('Web2 Prototype Box') ?>
+    <section aria-labelledby="web2-heading" class="mb-14">
+        <h2 id="web2-heading" class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-emerald-400 pl-3">
+            <i class="fas fa-tools text-emerald-400" aria-hidden="true"></i> <?= __('Web2 Prototype Box') ?>
         </h2>
         
-        <div id="web2-container" class="min-h-[200px]"></div>
-        <div id="web2-pagination" class="mt-8 flex justify-center items-center w-full select-none"></div>
-    </div>
+        <div id="web2-container" class="min-h-[200px]" aria-live="polite"></div>
+        <nav id="web2-pagination" aria-label="Web2 Models Pagination" class="mt-8 flex justify-center items-center w-full select-none"></nav>
+    </section>
 
-    <div class="mb-8">
-        <h2 class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-purple-500 pl-3">
-            <i class="fas fa-gem text-purple-400"></i> <?= __('AgentFi NFT Asset Inventory') ?>
+    <section aria-labelledby="web3-heading" class="mb-8">
+        <h2 id="web3-heading" class="text-xl font-extrabold mb-6 flex items-center gap-2 text-white border-l-4 border-purple-500 pl-3">
+            <i class="fas fa-gem text-purple-400" aria-hidden="true"></i> <?= __('AgentFi NFT Asset Inventory') ?>
         </h2>
         
-        <div id="web3-container" class="min-h-[200px]"></div>
-        <div id="web3-pagination" class="mt-8 flex justify-center items-center w-full select-none"></div>
-    </div>
-</div>
+        <div id="web3-container" class="min-h-[200px]" aria-live="polite"></div>
+        <nav id="web3-pagination" aria-label="Web3 Assets Pagination" class="mt-8 flex justify-center items-center w-full select-none"></nav>
+    </section>
 
-<div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()">
+</main>
+
+<!-- Renters Modal -->
+<div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()" aria-modal="true" role="dialog">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
         <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-users text-blue-400"></i> <?= __('Renter List') ?></h3>
-            <button type="button" onclick="closeRentersModal()" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-users text-blue-400" aria-hidden="true"></i> <?= __('Renter List') ?></h3>
+            <button type="button" onclick="closeRentersModal()" aria-label="<?= __('Close') ?>" class="text-zinc-400 hover:text-white transition"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
         <div class="p-5 overflow-y-auto custom-scrollbar flex-grow bg-zinc-900/50">
             <div id="renters-list-content" class="space-y-3"></div>
@@ -133,19 +133,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
     let web2Page = 1;
     let web3Page = 1;
-
     const profileUserId = <?= $profileUserId ?>;
     const safeUsername = <?= json_encode($safeUsername, JSON_UNESCAPED_UNICODE) ?>;
-
+    
     const lang_Modular = <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_SingleMd = <?= json_encode(__('Single .md'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Unassigned = <?= json_encode(__('Unassigned'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_ViewRepo = <?= json_encode(__('View Repository'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_ViewAsset = <?= json_encode(__('View Asset'), JSON_UNESCAPED_UNICODE) ?>;
-    
     const lang_Page = <?= json_encode(__('Page'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Forks = <?= json_encode(__('Forks Received'), JSON_UNESCAPED_UNICODE) ?>;
     const lang_Likes = <?= json_encode(__('Likes Received'), JSON_UNESCAPED_UNICODE) ?>;
+    
     const url_hub = <?= json_encode(url('/browse'), JSON_UNESCAPED_UNICODE) ?>;
     const url_prefix = <?= json_encode(url('/soul/'), JSON_UNESCAPED_UNICODE) ?>;
 
@@ -178,7 +177,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (syncId) {
                 await fetch(`/api/soul/${syncId}`);
             }
-
             if (txAction === 'buy') alert('<?= addslashes(__('Buy success')) ?>');
             else if (txAction === 'rent') alert('<?= addslashes(__('Rent success')) ?>');
             else alert('<?= addslashes(__('Transaction Success')) ?>');
@@ -210,46 +208,46 @@ require_once __DIR__ . '/../private/includes/header.php';
     function renderPagination(containerId, current, totalPages, funcName) {
         const container = document.getElementById(containerId);
         if (totalPages <= 1) { container.innerHTML = ''; return; }
-
+        
         let html = '';
         html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
         if (current > 1) {
-            html += `<button onclick="${funcName}(${current - 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left"></i></button>`;
+            html += `<button onclick="${funcName}(${current - 1})" aria-label="Previous" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>`;
         } else {
-            html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>`;
+            html += `<button disabled aria-label="Previous" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>`;
         }
         html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
         if (current < totalPages) {
-            html += `<button onclick="${funcName}(${current + 1})" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right"></i></button>`;
+            html += `<button onclick="${funcName}(${current + 1})" aria-label="Next" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`;
         } else {
-            html += `<button disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>`;
+            html += `<button disabled aria-label="Next" class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`;
         }
         html += `</div>`;
 
         html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
         if (current > 1) {
-            html += `<button onclick="${funcName}(${current - 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left text-xs"></i></button>`;
+            html += `<button onclick="${funcName}(${current - 1})" aria-label="Previous" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-left text-xs" aria-hidden="true"></i></button>`;
         } else {
-            html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left text-xs"></i></button>`;
+            html += `<button disabled aria-label="Previous" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-left text-xs" aria-hidden="true"></i></button>`;
         }
 
         const windowSize = 2; 
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
                 if (i === current) {
-                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
+                    html += `<button aria-current="page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-md transform scale-105 transition">${i}</button>`;
                 } else {
-                    html += `<button onclick="${funcName}(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
+                    html += `<button onclick="${funcName}(${i})" aria-label="Page ${i}" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
                 }
             } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
-                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm" aria-hidden="true">...</span>`;
             }
         }
 
         if (current < totalPages) {
-            html += `<button onclick="${funcName}(${current + 1})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right text-xs"></i></button>`;
+            html += `<button onclick="${funcName}(${current + 1})" aria-label="Next" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"><i class="fas fa-chevron-right text-xs" aria-hidden="true"></i></button>`;
         } else {
-            html += `<button disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right text-xs"></i></button>`;
+            html += `<button disabled aria-label="Next" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"><i class="fas fa-chevron-right text-xs" aria-hidden="true"></i></button>`;
         }
         html += `</div>`;
 
@@ -258,7 +256,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function loadWeb2Souls() {
         const container = document.getElementById('web2-container');
-        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" aria-label="Loading"></div></div>`;
         
         try {
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${web2Page}&limit=6&sort=newest&is_nft=0`);
@@ -279,7 +277,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 hover:border-emerald-400/40 transition-all shadow-lg flex flex-col justify-between backdrop-blur-sm group h-full">
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-3">
-                                    <a href="${seoUrl}" class="font-bold text-lg text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
+                                    <a href="${seoUrl}" title="${escapeHTML(soul.title)} - Web2 AI Persona" class="font-bold text-lg text-white group-hover:text-emerald-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
                                     <span class="text-[9px] px-2 py-0.5 rounded font-medium border shrink-0 shadow-sm ${soul.file_type === 'full_soul_folder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}">${typeLabel}</span>
                                 </div>
                                 ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
@@ -287,14 +285,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                             </div>
                             <div class="pt-4 border-t border-white/5 flex flex-col gap-4 mt-auto">
                                 <div class="flex items-center justify-between text-xs text-zinc-500">
-                                    <span class="truncate pr-2"><i class="fas fa-robot mr-1 text-zinc-600"></i> ${roleLabel}</span>
+                                    <span class="truncate pr-2"><i class="fas fa-robot mr-1 text-zinc-600" aria-hidden="true"></i> ${roleLabel}</span>
                                     <div class="flex items-center gap-3 shrink-0 font-mono">
-                                        <span title="${lang_Forks}"><i class="fas fa-code-branch text-emerald-500 mr-1"></i><b>${soul.fork_count}</b></span>
-                                        <span title="${lang_Likes}"><i class="fas fa-heart text-red-500 mr-1"></i><b>${soul.like_count}</b></span>
+                                        <span title="${lang_Forks}"><i class="fas fa-code-branch text-emerald-500 mr-1" aria-hidden="true"></i><b>${soul.fork_count}</b></span>
+                                        <span title="${lang_Likes}"><i class="fas fa-heart text-red-500 mr-1" aria-hidden="true"></i><b>${soul.like_count}</b></span>
                                     </div>
                                 </div>
-                                <a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
-                                    ${lang_ViewRepo} <i class="fas fa-arrow-right text-[10px] ml-0.5"></i>
+                                <a href="${seoUrl}" aria-label="View Web2 Persona ${escapeHTML(soul.title)}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
+                                    ${lang_ViewRepo} <i class="fas fa-arrow-right text-[10px] ml-0.5" aria-hidden="true"></i>
                                 </a>
                             </div>
                         </div>
@@ -306,7 +304,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 container.innerHTML = `
                     <div class="text-center py-12 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow flex flex-col justify-center items-center">
-                        <div class="text-4xl mb-3 opacity-40">📁</div>
+                        <div class="text-4xl mb-3 opacity-40">🤖</div>
                         <p class="text-lg font-bold mb-1 text-zinc-300"><?= addslashes(__('No Web2 souls found')) ?></p>
                         <p class="text-sm text-zinc-500 max-w-xs mx-auto mb-4"><?= addslashes(__('Web2 Empty Desc')) ?></p>
                     </div>
@@ -314,21 +312,19 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch (e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2"></i> Network Error</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> Network Error</div>`;
         }
     }
 
     async function loadWeb3Souls() {
         const container = document.getElementById('web3-container');
-        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12 flex-grow items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" aria-label="Loading"></div></div>`;
         
         try {
             const res = await fetch(`/api/souls?user_id=${profileUserId}&page=${web3Page}&limit=6&sort=newest&is_nft=1`);
             const data = await res.json();
 
             if (data.success && data.data.length > 0) {
-                
-                // 🌟 核心升級：直接套用全域 window.nearRpcQuery() 取代手動 fetch
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
                     const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
@@ -348,7 +344,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     tags.forEach(t => { tagsHtml += `<span class="text-[10px] bg-white/5 text-zinc-300 border border-white/5 px-2 py-0.5 rounded shadow-sm">#${escapeHTML(t)}</span>`; });
 
                     const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
-                    
                     const isOwner = myWallet && soul.market && soul.market.owner_id === myWallet;
                     const salePrice = soul.market && soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
                     const rentPrice = soul.market && soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
@@ -372,15 +367,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
                             <div>
                                 <div class="flex justify-between items-start gap-3 mb-2">
-                                    <a href="${seoUrl}" class="font-bold text-xl text-white group-hover:text-purple-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
+                                    <a href="${seoUrl}" title="${escapeHTML(soul.title)} - Web3 AgentFi NFT" class="font-bold text-xl text-white group-hover:text-purple-400 transition line-clamp-2 leading-tight">${escapeHTML(soul.title)}</a>
                                 </div>
                                 <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
                                     <div class="text-[10px] text-zinc-500 font-mono truncate mr-2">
                                         <?= addslashes(__('Owner:')) ?> <span class="text-purple-300 font-bold">${marketOwner}</span>
                                     </div>
                                     <div class="flex items-center gap-1.5 shrink-0">
-                                        <button type="button" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold cursor-pointer shadow-sm transition">
-                                            <i class="fas fa-users mr-1"></i> ${rentersCount} <?= addslashes(__('Active Renters')) ?>
+                                        <button type="button" aria-label="View ${rentersCount} Renters" onclick="showRentersModal('${rentersJson}')" class="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold cursor-pointer shadow-sm transition">
+                                            <i class="fas fa-users mr-1" aria-hidden="true"></i> ${rentersCount} <?= addslashes(__('Active Renters')) ?>
                                         </button>
                                         <div class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold cursor-help shadow-sm" title="<?= addslashes(__('Floor Desc')) ?>">
                                             <?= addslashes(__('Floor Price')) ?>: <span class="text-white">0.45</span> N
@@ -397,8 +392,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Sale')) ?></div>
                                         <div class="text-lg font-black text-white font-mono truncate">${salePrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}', this)"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none flex items-center justify-center gap-1.5 min-w-[110px]">
-                                        <i class="fas fa-shopping-cart"></i> <span><?= addslashes(__('Buy Now')) ?></span>
+                                    <button aria-label="Buy for ${salePrice} NEAR" ${isOwner ? 'disabled' : `onclick="buyMarketSoul(${soul.id}, '${soul.market.sale_price}', this)"`} class="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 ${isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'} text-white text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap border-none flex items-center justify-center gap-1.5 min-w-[110px]">
+                                        <i class="fas fa-shopping-cart" aria-hidden="true"></i> <span><?= addslashes(__('Buy Now')) ?></span>
                                     </button>
                                 </div>` : ''}
                                 
@@ -408,14 +403,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
                                         <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}', this)"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap flex items-center justify-center gap-1.5 min-w-[110px]">
-                                        <i class="fas fa-handshake"></i> <span><?= addslashes(__('Rent (30d)')) ?></span>
+                                    <button aria-label="Rent for ${rentPrice} NEAR" ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}', this)"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap flex items-center justify-center gap-1.5 min-w-[110px]">
+                                        <i class="fas fa-handshake" aria-hidden="true"></i> <span><?= addslashes(__('Rent (30d)')) ?></span>
                                     </button>
                                 </div>` : ''}
                                 
                                 ${(!salePrice || salePrice === "0") && (!rentPrice || rentPrice === "0") ? `
-                                    <a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
-                                        ${lang_ViewAsset} <i class="fas fa-arrow-right text-[10px]"></i>
+                                    <a href="${seoUrl}" aria-label="View Web3 Agent ${escapeHTML(soul.title)}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 font-bold text-xs text-white rounded-xl text-center border border-white/5 transition shadow-inner flex items-center justify-center gap-2">
+                                        ${lang_ViewAsset} <i class="fas fa-arrow-right text-[10px]" aria-hidden="true"></i>
                                     </a>
                                 ` : ''}
                             </div>
@@ -427,7 +422,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 container.innerHTML = `
                     <div class="text-center py-12 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow flex flex-col justify-center items-center">
-                        <div class="text-4xl mb-3 opacity-40">💎</div>
+                        <div class="text-4xl mb-3 opacity-40">📦</div>
                         <p class="text-lg font-bold mb-1 text-zinc-300"><?= addslashes(__('No NFT assets found')) ?></p>
                         <p class="text-sm text-zinc-500 max-w-xs mx-auto mb-4"><?= addslashes(__('Web3 Empty Desc')) ?></p>
                     </div>
@@ -435,7 +430,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web3-pagination').innerHTML = '';
             }
         } catch (e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2"></i> Network Error</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 font-medium flex-grow flex items-center justify-center"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> Network Error</div>`;
         }
     }
 
@@ -452,7 +447,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const dateStr = d.toLocaleString();
                 listContainer.innerHTML += `
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
-                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5"></i>${escapeHTML(r.account)}</div>
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5" aria-hidden="true"></i>${escapeHTML(r.account)}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
                             <div class="uppercase tracking-wider">${lang_ExpiresAt}</div>
                             <div class="text-zinc-300 font-bold">${dateStr}</div>
@@ -488,10 +483,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
-
+        
         try {
             await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
         } catch(e) {
@@ -503,15 +498,15 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
-
+        
         const wallet = await initNearWallet();
         if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
-
+        
         try {
             await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
         } catch(e) {
@@ -520,11 +515,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
-
-    window.addEventListener('DOMContentLoaded', () => {
-        loadWeb2Souls();
-        loadWeb3Souls();
-    });
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>

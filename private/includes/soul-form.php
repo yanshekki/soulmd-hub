@@ -2,12 +2,13 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
+ * 🚀 V5 SEO Optimized: Accessible Form Labels, Semantic Sections, and a11y UI
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
 $uStmt->execute([$user_id]);
 $uRow = $uStmt->fetch();
+
 $nearWallet = $uRow['near_wallet_address'] ?? null;
 $sessionUsername = $uRow['username'] ?? 'anonymous';
 
@@ -21,6 +22,7 @@ if (!$isEditMode) {
     $presetRole = $_SESSION['preset_role'] ?? '';
     $presetDomain = '';
     $presetCompat = '';
+
     if (!empty($presetRole)) {
         $matched = false;
         foreach ($categories as $cat) {
@@ -52,211 +54,218 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <?php require_once __DIR__ . '/near-wallet-scripts.php'; ?>
 
-<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-10">
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-10">
         <div>
             <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter"><?= $isEditMode ? __('Edit Soul') : __('Upload Soul') ?></h1>
             <p class="text-sm sm:text-base text-zinc-400 mt-1"><?= $isEditMode ? __('Edit Subtitle') : __('Upload Subtitle') ?></p>
         </div>
         <a href="<?= url('/my-souls') ?>" class="text-sm text-zinc-400 hover:text-white flex items-center gap-2 border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full w-fit transition shadow-sm">
-            <i class="fas fa-arrow-left"></i> <?= __('Back to My Souls') ?>
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> <?= __('Back to My Souls') ?>
         </a>
-    </div>
+    </header>
 
-    <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-5 sm:p-6 rounded-3xl mb-8 text-sm sm:text-lg shadow-lg"></div>
-    <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-5 sm:p-6 rounded-3xl mb-8 shadow-lg text-sm sm:text-base"><i class="fas fa-exclamation-circle mr-2"></i> <span id="error-msg"></span></div>
+    <div id="success-box" role="alert" class="hidden bg-emerald-900/50 border border-emerald-500 p-5 sm:p-6 rounded-3xl mb-8 text-sm sm:text-lg shadow-lg"></div>
+    <div id="error-box" role="alert" class="hidden bg-red-900/50 border border-red-500 p-5 sm:p-6 rounded-3xl mb-8 shadow-lg text-sm sm:text-base"><i class="fas fa-exclamation-circle mr-2" aria-hidden="true"></i> <span id="error-msg"></span></div>
 
-    <form id="soul-form" class="space-y-6 sm:space-y-8">
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-            <div class="<?= ($isEditMode && $soulData['is_nft'] == 0) ? 'md:col-span-2' : 'md:col-span-3' ?>">
-                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Soul Title') ?> <span class="text-red-400">*</span></label>
-                <input type="text" id="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-emerald-400 shadow-inner" <?= $isNftLocked ? 'disabled' : '' ?>>
-            </div>
+    <section aria-label="AI Model Configuration Form">
+        <form id="soul-form" class="space-y-6 sm:space-y-8">
             
-            <?php if ($isEditMode && $soulData['is_nft'] == 0): ?>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+                <div class="<?= ($isEditMode && $soulData['is_nft'] == 0) ? 'md:col-span-2' : 'md:col-span-3' ?>">
+                    <label for="title" class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Soul Title') ?> <span class="text-red-400">*</span></label>
+                    <input type="text" id="title" required value="<?= htmlspecialchars($presetTitle) ?>" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-emerald-400 shadow-inner" <?= $isNftLocked ? 'disabled' : '' ?>>
+                </div>
+                
+                <?php if ($isEditMode && $soulData['is_nft'] == 0): ?>
+                <div>
+                    <label for="is_public" class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Visibility') ?></label>
+                    <select id="is_public" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none cursor-pointer">
+                        <option value="1" <?= $soulData['is_public'] ? 'selected' : '' ?>><?= __('  Public (Hub)') ?></option>
+                        <option value="0" <?= !$soulData['is_public'] ? 'selected' : '' ?>><?= __('  Private') ?></option>
+                    </select>
+                </div>
+                <?php endif; ?>
+            </div>
+
             <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Visibility') ?></label>
-                <select id="is_public" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none cursor-pointer">
-                    <option value="1" <?= $soulData['is_public'] ? 'selected' : '' ?>><?= __('🌐 Public (Hub)') ?></option>
-                    <option value="0" <?= !$soulData['is_public'] ? 'selected' : '' ?>><?= __('🔒 Private') ?></option>
-                </select>
+                <label for="description" class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Short Description') ?></label>
+                <textarea id="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner" <?= $isNftLocked ? 'disabled' : '' ?>><?= htmlspecialchars($isEditMode ? $soulData['description'] : '') ?></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+                <div>
+                    <label for="role" class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Role') ?></label>
+                    <select id="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer' ?>" <?= $isNftLocked ? 'disabled' : '' ?>>
+                        <option value=""><?= __('Select role') ?></option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $presetRole === $cat['slug'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cat['icon'] ?? '✨') ?> <?= htmlspecialchars($cat['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                        <option value="Other" <?= $presetRole === 'Other' ? 'selected' : '' ?>><?= __('Other') ?></option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="domain-input" class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Domain Tags') ?></label>
+                    <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition shadow-inner <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-text' ?>" onclick="if(!<?= $isNftLocked ? 'true' : 'false' ?>) document.getElementById('domain-input').focus()">
+                        <div id="domain-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
+                        <input type="text" id="domain-input" list="domain-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white" <?= $isNftLocked ? 'disabled' : '' ?>>
+                        <input type="hidden" id="domain" value="<?= htmlspecialchars($presetDomain) ?>">
+                    </div>
+                    <datalist id="domain-options">
+                        <?php foreach ($topDomains as $tag): ?><option value="<?= htmlspecialchars($tag) ?>"><?php endforeach; ?>
+                    </datalist>
+                </div>
+
+                <div>
+                    <label for="compatibility-input" class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Compatibility') ?></label>
+                    <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition shadow-inner <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-text' ?>" onclick="if(!<?= $isNftLocked ? 'true' : 'false' ?>) document.getElementById('compatibility-input').focus()">
+                        <div id="compatibility-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
+                        <input type="text" id="compatibility-input" list="compatibility-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white" <?= $isNftLocked ? 'disabled' : '' ?>>
+                        <input type="hidden" id="compatibility" value="<?= htmlspecialchars($presetCompat) ?>">
+                    </div>
+                    <datalist id="compatibility-options">
+                        <?php foreach ($topCompatibilities as $tag): ?><option value="<?= htmlspecialchars($tag) ?>"><?php endforeach; ?>
+                    </datalist>
+                </div>
+            </div>
+
+            <div class="<?= $isNftLocked ? 'opacity-70 pointer-events-none' : '' ?>">
+                <label class="block text-sm font-medium mb-3 text-zinc-300"><?= __('Content') ?> <span class="text-red-400">*</span></label>
+                
+                <div class="flex border-b border-white/20 mb-4 sm:mb-6 overflow-x-auto custom-scrollbar" role="tablist">
+                    <button type="button" role="tab" aria-selected="true" aria-controls="tab-visual" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-1.5 sm:mr-2" aria-hidden="true"></i> <?= __('Visual Editor') ?></button>
+                    <button type="button" role="tab" aria-selected="false" aria-controls="tab-raw" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-1.5 sm:mr-2" aria-hidden="true"></i> <?= __('Raw / Paste') ?></button>
+                    <button type="button" role="tab" aria-selected="false" aria-controls="tab-zip" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-1.5 sm:mr-2" aria-hidden="true"></i> <?= __('Upload File') ?></button>
+                </div>
+
+                <div id="tab-visual" role="tabpanel" class="upload-tab-content">
+                    <div class="border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row bg-zinc-950/50 shadow-inner min-h-[400px]">
+                        <div class="w-full md:w-48 xl:w-56 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
+                            <div class="p-2.5 sm:p-3 border-b border-white/10 text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center bg-zinc-950/30">
+                                <?= __('Files') ?> <button type="button" aria-label="Add File" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus" aria-hidden="true"></i></button>
+                            </div>
+                            <div id="file-list" class="flex md:flex-col overflow-x-auto md:overflow-y-auto overflow-y-hidden p-1.5 sm:p-2 space-x-1.5 md:space-x-0 md:space-y-1 custom-scrollbar shrink-0 border-b border-white/5 md:border-none"></div>
+                        </div>
+                        <div class="flex-1 flex flex-col relative min-h-[250px]">
+                            <div class="bg-zinc-900 border-b border-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-mono text-zinc-300 flex justify-between items-center">
+                                <span id="current-filename" class="truncate pr-2">SOUL.md</span>
+                                <button type="button" id="btn-delete-file" aria-label="Delete File" onclick="fileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden transition shrink-0"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+                            </div>
+                            <textarea id="file-editor-textarea" aria-label="File Content Editor" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs sm:text-sm text-zinc-300 resize-none custom-scrollbar" placeholder="<?= __('Start typing...') ?>"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-raw" role="tabpanel" class="upload-tab-content hidden">
+                    <label for="content-raw" class="sr-only">Raw JSON Content</label>
+                    <textarea id="content-raw" rows="10" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 sm:py-5 font-mono text-xs sm:text-sm focus:outline-none focus:border-emerald-400 shadow-inner custom-scrollbar sm:min-h-[300px]" placeholder="<?= __('Raw Placeholder') ?>"></textarea>
+                </div>
+
+                <div id="tab-zip" role="tabpanel" class="upload-tab-content hidden">
+                    <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center hover:border-emerald-400 transition cursor-pointer bg-zinc-900/50">
+                        <input type="file" id="file-input" aria-label="Upload Zip or Markdown" accept=".md,.txt,.zip,.json" class="hidden">
+                        <i class="fas fa-cloud-upload-alt text-4xl sm:text-5xl mb-4 text-zinc-400" aria-hidden="true"></i>
+                        <div class="font-medium text-base sm:text-lg"><?= __('Drag & drop') ?></div>
+                        <div class="text-[10px] sm:text-xs text-zinc-400 mt-2"><?= __('Drag & drop subtext') ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($isEditMode && $soulData['is_nft'] == 1): ?>
+            <div class="mb-6 p-5 sm:p-6 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner <?= empty($nearWallet) ? 'opacity-50 pointer-events-none' : '' ?>">
+                <h3 class="text-emerald-400 font-bold text-sm mb-4 flex items-center gap-2"><i class="fas fa-gem" aria-hidden="true"></i> <?= __('AgentFi Actions') ?></h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                        <div class="flex justify-between items-start mb-2">
+                            <label for="agentfi-sale-price" class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400" aria-hidden="true"></i> <?= __('List for Sale') ?></label>
+                            <button type="button" onclick="agentfiAction('cancel_sale', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
+                        </div>
+                        <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Sale Desc') ?></p>
+                        <div class="flex gap-2">
+                            <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner font-mono">
+                            <button type="button" onclick="agentfiAction('list_sale', this)" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm flex items-center justify-center gap-1 min-w-[120px]"><?= __('List on Market') ?></button>
+                        </div>
+                    </div>
+
+                    <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                        <div class="flex justify-between items-start mb-2">
+                            <label for="agentfi-rent-price" class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400" aria-hidden="true"></i> <?= __('List for Rent') ?></label>
+                            <button type="button" onclick="agentfiAction('cancel_rent', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
+                        </div>
+                        <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Rent Desc') ?></p>
+                        <div class="flex gap-2">
+                            <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner font-mono">
+                            <button type="button" onclick="agentfiAction('list_rent', this)" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm flex items-center justify-center gap-1 min-w-[120px]"><?= __('List on Market') ?></button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <?php endif; ?>
-        </div>
 
-        <div>
-            <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Short Description') ?></label>
-            <textarea id="description" rows="2" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner" <?= $isNftLocked ? 'disabled' : '' ?>><?= htmlspecialchars($isEditMode ? $soulData['description'] : '') ?></textarea>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-            <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Role') ?></label>
-                <select id="role" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:border-emerald-400 shadow-inner appearance-none <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer' ?>" <?= $isNftLocked ? 'disabled' : '' ?>>
-                    <option value=""><?= __('Select role') ?></option>
-                    <?php foreach ($categories as $cat): ?>
-                        <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $presetRole === $cat['slug'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($cat['icon'] ?? '✨') ?> <?= htmlspecialchars($cat['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                    <option value="Other" <?= $presetRole === 'Other' ? 'selected' : '' ?>><?= __('Other') ?></option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Domain Tags') ?></label>
-                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition shadow-inner <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-text' ?>" onclick="if(!<?= $isNftLocked ? 'true' : 'false' ?>) document.getElementById('domain-input').focus()">
-                    <div id="domain-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
-                    <input type="text" id="domain-input" list="domain-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white" <?= $isNftLocked ? 'disabled' : '' ?>>
-                    <input type="hidden" id="domain" value="<?= htmlspecialchars($presetDomain) ?>">
-                </div>
-                <datalist id="domain-options">
-                    <?php foreach ($topDomains as $tag): ?><option value="<?= htmlspecialchars($tag) ?>"><?php endforeach; ?>
-                </datalist>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-2 text-zinc-300"><?= __('Compatibility') ?></label>
-                <div class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[58px] flex flex-wrap items-center gap-2 focus-within:border-emerald-400 transition shadow-inner <?= $isNftLocked ? 'cursor-not-allowed opacity-50' : 'cursor-text' ?>" onclick="if(!<?= $isNftLocked ? 'true' : 'false' ?>) document.getElementById('compatibility-input').focus()">
-                    <div id="compatibility-tags" class="flex flex-wrap gap-1.5 sm:gap-2 empty:hidden"></div>
-                    <input type="text" id="compatibility-input" list="compatibility-options" class="tag-input-field flex-1 bg-transparent border-none focus:ring-0 min-w-[80px] text-sm p-0 m-0 text-white" <?= $isNftLocked ? 'disabled' : '' ?>>
-                    <input type="hidden" id="compatibility" value="<?= htmlspecialchars($presetCompat) ?>">
-                </div>
-                <datalist id="compatibility-options">
-                    <?php foreach ($topCompatibilities as $tag): ?><option value="<?= htmlspecialchars($tag) ?>"><?php endforeach; ?>
-                </datalist>
-            </div>
-        </div>
-
-        <div class="<?= $isNftLocked ? 'opacity-70 pointer-events-none' : '' ?>">
-            <label class="block text-sm font-medium mb-3 text-zinc-300"><?= __('Content') ?> <span class="text-red-400">*</span></label>
-            
-            <div class="flex border-b border-white/20 mb-4 sm:mb-6 overflow-x-auto custom-scrollbar">
-                <button type="button" onclick="switchUploadTab(0)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 border-emerald-400 text-emerald-400 whitespace-nowrap"><i class="fas fa-layer-group mr-1.5 sm:mr-2"></i> <?= __('Visual Editor') ?></button>
-                <button type="button" onclick="switchUploadTab(1)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-code mr-1.5 sm:mr-2"></i> <?= __('Raw / Paste') ?></button>
-                <button type="button" onclick="switchUploadTab(2)" class="upload-tab-btn flex-1 px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-white whitespace-nowrap"><i class="fas fa-file-archive mr-1.5 sm:mr-2"></i> <?= __('Upload File') ?></button>
-            </div>
-
-            <div id="tab-visual" class="upload-tab-content">
-                <div class="border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row bg-zinc-950/50 shadow-inner min-h-[400px]">
-                    <div class="w-full md:w-48 xl:w-56 bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
-                        <div class="p-2.5 sm:p-3 border-b border-white/10 text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between items-center bg-zinc-950/30">
-                            <?= __('Files') ?> <button type="button" onclick="openAddFileModal()" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-plus"></i></button>
+            <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'from-emerald-900/20 to-teal-900/20 border-emerald-500/30' : 'from-purple-900/20 to-indigo-900/20 border-purple-500/30' ?> border rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'bg-emerald-500' : 'bg-purple-500' ?>"></div>
+                <div class="flex-1">
+                    <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2">
+                        <i class="fas <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'fa-sync-alt text-emerald-400' : 'fa-cube text-purple-400' ?>" aria-hidden="true"></i> 
+                        <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync to NEAR') : __('Mint to NEAR') ?>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-zinc-400 mt-1">
+                        <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync Desc') : __('Mint Desc') ?>
+                    </p>
+                    <?php if (!($isEditMode && $soulData['is_nft'] == 1)): ?>
+                        <div class="text-[10px] sm:text-xs font-mono font-bold text-purple-400/80 mt-2"><?= __('Platform Fee') ?></div>
+                    <?php endif; ?>
+                    
+                    <?php if (empty($nearWallet)): ?>
+                        <div class="mt-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-2 text-red-400 text-xs font-medium">
+                                <i class="fas fa-exclamation-triangle mt-0.5 shrink-0" aria-hidden="true"></i>
+                                <p><?= ($isEditMode && $soulData['is_nft'] == 1) ? __('NFT Edit Lock Warning') : __('Please connect NEAR wallet first') ?></p>
+                            </div>
+                            <button type="button" aria-label="Connect Web3 Wallet" onclick="window.connectOrBindWallet()" class="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap text-center">
+                                <i class="fas fa-link" aria-hidden="true"></i> <?= __('Go to Bind Wallet') ?>
+                            </button>
                         </div>
-                        <div id="file-list" class="flex md:flex-col overflow-x-auto md:overflow-y-auto overflow-y-hidden p-1.5 sm:p-2 space-x-1.5 md:space-x-0 md:space-y-1 custom-scrollbar shrink-0 border-b border-white/5 md:border-none"></div>
-                    </div>
-                    <div class="flex-1 flex flex-col relative min-h-[250px]">
-                        <div class="bg-zinc-900 border-b border-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-mono text-zinc-300 flex justify-between items-center">
-                            <span id="current-filename" class="truncate pr-2">SOUL.md</span>
-                            <button type="button" id="btn-delete-file" onclick="fileEditor.deleteCurrentFile()" class="text-red-400 hover:text-red-300 hidden transition shrink-0"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                        <textarea id="file-editor-textarea" class="flex-1 bg-transparent p-4 focus:outline-none font-mono text-xs sm:text-sm text-zinc-300 resize-none custom-scrollbar" placeholder="<?= __('Start typing...') ?>"></textarea>
-                    </div>
+                    <?php endif; ?>
                 </div>
-            </div>
-
-            <div id="tab-raw" class="upload-tab-content hidden">
-                <textarea id="content-raw" rows="10" class="w-full bg-zinc-900 border border-white/20 rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 sm:py-5 font-mono text-xs sm:text-sm focus:outline-none focus:border-emerald-400 shadow-inner custom-scrollbar sm:min-h-[300px]" placeholder="<?= __('Raw Placeholder') ?>"></textarea>
-            </div>
-
-            <div id="tab-zip" class="upload-tab-content hidden">
-                <div onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-white/30 rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center hover:border-emerald-400 transition cursor-pointer bg-zinc-900/50">
-                    <input type="file" id="file-input" accept=".md,.txt,.zip,.json" class="hidden">
-                    <i class="fas fa-cloud-upload-alt text-4xl sm:text-5xl mb-4 text-zinc-400"></i>
-                    <div class="font-medium text-base sm:text-lg"><?= __('Drag & drop') ?></div>
-                    <div class="text-[10px] sm:text-xs text-zinc-400 mt-2"><?= __('Drag & drop subtext') ?></div>
-                </div>
-            </div>
-        </div>
-
-        <?php if ($isEditMode && $soulData['is_nft'] == 1): ?>
-        <div class="mb-6 p-5 sm:p-6 bg-zinc-950 border border-emerald-500/20 rounded-2xl shadow-inner <?= empty($nearWallet) ? 'opacity-50 pointer-events-none' : '' ?>">
-            <h4 class="text-emerald-400 font-bold text-sm mb-4 flex items-center gap-2"><i class="fas fa-gem"></i> <?= __('AgentFi Actions') ?></h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                    <div class="flex justify-between items-start mb-2">
-                        <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-tag text-blue-400"></i> <?= __('List for Sale') ?></label>
-                        <button type="button" onclick="agentfiAction('cancel_sale', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-sale"><?= __('Cancel Listing') ?></button>
-                    </div>
-                    <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Sale Desc') ?></p>
-                    <div class="flex gap-2">
-                        <input type="number" id="agentfi-sale-price" placeholder="<?= __('Price (NEAR)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-white shadow-inner font-mono">
-                        <button type="button" onclick="agentfiAction('list_sale', this)" class="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-zinc-950 font-bold rounded-lg border border-blue-500/30 transition text-xs whitespace-nowrap shadow-sm flex items-center justify-center gap-1 min-w-[120px]"><?= __('List on Market') ?></button>
-                    </div>
-                </div>
-                <div class="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                    <div class="flex justify-between items-start mb-2">
-                        <label class="text-white text-sm font-semibold flex items-center gap-1.5"><i class="fas fa-handshake text-purple-400"></i> <?= __('List for Rent') ?></label>
-                        <button type="button" onclick="agentfiAction('cancel_rent', this)" class="text-[10px] text-red-400 hover:underline px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 hidden" id="btn-cancel-rent"><?= __('Cancel Listing') ?></button>
-                    </div>
-                    <p class="text-[10px] text-zinc-500 mb-3 leading-tight"><?= __('Rent Desc') ?></p>
-                    <div class="flex gap-2">
-                        <input type="number" id="agentfi-rent-price" placeholder="<?= __('Rent Price (NEAR / 30 Days)') ?>" step="0.01" min="0" class="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white shadow-inner font-mono">
-                        <button type="button" onclick="agentfiAction('list_rent', this)" class="px-3 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-zinc-950 font-bold rounded-lg border border-purple-500/30 transition text-xs whitespace-nowrap shadow-sm flex items-center justify-center gap-1 min-w-[120px]"><?= __('List on Market') ?></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <div class="mb-6 p-5 sm:p-6 bg-gradient-to-r <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'from-emerald-900/20 to-teal-900/20 border-emerald-500/30' : 'from-purple-900/20 to-indigo-900/20 border-purple-500/30' ?> border rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-1 h-full <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'bg-emerald-500' : 'bg-purple-500' ?>"></div>
-            <div class="flex-1">
-                <h3 class="text-white font-bold text-sm sm:text-base flex items-center gap-2">
-                    <i class="fas <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'fa-sync-alt text-emerald-400' : 'fa-cube text-purple-400' ?>"></i> 
-                    <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync to NEAR') : __('Mint to NEAR') ?>
-                </h3>
-                <p class="text-xs sm:text-sm text-zinc-400 mt-1">
-                    <?= ($isEditMode && $soulData['is_nft'] == 1) ? __('Sync Desc') : __('Mint Desc') ?>
-                </p>
-                <?php if (!($isEditMode && $soulData['is_nft'] == 1)): ?>
-                    <div class="text-[10px] sm:text-xs font-mono font-bold text-purple-400/80 mt-2"><?= __('Platform Fee') ?></div>
-                <?php endif; ?>
-
-                <?php if (empty($nearWallet)): ?>
-                    <div class="mt-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="flex items-start gap-2 text-red-400 text-xs font-medium">
-                            <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
-                            <p><?= ($isEditMode && $soulData['is_nft'] == 1) ? __('NFT Edit Lock Warning') : __('Please connect NEAR wallet first') ?></p>
-                        </div>
-                        <button type="button" onclick="window.connectOrBindWallet()" class="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-zinc-950 text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap text-center">
-                            <i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?>
-                        </button>
-                    </div>
-                <?php endif; ?>
-            </div>
-            
-            <?php if (!empty($nearWallet)): ?>
-                <?php if ($isEditMode && $soulData['is_nft'] == 1): ?>
-                    <label class="relative inline-flex items-center cursor-not-allowed shrink-0" title="Required for NFT updates">
-                        <input type="checkbox" id="mint-toggle" class="sr-only peer" checked disabled>
-                        <div class="w-14 h-7 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 opacity-70"></div>
-                    </label>
+                
+                <?php if (!empty($nearWallet)): ?>
+                    <?php if ($isEditMode && $soulData['is_nft'] == 1): ?>
+                        <label class="relative inline-flex items-center cursor-not-allowed shrink-0" title="Required for NFT updates">
+                            <input type="checkbox" id="mint-toggle" class="sr-only peer" checked disabled>
+                            <div class="w-14 h-7 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 opacity-70"></div>
+                        </label>
+                    <?php else: ?>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="mint-toggle" class="sr-only peer">
+                            <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
+                        </label>
+                    <?php endif; ?>
                 <?php else: ?>
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input type="checkbox" id="mint-toggle" class="sr-only peer">
-                        <div class="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
+                    <label class="relative inline-flex items-center cursor-not-allowed shrink-0 opacity-40">
+                        <input type="checkbox" id="mint-toggle" class="sr-only peer" disabled <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'checked' : '' ?>>
+                        <div class="w-14 h-7 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'peer-checked:bg-emerald-500' : 'peer-checked:bg-purple-500' ?>"></div>
                     </label>
                 <?php endif; ?>
-            <?php else: ?>
-                <label class="relative inline-flex items-center cursor-not-allowed shrink-0 opacity-40">
-                    <input type="checkbox" id="mint-toggle" class="sr-only peer" disabled <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'checked' : '' ?>>
-                    <div class="w-14 h-7 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all <?= ($isEditMode && $soulData['is_nft'] == 1) ? 'peer-checked:bg-emerald-500' : 'peer-checked:bg-purple-500' ?>"></div>
-                </label>
-            <?php endif; ?>
-        </div>
+            </div>
 
-        <?php if ($isNftLocked): ?>
-            <button type="button" disabled class="w-full py-4 sm:py-5 bg-zinc-800 text-zinc-500 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl cursor-not-allowed border border-white/5 flex items-center justify-center gap-3 shadow-lg mt-4">
-                <i class="fas fa-lock mr-2"></i> <?= __('Wallet Required to Edit NFT') ?>
-            </button>
-        <?php else: ?>
-            <button type="submit" id="submit-btn" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
-                <span id="submit-text"><i class="fas <?= $isEditMode ? 'fa-save' : 'fa-cloud-upload-alt' ?> mr-2"></i><?= $isEditMode ? __('Save Changes') : __('Upload Soul') ?></span>
-                <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
-            </button>
-        <?php endif; ?>
-    </form>
-</div>
+            <?php if ($isNftLocked): ?>
+                <button type="button" disabled aria-label="Wallet Required" class="w-full py-4 sm:py-5 bg-zinc-800 text-zinc-500 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl cursor-not-allowed border border-white/5 flex items-center justify-center gap-3 shadow-lg mt-4">
+                    <i class="fas fa-lock mr-2" aria-hidden="true"></i> <?= __('Wallet Required to Edit NFT') ?>
+                </button>
+            <?php else: ?>
+                <button type="submit" id="submit-btn" aria-label="<?= $isEditMode ? __('Save Changes') : __('Upload Soul') ?>" class="w-full py-4 sm:py-5 bg-emerald-500 text-zinc-950 font-bold text-lg sm:text-xl rounded-2xl sm:rounded-3xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg hover:scale-[1.01] transform duration-200 mt-4">
+                    <span id="submit-text"><i class="fas <?= $isEditMode ? 'fa-save' : 'fa-cloud-upload-alt' ?> mr-2" aria-hidden="true"></i><?= $isEditMode ? __('Save Changes') : __('Upload Soul') ?></span>
+                    <span id="submit-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full" aria-hidden="true"></span>
+                </button>
+            <?php endif; ?>
+        </form>
+    </section>
+</main>
 
 <?php require_once __DIR__ . '/upload-modals.php'; ?>
 
@@ -268,6 +277,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
+        
         if (urlParams.has('errorMessage') || urlParams.has('errorCode')) {
             alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (urlParams.get('errorMessage') || urlParams.get('errorCode')));
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
@@ -289,7 +299,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 
     async function fetchOnChainData() {
         try {
-            // 🚀 核心升級：直接採用全域 window.nearRpcQuery() 取代冗長 fetch
             const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulId });
             
             if (rpcRes.success && rpcRes.data) {
@@ -306,7 +315,6 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         } catch(e) {}
     }
 
-    // 🚨 V5：為 AgentFi 操作加入按鈕傳遞，實施 2s 延遲 + API 強制同步
     async function agentfiAction(actionType, btn) {
         if (!isEditMode) return;
         const wallet = await initNearWallet();
@@ -340,9 +348,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             methodName = 'list_for_rent'; args.price = "0";
         }
 
-        // 鎖定按鈕並顯示 Processing UI
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> Processing...';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
@@ -352,16 +359,14 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 methodName: methodName, args: args, gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: window.location.href
             });
             
-            // 🚨 靜默簽署完成，進入 2秒退避等待，顯示 Syncing UI
-            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing to DB...';
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> Syncing to DB...';
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // 強制敲擊後端 API 進行 Lazy Sync 更新價錢
             await fetch(`/api/soul/${soulId}`);
             
             window.location.reload();
-        } catch(e) { 
-            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>"); 
+        } catch(e) {
+            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>");
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -378,12 +383,11 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             const loading = document.getElementById('submit-loading');
             const errorBox = document.getElementById('error-box');
             const errorMsg = document.getElementById('error-msg');
-
             const mintToggle = document.getElementById('mint-toggle');
             
             const wantMintOrSync = (isEditMode && isNft && "<?= $nearWallet ?>") ? true : (mintToggle ? mintToggle.checked : false);
-            let wallet = null;
 
+            let wallet = null;
             if (wantMintOrSync) {
                 wallet = await initNearWallet();
                 if (!wallet.isSignedIn()) {
@@ -393,6 +397,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             }
 
             errorBox.classList.add('hidden');
+
             let finalContent = '';
             if (activeMainTab === 0) finalContent = fileEditor.getPayload();
             else if (activeMainTab === 1) finalContent = document.getElementById('content-raw').value;
@@ -434,8 +439,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                     
                     if (wantMintOrSync) {
                         if (isEditMode && isNft) {
-                            // 🚨 更新 Hash 為 0 Deposit 操作，加入 2s 等待與同步
-                            text.innerText = "Processing..."; 
+                            text.innerText = "Processing...";
                             text.classList.remove('hidden'); loading.classList.remove('hidden');
                             
                             await wallet.account().functionCall({
@@ -451,8 +455,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                             
                             window.location.href = "<?= url('/my-souls') ?>";
                         } else {
-                            // 新鑄造 Mint 操作有 Deposit，將直接跳轉授權頁面
-                            text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>"; 
+                            text.innerText = "<?= addslashes(__('Redirecting to Wallet...')) ?>";
                             text.classList.remove('hidden'); loading.classList.add('hidden');
                             
                             const deposit = nearApi.utils.format.parseNearAmount("0.6");

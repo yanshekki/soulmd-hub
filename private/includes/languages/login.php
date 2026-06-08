@@ -2,48 +2,62 @@
 /**
  * SoulMD Hub - i18n Translation Dictionary
  * Target: login.php (Login Page)
+ * 🚀 V5 SEO Optimized: Targeted Web3 & SaaS Creator Keywords
  */
-
 return [
     'en' => [
-        'Log in' => 'Log in',
-        'Login Desc' => 'Sign in to your SoulMD Hub account.',
-        'Welcome back' => 'Welcome back',
-        'Sign in to manage' => 'Sign in to manage your AI agent souls',
-        'Username' => 'Username',
-        'Password' => 'Password',
-        'Remember me' => 'Remember me',
-        'No account?' => 'Don\'t have an account?',
-        'Sign up' => 'Sign up',
-        'Login failed.' => 'Login failed.',
-        'Network Error.' => 'Network Error. Please try again.',
+        // SEO & Headers
+        'SEO Title' => 'Login to Your Web3 AI Workspace | SoulMD Hub',
+        'SEO Desc' => 'Sign in to SoulMD Hub to manage your custom AI personas, decentralized Web3 agents, and AgentFi portfolio on the NEAR blockchain.',
         
-        // 🚀 Web3 Login
-        'Connect NEAR Wallet' => 'Connect NEAR Wallet',
-        'Wallet not bound' => 'This NEAR wallet is not bound to any account. Please login with your username first, and bind your wallet in the API Settings.',
-        'Connecting...' => 'Connecting to Wallet...',
-        'Connecting to RPC...' => 'Connecting to RPC...',
-        'Verifying Session...' => 'Verifying Session...',
+        'Log in' => 'Secure Login',
+        'Welcome back' => 'Welcome Back, Creator',
+        'Sign in to manage' => 'Sign in to deploy and manage your Web3 AI personas',
+        
+        // Form Fields
+        'Username' => 'Account Username',
+        'Password' => 'Security Password',
+        'Remember me' => 'Keep me signed in',
+        'No account?' => 'New to the ecosystem?',
+        'Sign up' => 'Create a Free Account',
+        
+        // Errors
+        'Login failed.' => 'Authentication failed. Please check your credentials.',
+        'Network Error.' => 'Network Connection Error. Please try again.',
+        
+        // Web3 Login
+        'Connect NEAR Wallet' => 'Sign In via NEAR Web3 Wallet',
+        'Wallet not bound' => 'This NEAR wallet is not bound to any SoulMD Hub account. Please login with your username first, and bind your wallet in the API Settings.',
+        'Connecting...' => 'Authenticating Wallet...',
+        'Connecting to RPC...' => 'Connecting to Blockchain RPC...',
+        'Verifying Session...' => 'Verifying Cryptographic Signature...',
     ],
     
     'zh' => [
-        'Log in' => '登入',
-        'Login Desc' => '登入您的 SoulMD Hub 帳號。',
-        'Welcome back' => '歡迎回來',
-        'Sign in to manage' => '登入以管理您的 AI 靈魂模型',
-        'Username' => '使用者名稱',
-        'Password' => '密碼',
-        'Remember me' => '記住我 (保持登入)',
-        'No account?' => '還沒有帳號？',
-        'Sign up' => '立即註冊',
-        'Login failed.' => '登入失敗，請檢查帳號或密碼。',
-        'Network Error.' => '網絡錯誤，請檢查連線後重試。',
+        // SEO & Headers
+        'SEO Title' => '登入您的 Web3 AI 工作區 | SoulMD Hub',
+        'SEO Desc' => '登入 SoulMD Hub 以管理您的自訂 AI 角色、部署去中心化 Web3 智能體，並追蹤您的 AgentFi 區塊鏈資產組合。',
         
-        // 🚀 Web3 Login
+        'Log in' => '安全登入',
+        'Welcome back' => '歡迎回來，創作者',
+        'Sign in to manage' => '登入以部署與管理您的 Web3 AI 智能體',
+        
+        // Form Fields
+        'Username' => '使用者名稱',
+        'Password' => '安全密碼',
+        'Remember me' => '保持登入狀態',
+        'No account?' => '還沒有專屬帳號？',
+        'Sign up' => '免費註冊帳號',
+        
+        // Errors
+        'Login failed.' => '身分驗證失敗，請檢查您的帳號或密碼。',
+        'Network Error.' => '網路連線異常，請檢查連線後重試。',
+        
+        // Web3 Login
         'Connect NEAR Wallet' => '連接 NEAR 錢包免密碼登入',
-        'Wallet not bound' => '此 NEAR 錢包尚未綁定任何帳號。請先使用傳統帳號密碼登入，並前往「API 存取權限」設定中綁定您的錢包。',
+        'Wallet not bound' => '此 NEAR 錢包尚未綁定任何 SoulMD Hub 帳號。請先使用您的傳統帳號密碼登入，並前往「API 設定」中綁定您的錢包。',
         'Connecting...' => '正在喚起錢包連線...',
-        'Connecting to RPC...' => '等緊 RPC 連接...',
-        'Verifying Session...' => '正在驗證 Session...',
+        'Connecting to RPC...' => '連接至區塊鏈 RPC 節點...',
+        'Verifying Session...' => '驗證密碼學簽章中...',
     ]
 ];

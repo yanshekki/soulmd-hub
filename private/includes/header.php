@@ -2,17 +2,15 @@
 /**
  * SoulMD Hub - Core Responsive Header Matrix
  * (Dynamic Enterprise i18n Engine, Automated SEO Hreflang Compiler & Mobile Menu Edition)
- * 🚀 Patched: Synchronous Web3 signOut before Web2 Logout Redirect
+ * 🚀 V5 SEO Optimized: Accessible Viewport, Preconnects, Semantic HTML & Safe Analytics
  */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// 🌍 全域無縫掛載頂部導覽列公共組件的專屬獨立多語言語言包
 loadTranslations('header');
 
-// 處理 Remember Me 自動登入邏輯
+// Remember Me
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
     require_once __DIR__ . '/../src/Database.php';
     try {
@@ -30,11 +28,9 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {
         }
     } catch(Exception $e) {}
 }
-
 $isLoggedIn = isset($_SESSION['user_id']);
 
 // =========================================================
-// 🚨 全局尊貴會員授權掃描與過期降級引擎
 // =========================================================
 $showExpiredBanner = false;
 if ($isLoggedIn) {
@@ -61,12 +57,11 @@ if ($isLoggedIn) {
 }
 
 // =========================================================
-// 🌍 動態多語言 URI 清洗與絕對路徑編譯器 ( hreflang Compiler )
+// URI ( hreflang Compiler )
 // =========================================================
 global $SUPPORTED_LANGS;
 $current_uri = $_SERVER['REQUEST_URI'];
 $base_path = $current_uri;
-
 foreach (array_keys($SUPPORTED_LANGS) as $lang_code) {
     if (preg_match('/^\/' . preg_quote($lang_code, '/') . '(\/|$)/', $base_path, $matches)) {
         $base_path = '/' . substr($base_path, strlen($matches[0]));
@@ -80,8 +75,14 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
 <html lang="<?= htmlspecialchars($SUPPORTED_LANGS[CURRENT_LANG]['hreflang'] ?? 'en') ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 🚀 SEO Update: Removed user-scalable=no to fix Google Lighthouse Accessibility Penalty -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
+    <!-- 🚀 Preconnect to external resources for faster loading (LCP Optimization) -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+
     <?php 
     if (isset($pageTitle)) {
         setSEO($pageTitle, $pageDesc ?? '');
@@ -89,7 +90,6 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         setSEO('SoulMD Hub', '');
     }
     ?>
-
     <?php
     foreach ($SUPPORTED_LANGS as $lang_code => $lang_meta) {
         $lang_url = $clean_base_url . ($lang_code === DEFAULT_LANG ? '' : '/' . $lang_code) . ($base_path === '/' ? '' : $base_path);
@@ -102,7 +102,8 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         }
     }
     ?>
-
+    
+    <meta name="author" content="SoulMD Hub">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -128,6 +129,8 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         .tag-input-field:focus { outline: none !important; box-shadow: none !important; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
+    
+    <?php if (defined('GOOGLE_ANALYTICS_ID') && !empty(GOOGLE_ANALYTICS_ID) && GOOGLE_ANALYTICS_ID !== 'YOUR_GOOGLE_ANALYTICS_ID_HERE'): ?>
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?= GOOGLE_ANALYTICS_ID; ?>"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -135,6 +138,8 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
     gtag('js', new Date());
     gtag('config', '<?= GOOGLE_ANALYTICS_ID; ?>');
     </script>
+    <?php endif; ?>
+    
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -148,7 +153,6 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
     </script>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen flex flex-col relative">
-
     <header class="w-full <?= isset($navAbsolute) && $navAbsolute ? 'absolute top-0 left-0 right-0 z-50' : 'mb-2 relative z-50' ?>">
         <nav class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 flex justify-between items-center">
             <a href="<?= url('/') ?>" class="flex items-center gap-2 text-xl sm:text-2xl font-bold tracking-tighter hover:text-emerald-400 transition shrink-0 select-none">
@@ -179,19 +183,18 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
 
                 <?php if ($isLoggedIn): ?>
                     <a href="<?= url('/my-souls') ?>" class="hidden sm:flex text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition items-center gap-1.5" title="<?= __('My Souls') ?>">
-                        <i class="fas fa-layer-group text-emerald-400"></i> <?= __('My Souls') ?>
+                        <i class="fas fa-layer-group text-emerald-400"></i> <span class="hidden xl:inline"><?= __('My Souls') ?></span>
                     </a>
                     
                     <a href="<?= url('/billing') ?>" class="hidden sm:flex text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition items-center gap-1.5" title="<?= __('Billing') ?>">
-                        <i class="fas fa-file-invoice-dollar text-emerald-400"></i> <?= __('Billing') ?>
+                        <i class="fas fa-file-invoice-dollar text-emerald-400"></i> <span class="hidden xl:inline"><?= __('Billing') ?></span>
                     </a>
-
                     <a href="<?= url('/my-setting') ?>" class="text-xs sm:text-sm px-3 py-2 border border-white/10 rounded-xl hover:bg-white/5 transition flex items-center justify-center" title="<?= __('Settings') ?>">
                         <i class="fas fa-cog text-emerald-400"></i>
                     </a>
                     
                     <button onclick="handleLogout()" class="hidden sm:flex text-sm px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition items-center gap-1.5" title="<?= __('Log out') ?>">
-                        <i class="fas fa-sign-out-alt"></i> <?= __('Log out') ?>
+                        <i class="fas fa-sign-out-alt"></i> <span class="hidden xl:inline"><?= __('Log out') ?></span>
                     </button>
                 <?php else: ?>
                     <a href="<?= url('/login') ?>" class="hidden sm:inline-block text-xs sm:text-sm px-3.5 py-2 border border-white/20 rounded-xl hover:bg-white/5 transition font-medium"><?= __('Log in') ?></a>
@@ -218,7 +221,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
                 <div class="border-t border-white/10 mt-3 pt-3 flex flex-col gap-1.5">
                     <a href="<?= url('/my-souls') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-layer-group w-6 text-center text-emerald-400"></i> <?= __('My Souls') ?></a>
                     <a href="<?= url('/billing') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-file-invoice-dollar w-6 text-center text-emerald-400"></i> <?= __('Billing') ?></a>
-                    <button onclick="handleLogout()" class="p-3.5 text-base font-bold text-red-400 hover:bg-red-500/10 rounded-2xl transition flex items-center gap-4 text-left"><i class="fas fa-sign-out-alt w-6 text-center text-red-400"></i> <?= __('Log out') ?></button>
+                    <button onclick="handleLogout()" class="p-3.5 text-base font-bold text-red-400 hover:bg-red-500/10 rounded-2xl transition flex items-center gap-4 text-left w-full"><i class="fas fa-sign-out-alt w-6 text-center text-red-400"></i> <?= __('Log out') ?></button>
                 </div>
             <?php else: ?>
                 <div class="border-t border-white/10 mt-3 pt-3">
@@ -237,13 +240,13 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
     </header>
 
     <script>
-    // 🚨 完美修復：先同步登出 Web3 錢包，再實體轉跳至 logout.php 清除 Web2 Session
+    // 透過 Web3 處理登出並清空 Session
     async function handleLogout() {
         try {
             if (typeof initNearWallet === 'function') {
                 const wallet = await initNearWallet();
                 if (wallet && wallet.isSignedIn()) {
-                    wallet.signOut(); // 這會即時刪除所有 localStorage 的 Web3 金鑰
+                    wallet.signOut();
                 }
             }
         } catch (e) {}

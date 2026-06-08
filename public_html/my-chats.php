@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My Chats Page
  * (V5: 100% SPA Async Fetch API, Dual-Track Pagination Edition)
- * 🚀 Patched: Fixed Copy-Paste Mismatched i18n Keys for Page Meta
+ * 🚀 V5 SEO Optimized: Semantic <main> tag, ARIA labels, and Accessible Pagination
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -19,56 +19,57 @@ $pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
-    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10 border-b border-white/10 pb-6">
+<main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
+    <header class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10 border-b border-white/10 pb-6">
         <div>
             <h1 class="text-4xl font-bold tracking-tighter"><?= __('My Chats') ?></h1>
             <p class="text-zinc-400 mt-1"><?= __('My Chats Subtitle') ?></p>
         </div>
         <div>
             <a href="<?= url('/browse') ?>" class="px-6 py-3 bg-white text-zinc-950 rounded-2xl font-bold hover:bg-zinc-200 transition flex items-center gap-2 shadow-lg">
-                <i class="fas fa-search"></i> <?= __('Discover Souls') ?>
+                <i class="fas fa-search" aria-hidden="true"></i> <?= __('Discover Souls') ?>
             </a>
         </div>
-    </div>
+    </header>
 
     <?php if ($isLoggedIn): ?>
-        <h2 class="text-xl font-bold mb-5 flex items-center gap-2 text-white">
-            <i class="fas fa-user-circle text-emerald-400"></i> <?= __('My Personal Sessions') ?>
+    <section aria-labelledby="personal-sessions-heading">
+        <h2 id="personal-sessions-heading" class="text-xl font-bold mb-5 flex items-center gap-2 text-white">
+            <i class="fas fa-user-circle text-emerald-400" aria-hidden="true"></i> <?= __('My Personal Sessions') ?>
         </h2>
         
-        <div id="personal-container" class="min-h-[250px] mb-6"></div>
-        <div id="personal-pagination" class="mb-12 flex justify-center items-center w-full"></div>
+        <div id="personal-container" class="min-h-[250px] mb-6" aria-live="polite"></div>
+        <nav id="personal-pagination" aria-label="Personal Chats Pagination" class="mb-12 flex justify-center items-center w-full"></nav>
+    </section>
     <?php endif; ?>
 
-    <div id="visited-section" class="hidden flex-grow flex-col">
-        <h2 class="text-xl font-bold mb-5 flex items-center gap-2 text-zinc-300">
-            <i class="fas fa-history text-zinc-500"></i> <?= __('Recently Viewed') ?>
+    <section id="visited-section" class="hidden flex-grow flex-col" aria-labelledby="guest-sessions-heading">
+        <h2 id="guest-sessions-heading" class="text-xl font-bold mb-5 flex items-center gap-2 text-zinc-300">
+            <i class="fas fa-history text-zinc-500" aria-hidden="true"></i> <?= __('Recently Viewed') ?>
         </h2>
-        <div id="guest-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </div>
+        <div id="guest-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite"></div>
+    </section>
 
     <?php if (!$isLoggedIn): ?>
         <div id="guest-loading" class="flex-grow flex items-center justify-center py-20">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400"></div>
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400" aria-label="Loading"></div>
         </div>
 
-        <div id="guest-empty" class="hidden text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow">
-            <div class="mx-auto w-20 h-20 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-6 text-zinc-500"><i class="fas fa-user-secret text-3xl"></i></div>
-            <h2 class="text-2xl font-semibold mb-2"><?= __('Guest History Empty') ?></h2>
+        <section id="guest-empty" aria-labelledby="empty-guest-heading" class="hidden text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl flex-grow">
+            <div class="mx-auto w-20 h-20 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-6 text-zinc-500"><i class="fas fa-user-secret text-3xl" aria-hidden="true"></i></div>
+            <h2 id="empty-guest-heading" class="text-2xl font-semibold mb-2"><?= __('Guest History Empty') ?></h2>
             <p class="text-zinc-400 text-sm mb-6 max-w-md mx-auto"><?= __('Guest Empty Desc') ?></p>
             <div class="flex items-center justify-center gap-4">
                 <a href="<?= url('/register') ?>" class="px-6 py-3 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition shadow-lg"><?= __('Create Account') ?></a>
                 <a href="<?= url('/browse') ?>" class="px-6 py-3 bg-zinc-800 text-white rounded-2xl font-bold hover:bg-zinc-700 transition border border-white/5"><?= __('Explore Souls') ?></a>
             </div>
-        </div>
+        </section>
     <?php endif; ?>
-</div>
+</main>
 
 <script>
     const isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
 
-    // 🌍 JavaScript 動態語言變數
     const lang_GuestUser = "<?= addslashes(__('Guest User')) ?>";
     const lang_OwnedBy = "<?= addslashes(__('Owned by')) ?>";
     const lang_ViewSession = "<?= addslashes(__('View Session')) ?>";
@@ -91,7 +92,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
 
-    // 🚀 分頁器渲染
     function changePage(p) {
         currentPage = p;
         const newUrl = window.location.pathname + '?page=' + currentPage;
@@ -106,40 +106,39 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         let html = '';
         html += `<div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">`;
-        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left"></i></button>`;
+        html += `<button onclick="changePage(${current - 1})" aria-label="Previous Page" ${current <= 1 ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left" aria-hidden="true"></i></button>`;
         html += `<span class="text-xs font-bold text-zinc-400 tracking-widest uppercase">${lang_Page} <span class="text-white text-base">${current}</span> / ${totalPages}</span>`;
-        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right"></i></button>`;
+        html += `<button onclick="changePage(${current + 1})" aria-label="Next Page" ${current >= totalPages ? 'disabled class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed"' : 'class="px-5 py-3 bg-zinc-800 rounded-xl text-sm font-bold hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`;
         html += `</div>`;
 
         html += `<div class="hidden sm:flex items-center gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">`;
-        html += `<button onclick="changePage(${current - 1})" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left text-xs"></i></button>`;
+        html += `<button onclick="changePage(${current - 1})" aria-label="Previous Page" ${current <= 1 ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-left text-xs" aria-hidden="true"></i></button>`;
 
         const windowSize = 2; 
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= current - windowSize && i <= current + windowSize)) {
                 if (i === current) {
-                    html += `<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black font-mono shadow-md transform scale-105 transition">${i}</button>`;
+                    html += `<button aria-current="page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500 text-zinc-950 font-black font-mono shadow-md transform scale-105 transition">${i}</button>`;
                 } else {
-                    html += `<button onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
+                    html += `<button aria-label="Page ${i}" onclick="changePage(${i})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition font-medium text-sm shadow">${i}</button>`;
                 }
             } else if (i === current - windowSize - 1 || i === current + windowSize + 1) {
-                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm">...</span>`;
+                html += `<span class="w-10 h-10 flex items-center justify-center text-zinc-500 tracking-widest text-sm" aria-hidden="true">...</span>`;
             }
         }
 
-        html += `<button onclick="changePage(${current + 1})" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right text-xs"></i></button>`;
+        html += `<button onclick="changePage(${current + 1})" aria-label="Next Page" ${current >= totalPages ? 'disabled class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 opacity-50 cursor-not-allowed"' : 'class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 hover:text-emerald-400 transition shadow"'}><i class="fas fa-chevron-right text-xs" aria-hidden="true"></i></button>`;
         html += `</div>`;
 
         container.innerHTML = html;
     }
 
-    // 🚀 非同步載入個人對話
     async function loadPersonalChats() {
         if (!isLoggedIn) return;
         const container = document.getElementById('personal-container');
         const pagination = document.getElementById('personal-pagination');
         
-        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div></div>`;
+        container.innerHTML = `<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" aria-label="Loading"></div></div>`;
         pagination.innerHTML = '';
 
         try {
@@ -154,8 +153,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const roleLabel = chat.role ? escapeHTML(chat.role) : lang_Unassigned;
                     
                     const privacyBadge = chat.is_private == 1
-                        ? `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20" title="${lang_PrivateTooltip}"><i class="fas fa-lock mr-1"></i>${lang_Private}</span>`
-                        : `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-400 border-white/5" title="${lang_PublicTooltip}"><i class="fas fa-globe mr-1"></i>${lang_Public}</span>`;
+                        ? `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20" title="${lang_PrivateTooltip}"><i class="fas fa-lock mr-1" aria-hidden="true"></i>${lang_Private}</span>`
+                        : `<span class="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-400 border-white/5" title="${lang_PublicTooltip}"><i class="fas fa-globe mr-1" aria-hidden="true"></i>${lang_Public}</span>`;
 
                     html += `
                         <div class="soul-card bg-zinc-900/60 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-400/50 transition-all flex flex-col justify-between backdrop-blur-sm shadow-xl hover:-translate-y-1 relative overflow-hidden">
@@ -173,12 +172,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <div class="shrink-0">${privacyBadge}</div>
                                 </div>
                                 <div class="text-[10px] font-mono text-emerald-500/70 mb-6 bg-black/20 p-2 rounded-lg border border-emerald-500/10 truncate">
-                                    <i class="fas fa-link mr-1"></i> ${escapeHTML(chat.session_token)}
+                                    <i class="fas fa-link mr-1" aria-hidden="true"></i> ${escapeHTML(chat.session_token)}
                                 </div>
                             </div>
                             <div class="pt-4 border-t border-white/5 mt-auto">
-                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-3 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
-                                    ${lang_ContinueChat} <i class="fas fa-arrow-right text-xs"></i>
+                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" aria-label="Continue chat with ${escapeHTML(chat.title)}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-3 bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
+                                    ${lang_ContinueChat} <i class="fas fa-arrow-right text-xs" aria-hidden="true"></i>
                                 </a>
                             </div>
                         </div>
@@ -190,14 +189,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                  container.innerHTML = `
                     <div class="text-center py-16 bg-zinc-900/20 border border-white/5 rounded-3xl">
-                        <div class="mx-auto w-16 h-16 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-4 text-zinc-500"><i class="fas fa-comments text-2xl"></i></div>
+                        <div class="mx-auto w-16 h-16 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl mb-4 text-zinc-500"><i class="fas fa-comments text-2xl" aria-hidden="true"></i></div>
                         <p class="text-zinc-400 text-sm mb-4"><?= addslashes(__('No personal chats')) ?></p>
                         <a href="<?= url('/browse') ?>" class="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 text-white rounded-xl font-bold hover:bg-zinc-700 transition shadow"><?= addslashes(__('Start a Chat')) ?></a>
                     </div>
                 `;
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2"></i> ${lang_ConnError}</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> ${lang_ConnError}</div>`;
         }
     }
 
@@ -265,16 +264,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         </div>
                                     </div>
                                     <div class="shrink-0">
-                                        <span class="text-[10px] px-2 py-1 rounded-md font-medium border bg-zinc-800/80 text-zinc-400 border-white/5" title="${lang_OwnedBy}"><i class="fas fa-user mr-1"></i>${ownerText}</span>
+                                        <span class="text-[10px] px-2 py-1 rounded-md font-medium border bg-zinc-800/80 text-zinc-400 border-white/5" title="${lang_OwnedBy}"><i class="fas fa-user mr-1" aria-hidden="true"></i>${ownerText}</span>
                                     </div>
                                 </div>
                                 <div class="text-[10px] font-mono text-zinc-500 mb-6 bg-black/20 p-2 rounded-lg border border-white/5 truncate">
-                                    <i class="fas fa-link text-emerald-500/30 mr-1"></i> ${escapeHTML(chat.session_token)}
+                                    <i class="fas fa-link text-emerald-500/30 mr-1" aria-hidden="true"></i> ${escapeHTML(chat.session_token)}
                                 </div>
                             </div>
                             <div class="pt-4 border-t border-white/5 mt-auto">
-                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800/50 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-300 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-sm border border-white/5">
-                                    ${lang_ViewSession} <i class="fas fa-external-link-alt text-[10px]"></i>
+                                <a href="${url_chat_prefix}${chat.soul_id}/${chat.session_token}" aria-label="View Session ${escapeHTML(chat.title)}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> <?= addslashes(__('Loading...')) ?>'; this.classList.add('pointer-events-none','opacity-80');" class="w-full py-2.5 bg-zinc-800/50 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-300 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-sm border border-white/5">
+                                    ${lang_ViewSession} <i class="fas fa-external-link-alt text-[10px]" aria-hidden="true"></i>
                                 </a>
                             </div>
                         </div>

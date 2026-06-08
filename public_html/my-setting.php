@@ -2,21 +2,25 @@
 /**
  * SoulMD Hub - Grand Unified Settings Hub
  * (Account, Web3, Platform API, Encrypted BYOK Engine - 100% i18n Edition)
- * 🚀 Patched: 100% Structural integrity retained + i18n + Cryptographic Signature Payload
+ * 🚀 V5 SEO Optimized: Semantic <main>/<section> Structure, ARIA Labels, and a11y Forms
  */
+
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
-if (!isset($_SESSION['user_id'])) { header('Location: ' . url('/login')); exit; }
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . url('/login'));
+    exit;
+}
 
 if (empty($_SESSION['chat_csrf_token'])) {
     $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrfToken = $_SESSION['chat_csrf_token'];
 
-// 🌍 載入專屬語言包
 loadTranslations('my-setting');
 
 $userId = $_SESSION['user_id'];
@@ -31,49 +35,62 @@ $pageTitle = __('SEO Title');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 
-<div class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row gap-8 flex-grow">
+<main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row gap-8 flex-grow">
     
-    <div class="w-full md:w-64 shrink-0 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-4 md:pb-0">
-        <button onclick="switchTab('account')" id="btn-account" class="tab-btn active shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><i class="fas fa-shield-alt w-5"></i> <?= __('Account Security') ?></button>
-        <button onclick="switchTab('web3')" id="btn-web3" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-wallet w-5"></i> <?= __('Web3 Wallet') ?></button>
-        <button onclick="switchTab('api')" id="btn-api" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-key w-5"></i> <?= __('Developer API') ?></button>
-        <button onclick="switchTab('byok')" id="btn-byok" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-brain w-5"></i> <?= __('Custom AI Engine (BYOK)') ?></button>
-    </div>
+    <!-- 🚀 SEO: 語意化 Navigation -->
+    <nav aria-label="Settings Navigation" class="w-full md:w-64 shrink-0 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-4 md:pb-0">
+        <button onclick="switchTab('account')" aria-controls="tab-account" id="btn-account" class="tab-btn active shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><i class="fas fa-shield-alt w-5" aria-hidden="true"></i> <?= __('Account Security') ?></button>
+        <button onclick="switchTab('web3')" aria-controls="tab-web3" id="btn-web3" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-wallet w-5" aria-hidden="true"></i> <?= __('Web3 Wallet') ?></button>
+        <button onclick="switchTab('api')" aria-controls="tab-api" id="btn-api" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-key w-5" aria-hidden="true"></i> <?= __('Developer API') ?></button>
+        <button onclick="switchTab('byok')" aria-controls="tab-byok" id="btn-byok" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-brain w-5" aria-hidden="true"></i> <?= __('Custom AI Engine (BYOK)') ?></button>
+    </nav>
 
     <div class="flex-1 bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-sm shadow-2xl relative overflow-hidden min-h-[600px]">
         
-        <div id="tab-account" class="tab-content block animate-fade-in">
-            <h2 class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4"><?= __('Account Security') ?></h2>
+        <!-- Tab 1: Account -->
+        <section id="tab-account" aria-labelledby="heading-account" class="tab-content block animate-fade-in">
+            <h2 id="heading-account" class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4"><?= __('Account Security') ?></h2>
             <div class="mb-6">
-                <label class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Username') ?></label>
+                <div class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Username') ?></div>
                 <div class="bg-zinc-950 px-4 py-3 rounded-xl border border-white/5 text-zinc-300 font-mono"><?= htmlspecialchars($user['username']) ?></div>
             </div>
+            
             <form id="pwd-form" class="space-y-4">
+                <div id="error-box" class="hidden bg-red-900/50 border border-red-500 p-4 rounded-xl text-sm text-red-200" aria-live="polite">
+                    <i class="fas fa-exclamation-circle" aria-hidden="true"></i> <span id="error-msg"></span>
+                </div>
+                <div id="success-box" class="hidden bg-emerald-900/50 border border-emerald-500 p-4 rounded-xl text-sm text-emerald-200" aria-live="polite">
+                    <i class="fas fa-check-circle" aria-hidden="true"></i> <span id="success-msg"></span>
+                </div>
+
                 <div>
-                    <label class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Current Password') ?></label>
+                    <label for="old-pwd" class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Current Password') ?></label>
                     <input type="password" id="old-pwd" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none text-white shadow-inner">
                 </div>
                 <div>
-                    <label class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('New Password') ?></label>
+                    <label for="new-pwd" class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('New Password') ?></label>
                     <input type="password" id="new-pwd" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none text-white shadow-inner">
                 </div>
                 <div>
-                    <label class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Confirm New Password') ?></label>
+                    <label for="confirm-pwd" class="block text-xs text-zinc-500 uppercase tracking-widest font-bold mb-2"><?= __('Confirm New Password') ?></label>
                     <input type="password" id="confirm-pwd" required class="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none text-white shadow-inner">
                 </div>
+                
                 <button type="submit" id="pwd-submit-btn" class="mt-4 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition shadow flex items-center justify-center gap-2 min-w-[150px]">
                     <span id="pwd-submit-text"><?= __('Update Password') ?></span>
-                    <span id="pwd-submit-loading" class="hidden animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span>
+                    <span id="pwd-submit-loading" class="hidden animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full" aria-hidden="true"></span>
                 </button>
             </form>
-        </div>
+        </section>
 
-        <div id="tab-web3" class="tab-content hidden animate-fade-in">
-            <h2 class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4 flex items-center gap-3"><i class="fas fa-wallet text-blue-400"></i> <?= __('Web3 Wallet Binding') ?></h2>
+        <!-- Tab 2: Web3 -->
+        <section id="tab-web3" aria-labelledby="heading-web3" class="tab-content hidden animate-fade-in">
+            <h2 id="heading-web3" class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4 flex items-center gap-3"><i class="fas fa-wallet text-blue-400" aria-hidden="true"></i> <?= __('Web3 Wallet Binding') ?></h2>
             <p class="text-sm text-zinc-400 mb-6"><?= __('Wallet Binding Desc') ?></p>
+            
             <?php if ($user['near_wallet_address']): ?>
                 <div class="bg-zinc-950 border border-emerald-500/30 p-5 rounded-2xl flex items-center gap-4 shadow-inner">
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-8 h-8 opacity-90">
+                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-8 h-8 opacity-90" alt="NEAR Protocol Logo">
                     <div>
                         <div class="text-xs text-emerald-500 font-bold uppercase tracking-widest mb-1"><?= __('Bound Permanently') ?></div>
                         <code class="text-lg text-white font-mono"><?= htmlspecialchars($user['near_wallet_address']) ?></code>
@@ -81,40 +98,44 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
             <?php else: ?>
                 <div class="bg-blue-900/10 border border-blue-500/30 p-4 rounded-2xl mb-4 text-[11px] sm:text-xs text-blue-300 leading-relaxed flex items-start gap-2 shadow-inner">
-                    <i class="fas fa-exclamation-triangle text-blue-400 mt-0.5 shrink-0"></i>
+                    <i class="fas fa-exclamation-triangle text-blue-400 mt-0.5 shrink-0" aria-hidden="true"></i>
                     <div>
                         <strong class="text-blue-400 font-bold uppercase tracking-wide block mb-1"><?= __('Important Warning:') ?></strong> <?= __('Wallet one-time warning') ?>
                     </div>
                 </div>
                 
                 <button type="button" onclick="bindNearWallet()" id="bind-wallet-btn" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black text-base rounded-2xl hover:brightness-110 transition flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(52,211,153,0.25)] border-none group transform hover:-translate-y-0.5 duration-200 relative overflow-hidden">
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR"> 
+                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" id="bind-wallet-icon" class="w-5 h-5 opacity-90 group-hover:scale-105 transition shrink-0" alt="NEAR Protocol Logo"> 
                     <span id="bind-wallet-text"><?= __('Connect & Bind Wallet') ?></span>
                 </button>
             <?php endif; ?>
-        </div>
+        </section>
 
-        <div id="tab-api" class="tab-content hidden animate-fade-in">
-            <h2 class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4 flex items-center gap-3"><i class="fas fa-key text-amber-400"></i> <?= __('Platform API Key') ?></h2>
+        <!-- Tab 3: API Key -->
+        <section id="tab-api" aria-labelledby="heading-api" class="tab-content hidden animate-fade-in">
+            <h2 id="heading-api" class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4 flex items-center gap-3"><i class="fas fa-key text-amber-400" aria-hidden="true"></i> <?= __('Platform API Key') ?></h2>
             <p class="text-sm text-zinc-400 mb-6"><?= __('API Key Desc') ?></p>
+            
             <div class="bg-zinc-950 border border-white/10 p-4 rounded-xl flex items-center justify-between gap-3 mb-6 shadow-inner">
                 <code id="key-display" class="text-base text-amber-400 font-mono truncate select-all"><?= htmlspecialchars($user['api_key']) ?></code>
             </div>
+            
             <button type="button" id="roll-btn" onclick="rollApiKey()" class="px-6 py-3 bg-zinc-800 hover:bg-amber-500/20 text-white font-bold rounded-xl transition border border-white/5 hover:border-red-500/30 flex items-center justify-center gap-2 min-w-[170px]">
-                <span id="roll-text"><i class="fas fa-redo mr-2"></i> <?= __('Regenerate Key') ?></span>
-                <span id="roll-loading" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                <span id="roll-text"><i class="fas fa-redo mr-2" aria-hidden="true"></i> <?= __('Regenerate Key') ?></span>
+                <span id="roll-loading" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" aria-hidden="true"></span>
             </button>
-        </div>
+        </section>
 
-        <div id="tab-byok" class="tab-content hidden animate-fade-in relative">
+        <!-- Tab 4: BYOK Engine -->
+        <section id="tab-byok" aria-labelledby="heading-byok" class="tab-content hidden animate-fade-in relative">
             <div class="absolute top-0 right-0 px-3 py-1 bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-bl-xl uppercase tracking-widest border-b border-l border-purple-500/30"><?= __('Unlimited Chat Unlock') ?></div>
             
             <div class="flex items-center justify-between border-b border-white/10 pb-6 mb-6">
                 <div>
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-3"><i class="fas fa-brain text-purple-400"></i> <?= __('BYOK Title') ?></h2>
+                    <h2 id="heading-byok" class="text-2xl font-bold text-white flex items-center gap-3"><i class="fas fa-brain text-purple-400" aria-hidden="true"></i> <?= __('BYOK Title') ?></h2>
                     <p class="text-sm text-zinc-400 mt-2"><?= __('BYOK Desc') ?></p>
                 </div>
-                <label class="flex items-center cursor-pointer relative">
+                <label for="use_byok" class="flex items-center cursor-pointer relative" aria-label="Toggle BYOK Engine">
                     <input type="checkbox" id="use_byok" class="sr-only">
                     <div class="toggle-bg block w-14 h-8 bg-zinc-700 rounded-full border border-white/10 transition-colors"></div>
                     <div class="toggle-dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform"></div>
@@ -122,11 +143,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
 
             <div id="byok-settings-panel" class="space-y-6 opacity-50 pointer-events-none transition-opacity duration-300">
+                
+                <!-- Text LLM Config -->
                 <div class="bg-zinc-950/50 border border-white/5 rounded-2xl p-5 shadow-inner">
-                    <h3 class="text-emerald-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-comment-alt mr-2"></i><?= __('Text LLM') ?></h3>
+                    <h3 class="text-emerald-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-comment-alt mr-2" aria-hidden="true"></i><?= __('Text LLM') ?></h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Provider Preset') ?></label>
+                            <label for="text_provider" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Provider Preset') ?></label>
                             <select id="text_provider" onchange="autoFillProvider('text')" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400 transition">
                                 <option value="openai"><?= __('OpenAI (Recommended)') ?></option>
                                 <option value="deepseek">DeepSeek</option>
@@ -137,27 +160,28 @@ require_once __DIR__ . '/../private/includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('API URL') ?></label>
+                            <label for="text_api_url" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('API URL') ?></label>
                             <input type="text" id="text_api_url" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-purple-400 font-mono transition">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Model Name') ?></label>
+                            <label for="text_model" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Model Name') ?></label>
                             <input type="text" id="text_model" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-purple-400 font-mono transition">
                         </div>
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Your API Key') ?></label>
+                            <label for="text_api_key" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Your API Key') ?></label>
                             <input type="password" id="text_api_key" placeholder="sk-..." class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-purple-400 font-mono placeholder-zinc-700 transition">
                         </div>
                     </div>
                 </div>
 
+                <!-- Vision LLM Config -->
                 <div class="bg-zinc-950/50 border border-white/5 rounded-2xl p-5 shadow-inner">
-                    <h3 class="text-blue-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-eye mr-2"></i><?= __('Vision LLM') ?> <span class="text-zinc-500 ml-2 font-normal text-[10px]"><?= __('Optional Fallback') ?></span></h3>
+                    <h3 class="text-blue-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-eye mr-2" aria-hidden="true"></i><?= __('Vision LLM') ?> <span class="text-zinc-500 ml-2 font-normal text-[10px]"><?= __('Optional Fallback') ?></span></h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Provider Preset') ?></label>
+                            <label for="vision_provider" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Provider Preset') ?></label>
                             <select id="vision_provider" onchange="autoFillProvider('vision')" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400 transition">
                                 <option value="openai"><?= __('OpenAI (Recommended)') ?></option>
                                 <option value="together">Together AI (Llama 3.2 Vision)</option>
@@ -166,45 +190,47 @@ require_once __DIR__ . '/../private/includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('API URL') ?></label>
+                            <label for="vision_api_url" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('API URL') ?></label>
                             <input type="text" id="vision_api_url" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-purple-400 font-mono transition">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Model Name') ?></label>
+                            <label for="vision_model" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Model Name') ?></label>
                             <input type="text" id="vision_model" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-purple-400 font-mono transition">
                         </div>
                         <div>
-                            <label class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Your API Key') ?></label>
+                            <label for="vision_api_key" class="block text-[11px] text-zinc-500 mb-1.5 font-bold"><?= __('Your API Key') ?></label>
                             <input type="password" id="vision_api_key" placeholder="sk-..." class="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-purple-400 font-mono placeholder-zinc-700 transition">
                         </div>
                     </div>
                 </div>
 
+                <!-- Memory Compression Slider -->
                 <div class="bg-zinc-950/50 border border-amber-500/20 rounded-2xl p-5 shadow-inner relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-amber-400 font-bold uppercase tracking-widest text-xs flex items-center"><i class="fas fa-compress-arrows-alt mr-2"></i><?= __('Memory Compression') ?></h3>
-                        <span class="text-xl font-black text-white bg-zinc-800 px-3 py-1 rounded-lg font-mono border border-white/5 shadow" id="compress_val_display">10</span>
+                        <h3 class="text-amber-400 font-bold uppercase tracking-widest text-xs flex items-center"><i class="fas fa-compress-arrows-alt mr-2" aria-hidden="true"></i><?= __('Memory Compression') ?></h3>
+                        <span class="text-xl font-black text-white bg-zinc-800 px-3 py-1 rounded-lg font-mono border border-white/5 shadow" id="compress_val_display" aria-live="polite">10</span>
                     </div>
                     <p class="text-[11px] sm:text-xs text-zinc-400 mb-5 leading-relaxed"><?= __('Memory Desc') ?></p>
+                    
+                    <label for="memory_compress_threshold" class="sr-only">Memory Compression Threshold Slider</label>
                     <input type="range" id="memory_compress_threshold" min="4" max="50" step="2" class="w-full accent-amber-400 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer outline-none" oninput="document.getElementById('compress_val_display').innerText = this.value">
                 </div>
 
-                <button onclick="saveLLMSettings()" id="save-llm-btn" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-2xl transition shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 border-none">
-                    <i class="fas fa-save"></i> <?= __('Save Custom Engine Settings') ?>
+                <button type="button" onclick="saveLLMSettings()" id="save-llm-btn" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-2xl transition shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 border-none">
+                    <i class="fas fa-save" aria-hidden="true"></i> <?= __('Save Custom Engine Settings') ?>
                 </button>
             </div>
-        </div>
-
+        </section>
     </div>
-</div>
+</main>
 
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
-    const serverCsrfToken = "<?= $csrfToken ?>"; 
+    const serverCsrfToken = "<?= $csrfToken ?>";
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -262,7 +288,6 @@ require_once __DIR__ . '/../private/includes/header.php';
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-        // 🚀 核心升級：喺最頂端優先攔截 URL 參數，完美支援大一統分流
         const urlParams = new URLSearchParams(window.location.search);
         const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
         const forcedTab = urlParams.get('tab');
@@ -304,7 +329,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         <?php endif; ?>
         
-        // 🚨 修正：自動背景登入驗證時，處理錢包不匹配的語言包
         try {
             const wallet = await initNearWallet();
             const isPhpLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
@@ -326,9 +350,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function saveLLMSettings() {
         const btn = document.getElementById('save-llm-btn');
-        btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> <?= addslashes(__('Saving...')) ?>';
-        btn.disabled = true; // 🚨 鎖定自訂引擎儲存
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2" aria-hidden="true"></i> <?= addslashes(__('Saving...')) ?>';
+        btn.disabled = true;
         
         const payload = {
             use_byok: document.getElementById('use_byok').checked ? 1 : 0,
@@ -350,26 +373,24 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify(payload) 
             });
             const data = await res.json();
+            
             if(data.success) {
-                btn.innerHTML = '<i class="fas fa-check mr-2"></i> <?= addslashes(__('Settings Saved')) ?>';
+                btn.innerHTML = '<i class="fas fa-check mr-2" aria-hidden="true"></i> <?= addslashes(__('Settings Saved')) ?>';
                 btn.classList.replace('bg-purple-600', 'bg-emerald-500');
                 setTimeout(() => { 
-                    btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>'; 
+                    btn.innerHTML = '<i class="fas fa-save mr-2" aria-hidden="true"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>'; 
                     btn.classList.replace('bg-emerald-500', 'bg-purple-600'); 
                     btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }, 2000);
             } else {
                 alert('<?= addslashes(__('Save Failed')) ?>' + data.error);
-                btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>';
+                btn.innerHTML = '<i class="fas fa-save mr-2" aria-hidden="true"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>';
                 btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         } catch(e) { 
             alert('<?= addslashes(__('Network Error')) ?>'); 
-            btn.innerHTML = '<i class="fas fa-save mr-2"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>';
+            btn.innerHTML = '<i class="fas fa-save mr-2" aria-hidden="true"></i> <?= addslashes(__('Save Custom Engine Settings')) ?>';
             btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 
@@ -378,11 +399,15 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('pwd-submit-btn');
         const text = document.getElementById('pwd-submit-text');
         const loading = document.getElementById('pwd-submit-loading');
-
+        
         text.classList.add('hidden');
         loading.classList.remove('hidden');
-        btn.disabled = true; // 🚨 鎖定密碼修改
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.disabled = true;
+
+        const errorBox = document.getElementById('error-box');
+        const successBox = document.getElementById('success-box');
+        errorBox.classList.add('hidden');
+        successBox.classList.add('hidden');
 
         const oldp = document.getElementById('old-pwd').value;
         const newp = document.getElementById('new-pwd').value;
@@ -397,16 +422,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if(data.success) { 
-                alert('<?= addslashes(__('Password updated successfully!')) ?>'); 
+                document.getElementById('success-msg').innerText = '<?= addslashes(__('Password updated successfully!')) ?>';
+                successBox.classList.remove('hidden');
                 document.getElementById('pwd-form').reset(); 
-            } else { alert(data.error); }
+            } else { 
+                document.getElementById('error-msg').innerText = data.error;
+                errorBox.classList.remove('hidden');
+            }
         } catch(e) {
-            alert('<?= addslashes(__('Network Error')) ?>');
+            document.getElementById('error-msg').innerText = '<?= addslashes(__('Network Error')) ?>';
+            errorBox.classList.remove('hidden');
         } finally {
             text.classList.remove('hidden');
             loading.classList.add('hidden');
             btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     });
 
@@ -414,10 +443,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('bind-wallet-btn');
         const text = document.getElementById('bind-wallet-text');
         const icon = document.getElementById('bind-wallet-icon');
-        const originalText = text.innerHTML;
 
-        text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
-        btn.disabled = true; // 🚨 鎖定 Web3 錢包綁定
+        const originalText = text.innerHTML;
+        text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
+        btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         if(icon) icon.classList.add('hidden');
 
@@ -439,14 +468,15 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function executeWalletBind(accountId) {
         const text = document.getElementById('bind-wallet-text');
         const btn = document.getElementById('bind-wallet-btn');
-        if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1"></i> <?= addslashes(__('Binding Address...')) ?>';
+        
+        if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Binding Address...')) ?>';
         if(btn) {
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
         
         try {
-            // 🚀 核心安全升級：產生防偽密碼學簽章 Payload (Ed25519) 送給後端
+            // Generate Cryptographic Payload (Ed25519)
             const authPayload = await window.generateNearAuthPayload(accountId);
             authPayload.action = 'bind';
 
@@ -456,6 +486,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify(authPayload)
             });
             const data = await res.json();
+            
             if (data.success) {
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
@@ -463,8 +494,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             } else {
                 alert('<?= addslashes(__('Bind Failed')) ?>' + (data.error || ''));
                 const wallet = await initNearWallet();
-                wallet.signOut(); 
-                if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
+                wallet.signOut();
+                if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
                 if(btn) {
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -472,7 +503,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } catch(e) {
             alert('<?= addslashes(__('Network Error')) ?>');
-            if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
+            if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
             if(btn) {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -486,10 +517,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('roll-btn');
         const text = document.getElementById('roll-text');
         const loading = document.getElementById('roll-loading');
-
+        
         text.classList.add('hidden');
         loading.classList.remove('hidden');
-        btn.disabled = true; // 🚨 鎖定金鑰重置
+        btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         fetch('/api/regenerate-key', { 
@@ -515,57 +546,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         });
     }
-
-    <?php if ($isAdmin): ?>
-    async function triggerAutoBuyback() {
-        const amount = document.getElementById('buyback-amount').value;
-        if (!amount || amount <= 0) return alert('<?= addslashes(__('Please enter a valid NEAR amount.')) ?>');
-        
-        let confirmText = `<?= addslashes(__('Buyback Confirm')) ?>`.replace(':amount', amount);
-        if (!confirm(confirmText)) return;
-
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
-            alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-            return;
-        }
-
-        const btn = document.getElementById('buyback-btn');
-        const text = document.getElementById('buyback-text');
-        const originalHtml = text.innerHTML;
-        
-        // 🚨 修正：Admin Buyback 加入語言包
-        text.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> <?= addslashes(__('Processing...')) ?>';
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
-
-        try {
-            const amountInYocto = nearApi.utils.format.parseNearAmount(amount.toString());
-            await wallet.account().functionCall({
-                contractId: "<?= NEAR_CONTRACT_ID; ?>",
-                methodName: "auto_buyback_and_burn",
-                args: { amount_in_near: amountInYocto },
-                gas: "100000000000000",
-                attachedDeposit: "0", 
-                walletCallbackUrl: window.location.href
-            });
-            
-            text.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> <?= addslashes(__('Syncing...')) ?>';
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            alert("<?= addslashes(__('Buyback initiated successfully!')) ?>");
-            window.location.reload();
-        } catch(e) {
-            let errorText = `<?= addslashes(__('Buyback Failed')) ?>`.replace(':contract', '<?= NEAR_CONTRACT_ID; ?>');
-            alert(errorText);
-            
-            text.innerHTML = originalHtml;
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    }
-    <?php endif; ?>
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
