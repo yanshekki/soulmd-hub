@@ -2,7 +2,7 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
@@ -37,6 +37,29 @@ if (!$userId) {
     echo json_encode(['success' => false, 'error' => 'Login or valid API Key required']);
     exit;
 }
+
+// ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 路徑跳過，與其他 endpoint 一致）
+if (! $apiKey) {  // 只有純 session 時檢查 CSRF
+    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (empty($userCsrfToken) && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+    }
+    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+        http_response_code(403); 
+        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+        exit;
+    }
+}
+
+// ✅ Phase 2 業務邏輯修復：簡單 rate limit 防 spam fork (session based, 5秒)
+if (!empty($_SESSION['last_fork_time']) && (time() - $_SESSION['last_fork_time']) < 5) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'error' => 'Too many forks, please wait']);
+    exit;
+}
+$_SESSION['last_fork_time'] = time();
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 

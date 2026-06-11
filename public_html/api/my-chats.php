@@ -8,7 +8,7 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -74,6 +74,19 @@ if ($method === 'GET') {
     exit;
 
 } elseif ($method === 'POST') {
+    // ✅ Phase 2 修復：POST for guest tokens, 但若有 session 則檢查 CSRF (防 CSRF on logged user)
+    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (empty($userCsrfToken) && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+    }
+    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+    if (!empty($userId) && (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken))) {
+        http_response_code(403); 
+        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+        exit;
+    }
+
     $input = json_decode(file_get_contents('php://input'), true);
     $tokens = $input['tokens'] ?? [];
 

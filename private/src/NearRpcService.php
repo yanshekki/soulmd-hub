@@ -59,8 +59,9 @@ class NearRpcService {
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
-            // 只要 200 OK 且有回傳，即認定為最快健康節點
-            if ($httpCode === 200 && $res) {
+            // ✅ B 修復：加強 RPC 回應驗證
+            $parse = $this->validateAndParseResponse($res, 'ping');
+            if ($httpCode === 200 && $parse['valid']) {
                 $this->activeNode = $url;
                 return $this->activeNode;
             }
@@ -69,6 +70,35 @@ class NearRpcService {
         // 萬一全部 Ping 失敗，強制回退至第一個預設節點
         $this->activeNode = $this->rpcNodes[0];
         return $this->activeNode;
+    }
+
+    /**
+     * ✅ B 修復：統一 RPC 回應驗證（schema + id match + 基本結構）
+     * 防止惡意/損壞 RPC 回應導致邏輯錯誤或注入
+     */
+    private function validateAndParseResponse($rawResponse, $expectedId = null) {
+        if (empty($rawResponse)) {
+            return ['valid' => false, 'error' => 'empty_response'];
+        }
+
+        $data = json_decode($rawResponse, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['valid' => false, 'error' => 'invalid_json'];
+        }
+
+        // 必須是 JSON-RPC 2.0
+        if (!isset($data['jsonrpc']) || $data['jsonrpc'] !== '2.0') {
+            return ['valid' => false, 'error' => 'invalid_jsonrpc_version'];
+        }
+
+        // 如果指定 expectedId，必須匹配（防止 replay / mismatch 攻擊）
+        if ($expectedId !== null) {
+            if (!isset($data['id']) || $data['id'] !== $expectedId) {
+                return ['valid' => false, 'error' => 'id_mismatch'];
+            }
+        }
+
+        return ['valid' => true, 'data' => $data];
     }
 
     /**
@@ -109,7 +139,13 @@ class NearRpcService {
         curl_close($ch);
 
         if ($httpCode === 200 && $res) {
-            $data = json_decode($res, true);
+            // ✅ B 修復：使用統一驗證器
+            $parse = $this->validateAndParseResponse($res, 'soulmd_query');
+            if (!$parse['valid']) {
+                $this->activeNode = null;
+                return ['status' => 'error', 'data' => null, 'error' => $parse['error']];
+            }
+            $data = $parse['data'];
             
             // 成功取得合約回傳數據
             if (isset($data['result']['result'])) {

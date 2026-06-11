@@ -23,6 +23,7 @@ require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
+require_once __DIR__ . '/../../private/includes/token-gate.php';
 
 // 🌍 載入全域 API 與 Chat 語言包以獲取 Anonymous 翻譯
 loadTranslations('api');
@@ -70,7 +71,8 @@ function getCurrentUser($pdo) {
     }
 
     if ($user['last_chat_date'] !== $today) {
-        $pdo->prepare("UPDATE users SET daily_chat_count = 0, last_chat_date = ? WHERE id = ?")->execute([$today, $userId]);
+        // ✅ Phase 2 業務邏輯修復：加條件減 race（concurrent day reset）
+        $pdo->prepare("UPDATE users SET daily_chat_count = 0, last_chat_date = ? WHERE id = ? AND last_chat_date != ?")->execute([$today, $userId, $today]);
         $user['daily_chat_count'] = 0;
     }
 
@@ -216,67 +218,7 @@ if (!$soul) {
 }
 
 $chatUserWallet = $currentUser['near_wallet'] ?? '';
-$hasAccess = false;
-
-if ($soul['is_nft'] == 1) {
-    $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
-    $rpc = NearRpcService::getInstance();
-    $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId]);
-    
-    $rpcStatus = $rpcRes['status'];
-    $tokenInfo = $rpcRes['data'];
-
-    if ($rpcStatus === 'not_found') {
-        $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0 WHERE id = ?")->execute([$soulId]);
-        $soul['is_nft'] = 0;
-        $soul['is_public'] = 0;
-    } elseif ($rpcStatus === 'success' && $tokenInfo) {
-        $currentDbHash = 'sha256:' . hash('sha256', $soul['content'] . $soul['nft_salt']);
-        if (isset($tokenInfo['metadata']['extra']) && $tokenInfo['metadata']['extra'] !== $currentDbHash) {
-            echo json_encode(['success' => true, 'reply' => __("Security Interception")], JSON_UNESCAPED_UNICODE); exit;
-        }
-
-        $chainOwner = $tokenInfo['owner_id'];
-        if ($chainOwner !== $soul['nft_owner_wallet']) {
-            $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
-            $userStmt->execute([$chainOwner]);
-            $newOwnerId = $userStmt->fetchColumn() ?: null; 
-            
-            $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ? WHERE id = ?")->execute([$newOwnerId, $chainOwner, $soulId]);
-            $soul['user_id'] = $newOwnerId;
-            $soul['nft_owner_wallet'] = $chainOwner;
-        }
-
-        if ($chainOwner === $chatUserWallet) {
-            $hasAccess = true;
-        } elseif (isset($tokenInfo['renters'][$chatUserWallet])) {
-            $expiryNano = (int)$tokenInfo['renters'][$chatUserWallet];
-            if ($expiryNano > time() * 1000000000) $hasAccess = true;
-        }
-        
-        if (!$hasAccess) {
-            echo json_encode(['success' => true, 'reply' => __("Access Denied Web3")], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-    } elseif ($rpcStatus === 'timeout' || $rpcStatus === 'error') {
-        if ($chatUserWallet === $soul['nft_owner_wallet']) {
-            $hasAccess = true;
-        } else {
-            echo json_encode(['success' => true, 'reply' => __("RPC Pool Blocked")], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-    }
-}
-
-if ($soul['is_nft'] == 0) {
-    if ($soul['is_public'] == 1 || ($currentUser['id'] !== null && $soul['user_id'] === $currentUser['id'])) {
-        $hasAccess = true;
-    }
-    if (!$hasAccess) {
-        echo json_encode(['success' => true, 'reply' => __("Access Denied Private")], JSON_UNESCAPED_UNICODE); 
-        exit;
-    }
-}
+enforceSoulAccess($pdo, $soul, $chatUserWallet, $currentUser);
 
 // ==========================================
 // 5. 組合 System Prompt (支援 Modular 解析)

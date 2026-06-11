@@ -59,11 +59,12 @@ try {
     echo json_encode(['success' => true]);
 
 } catch (\Throwable $e) {
-    // 🚨 無敵捕捉器：將 PHP 500 致命錯誤轉為 JSON 輸出給前端！
+    // ✅ Phase 1 修復：移除詳細 file/line 洩漏（安全考量）
+    error_log('Wallet bind fatal error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     http_response_code(500);
     echo json_encode([
         'success' => false, 
-        'error' => '內部崩潰 (Fatal Error): ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ' on line ' . $e->getLine()
+        'error' => __('Internal authentication error. Please try again later.')
     ], JSON_UNESCAPED_UNICODE);
 }
 ?>

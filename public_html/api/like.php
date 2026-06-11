@@ -2,12 +2,14 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+
+loadTranslations('api');
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -30,6 +32,29 @@ if (!$userId) {
     echo json_encode(['success' => false, 'error' => 'Login or valid API Key required']);
     exit;
 }
+
+// ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
+if (empty($apiKey)) {
+    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (empty($userCsrfToken) && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+    }
+    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+        http_response_code(403); 
+        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+        exit;
+    }
+}
+
+// ✅ Phase 2 業務邏輯修復：簡單 rate limit 防 spam like (session based, 3秒)
+if (!empty($_SESSION['last_like_time']) && (time() - $_SESSION['last_like_time']) < 3) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'error' => 'Too many likes, please wait']);
+    exit;
+}
+$_SESSION['last_like_time'] = time();
 
 // 🚨 完美修復：防止 PHP 8 Array Offset 報錯
 $input = json_decode(file_get_contents('php://input'), true) ?? [];

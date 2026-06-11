@@ -50,6 +50,7 @@ class SoulMDAgentFi {
         const token = new Token(caller, metadata);
         this.tokens.set(token_id, token);
 
+        // state 先更新，然後 schedule 平台費轉帳（安全順序）
         const platform_fee = 100000000000000000000000n; 
         const promise = near.promiseBatchCreate(this.platform_wallet);
         near.promiseBatchActionTransfer(promise, platform_fee);
@@ -109,6 +110,14 @@ class SoulMDAgentFi {
         let creator_royalty = 0n;
         let seller_revenue = price - platform_fee;
 
+        // ✅ C 修復：先更新 state（ownership transfer），然後先 schedule 轉帳 promises
+        // 這樣如果 function 後面 panic，state revert，deposit 由 NEAR 處理（通常 refund）
+        // 避免 promises 已 schedule 但 ownership 未變（buyer 付錢但無 token）
+        token.owner_id = buyer;
+        token.sale_price = null;
+        token.rent_price = null;
+        this.tokens.set(token_id, token);
+
         if (creator !== previous_owner) {
             creator_royalty = (price * 5n) / 100n;
             seller_revenue -= creator_royalty;
@@ -121,12 +130,6 @@ class SoulMDAgentFi {
 
         const pSeller = near.promiseBatchCreate(previous_owner);
         near.promiseBatchActionTransfer(pSeller, seller_revenue);
-
-        token.owner_id = buyer;
-        token.sale_price = null;
-        token.rent_price = null;
-        
-        this.tokens.set(token_id, token);
 
         near.log(`[${token_id}] bought by ${buyer} for ${price}. Active rentals preserved.`);
     }
@@ -165,12 +168,6 @@ class SoulMDAgentFi {
         const platform_fee = (price * 10n) / 100n;
         const owner_revenue = price - platform_fee;
 
-        const pPlatform = near.promiseBatchCreate(this.platform_wallet);
-        near.promiseBatchActionTransfer(pPlatform, platform_fee);
-
-        const pOwner = near.promiseBatchCreate(token.owner_id);
-        near.promiseBatchActionTransfer(pOwner, owner_revenue);
-
         const thirty_days_ns = 2592000000000000n;
         const current_time = near.blockTimestamp();
         
@@ -185,6 +182,14 @@ class SoulMDAgentFi {
         
         token.renters[renter] = (current_expiry + thirty_days_ns).toString();
         this.tokens.set(token_id, token);
+
+        // ✅ C 修復：先更新 rental state（加 renter），再 schedule 付款 promises
+        // 確保 rental 授予後才付款（如果中間 panic，state revert，deposit 退回）
+        const pPlatform = near.promiseBatchCreate(this.platform_wallet);
+        near.promiseBatchActionTransfer(pPlatform, platform_fee);
+
+        const pOwner = near.promiseBatchCreate(token.owner_id);
+        near.promiseBatchActionTransfer(pOwner, owner_revenue);
 
         near.log(`[${token_id}] rented by ${renter}. Expires at ${token.renters[renter]}`);
     }
@@ -204,6 +209,7 @@ class SoulMDAgentFi {
 
         this.tokens.remove(token_id);
 
+        // state (remove) 先做，然後 schedule 退款（安全順序，避免 money 出但 token 未 burn）
         const refund_amount = 450000000000000000000000n; 
         const burn_fee =       50000000000000000000000n; 
 
@@ -267,6 +273,7 @@ class SoulMDAgentFi {
 
         near.promiseBatchActionFunctionCall(p1, "ft_transfer_call", transfer_args, 1n, 100000000000000n);
         
+        // 無 token state 變更，純 cross-contract（platform 權限）
         near.log(`🌪️ Auto-Buyback triggered! Wrapped ${amount_in_near} NEAR and routed to Pool 8546 for $SOUL burn.`);
     }
 }

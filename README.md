@@ -33,6 +33,8 @@ For deep dives into the system mechanics, security audits, or API integrations, 
    * Dual-track routing logic, Delta Sync, and Sliding-Window Memory Compression.
 4. [**RESTful API Reference**](docs/04_API_REFERENCE.md)
    * Headless integration endpoints, strict schemas, and error responses.
+5. [**Security, Logic & NEAR Web3 Audit Plan**](docs/05_SECURITY_AUDIT_PLAN.md)
+   * Vulnerability audit, operational logic issues, NEAR wallet/Web3 attack surfaces, and remediation handling solutions (this document).
 
 ---
 

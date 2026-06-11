@@ -11,7 +11,7 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
+require_once __DIR__ . '/../../private/includes/token-gate.php';
 
 loadTranslations('api');
 
@@ -71,49 +72,7 @@ function syncTags($pdo, $table, $oldStr, $newStr) {
     }
 }
 
-// 🚨 核心同步機制：改用大一統 NearRpcService 執行 Lazy Sync
-function applyLazySync(&$soul, $pdo) {
-    if ($soul['is_nft'] != 1) return;
-
-    $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
-    $rpc = NearRpcService::getInstance();
-    
-    // 🌟 呼叫中央 RPC 服務 (自動處理 Base64 編碼及節點輪詢)
-    $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soul['id']], 'optimistic');
-    
-    if ($rpcRes['status'] === 'not_found') {
-        $stmt = $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL, is_public = 0, sale_price = NULL, rent_price = NULL WHERE id = ?");
-        $stmt->execute([$soul['id']]);
-        
-        $soul['is_nft'] = 0;
-        $soul['nft_owner_wallet'] = null;
-        $soul['nft_salt'] = null;
-        $soul['nft_hash'] = null;
-        $soul['is_public'] = 0; 
-        $soul['sale_price'] = null;
-        $soul['rent_price'] = null;
-        return;
-    }
-
-    if ($rpcRes['status'] === 'success' && !empty($rpcRes['data']['owner_id'])) {
-        $chainOwner = $rpcRes['data']['owner_id'];
-        $salePrice = isset($rpcRes['data']['sale_price']) ? (string)$rpcRes['data']['sale_price'] : null;
-        $rentPrice = isset($rpcRes['data']['rent_price']) ? (string)$rpcRes['data']['rent_price'] : null;
-        
-        $userStmt = $pdo->prepare("SELECT id FROM users WHERE near_wallet_address = ?");
-        $userStmt->execute([$chainOwner]);
-        $newOwnerId = $userStmt->fetchColumn() ?: null; 
-        
-        $stmt = $pdo->prepare("UPDATE souls SET user_id = ?, nft_owner_wallet = ?, sale_price = ?, rent_price = ? WHERE id = ?");
-        $stmt->execute([$newOwnerId, $chainOwner, $salePrice, $rentPrice, $soul['id']]);
-        
-        $soul['user_id'] = $newOwnerId;
-        $soul['nft_owner_wallet'] = $chainOwner;
-        $soul['sale_price'] = $salePrice;
-        $soul['rent_price'] = $rentPrice;
-    }
-}
-
+// 路由主矩陣 - Lazy Sync 現已統一由 private/includes/token-gate.php 提供
 // ==========================================
 // 路由主矩陣
 // ==========================================
@@ -146,6 +105,23 @@ if ($method === 'GET') {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $apiKey = trim(str_replace('Bearer', '', $authHeader));
+    if (empty($apiKey)) {
+        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($userCsrfToken) && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+        }
+        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+            http_response_code(403); 
+            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+            exit;
+        }
     }
 
     $input = json_decode(file_get_contents('php://input'), true);
@@ -298,6 +274,23 @@ if ($method === 'GET') {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過） for DELETE
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $apiKey = trim(str_replace('Bearer', '', $authHeader));
+    if (empty($apiKey)) {
+        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($userCsrfToken) && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+        }
+        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+            http_response_code(403); 
+            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+            exit;
+        }
     }
 
     $stmt = $pdo->prepare("SELECT user_id, is_nft, nft_owner_wallet, domain, compatibility FROM souls WHERE id = ?");

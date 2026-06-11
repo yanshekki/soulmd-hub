@@ -24,6 +24,20 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// ✅ Phase 2 修復：補充 CSRF 檢查（paypal 雖用 session，但係 browser mutating endpoint，header 已宣告 X-CSRF-Token）
+$userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (empty($userCsrfToken) && function_exists('getallheaders')) {
+    $headers = getallheaders();
+    $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+}
+$serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+
+if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+    http_response_code(403); 
+    echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
@@ -111,7 +125,14 @@ if ($captureHttpCode !== 200 && $captureHttpCode !== 201) {
 $paidAmount = $captureData['purchase_units'][0]['payments']['captures'][0]['amount']['value'] ?? '0.00';
 $expectedAmount = ($purchasedTier === 'pro') ? PRICE_PRO_MONTHLY : PRICE_VIP_MONTHLY;
 
-if ((float)$paidAmount < (float)$expectedAmount && $paypalStatus === 'COMPLETED') {
+// ✅ Phase 2 業務邏輯修復：避免 float 精度問題，使用 bccomp (若無則 fallback)
+if (function_exists('bccomp')) {
+    if (bccomp((string)$paidAmount, (string)$expectedAmount, 2) < 0 && $paypalStatus === 'COMPLETED') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => __('Gross amount mismatch')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+} elseif ((float)$paidAmount + 0.001 < (float)$expectedAmount && $paypalStatus === 'COMPLETED') {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => __('Gross amount mismatch')], JSON_UNESCAPED_UNICODE);
     exit;

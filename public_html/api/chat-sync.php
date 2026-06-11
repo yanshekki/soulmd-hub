@@ -37,6 +37,12 @@ $identifier = $userId ? "user_{$userId}" : "guest_{$guestId}";
 
 $now = time();
 
+// ✅ Phase 2 業務邏輯修復：簡單 throttle 防 sync abuse (每請求 ~1s)
+if (!empty($_SESSION['last_sync_time']) && (time() - $_SESSION['last_sync_time']) < 1) {
+    http_response_code(429); exit;
+}
+$_SESSION['last_sync_time'] = time();
+
 try {
     // 1. 寫入或更新心跳 (Heartbeat)
     $pdo->prepare("INSERT INTO chat_presence (session_token, identifier, last_seen) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE last_seen = ?")

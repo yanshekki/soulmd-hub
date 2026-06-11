@@ -52,6 +52,52 @@ class NearAuthService {
 
         $recipient = $payload['recipient'] ?? '';
 
+        // ✅ Phase 1 修復：嚴格 recipient 驗證，防止跨站簽名重放攻擊
+        // frontend 會用 hostname，後端必須對照預期主機名
+        $expectedHost = '';
+        if (defined('BASE_URL')) {
+            $expectedHost = parse_url(BASE_URL, PHP_URL_HOST) ?: '';
+        }
+        if (!$expectedHost) {
+            $expectedHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        }
+        if ($recipient && $expectedHost && $recipient !== $expectedHost) {
+            return ['success' => false, 'error' => '[V13] Invalid recipient for this site.'];
+        }
+
+        // ✅ Phase 1 修復：持久化 nonce 重放保護
+        // 防止 5 分鐘窗口內重放同一個簽名
+        $pdo = null;
+        $nonceHash = null;
+        if (class_exists('Database') || file_exists(__DIR__ . '/Database.php')) {
+            if (!class_exists('Database')) {
+                require_once __DIR__ . '/Database.php';
+            }
+            try {
+                $db = Database::getInstance();
+                $pdo = $db->getConnection();
+
+                // 計算 nonce hash (account + nonce bytes)
+                $nonceBytes = '';
+                foreach ($nonceArray as $b) { $nonceBytes .= chr((int)$b); }
+                $nonceHash = hash('sha256', $accountId . '|' . $nonceBytes);
+
+                // 輕量清理舊 nonce（5分鐘窗口 + buffer）
+                $pdo->prepare("DELETE FROM used_auth_nonces WHERE created_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)")->execute();
+
+                // 檢查是否已使用（replay）
+                $stmt = $pdo->prepare("SELECT 1 FROM used_auth_nonces WHERE nonce_hash = ? LIMIT 1");
+                $stmt->execute([$nonceHash]);
+                if ($stmt->fetchColumn()) {
+                    return ['success' => false, 'error' => '[V13] Replay attack detected (nonce already used).'];
+                }
+            } catch (\Throwable $e) {
+                error_log('Nonce replay protection DB error (continuing without): ' . $e->getMessage());
+                $pdo = null;
+                $nonceHash = null;
+            }
+        }
+
         // NEP-0413 驗證程序
         $buffer = $this->serializeNep413($message, $nonceArray, $recipient);
         $messageToVerify = hash('sha256', $buffer, true);
@@ -77,8 +123,16 @@ class NearAuthService {
 
         $keys = [];
         if ($res) {
+            // ✅ B 修復：加強 RPC 回應驗證（schema + id）
             $data = json_decode($res, true);
-            if (isset($data['result']['keys'])) { $keys = $data['result']['keys']; }
+            if (json_last_error() === JSON_ERROR_NONE 
+                && isset($data['jsonrpc']) && $data['jsonrpc'] === '2.0'
+                && isset($data['id']) && $data['id'] === 'verify_key'
+                && isset($data['result']['keys'])) {
+                $keys = $data['result']['keys'];
+            } else {
+                error_log('[NearAuth] Invalid RPC response for view_access_key_list');
+            }
         }
 
         if (empty($keys)) { return ['success' => false, 'error' => '[V13] Account not found on the blockchain.']; }
@@ -96,6 +150,16 @@ class NearAuthService {
         }
 
         if (!$keyValid) { return ['success' => false, 'error' => '[V13] The provided public key does not belong to the account.']; }
+
+        // ✅ 儲存 nonce（只有完整驗證成功後才記錄，防止 replay）
+        if ($pdo && $nonceHash) {
+            try {
+                $ins = $pdo->prepare("INSERT INTO used_auth_nonces (nonce_hash, account_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE created_at = NOW()");
+                $ins->execute([$nonceHash, $accountId]);
+            } catch (\Throwable $e) {
+                error_log('Failed to store used nonce: ' . $e->getMessage());
+            }
+        }
 
         return ['success' => true];
     }

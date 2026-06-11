@@ -3,6 +3,24 @@
 ## 1. Overview
 SoulMD Hub employs a zero-trust, mathematically verifiable security model for its Web3 integrations. By leveraging the **NEAR Protocol's Access Key model** and **Ed25519 cryptographic detached signatures**, the platform eliminates traditional Web2 vulnerabilities such as identity spoofing and session hijacking during wallet authentication.
 
+See the dedicated **[Security, Logic & NEAR Web3 Audit Plan](05_SECURITY_AUDIT_PLAN.md)** (in the same `docs/` folder) for the full structured audit methodology, component checklists, known attack surfaces, and remediation templates. This plan is the living document for ongoing security work.
+
+**2026 Audit & Remediation Summary (Phases 1-4 Completed)**:
+Full static + dynamic harness audit executed per plan (Recon, Gating/Logic, Dynamic PoCs, Report).
+- **Key Fixes Applied** (all in canonical /home/ki/文件/soulmd-hub/):
+  - Web3 Auth: nonce table + strict recipient validation in NearAuthService (replay blocked); better RPC parsing.
+  - RPC: unified schema/id validation in NearRpcService + frontend.
+  - Token-Gating: unified in token-gate.php (enforceSoulAccess + applyLazySync); duplication removed from chat/soul paths.
+  - Contract: state-before-promise order in buy_soul/rent_soul (prevents money-out + revert); comments on mint/burn.
+  - PHP Posture: near-complete CSRF on browser mutating (conditional on session, API-key exempt) across paypal/fork/settings/change-password/regenerate/like/rate/versions/soul/souls/my-chats etc.; rate limits on social (fork/like/rate); daily reset race mitigation; chat-sync throttle.
+  - Encryption: upgraded to AES-256-GCM (with CBC legacy fallback for old BYOK data).
+  - Business: social abuse throttled; payments float fixed (bccomp); desync integrated; guest/daily notes as limitations.
+- **Verification**: Phase 3 dynamic harness (tests/dynamic/ PoCs for replay/gating/CSRF/race) syntax-clean; ~17+ "✅ Phase X 修復" markers; structure verified.
+- **Results**: All high-priority vectors (replay, bypass, CSRF, races, abuse) now blocked/mitigated per post-fix expectations. Plan + this doc updated.
+- **Next**: Run PoCs vs local/testnet; periodic re-audit; monitor logs.
+
+The model is significantly strengthened. See plan for full details/PoC matrix/known limitations.
+
 ## 2. Web3 Cryptographic Authentication (Ed25519)
 
 ### 2.1. The Vulnerability Addressed

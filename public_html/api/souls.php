@@ -9,7 +9,7 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { 
     http_response_code(200); 
@@ -167,6 +167,23 @@ if ($method === 'GET') {
         http_response_code(401); 
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
         exit; 
+    }
+
+    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $apiKey = trim(str_replace('Bearer', '', $authHeader));
+    if (empty($apiKey)) {
+        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($userCsrfToken) && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+        }
+        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+            http_response_code(403); 
+            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
+            exit;
+        }
     }
 
     $input = json_decode(file_get_contents('php://input'), true) ?? [];

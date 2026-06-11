@@ -70,6 +70,11 @@ if (isset($_SESSION['user_id'])) {
 
                 if (res.ok) {
                     const data = await res.json();
+                    // ✅ B 修復：前端 RPC 回應基本驗證
+                    if (!data || data.jsonrpc !== "2.0" || data.id !== "soulmd_query") {
+                        if (data && data.error) return { success: false, error: data.error, status: 'error' };
+                        return { success: false, error: 'Invalid RPC response structure', status: 'error' };
+                    }
                     if (data.error) return { success: false, error: data.error, status: 'error' };
                     if (data.result && data.result.result) {
                         const resString = new TextDecoder().decode(new Uint8Array(data.result.result));

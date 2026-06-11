@@ -239,3 +239,17 @@ CREATE TABLE IF NOT EXISTS chat_presence (
   PRIMARY KEY (session_token, identifier),
   INDEX idx_last_seen (last_seen)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==========================================
+-- 14. Used Auth Nonces (Replay Protection for NEP-0413 Web3 Auth)
+-- ==========================================
+-- Stores hashed nonces for a short window to prevent signature replay attacks.
+-- Nonces are only valid for ~5 minutes (per timestamp check), so table stays small.
+-- Old entries are cleaned on each verifyAuthPayload call.
+CREATE TABLE IF NOT EXISTS used_auth_nonces (
+  nonce_hash CHAR(64) NOT NULL COMMENT 'SHA256(account_id|nonce_bytes)',
+  account_id VARCHAR(64) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (nonce_hash),
+  INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Prevents replay of NEAR wallet auth signatures within the validity window';
