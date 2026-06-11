@@ -20,8 +20,8 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 
-<link rel="stylesheet" href="<?= url('/assets/wallet-selector-style.css') ?>">
-<script src="<?= url('/assets/wallet-selector-bundle.js') ?>"></script>
+<link rel="stylesheet" href="<?= url('/assets/wallet-selector-style.css?v=1.0.0') ?>">
+<script src="<?= url('/assets/wallet-selector-bundle.js?v=1.0.0') ?>"></script>
 
 <script>
     window.nearHubWalletWrapper = null;
