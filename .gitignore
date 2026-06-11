@@ -21,3 +21,7 @@ config.php
 # OS
 .DS_Store
 Thumbs.db
+
+# walllet
+wallet-builder/dist
+wallet-builder/node_modules

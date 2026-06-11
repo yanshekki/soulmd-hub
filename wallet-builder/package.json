@@ -1,0 +1,23 @@
+{
+  "name": "wallet-builder",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@near-wallet-selector/core": "latest",
+    "@near-wallet-selector/modal-ui-js": "latest",
+    "@near-wallet-selector/meteor-wallet": "latest",
+    "@near-wallet-selector/sender": "latest",
+    "@near-wallet-selector/here-wallet": "latest",
+    "@near-wallet-selector/nightly": "latest",
+    "@near-wallet-selector/ledger": "latest",
+    "@near-wallet-selector/bitget-wallet": "latest",
+    "buffer": "latest",
+    "near-api-js": "latest"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vite-plugin-node-polyfills": "latest"
+  }
+}
