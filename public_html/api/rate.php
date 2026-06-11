@@ -29,7 +29,7 @@ if ($apiKey) {
 
 if (!$userId) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Login or valid API Key required']);
+    echo json_encode(['success' => false, 'error' => __('Login or valid API Key required')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -51,7 +51,7 @@ if (empty($apiKey)) {
 // ✅ Phase 2 業務邏輯修復：簡單 rate limit 防 spam rate (session based, 5秒)
 if (!empty($_SESSION['last_rate_time']) && (time() - $_SESSION['last_rate_time']) < 5) {
     http_response_code(429);
-    echo json_encode(['success' => false, 'error' => 'Too many ratings, please wait']);
+    echo json_encode(['success' => false, 'error' => __('Too many ratings, please wait')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 $_SESSION['last_rate_time'] = time();
@@ -60,7 +60,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 
 if (empty($input['soul_id']) || empty($input['rating'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'soul_id and rating are required']);
+    echo json_encode(['success' => false, 'error' => __('soul_id and rating are required')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -69,7 +69,7 @@ $rating = (int)$input['rating'];
 
 if ($rating < 1 || $rating > 5) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Rating must be 1-5']);
+    echo json_encode(['success' => false, 'error' => __('Rating must be 1-5')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -79,7 +79,7 @@ try {
     $checkStmt->execute([$soulId, $userId]);
     if (!$checkStmt->fetch()) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Soul not found or access denied']);
+        echo json_encode(['success' => false, 'error' => __('Soul not found or access denied')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -98,7 +98,7 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'Rating submitted successfully',
+        'message' => __('Rating submitted successfully'),
         'avg_rating' => (float)($ratingData['avg_rating'] ?? 0),
         'total_ratings' => (int)($ratingData['total_ratings'] ?? 0)
     ], JSON_UNESCAPED_UNICODE);
@@ -107,5 +107,5 @@ try {
     if ($pdo->inTransaction()) $pdo->rollBack();
     // 🚨 完美修復 2：捕獲資料庫異常，避免噴出 HTTP 500 及 Stack Trace
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Internal Server Error while rating']);
+    echo json_encode(['success' => false, 'error' => __('Internal Server Error while rating')], JSON_UNESCAPED_UNICODE);
 }

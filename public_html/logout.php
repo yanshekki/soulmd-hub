@@ -6,6 +6,8 @@
 
 require_once __DIR__ . '/../private/config.php';
 
+loadTranslations('logout');
+
 session_start();
 
 // 1. 徹底摧毀 Web2 的 PHP Session
@@ -24,7 +26,7 @@ if (isset($_COOKIE['remember_token'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logging out...</title>
+    <title><?= __('title') ?></title>
     <style>
         body {
             background-color: #09090b; /* Zinc-950 */
@@ -51,7 +53,7 @@ if (isset($_COOKIE['remember_token'])) {
 <body>
     <div style="text-align: center;">
         <div class="loader"></div>
-        <div style="font-size: 14px; font-weight: bold; letter-spacing: 1px;">SECURING SESSION...</div>
+        <div style="font-size: 14px; font-weight: bold; letter-spacing: 1px;"><?= __('securing') ?></div>
     </div>
 
     <script>

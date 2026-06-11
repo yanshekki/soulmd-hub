@@ -17,9 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
+loadTranslations('api');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -39,5 +41,5 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database query failed']);
+    echo json_encode(['success' => false, 'error' => __('Database query failed')], JSON_UNESCAPED_UNICODE);
 }

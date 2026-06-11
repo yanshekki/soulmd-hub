@@ -8,6 +8,8 @@
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 
+loadTranslations('download');
+
 session_start();
 
 $db = Database::getInstance();
@@ -21,7 +23,7 @@ $requestedFile = $_GET['file'] ?? 'SOUL.md';
 
 if (!$soulId || !$username) {
     http_response_code(400);
-    die('Invalid request parameters.');
+    die(__('invalid_params'));
 }
 
 $stmt = $pdo->prepare("
@@ -36,7 +38,7 @@ $soul = $stmt->fetch();
 
 if (!$soul) {
     http_response_code(404);
-    die('Soul not found.');
+    die(__('soul_not_found'));
 }
 
 // ==========================================
@@ -59,7 +61,7 @@ if ($userId > 0 && $soul['is_nft'] == 1) {
 // 🛡️ 只有 公開模型、Web2 原作者，或 Web3 錢包持有者 才能下載源碼
 if (!$soul['is_public'] && !$isOwner && !$isChainOwner) {
     http_response_code(403);
-    die('Access denied. This soul is private or protected as an NFT asset.');
+    die(__('access_denied'));
 }
 // ==========================================
 
@@ -89,7 +91,7 @@ if ($isFolder) {
     
     // 如果爛到連修復完都解讀唔到，就輸出為 ERROR.md
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($filesData)) {
-        $filesData = ['ERROR.md' => "Invalid JSON structure. The AI generated a malformed JSON.\n\nRaw content:\n" . $soul['content']];
+        $filesData = ['ERROR.md' => __('invalid_json') . "\n\n" . __('raw_content') . "\n" . $soul['content']];
     }
 } else {
     $filesData = ['SOUL.md' => $soul['content']];
@@ -104,7 +106,7 @@ if ($format === 'zip') {
     
     if ($zip->open($tmpFile, ZipArchive::CREATE) !== TRUE) {
         http_response_code(500);
-        die('Could not create ZIP file.');
+        die(__('zip_create_failed'));
     }
     
     foreach ($filesData as $filename => $content) {
@@ -134,7 +136,7 @@ if ($format === 'zip') {
 // ==========================================
 if (!isset($filesData[$requestedFile])) {
     http_response_code(404);
-    die('File not found inside this soul.');
+    die(__('file_not_found'));
 }
 
 // 強制轉為字串

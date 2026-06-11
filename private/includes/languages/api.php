@@ -63,6 +63,16 @@ return [
         'Rating must be 1-5' => 'Rating must be between 1 and 5.',
         'User not found' => 'User not found.',
         'Username parameter required' => 'Username parameter is required.',
+        'Too many likes, please wait' => 'Too many likes, please wait a moment.',
+        'Too many ratings, please wait' => 'Too many ratings, please wait a moment.',
+        'Too many forks, please wait' => 'Too many forks, please wait a moment.',
+        'Soul liked successfully' => 'Soul liked successfully',
+        'Soul unliked successfully' => 'Soul unliked successfully',
+        'Rating submitted successfully' => 'Rating submitted successfully',
+        'Internal Server Error while rating' => 'Internal Server Error while rating.',
+        'Failed to process like toggle due to server error' => 'Failed to process like toggle due to server error.',
+        'Soul forked successfully!' => 'Soul forked successfully!',
+        'Failed to fork soul due to server error' => 'Failed to fork soul due to server error.',
         
         // Versions
         'version_id and soul_id required' => 'version_id and soul_id are required.',

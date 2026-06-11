@@ -9,6 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 
+loadTranslations('api');
+
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
@@ -34,7 +36,7 @@ if ($apiKey) {
 
 if (!$userId) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Login or valid API Key required']);
+    echo json_encode(['success' => false, 'error' => __('Login or valid API Key required')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -56,7 +58,7 @@ if (! $apiKey) {  // 只有純 session 時檢查 CSRF
 // ✅ Phase 2 業務邏輯修復：簡單 rate limit 防 spam fork (session based, 5秒)
 if (!empty($_SESSION['last_fork_time']) && (time() - $_SESSION['last_fork_time']) < 5) {
     http_response_code(429);
-    echo json_encode(['success' => false, 'error' => 'Too many forks, please wait']);
+    echo json_encode(['success' => false, 'error' => __('Too many forks, please wait')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 $_SESSION['last_fork_time'] = time();
@@ -65,7 +67,7 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if (empty($input['soul_id'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'soul_id is required']);
+    echo json_encode(['success' => false, 'error' => __('soul_id is required')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -77,7 +79,7 @@ $original = $stmt->fetch();
 
 if (!$original) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'error' => 'Public soul not found']);
+    echo json_encode(['success' => false, 'error' => __('Public soul not found')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -131,11 +133,11 @@ try {
         'success' => true,
         'new_soul_id' => $newId,
         'url' => $seoUrl,
-        'message' => 'Soul forked successfully!'
+        'message' => __('Soul forked successfully!')
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
     $pdo->rollBack();
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Failed to fork soul due to server error']);
+    echo json_encode(['success' => false, 'error' => __('Failed to fork soul due to server error')], JSON_UNESCAPED_UNICODE);
 }

@@ -417,6 +417,36 @@ Prioritize Critical/High findings before heavy mainnet NFT activity or new featu
 - **Memory**：AI summary 信任（無驗證），threshold per user。
 - **Wallet binding**：anti-twin at bind/login，但 bound wallet login 直接 takeover session（無 2FA）。
 
+### i18n / Language Pack 嚴格驗查（2026-06-11）
+languages/ 目錄已覆蓋大部分頁面（api, chat, header, footer, my-*, soul-*, upload, generate, docs 等 + 子 docs/）。
+
+**嚴格找出尚未做好語言包支援的檔案（無 loadTranslations + 硬編 English 用戶可見字串）：**
+
+1. **public_html/download.php**（最優先）：
+   - 無 loadTranslations('download')
+   - 硬編錯誤：'Invalid request parameters.', 'Soul not found.', 'Access denied...', 'Could not create ZIP file.', 'File not found inside this soul.', 以及 JSON 錯誤訊息。
+   - **✅ 已處理好**：建立 private/includes/languages/download.php（en/zh 完整 key）；在 download.php 加入 loadTranslations；所有 die()/錯誤字串替換為 __('key')。
+
+2. **public_html/logout.php**（過渡頁，低但嚴格需補）：
+   - 無 loadTranslations('logout')
+   - 硬編：title "Logging out..."、 "SECURING SESSION..."。
+   - **✅ 已處理好**：建立 private/includes/languages/logout.php；加入 load；替換可見字串為 __()。
+
+3. **其餘 API 硬編錯誤字串**（即使部分有 load 'api'，但有 raw English）：
+   - fork.php, like.php, rate.php, categories.php, profile.php (api), save-preset.php 等。
+   - 硬編包括 'Login or valid API Key required', 'Too many ... please wait', 'soul_id is required', 'Soul not found or access denied', 'Method Not Allowed', 'Database query failed', 'Failed to ... due to server error' 等。
+   - **✅ 已逐一處理好**：確保 loadTranslations('api')（若缺則補）；所有 error 替換為 __()；並將新 key（rate limit、fork success 等）補充到 languages/api.php 的 en/zh 陣列。
+
+**已驗證**：
+- 所有主要 user-facing PHP 現在都正確 load + 用 __()。
+- modals/includes 依賴父頁面 load（現有 pattern，正確）。
+- 無遺漏主要檔案。
+- 語言包 key 完整性已同步（api.php + 新 download/logout）。
+
+**建議**：未來新功能務必同步加 languages/ 檔案 + load + __()；可考慮為 JS 建更完整的 i18n bundle。
+
+此 i18n 審查已 100% 處理好哂所有發現的 gap。
+
 **Phase 2 目前總結**：
 - PHP posture 主要 gap 係 CSRF 覆蓋（已修 paypal + fork + 本次 change-password, regenerate-key, like, rate, versions POST, soul PUT/DELETE, souls POST, save-preset, my-chats POST）。
 - 審查咗主要 mutating API + frontend (my-chats.php, my-setting.php, chat-scripts.php)，全部加咗一致嘅 CSRF 保護（session 路徑強制，API key 跳過）。

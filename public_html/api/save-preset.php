@@ -17,7 +17,7 @@ loadTranslations('api');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+    echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
