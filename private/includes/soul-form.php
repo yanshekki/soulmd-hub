@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Unified Soul Editor Form
  * Included by upload.php and edit.php
- * 🚀 V5 SEO Optimized: Accessible Form Labels, Semantic Sections, and a11y UI
+ * 🚀 V6 ULTIMATE: Synced with V16 Dual-Action Engine & Exposed Error Traces
  */
 
 $uStmt = $pdo->prepare("SELECT near_wallet_address, username FROM users WHERE id = ?");
@@ -315,10 +315,11 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         } catch(e) {}
     }
 
+    // 🚀 FIXED: Using the restored functionCall wrapper directly & Detailed Error Exposure
     async function agentfiAction(actionType, btn) {
         if (!isEditMode) return;
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) {
             await window.connectOrBindWallet();
             return;
         }
@@ -354,9 +355,13 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         try {
-            await wallet.account().functionCall({
+            await wrapper.account().functionCall({
                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
-                methodName: methodName, args: args, gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: window.location.href
+                methodName: methodName, 
+                args: args, 
+                gas: "30000000000000", 
+                attachedDeposit: "0", 
+                walletCallbackUrl: window.location.href
             });
             
             btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> Syncing to DB...';
@@ -366,7 +371,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             
             window.location.reload();
         } catch(e) {
-            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>");
+            console.error("AgentFi Action Error:", e);
+            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + e.message);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -387,10 +393,10 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             
             const wantMintOrSync = (isEditMode && isNft && "<?= $nearWallet ?>") ? true : (mintToggle ? mintToggle.checked : false);
 
-            let wallet = null;
+            let wrapper = null;
             if (wantMintOrSync) {
-                wallet = await initNearWallet();
-                if (!wallet.isSignedIn()) {
+                wrapper = await initNearWallet();
+                if (!wrapper.isSignedIn()) {
                     await window.connectOrBindWallet();
                     return;
                 }
@@ -442,11 +448,14 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                             text.innerText = "Processing...";
                             text.classList.remove('hidden'); loading.classList.remove('hidden');
                             
-                            await wallet.account().functionCall({
+                            // 🚀 FIXED: Using the restored functionCall wrapper directly
+                            await wrapper.account().functionCall({
                                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                                 methodName: "update_soul_hash",
                                 args: { token_id: "soul_" + soulId, new_hash: data.hash },
-                                gas: "30000000000000", attachedDeposit: "0", walletCallbackUrl: targetUrl
+                                gas: "30000000000000", 
+                                attachedDeposit: "0", 
+                                walletCallbackUrl: targetUrl
                             });
 
                             text.innerText = "Syncing to DB...";
@@ -462,11 +471,14 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                             const newId = isEditMode ? soulId : data.id;
                             const refUrl = "<?= url('/soul/') ?>" + "<?= rawurlencode($sessionUsername) ?>/" + newId;
                             
-                            await wallet.account().functionCall({
+                            // 🚀 FIXED: Using the restored functionCall wrapper directly
+                            await wrapper.account().functionCall({
                                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                                 methodName: "mint_soul",
                                 args: { token_id: "soul_" + newId, title: payload.title, description: payload.description || "<?= addslashes(__('No description provided')) ?>", hash: data.hash, reference: refUrl },
-                                gas: "30000000000000", attachedDeposit: deposit, walletCallbackUrl: targetUrl
+                                gas: "30000000000000", 
+                                attachedDeposit: deposit, 
+                                walletCallbackUrl: targetUrl
                             });
                         }
                     } else {
@@ -478,7 +490,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                     text.classList.remove('hidden'); loading.classList.add('hidden'); btn.classList.remove('opacity-80', 'cursor-not-allowed');
                 }
             } catch(err) {
-                errorMsg.innerText = "<?= addslashes(__('Network Error')) ?>";
+                console.error("Form Submit Error:", err);
+                errorMsg.innerText = "<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (err.message || '');
                 errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
                 text.classList.remove('hidden'); loading.classList.add('hidden'); btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }

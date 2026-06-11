@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public Creator Profile Portfolio
  * (Dynamic i18n Internationalization & V5 Dual-Track Web2.5 Hybrid Edition)
- * 🚀 V5 SEO Optimized: Semantic Sections, Accessible Pagination & Dynamic Link Titles
+ * 🚀 V6 FIXED: Synced with V16 Dual-Action Format & Exposed Error Traces
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -112,7 +112,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 </main>
 
-<!-- Renters Modal -->
 <div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()" aria-modal="true" role="dialog">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
         <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
@@ -184,7 +183,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         } else if (urlParams.has('errorMessage')) {
-            alert('<?= addslashes(__('Swap fail')) ?>' + decodeURIComponent(urlParams.get('errorMessage')));
+            alert('<?= addslashes(__('Swap fail')) ?>\n' + decodeURIComponent(urlParams.get('errorMessage')));
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
@@ -334,8 +333,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 });
                 await Promise.all(rpcPromises);
 
-                const wallet = typeof initNearWallet === 'function' ? await initNearWallet() : null;
-                const myWallet = wallet && wallet.isSignedIn() ? wallet.getAccountId() : null;
+                const wrapper = typeof initNearWallet === 'function' ? await initNearWallet() : null;
+                const myWallet = wrapper && wrapper.isSignedIn() ? wrapper.getAccountId() : null;
 
                 let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
                 data.data.forEach(soul => {
@@ -345,8 +344,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                     const seoUrl = `${url_prefix}${encodeURIComponent(safeUsername)}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                     const isOwner = myWallet && soul.market && soul.market.owner_id === myWallet;
-                    const salePrice = soul.market && soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
-                    const rentPrice = soul.market && soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
+                    const salePrice = soul.market && soul.market.sale_price ? window.nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
+                    const rentPrice = soul.market && soul.market.rent_price ? window.nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
                     const marketOwner = soul.market && soul.market.owner_id ? escapeHTML(soul.market.owner_id) : 'Loading...';
 
                     let activeRenters = [];
@@ -440,7 +439,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         listContainer.innerHTML = '';
 
         if (renters.length === 0) {
-            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6">${lang_NoActiveRenters}</div>`;
+            listContainer.innerHTML = `<div class="text-center text-zinc-500 py-6"><?= addslashes(__('No active renters')) ?></div>`;
         } else {
             renters.forEach(r => {
                 const d = new Date(r.expiry);
@@ -449,7 +448,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
                         <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5" aria-hidden="true"></i>${escapeHTML(r.account)}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
-                            <div class="uppercase tracking-wider">${lang_ExpiresAt}</div>
+                            <div class="uppercase tracking-wider"><?= addslashes(__('Expires At')) ?></div>
                             <div class="text-zinc-300 font-bold">${dateStr}</div>
                         </div>
                     </div>
@@ -478,9 +477,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
+    // 🚀 FIXED: Native Selector Transactions for Buying
     async function buyMarketSoul(id, rawPrice, btn) {
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -488,19 +488,29 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
+            await wrapper.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "buy_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000",
+                attachedDeposit: rawPrice.toString(),
+                walletCallbackUrl: getCallbackUrl('buy', id)
+            });
         } catch(e) {
+            console.error("Buy Transaction Error:", e);
+            alert("<?= addslashes(__('Swap fail')) ?>\n" + e.message);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
 
+    // 🚀 FIXED: Native Selector Transactions for Renting
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -508,8 +518,17 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
+            await wrapper.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "rent_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000",
+                attachedDeposit: rawPrice.toString(),
+                walletCallbackUrl: getCallbackUrl('rent', id)
+            });
         } catch(e) {
+            console.error("Rent Transaction Error:", e);
+            alert("<?= addslashes(__('Swap fail')) ?>\n" + e.message);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

@@ -1,8 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Creator Workspace & Model Management Dashboard
- * (V5: 100% SPA Async Fetch API, Dual-Track Pagination & Proactive Radar)
- * 🚀 V5 SEO Optimized: Semantic <main> / <section> tags and a11y ARIA labels
+ * 🚀 V5.2 FIXED: Bulletproof API Error Handling & Strict JSON Parsing
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -112,7 +111,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 </main>
 
-<!-- Renters Modal -->
 <div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()" aria-modal="true" role="dialog">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
         <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
@@ -307,7 +305,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> <?= addslashes(__('Network error.')) ?></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl"><i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i> <span class="font-mono text-sm">${escapeHTML(e.message)}</span></div>`;
         }
     }
 
@@ -321,7 +319,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if (data.success && data.data.length > 0) {
-                // Fetch nearRPC concurrently
                 const rpcPromises = data.data.map(async (soul) => {
                     soul.market = {};
                     const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soul.id });
@@ -421,7 +418,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web3-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> Network error.</div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl"><i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i> <span class="font-mono text-sm">${escapeHTML(e.message)}</span></div>`;
         }
     }
 
@@ -436,8 +433,22 @@ require_once __DIR__ . '/../private/includes/header.php';
             let totalPages = 1;
             
             while (page <= totalPages) {
-                const res = await fetch(`/api/souls?is_nft=1&limit=100&page=${page}&sort=newest`);
-                const data = await res.json();
+                // 🚀 防禦機制：移除 limit=100 以防後端處理過載而報錯 500
+                const res = await fetch(`/api/souls?is_nft=1&page=${page}&sort=newest`);
+                
+                // 🚀 透視雷達：如果 API 不是 200，直接抓出後端的真實錯誤字串
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`[API Error ${res.status}] ${errText.substring(0, 150)}...`);
+                }
+                
+                const textData = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(textData);
+                } catch(err) {
+                    throw new Error(`[JSON Parse Error] Server returned: ${textData.substring(0, 100)}...`);
+                }
                 
                 if (data.success && data.data && data.data.length > 0) {
                     allFetchedNfts.push(...data.data);
@@ -513,7 +524,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             ${soul.description ? `<p class="text-xs sm:text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${escapeHTML(soul.description)}</p>` : ''}
                         </div>
                         <div class="pt-4 border-t border-white/5 flex gap-2 mt-auto">
-                            <a href="${chatUrl}" aria-label="Enter Chat" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
+                            <a href="${chatUrl}" aria-label="Enter Chat" onclick="this.innerHTML='<i class=&quot;fas fa-spinner fa-spin mr-1&quot;></i> Loading...'; this.classList.add('pointer-events-none','opacity-80');" class="px-5 py-2.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition flex-1 text-center shadow-lg flex items-center justify-center gap-2 transform hover:-translate-y-0.5 duration-200">
                                 <i class="fas fa-comments" aria-hidden="true"></i> ${lang_EnterChat}
                             </a>
                             <a href="${seoUrl}" aria-label="View Asset Details" class="px-5 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition text-center shadow-sm shrink-0 border border-white/5 flex items-center justify-center">
@@ -534,7 +545,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>`;
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12"><i class="fas fa-wifi mr-2" aria-hidden="true"></i> Network error</div>`;
+            console.error("loadRentedSouls Caught Error:", e);
+            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl break-all px-4"><i class="fas fa-exclamation-triangle mr-2 text-xl mb-2" aria-hidden="true"></i><br><span class="font-mono text-sm">${escapeHTML(e.message)}</span></div>`;
         }
     }
 
@@ -593,13 +605,13 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (data.success) { 
                 location.reload(); 
             } else { 
-                alert(data.error || "<?= addslashes(__('Failed to delete')) ?>"); 
+                alert(data.error || <?= json_encode(__('Failed to delete'), JSON_UNESCAPED_UNICODE) ?>); 
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         } catch(e) { 
-            alert("<?= addslashes(__('Network error.')) ?>"); 
+            alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -649,8 +661,15 @@ require_once __DIR__ . '/../private/includes/header.php';
             let totalPages = 1;
             
             while (page <= totalPages) {
-                const res = await fetch(`/api/souls?is_nft=1&limit=100&page=${page}`);
-                const data = await res.json();
+                const res = await fetch(`/api/souls?is_nft=1&page=${page}`);
+                if(!res.ok) break;
+                
+                const textData = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(textData);
+                } catch(err) { break; }
+                
                 if (data.success && data.data && data.data.length > 0) {
                     allFetchedNfts.push(...data.data);
                     totalPages = data.total_pages || 1;

@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - My API Controller
  * (Clean, Modular, Web2.5 Stateless Proxy & One-Time Wallet Binding Edition)
- * 🚀 V5 SEO Optimized: Semantic Tags, Accessible Labels, and Long-tail Meta Routing
+ * 🚀 V6 ULTIMATE: Synced with V16 Dual-Action Format & Fixed Swallowed Errors
  */
 
 $isPublicApiPage = $isPublicApiPage ?? false;
@@ -21,7 +21,7 @@ $nearWallet = null;
 if (!$isPublicApiPage) {
     session_start();
     if (!isset($_SESSION['user_id'])) {
-        header('Location: /login');
+        header('Location: ' . url('/login'));
         exit;
     }
 
@@ -58,7 +58,7 @@ if (!$isPublicApiPage) {
     }
 }
 
-$baseUrl = defined('BASE_URL') ? BASE_URL : ("https://" . $_SERVER['HTTP_HOST']);
+$baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : ("https://" . $_SERVER['HTTP_HOST']);
 loadTranslations('my-api');
 
 // 🚀 SEO Enhancement: Dynamic Meta Titles and Descriptions based on Page Context
@@ -208,15 +208,25 @@ require_once __DIR__ . '/../private/includes/header.php';
     <?php if (!$isPublicApiPage): ?>
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.has('errorMessage') || urlParams.has('errorCode')) {
+            showFeedbackNotification(false, "<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (urlParams.get('errorMessage') || urlParams.get('errorCode')));
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        } else if (urlParams.has('transactionHashes')) {
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+        }
+
         const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
 
         <?php if (!$nearWallet): ?>
             // Handle Wallet Binding Callback
             if (hasWalletCallback) {
-                const wallet = await initNearWallet();
+                const wrapper = await initNearWallet();
                 setTimeout(async () => {
-                    if (wallet.isSignedIn()) {
-                        await executeWalletBind(wallet.getAccountId());
+                    if (wrapper.isSignedIn()) {
+                        await executeWalletBind(wrapper.getAccountId());
                     }
                 }, 500);
             }
@@ -235,11 +245,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         if(icon) icon.classList.add('hidden');
 
         try {
-            const wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
-                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            const wrapper = await initNearWallet();
+            if (!wrapper.isSignedIn()) {
+                wrapper.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             } else {
-                await executeWalletBind(wallet.getAccountId());
+                await executeWalletBind(wrapper.getAccountId());
             }
         } catch(e) {
             text.innerHTML = originalText;
@@ -278,8 +288,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 window.location.reload();
             } else {
                 showFeedbackNotification(false, '<?= addslashes(__('Bind Failed')) ?> ' + (data.error || ''));
-                const wallet = await initNearWallet();
-                wallet.signOut(); 
+                const wrapper = await initNearWallet();
+                wrapper.signOut(); 
                 if(text) text.innerText = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
                 if(btn) {
                     btn.disabled = false;
@@ -368,10 +378,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         let confirmText = `<?= addslashes(__('Buyback Confirm')) ?>`.replace(':amount', amount);
         if (!confirm(confirmText)) return;
 
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
-            wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
+            wrapper.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             return;
         }
 
@@ -384,9 +394,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         try {
-            const amountInYocto = nearApi.utils.format.parseNearAmount(amount.toString());
+            const amountInYocto = window.nearApi.utils.format.parseNearAmount(amount.toString());
 
-            await wallet.account().functionCall({
+            // 🚀 FIXED: Use restored functionCall from wrapper
+            await wrapper.account().functionCall({
                 contractId: "<?= NEAR_CONTRACT_ID; ?>",
                 methodName: "auto_buyback_and_burn",
                 args: { amount_in_near: amountInYocto },
@@ -398,11 +409,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             text.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> Syncing...';
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            alert("Buyback initiated successfully!");
+            alert("<?= addslashes(__('Buyback initiated successfully!')) ?>");
             window.location.reload();
         } catch(e) {
+            console.error("Buyback Error:", e);
             let errorText = `<?= addslashes(__('Buyback Failed')) ?>`.replace(':contract', '<?= NEAR_CONTRACT_ID; ?>');
-            alert(errorText);
+            alert(errorText + "\n" + e.message);
             
             text.innerHTML = originalHtml;
             btn.disabled = false;

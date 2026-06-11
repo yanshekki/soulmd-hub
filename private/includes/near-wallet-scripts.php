@@ -1,13 +1,8 @@
 <?php
 /**
  * SoulMD Hub - Shared NEAR Wallet Connection Script
- * 🚀 PURE VANILLA JS + DYNAMIC RPC FAILOVER (V5 Centralized Config Edition)
- * 🚨 Patched: 100% i18n Dynamic Language Layer Overridden + Security Handshake Patched
+ * 🚀 V16 INDESTRUCTIBLE: Dual-Action Format (Fixes "Unsupported NAJ action")
  */
-
-// 🌍 強制加載 header 與 api 語言字典，確保所有前端 Wallet 提示字眼能精準翻譯
-loadTranslations('header');
-loadTranslations('api');
 
 $sync_isPhpLoggedIn = isset($_SESSION['user_id']) ? 'true' : 'false';
 $sync_phpUserWallet = '';
@@ -24,14 +19,19 @@ if (isset($_SESSION['user_id'])) {
     } catch (Exception $e) {}
 }
 ?>
-<script src="https://cdn.jsdelivr.net/npm/near-api-js@2.0.4/dist/near-api-js.min.js"></script>
+
+<link rel="stylesheet" href="<?= url('/assets/wallet-selector-style.css') ?>">
+<script src="<?= url('/assets/wallet-selector-bundle.js') ?>"></script>
 
 <script>
     window.nearHubWalletWrapper = null;
-    window.rpcNodesPool = <?= json_encode(defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"]) ?>;
-    window.activeNearRpcUrl = window.rpcNodesPool[0]; 
+    window.walletSelectorInstance = null;
+    window.walletModalInstance = null;
+    window.isSignLocked = false; 
 
-    // 🌟 動態尋找最快健康節點
+    window.rpcNodesPool = <?= json_encode(defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"]) ?>;
+    window.activeNearRpcUrl = window.rpcNodesPool[0];
+
     async function getHealthyRpc() {
         for (const url of window.rpcNodesPool) {
             try {
@@ -44,236 +44,204 @@ if (isset($_SESSION['user_id'])) {
                 });
                 clearTimeout(id);
                 if (res.ok) return url;
-            } catch (e) {
-                console.warn(`⚠️ RPC ${url} blocked or dead. Switching to next...`);
-            }
+            } catch (e) {}
         }
-        return window.rpcNodesPool[0]; 
+        return window.rpcNodesPool[0];
     }
 
-    // 🚀 全域通用 RPC 查詢引擎 (View Call)
     window.nearRpcQuery = async function(methodName, args = {}, finality = 'optimistic') {
         const contractId = "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>";
         const argsBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(args))));
-        
+
         const payload = {
-            jsonrpc: "2.0",
-            id: "soulmd_query",
-            method: "query",
-            params: {
-                request_type: "call_function",
-                finality: finality,
-                account_id: contractId,
-                method_name: methodName,
-                args_base64: argsBase64
-            }
+            jsonrpc: "2.0", id: "soulmd_query", method: "query",
+            params: { request_type: "call_function", finality: finality, account_id: contractId, method_name: methodName, args_base64: argsBase64 }
         };
 
-        if (!window.activeNearRpcUrl) {
-            window.activeNearRpcUrl = await getHealthyRpc();
-        }
-
+        if (!window.activeNearRpcUrl) window.activeNearRpcUrl = await getHealthyRpc();
         const nodesToTry = [window.activeNearRpcUrl, ...window.rpcNodesPool.filter(url => url !== window.activeNearRpcUrl)];
 
         for (const url of nodesToTry) {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                    signal: controller.signal
-                });
-                
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
                 clearTimeout(timeoutId);
 
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.error) {
-                        return { success: false, error: data.error, status: 'error' };
-                    }
+                    if (data.error) return { success: false, error: data.error, status: 'error' };
                     if (data.result && data.result.result) {
                         const resString = new TextDecoder().decode(new Uint8Array(data.result.result));
-                        if (resString.trim() === 'null') {
-                            return { success: true, data: null, status: 'not_found' }; 
-                        }
+                        if (resString.trim() === 'null') return { success: true, data: null, status: 'not_found' };
                         return { success: true, data: JSON.parse(resString), status: 'success' };
                     }
                 }
             } catch (e) {
-                if (url === window.activeNearRpcUrl) {
-                    window.activeNearRpcUrl = null; 
-                }
+                if (url === window.activeNearRpcUrl) window.activeNearRpcUrl = null;
             }
         }
-        
         return { success: false, error: 'All RPC nodes failed', status: 'timeout' };
     };
 
-    // 🚀 生成防偽密碼學簽章 (用於 Login 與 Bind)
-    window.generateNearAuthPayload = async function(accountId) {
-        const { keyStores } = window.nearApi;
-        const keyStore = new keyStores.BrowserLocalStorageKeyStore();
-        const networkId = "<?= defined('NEAR_NETWORK_ID') ? NEAR_NETWORK_ID : 'mainnet' ?>";
+    window.nukeWalletState = async function() {
+        try {
+            if (window.walletSelectorInstance) {
+                const wallet = await window.walletSelectorInstance.wallet().catch(()=>null);
+                if (wallet) await wallet.signOut();
+            }
+        } catch(e) {}
         
-        const keyPair = await keyStore.getKey(networkId, accountId);
-        
-        if (!keyPair) {
-            // 🚨 i18n 注入：本地找不到 KeyPair 異常
-            throw new Error("<?= addslashes(__('No local key found for this account. Please reconnect wallet.')) ?>");
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('near-wallet-selector') || key.startsWith('near-api-js:keystore:'))) {
+                keysToRemove.push(key);
+            }
         }
-
-        const timestamp = Date.now();
-        const message = "soulmd_auth:" + timestamp;
-        const msgBytes = new TextEncoder().encode(message);
-        
-        const { signature } = keyPair.sign(msgBytes);
-        const signatureB64 = btoa(String.fromCharCode(...signature));
-        const publicKey = keyPair.getPublicKey().toString();
-
-        return {
-            account_id: accountId,
-            public_key: publicKey,
-            signature: signatureB64,
-            message: message
-        };
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        window.isSignLocked = false; 
     };
 
-    // 🚀 錢包初始化與包裝器
     window.initNearWallet = async function() {
         if (window.nearHubWalletWrapper) return window.nearHubWalletWrapper;
 
+        const networkId = "<?= defined('NEAR_NETWORK_ID') ? NEAR_NETWORK_ID : 'mainnet' ?>";
+        const contractId = "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>";
+
         try {
-            const { connect, keyStores, WalletConnection, transactions, utils } = window.nearApi;
-            window.activeNearRpcUrl = await getHealthyRpc();
+            const { selector, modal } = await window.initWalletSelectorUI(networkId, contractId);
+            window.walletSelectorInstance = selector;
+            window.walletModalInstance = modal;
 
-            const config = {
-                networkId: "<?= defined('NEAR_NETWORK_ID') ? NEAR_NETWORK_ID : 'mainnet' ?>",
-                keyStore: new keyStores.BrowserLocalStorageKeyStore(),
-                nodeUrl: window.activeNearRpcUrl,
-                walletUrl: "https://app.mynearwallet.com",
-            };
+            window.walletSelectorInstance.on("signedIn", async ({ accounts }) => {
+                if (window.isSignLocked) return;
+                window.isSignLocked = true;
 
-            const near = await connect(config);
-            const wallet = new WalletConnection(near, 'soulmd_hub');
+                const currentUrl = window.location.pathname;
+                const accountId = accounts[0].accountId;
+                
+                if (currentUrl.includes('/login') && typeof window.verifyNearWallet === 'function') {
+                    await window.verifyNearWallet(accountId);
+                } 
+                else if (currentUrl.includes('/my-setting') && typeof window.executeWalletBind === 'function') {
+                    await window.executeWalletBind(accountId);
+                } 
+                else {
+                    window.location.reload();
+                }
+            });
+
+            window.walletSelectorInstance.on("signedOut", () => {
+                window.isSignLocked = false;
+                const isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
+                if (isPhpLoggedIn) window.location.reload();
+            });
 
             window.nearHubWalletWrapper = {
-                isSignedIn: () => wallet.isSignedIn(),
-                getAccountId: () => wallet.getAccountId(),
-                requestSignIn: ({ contractId }) => { wallet.requestSignIn({ contractId: contractId }); },
-                signOut: () => { wallet.signOut(); },
-                account: () => wallet.account(),
+                isSignedIn: () => selector.isSignedIn(),
+                getAccountId: () => {
+                    const state = selector.store.getState();
+                    return state.accounts.length > 0 ? state.accounts[0].accountId : null;
+                },
+                requestSignIn: () => { 
+                    window.isSignLocked = false; 
+                    modal.show();
+                },
+                signOut: async () => {
+                    const wallet = await selector.wallet();
+                    await wallet.signOut();
+                },
                 
-                requestSignTransactions: async ({ transactions: txs, callbackUrl }) => {
-                    try {
-                        const accountId = wallet.getAccountId();
-                        const block = await near.connection.provider.block({ finality: 'final' });
-                        const blockHash = utils.serialize.base_decode(block.header.hash);
+                // 🚀 核心修復 1：單筆交易強制使用雙棲格式
+                account: () => ({
+                    functionCall: async ({ contractId: callContractId, methodName, args, gas, attachedDeposit, walletCallbackUrl }) => {
+                        const wallet = await selector.wallet();
+                        let mGas = (gas || "30000000000000").toString();
+                        let mDep = (attachedDeposit || "0").toString();
                         
-                        const accessKeys = await near.connection.provider.query({ request_type: 'view_access_key_list', account_id: accountId, finality: 'final' });
-                        const functionCallKey = accessKeys.keys[0]; 
-                        
-                        if (!functionCallKey) {
-                            // 🚨 i18n 注入：找尋不到 AccessKey 異常
-                            alert("<?= addslashes(__('No access key found. Please re-login.')) ?>");
-                            wallet.signOut(); window.location.reload(); return;
-                        }
+                        // 雙棲 Action (同時滿足新版與舊版 NAJ 格式)
+                        const dualAction = {
+                            type: "FunctionCall",
+                            params: { methodName: methodName, args: args || {}, gas: mGas, deposit: mDep },
+                            functionCall: { methodName: methodName, args: args || {}, gas: mGas, deposit: mDep }
+                        };
 
-                        const realPublicKey = utils.PublicKey.from(functionCallKey.public_key);
-                        const encoder = new TextEncoder();
-
-                        const realTxs = txs.map((tx, index) => {
-                            const parsedActions = tx.actions.map(action => {
-                                const argsData = (!action.args || Object.keys(action.args).length === 0) ? new Uint8Array(0) : encoder.encode(JSON.stringify(action.args));
-                                const actionGas = typeof utils.BN !== 'undefined' ? new utils.BN(action.gas.toString()) : BigInt(action.gas.toString());
-                                const actionDep = typeof utils.BN !== 'undefined' ? new utils.BN((action.deposit || "0").toString()) : BigInt((action.deposit || "0").toString());
-
-                                return transactions.functionCall(action.methodName, argsData, actionGas, actionDep);
-                            });
-
-                            return transactions.createTransaction(accountId, realPublicKey, tx.receiverId, index + 1, parsedActions, blockHash);
+                        return wallet.signAndSendTransaction({
+                            receiverId: callContractId || contractId,
+                            actions: [dualAction],
+                            callbackUrl: walletCallbackUrl
                         });
-
-                        return wallet.requestSignTransactions({ transactions: realTxs, callbackUrl: callbackUrl });
-                    } catch (err) {
-                        console.error("requestSignTransactions error:", err); throw err; 
                     }
+                }),
+
+                // 🚀 核心修復 2：批量交易強制使用雙棲格式
+                requestSignTransactions: async ({ transactions, callbackUrl }) => {
+                    const wallet = await selector.wallet();
+                    const formattedTxs = transactions.map(tx => ({
+                        receiverId: tx.receiverId,
+                        actions: tx.actions.map(a => {
+                            let mName = a.methodName || (a.params ? a.params.methodName : null) || (a.functionCall ? a.functionCall.methodName : null);
+                            let mArgs = a.args || (a.params ? a.params.args : null) || (a.functionCall ? a.functionCall.args : null) || {};
+                            let mGas = (a.gas || (a.params ? a.params.gas : null) || (a.functionCall ? a.functionCall.gas : null) || "30000000000000").toString();
+                            let mDep = (a.deposit || a.attachedDeposit || (a.params ? a.params.deposit : null) || (a.functionCall ? a.functionCall.deposit : null) || "0").toString();
+                            
+                            // 雙棲 Action
+                            return {
+                                type: "FunctionCall",
+                                params: { methodName: mName, args: mArgs, gas: mGas, deposit: mDep },
+                                functionCall: { methodName: mName, args: mArgs, gas: mGas, deposit: mDep }
+                            };
+                        })
+                    }));
+
+                    return wallet.signAndSendTransactions({
+                        transactions: formattedTxs,
+                        callbackUrl: callbackUrl
+                    });
                 }
             };
+
             return window.nearHubWalletWrapper;
         } catch (err) {
-            console.error("NEAR Wallet Init Error:", err);
-            // 🚨 i18n 注入：RPC 連線死機
-            alert("<?= addslashes(__('RPC Connection Failed')) ?>");
+            console.error("Wallet Selector Init Error:", err);
         }
     };
 
-    window.connectOrBindWallet = async function() {
-        const isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
-        const dbWallet = "<?= $sync_phpUserWallet ?>";
+    window.generateNearAuthPayload = async function(accountId) {
+        const wallet = await window.walletSelectorInstance.wallet();
+        const timestamp = Date.now();
+        const message = "soulmd_auth:" + timestamp;
 
-        if (!isPhpLoggedIn) {
-            window.location.href = '<?= url("/login") ?>';
-            return;
-        }
-
-        if (!dbWallet) {
-            window.location.href = '<?= url("/my-setting") ?>?tab=web3';
-            return;
-        }
-
-        const wallet = await window.initNearWallet();
-        if (!wallet.isSignedIn()) {
-            wallet.requestSignIn({ contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>" });
-        } else {
-            window.location.reload();
-        }
-    };
-
-    // 🚨 自動背景雙向登入狀態校驗
-    window.addEventListener('DOMContentLoaded', async () => {
-        const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
+        const nonceArray = new Uint8Array(32);
+        crypto.getRandomValues(nonceArray);
+        const recipient = window.location.hostname;
         
+        const nonceBuffer = window.Buffer.from(nonceArray);
+
         try {
-            const wallet = await window.initNearWallet();
-            const isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
-            const phpWalletAddress = "<?= $sync_phpUserWallet ?>";
+            const result = await wallet.signMessage({
+                message: message,
+                nonce: nonceBuffer,
+                recipient: recipient
+            });
 
-            if (wallet.isSignedIn()) {
-                const currentWeb3Wallet = wallet.getAccountId();
+            if (!result) throw new Error("No payload returned from wallet.");
 
-                if (!isPhpLoggedIn) {
-                    const authPayload = await window.generateNearAuthPayload(currentWeb3Wallet);
+            return {
+                account_id: result.accountId,
+                public_key: result.publicKey, 
+                signature: result.signature,  
+                message: message,
+                nonce: Array.from(nonceArray),
+                recipient: recipient,
+                is_nep0413: true
+            };
 
-                    const res = await fetch('/api/wallet-login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(authPayload)
-                    });
-                    const data = await res.json();
-                    
-                    if (data.success) {
-                        if (!isAuthPage) { window.location.reload(); } 
-                        else { window.location.href = '<?= url("/my-souls") ?>'; }
-                    } else {
-                        console.warn("Web3 Wallet auth failed. Forcing sync logout.");
-                        wallet.signOut();
-                        if (!isAuthPage) { window.location.href = '<?= url("/login") ?>'; }
-                    }
-                } else {
-                    if (phpWalletAddress && currentWeb3Wallet !== phpWalletAddress) {
-                        console.warn("Web2 and Web3 Wallet mismatch. Forcing Web3 sync.");
-                        wallet.signOut();
-                        // 🚨 i18n 注入：完美的雙胞胎錢包狀態衝突警報（已調配你 header.php 定義好的 'Wallet mismatch alert'）
-                        alert("<?= addslashes(__('Wallet mismatch alert')) ?>");
-                        window.location.reload();
-                    }
-                }
-            }
         } catch (e) {
-            console.error("Auto-sync engine error:", e);
+            console.error("Sign message failed:", e);
+            window.isSignLocked = false; 
+            throw new Error("Message signing was cancelled or failed.");
         }
-    });
+    };
 </script>

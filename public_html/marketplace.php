@@ -1,8 +1,7 @@
 <?php
 /**
  * SoulMD Hub - AgentFi Marketplace
- * (Dynamic Blockchain Polling, Web2.5 Integration & Dynamic Pagination Edition)
- * 🚀 V5 SEO Optimized: a11y Pagination, Title attributes for Dynamic Cards
+ * 🚀 V9 FIXED: Cleaned Wrapper Implementation (Syncs with V16 Dual-Action Format)
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -55,7 +54,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </section>
 
-    <!-- Marketplace Listings -->
     <div id="market-container" class="min-h-[400px]" aria-live="polite">
         <div class="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mb-4" role="status"></div>
@@ -63,11 +61,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
     
-    <!-- Pagination -->
     <nav id="pagination-container" aria-label="Marketplace Pagination" class="mt-12 flex justify-center items-center w-full"></nav>
 </main>
 
-<!-- Renters Modal -->
 <div id="renters-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeRentersModal()" aria-modal="true" role="dialog">
     <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
         <div class="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-950/50">
@@ -108,10 +104,10 @@ require_once __DIR__ . '/../private/includes/header.php';
     }
 
     async function ensureWalletConnection() {
-        const wallet = await initNearWallet();
-        if (wallet && wallet.isSignedIn()) {
-            if(confirm("Wallet Connected: " + wallet.getAccountId() + "\nDo you want to sign out?")) {
-                wallet.signOut();
+        const wrapper = await initNearWallet();
+        if (wrapper && wrapper.isSignedIn()) {
+            if(confirm("Wallet Connected: " + wrapper.getAccountId() + "\nDo you want to sign out?")) {
+                wrapper.signOut();
                 window.location.reload();
             }
         } else {
@@ -144,14 +140,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
             
         } else if (urlParams.has('errorMessage')) {
-            alert('<?= addslashes(__('Swap fail')) ?>' + decodeURIComponent(urlParams.get('errorMessage')));
+            alert('<?= addslashes(__('Swap fail')) ?>\n' + decodeURIComponent(urlParams.get('errorMessage')));
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (urlParams.has('page') ? '?page=' + urlParams.get('page') : '');
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
 
-        const wallet = await initNearWallet();
-        if (wallet.isSignedIn()) {
-            document.getElementById('wallet-btn-text').innerText = wallet.getAccountId();
+        const wrapper = await initNearWallet();
+        if (wrapper.isSignedIn()) {
+            document.getElementById('wallet-btn-text').innerText = wrapper.getAccountId();
             document.getElementById('wallet-status-container').classList.add('opacity-80');
         }
 
@@ -167,8 +163,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             alert('<?= addslashes(__('Invalid amount')) ?>'); return;
         }
 
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) {
             await window.connectOrBindWallet(); return;
         }
 
@@ -177,34 +173,37 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.disabled = true; btn.classList.add('opacity-80', 'cursor-not-allowed');
 
         try {
-            const amountYocto = nearApi.utils.format.parseNearAmount(amountInput.toString());
+            const amountYocto = window.nearApi.utils.format.parseNearAmount(amountInput.toString());
             const tokenContract = '<?= defined('NEAR_TOKEN_CONTRACT_ID') ? NEAR_TOKEN_CONTRACT_ID : 'soul.tkn.near' ?>';
 
             const transactions = [
                 {
                     receiverId: tokenContract,
-                    actions: [{ methodName: 'storage_deposit', args: { account_id: wallet.getAccountId(), registration_only: true }, gas: '30000000000000', deposit: nearApi.utils.format.parseNearAmount('0.00125') }]
+                    actions: [{ methodName: 'storage_deposit', args: { account_id: wrapper.getAccountId(), registration_only: true }, gas: '30000000000000', deposit: window.nearApi.utils.format.parseNearAmount('0.00125') }]
                 },
                 {
                     receiverId: 'wrap.near',
                     actions: [
-                        { methodName: 'storage_deposit', args: { account_id: wallet.getAccountId(), registration_only: true }, gas: '30000000000000', deposit: nearApi.utils.format.parseNearAmount('0.00125') },
+                        { methodName: 'storage_deposit', args: { account_id: wrapper.getAccountId(), registration_only: true }, gas: '30000000000000', deposit: window.nearApi.utils.format.parseNearAmount('0.00125') },
                         { methodName: 'near_deposit', args: {}, gas: '30000000000000', deposit: amountYocto },
                         {
                             methodName: 'ft_transfer_call',
                             args: {
-                                receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>', amount: amountYocto,
+                                receiver_id: '<?= defined('NEAR_REF_FINANCE_ID') ? NEAR_REF_FINANCE_ID : 'v2.ref-finance.near' ?>', 
+                                amount: amountYocto,
                                 msg: JSON.stringify({ force: 0, actions: [{ pool_id: <?= defined('NEAR_POOL_ID') ? NEAR_POOL_ID : 8546 ?>, token_in: 'wrap.near', token_out: tokenContract, amount_in: amountYocto, min_amount_out: '1' }] })
                             },
-                            gas: '100000000000000', deposit: '1'
+                            gas: '100000000000000', 
+                            deposit: '1'
                         }
                     ]
                 }
             ];
             
-            await wallet.requestSignTransactions({ transactions: transactions, callbackUrl: getCallbackUrl('swap', null) });
+            await wrapper.requestSignTransactions({ transactions: transactions, callbackUrl: getCallbackUrl('swap', null) });
         } catch(e) {
-            console.error("BuySoul Error:", e); alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
+            console.error("BuySoul Swap Error:", e); 
+            alert('<?= addslashes(__('Transaction failed')) ?>\n' + e.message);
             textSpan.innerHTML = originalText; btn.disabled = false; btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
@@ -262,8 +261,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         pagination.innerHTML = '';
 
         try {
-            const wallet = await initNearWallet();
-            const myWallet = wallet.isSignedIn() ? wallet.getAccountId() : null;
+            const wrapper = await initNearWallet();
+            const myWallet = wrapper.isSignedIn() ? wrapper.getAccountId() : null;
 
             const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);
             const data = await res.json();
@@ -309,8 +308,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const isOwner = myWallet && soul.market.owner_id === myWallet;
                 const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                 
-                const salePrice = soul.market.sale_price ? nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
-                const rentPrice = soul.market.rent_price ? nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
+                const salePrice = soul.market.sale_price ? window.nearApi.utils.format.formatNearAmount(soul.market.sale_price) : null;
+                const rentPrice = soul.market.rent_price ? window.nearApi.utils.format.formatNearAmount(soul.market.rent_price) : null;
 
                 let activeRenters = [];
                 if (soul.market.renters) {
@@ -325,7 +324,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                 const rentersCount = activeRenters.length;
 
-                // 🚀 SEO: Inject title and aria-label to the anchor tag
                 html += `
                     <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
@@ -433,9 +431,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
+    // 🚀 FIXED: Using wrapper.account().functionCall properly with Dual-Action format
     async function buyMarketSoul(id, rawPrice, btn) {
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -443,19 +442,29 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "buy_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('buy', id) });
+            await wrapper.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "buy_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000",
+                attachedDeposit: rawPrice.toString(),
+                walletCallbackUrl: getCallbackUrl('buy', id)
+            });
         } catch(e) {
+            console.error("Buy Transaction Error:", e);
+            alert("<?= addslashes(__('Transaction failed')) ?>: \n" + e.message);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
 
+    // 🚀 FIXED: Using wrapper.account().functionCall properly with Dual-Action format
     async function rentMarketSoul(id, rawPrice, btn) {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -463,8 +472,17 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>" , methodName: "rent_soul" , args: { token_id: "soul_" + id }, gas: "30000000000000" , attachedDeposit: rawPrice, walletCallbackUrl: getCallbackUrl('rent', id) });
+            await wrapper.account().functionCall({
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
+                methodName: "rent_soul",
+                args: { token_id: "soul_" + id },
+                gas: "30000000000000",
+                attachedDeposit: rawPrice.toString(),
+                walletCallbackUrl: getCallbackUrl('rent', id)
+            });
         } catch(e) {
+            console.error("Rent Transaction Error:", e);
+            alert("<?= addslashes(__('Transaction failed')) ?>: \n" + e.message);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

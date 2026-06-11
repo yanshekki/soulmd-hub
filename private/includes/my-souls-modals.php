@@ -384,7 +384,7 @@
 
     function processNewFileName(name) {
         if (!name) return;
-        name = name.trim().replace(/\/g, '/').replace(/^\/+|\/+$/g, ''); 
+        name = name.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
         if(!name.toLowerCase().endsWith('.md') && !name.toLowerCase().endsWith('.txt') && !name.toLowerCase().endsWith('.json')) name += '.md';
         
         if (editModalFileEditor.files[name] !== undefined) return alert(<?= json_encode(__('File already exists!'), JSON_UNESCAPED_UNICODE) ?>);

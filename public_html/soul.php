@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Public AI Soul Deep Repository View
  * (Dynamic i18n Internationalization, 4-Layer SEO Routing & AgentFi Marketplace Edition)
- * 🚀 V5 SEO Optimized: Dynamic Meta Description, Semantic Headings, and a11y Links
+ * 🚀 V6 ULTIMATE: Synced with V16 Dual-Action Near Scripts & Exposed Error Traces
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -146,32 +146,32 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
-<div class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
+<main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow flex flex-col">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <a href="<?= $soul['is_nft'] == 1 ? url('/marketplace') : url('/browse') ?>" title="Return to directory" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition w-fit border border-white/10 bg-zinc-900/50 px-4 py-2 rounded-full">
-            <i class="fas fa-arrow-left"></i> <?= $soul['is_nft'] == 1 ? __('Back to Market') : __('Back to Hub') ?>
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> <?= $soul['is_nft'] == 1 ? __('Back to Market') : __('Back to Hub') ?>
         </a>
         
         <div class="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full md:w-auto mt-2 md:mt-0">
             <button onclick="likeSoul()" id="like-btn" aria-label="Like this AI Persona" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl hover:border-red-500/50 hover:text-red-400 transition shadow-sm">
-                <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>"></i>
+                <i class="fas fa-heart <?= $hasLiked ? 'text-red-400' : 'text-zinc-500' ?>" aria-hidden="true"></i>
                 <span id="like-count" class="font-medium"><?= $soul['like_count'] ?></span>
             </button>
             
             <?php if ($soul['is_nft'] == 0): ?>
             <button onclick="forkSoul()" id="fork-btn" title="Fork to your workspace" class="col-span-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-xl border border-white/10 font-bold hover:bg-zinc-800 transition shadow-sm">
-                <i class="fas fa-code-branch text-emerald-400"></i> <?= __('Fork') ?>
+                <i class="fas fa-code-branch text-emerald-400" aria-hidden="true"></i> <?= __('Fork') ?>
             </button>
             <?php endif; ?>
             
             <?php if ($canViewContent): ?>
                 <button onclick="copyMegaPrompt(this)" title="Copy the compiled AI prompt" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 text-zinc-950 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 duration-200">
-                    <i class="fas fa-magic"></i> <?= __('Copy Full Prompt') ?>
+                    <i class="fas fa-magic" aria-hidden="true"></i> <?= __('Copy Full Prompt') ?>
                 </button>
             <?php else: ?>
                 <button disabled aria-label="Content Protected" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-800 text-zinc-500 rounded-xl font-bold cursor-not-allowed border border-white/5 transition shadow-sm">
-                    <i class="fas fa-lock"></i> <?= __('Protected') ?>
+                    <i class="fas fa-lock" aria-hidden="true"></i> <?= __('Protected') ?>
                 </button>
             <?php endif; ?>
         </div>
@@ -181,7 +181,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
         <div>
             <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                <span><i class="fas fa-gem"></i> <?= __('AgentFi Marketplace') ?></span>
+                <span><i class="fas fa-gem" aria-hidden="true"></i> <?= __('AgentFi Marketplace') ?></span>
                 <span class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 cursor-help" title="<?= __('Floor Desc') ?>">
                     <?= __('Floor Price') ?>: 0.45 NEAR
                 </span>
@@ -192,10 +192,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
         <div class="flex flex-wrap gap-2 w-full md:w-auto" id="market-actions">
             <button id="btn-buy" onclick="buySoul()" aria-label="Buy AI Ownership" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
-                <span id="text-buy"><i class="fas fa-shopping-cart mr-1"></i> <span id="price-buy"></span> NEAR</span>
+                <span id="text-buy"><i class="fas fa-shopping-cart mr-1" aria-hidden="true"></i> <span id="price-buy"></span> NEAR</span>
             </button>
             <button id="btn-rent" onclick="rentSoul()" aria-label="Rent AI for 30 Days" class="hidden flex-1 md:flex-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg text-sm whitespace-nowrap">
-                <span id="text-rent"><i class="fas fa-handshake mr-1"></i> <span id="price-rent"></span> NEAR</span>
+                <span id="text-rent"><i class="fas fa-handshake mr-1" aria-hidden="true"></i> <span id="price-rent"></span> NEAR</span>
             </button>
         </div>
     </div>
@@ -208,7 +208,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </a>
             <?php endif; ?>
             <span class="px-3 py-1 text-xs font-medium rounded-full <?= $isFolder ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' ?>">
-                <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>"></i> <?= $isFolder ? __('Modular Folder') : __('Single .md') ?>
+                <i class="fas <?= $isFolder ? 'fa-folder-open' : 'fa-file-alt' ?>" aria-hidden="true"></i> <?= $isFolder ? __('Modular Folder') : __('Single .md') ?>
             </span>
         </div>
 
@@ -222,41 +222,41 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         <div class="bg-blue-900/10 border border-blue-500/20 rounded-3xl p-5 sm:p-6 mb-8 max-w-3xl shadow-inner">
             <h2 class="text-blue-400 text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
-                <i class="fas fa-bolt text-blue-500"></i> <?= __('One-Click Interaction') ?>
+                <i class="fas fa-bolt text-blue-500" aria-hidden="true"></i> <?= __('One-Click Interaction') ?>
             </h2>
             <p class="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
                 <?= __('Instantly interact with this AI soul directly in your browser. Start a live conversation based on the modular instructions provided in this repository. No complex API integrations required.') ?>
             </p>
             
             <a href="<?= url('/chat/' . $id) ?>" target="_blank" title="Start Chat Session" class="flex sm:inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition shadow-lg shadow-blue-500/20 sm:hover:scale-[1.02] transform duration-200 w-full sm:w-auto">
-                <i class="fas fa-paper-plane"></i> <?= __('Start Conversation') ?>
+                <i class="fas fa-paper-plane" aria-hidden="true"></i> <?= __('Start Conversation') ?>
             </a>
             
             <div class="mt-5 text-xs text-zinc-400 bg-black/30 p-4 rounded-xl border border-white/5 leading-relaxed">
-                <i class="fas fa-shield-alt text-amber-500 mr-1.5"></i> <strong><?= __('Privacy Notice:') ?></strong> <?= __('Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.') ?>
+                <i class="fas fa-shield-alt text-amber-500 mr-1.5" aria-hidden="true"></i> <strong><?= __('Privacy Notice:') ?></strong> <?= __('Each chat session generates a unique, permanent public URL. Anyone possessing this exact URL can view the entire conversation history. Please refrain from sharing personal, private, or sensitive information.') ?>
             </div>
         </div>
 
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-6 border-t border-white/10">
+        <div class="flex flex-col flex-col md:flex-row md:items-center justify-between gap-6 pt-6 border-t border-white/10">
             <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-zinc-400">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-bold shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 flex items-center justify-center text-zinc-950 font-bold shrink-0 select-none">
                         <?= strtoupper(substr($soul['username'] ?? 'A', 0, 1)) ?>
                     </div>
                     <a href="<?= url('/profile/' . rawurlencode($soul['username'] ?? 'anonymous')) ?>" title="Creator Profile" class="font-medium text-white hover:text-emerald-400 transition truncate max-w-[120px] sm:max-w-none">
                         @<?= htmlspecialchars($soul['username'] ?? 'Anonymous') ?>
                     </a>
                 </div>
-                <div class="flex items-center gap-2">
-                    <i class="far fa-calendar-alt"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
+                <div class="flex items-center gap-2 font-mono text-xs">
+                    <i class="far fa-calendar-alt" aria-hidden="true"></i> <?= date('M j, Y', strtotime($soul['created_at'])) ?>
                 </div>
                 
                 <?php if ($soul['is_nft'] == 0): ?>
                 <div class="flex items-center gap-2">
-                    <i class="fas fa-code-branch text-emerald-400"></i> <?= $soul['fork_count'] ?> <?= __('forks') ?>
+                    <i class="fas fa-code-branch text-emerald-400" aria-hidden="true"></i> <?= $soul['fork_count'] ?> <?= __('forks') ?>
                 </div>
                 <a href="<?= url('/soul-versions/' . $id) ?>" title="Version History" class="flex items-center gap-2 hover:text-emerald-400 transition">
-                    <i class="fas fa-history text-emerald-500"></i> <?= $versionCount ?> <?= __('versions') ?>
+                    <i class="fas fa-history text-emerald-500" aria-hidden="true"></i> <?= $versionCount ?> <?= __('versions') ?>
                 </a>
                 <?php endif; ?>
                 
@@ -266,7 +266,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             <i onclick="rateSoul(<?= $i ?>)" role="radio" aria-checked="<?= $i <= round($avgRating) ? 'true' : 'false' ?>" tabindex="0" class="fas fa-star cursor-pointer hover:scale-110 transition <?= $i <= round($avgRating) ? 'text-amber-400' : 'text-zinc-600' ?>"></i>
                         <?php endfor; ?>
                     </div>
-                    <span class="text-xs ml-1">
+                    <span class="text-xs ml-1 font-mono">
                         <span id="avg-rating" class="text-white font-bold"><?= number_format($avgRating, 1) ?></span> 
                         <span id="total-ratings" class="opacity-50">(<?= $totalRatings ?>)</span>
                     </span>
@@ -285,7 +285,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <?php if (!empty($compatibilities)): ?>
                     <div class="flex flex-wrap gap-2 lg:justify-end">
                         <?php foreach($compatibilities as $tag): ?>
-                            <span class="px-2 py-1 text-[11px] bg-zinc-800 text-zinc-300 border border-white/10 rounded-md"><i class="fas fa-robot text-xs opacity-50"></i> <?= htmlspecialchars($tag) ?></span>
+                            <span class="px-2 py-1 text-[11px] bg-zinc-800 text-zinc-300 border border-white/10 rounded-md"><i class="fas fa-robot text-xs opacity-50" aria-hidden="true"></i> <?= htmlspecialchars($tag) ?></span>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
@@ -293,7 +293,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </div>
 
-    <!-- 🚀 SEO Enhancement: Semantic Heading for Source Code -->
     <h2 class="sr-only">AI Agent Architecture Files</h2>
 
     <div class="bg-zinc-900/40 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
@@ -332,14 +331,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <?php if ($isFolder && $soul['is_nft'] == 0): ?>
                     <?php if ($canViewContent): ?>
                         <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>.zip" title="Download ZIP Archive" class="px-4 py-2 text-xs font-bold bg-zinc-800 text-white border border-white/10 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2 shadow-sm">
-                            <i class="fas fa-file-archive text-amber-400"></i> .zip
+                            <i class="fas fa-file-archive text-amber-400" aria-hidden="true"></i> .zip
                         </a>
                         <button onclick="copyFullFolder(this)" title="Copy Folder JSON" class="px-4 py-2 text-xs font-bold bg-white text-black rounded-lg hover:bg-zinc-200 transition flex items-center gap-2 shadow-sm">
-                            <i class="fas fa-copy"></i> <?= __('JSON') ?>
+                            <i class="fas fa-copy" aria-hidden="true"></i> <?= __('JSON') ?>
                         </button>
                     <?php else: ?>
                         <button disabled class="px-4 py-2 text-xs font-bold bg-zinc-800 text-zinc-500 border border-white/5 rounded-lg cursor-not-allowed flex items-center gap-2">
-                            <i class="fas fa-lock"></i> .zip
+                            <i class="fas fa-lock" aria-hidden="true"></i> .zip
                         </button>
                     <?php endif; ?>
                 <?php endif; ?>
@@ -360,12 +359,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <?php if ($soul['is_nft'] == 0): ?>
                             <?php if ($canViewContent): ?>
                                 <a href="/download/soul/<?= $encodedUsername ?>/<?= $id ?>/<?= $slugRole ?>/<?= $slugTitle ?>/<?= $encodedFilename ?>" target="_blank" title="View Raw File" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                                    <i class="fas fa-external-link-alt"></i> <span><?= __('Raw') ?></span>
+                                    <i class="fas fa-external-link-alt" aria-hidden="true"></i> <span><?= __('Raw') ?></span>
                                 </a>
                             <?php endif; ?>
                             
                             <button onclick="copyRaw(<?= $i ?>, this)" title="Copy File Content" class="pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 text-[11px] sm:text-xs font-medium rounded-lg border border-white/10 backdrop-blur transition shadow-lg">
-                                <i class="far fa-copy"></i> <span><?= __('Copy') ?></span>
+                                <i class="far fa-copy" aria-hidden="true"></i> <span><?= __('Copy') ?></span>
                             </button>
                         <?php endif; ?>
                     </div>
@@ -393,11 +392,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         return url.toString();
     }
 
-    // Call window.nearRpcQuery() directly without PHP fetch
     async function fetchMarketStatus() {
         try {
-            const wallet = typeof initNearWallet === 'function' ? await initNearWallet() : null;
-            const myWallet = wallet && wallet.isSignedIn() ? wallet.getAccountId() : null;
+            const wrapper = typeof initNearWallet === 'function' ? await initNearWallet() : null;
+            const myWallet = wrapper && wrapper.isSignedIn() ? wrapper.getAccountId() : null;
             const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulDbId });
             
             if (rpcRes.success && rpcRes.data) {
@@ -408,7 +406,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 const isOwner = myWallet && tokenInfo.owner_id === myWallet;
 
                 if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
-                    const price = nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
+                    const price = window.nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
                     document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
                     const btnBuy = document.getElementById('btn-buy');
                     btnBuy.classList.remove('hidden');
@@ -423,7 +421,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 }
 
                 if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
-                    const price = nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
+                    const price = window.nearApi.utils.format.formatNearAmount(tokenInfo.rent_price);
                     document.getElementById('price-rent').innerText = `${<?= json_encode(__('Rent (30 Days)'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
                     const btnRent = document.getElementById('btn-rent');
                     btnRent.classList.remove('hidden');
@@ -471,47 +469,67 @@ require_once __DIR__ . '/../private/includes/header.php';
         fetchMarketStatus();
     });
 
+    // 🚀 FIXED: Synchronized with wrapper.account().functionCall Logic & Exposed Errors
     async function buySoul() {
         const btn = document.getElementById('btn-buy');
         const textSpan = document.getElementById('text-buy');
         const originalText = textSpan.innerHTML;
         
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const price = btn.dataset.price;
         
-        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "buy_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('buy') });
+            await wrapper.account().functionCall({ 
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", 
+                methodName: "buy_soul", 
+                args: { token_id: "soul_" + soulDbId }, 
+                gas: "30000000000000", 
+                attachedDeposit: price.toString(), 
+                walletCallbackUrl: getCallbackUrl('buy') 
+            });
         } catch (e) {
+            console.error("Soul Details Buy Error:", e);
+            alert("<?= addslashes(__('Operation failed')) ?>:\n" + e.message);
             textSpan.innerHTML = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
     }
 
+    // 🚀 FIXED: Synchronized with wrapper.account().functionCall Logic & Exposed Errors
     async function rentSoul() {
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         const btn = document.getElementById('btn-rent');
         const textSpan = document.getElementById('text-rent');
         const originalText = textSpan.innerHTML;
         
-        const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        const wrapper = await initNearWallet();
+        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const price = btn.dataset.price;
         
-        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> <span><?= addslashes(__('Processing...')) ?></span>';
+        textSpan.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
         
         try {
-            await wallet.account().functionCall({ contractId: "<?= NEAR_CONTRACT_ID; ?>", methodName: "rent_soul", args: { token_id: "soul_" + soulDbId }, gas: "30000000000000", attachedDeposit: price, walletCallbackUrl: getCallbackUrl('rent') });
+            await wrapper.account().functionCall({ 
+                contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>", 
+                methodName: "rent_soul", 
+                args: { token_id: "soul_" + soulDbId }, 
+                gas: "30000000000000", 
+                attachedDeposit: price.toString(), 
+                walletCallbackUrl: getCallbackUrl('rent') 
+            });
         } catch (e) {
+            console.error("Soul Details Rent Error:", e);
+            alert("<?= addslashes(__('Operation failed')) ?>:\n" + e.message);
             textSpan.innerHTML = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -542,7 +560,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         navigator.clipboard.writeText(megaPrompt).then(() => {
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> <?= addslashes(__('Copied!')) ?>';
+            btn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> <?= addslashes(__('Copied!')) ?>';
             btn.classList.add('bg-white', 'text-black');
             btn.classList.remove('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
             
@@ -550,7 +568,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             setTimeout(() => { 
                 btn.innerHTML = originalHtml; 
-                btn.removeCardClass = btn.classList.remove('bg-white', 'text-black');
+                btn.classList.remove('bg-white', 'text-black');
                 btn.classList.add('bg-gradient-to-r', 'from-emerald-400', 'to-cyan-400', 'text-zinc-950');
             }, 3000);
         });
@@ -589,7 +607,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const text = document.getElementById('raw-' + id).value;
         navigator.clipboard.writeText(text).then(() => {
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> <?= addslashes(__('Copied!')) ?>';
+            btn.innerHTML = '<i class="fas fa-check text-emerald-400" aria-hidden="true"></i> <?= addslashes(__('Copied!')) ?>';
             btn.classList.add('border-emerald-400/50', 'text-white');
             setTimeout(() => { btn.innerHTML = originalHtml; btn.classList.remove('border-emerald-400/50', 'text-white'); }, 2000);
         });
@@ -600,7 +618,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const jsonStr = <?= json_encode($cleanedContent ?? $contentData) ?>;
             navigator.clipboard.writeText(jsonStr).then(() => { 
                 const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check text-emerald-600"></i> <?= addslashes(__('Copied!')) ?>';
+                btn.innerHTML = '<i class="fas fa-check text-emerald-600" aria-hidden="true"></i> <?= addslashes(__('Copied!')) ?>';
                 setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
             });
         <?php endif; ?>
@@ -691,7 +709,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const btn = document.getElementById('fork-btn');
         const originalHtml = btn.innerHTML;
         btn.style.pointerEvents = 'none';
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <?= addslashes(__('Forking...')) ?>`;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> <?= addslashes(__('Forking...')) ?>`;
         try {
             const res = await fetch('/api/fork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
             const data = await res.json();

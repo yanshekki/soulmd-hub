@@ -1,8 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Grand Unified Settings Hub
- * (Account, Web3, Platform API, Encrypted BYOK Engine - 100% i18n Edition)
- * 🚀 V5 SEO Optimized: Semantic <main>/<section> Structure, ARIA Labels, and a11y Forms
+ * 🚀 V7 FINAL: Extension Only, 1-Click Auto-Bind UX & Error Recovery Nuke
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -37,7 +36,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row gap-8 flex-grow">
     
-    <!-- 🚀 SEO: 語意化 Navigation -->
     <nav aria-label="Settings Navigation" class="w-full md:w-64 shrink-0 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-4 md:pb-0">
         <button onclick="switchTab('account')" aria-controls="tab-account" id="btn-account" class="tab-btn active shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><i class="fas fa-shield-alt w-5" aria-hidden="true"></i> <?= __('Account Security') ?></button>
         <button onclick="switchTab('web3')" aria-controls="tab-web3" id="btn-web3" class="tab-btn shrink-0 text-left px-5 py-3 rounded-xl font-bold text-sm transition text-zinc-400 hover:bg-white/5"><i class="fas fa-wallet w-5" aria-hidden="true"></i> <?= __('Web3 Wallet') ?></button>
@@ -47,7 +45,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     <div class="flex-1 bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-sm shadow-2xl relative overflow-hidden min-h-[600px]">
         
-        <!-- Tab 1: Account -->
         <section id="tab-account" aria-labelledby="heading-account" class="tab-content block animate-fade-in">
             <h2 id="heading-account" class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4"><?= __('Account Security') ?></h2>
             <div class="mb-6">
@@ -83,7 +80,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             </form>
         </section>
 
-        <!-- Tab 2: Web3 -->
         <section id="tab-web3" aria-labelledby="heading-web3" class="tab-content hidden animate-fade-in">
             <h2 id="heading-web3" class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4 flex items-center gap-3"><i class="fas fa-wallet text-blue-400" aria-hidden="true"></i> <?= __('Web3 Wallet Binding') ?></h2>
             <p class="text-sm text-zinc-400 mb-6"><?= __('Wallet Binding Desc') ?></p>
@@ -111,7 +107,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             <?php endif; ?>
         </section>
 
-        <!-- Tab 3: API Key -->
         <section id="tab-api" aria-labelledby="heading-api" class="tab-content hidden animate-fade-in">
             <h2 id="heading-api" class="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-4 flex items-center gap-3"><i class="fas fa-key text-amber-400" aria-hidden="true"></i> <?= __('Platform API Key') ?></h2>
             <p class="text-sm text-zinc-400 mb-6"><?= __('API Key Desc') ?></p>
@@ -126,7 +121,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             </button>
         </section>
 
-        <!-- Tab 4: BYOK Engine -->
         <section id="tab-byok" aria-labelledby="heading-byok" class="tab-content hidden animate-fade-in relative">
             <div class="absolute top-0 right-0 px-3 py-1 bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-bl-xl uppercase tracking-widest border-b border-l border-purple-500/30"><?= __('Unlimited Chat Unlock') ?></div>
             
@@ -143,8 +137,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
 
             <div id="byok-settings-panel" class="space-y-6 opacity-50 pointer-events-none transition-opacity duration-300">
-                
-                <!-- Text LLM Config -->
                 <div class="bg-zinc-950/50 border border-white/5 rounded-2xl p-5 shadow-inner">
                     <h3 class="text-emerald-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-comment-alt mr-2" aria-hidden="true"></i><?= __('Text LLM') ?></h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -176,7 +168,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
 
-                <!-- Vision LLM Config -->
                 <div class="bg-zinc-950/50 border border-white/5 rounded-2xl p-5 shadow-inner">
                     <h3 class="text-blue-400 font-bold mb-4 uppercase tracking-widest text-xs flex items-center"><i class="fas fa-eye mr-2" aria-hidden="true"></i><?= __('Vision LLM') ?> <span class="text-zinc-500 ml-2 font-normal text-[10px]"><?= __('Optional Fallback') ?></span></h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -206,7 +197,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
 
-                <!-- Memory Compression Slider -->
                 <div class="bg-zinc-950/50 border border-amber-500/20 rounded-2xl p-5 shadow-inner relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                     <div class="flex justify-between items-center mb-4">
@@ -214,8 +204,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                         <span class="text-xl font-black text-white bg-zinc-800 px-3 py-1 rounded-lg font-mono border border-white/5 shadow" id="compress_val_display" aria-live="polite">10</span>
                     </div>
                     <p class="text-[11px] sm:text-xs text-zinc-400 mb-5 leading-relaxed"><?= __('Memory Desc') ?></p>
-                    
-                    <label for="memory_compress_threshold" class="sr-only">Memory Compression Threshold Slider</label>
                     <input type="range" id="memory_compress_threshold" min="4" max="50" step="2" class="w-full accent-amber-400 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer outline-none" oninput="document.getElementById('compress_val_display').innerText = this.value">
                 </div>
 
@@ -289,10 +277,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const hasWalletCallback = urlParams.has('account_id') || urlParams.has('all_keys');
-        const forcedTab = urlParams.get('tab');
-
-        if (hasWalletCallback || forcedTab === 'web3') {
+        if (urlParams.get('tab') === 'web3') {
             switchTab('web3'); 
         }
 
@@ -317,35 +302,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                 }
             }
         } catch(e) {}
-
-        <?php if (!$user['near_wallet_address']): ?>
-            if (hasWalletCallback) {
-                const wallet = await initNearWallet();
-                setTimeout(async () => {
-                    if (wallet.isSignedIn()) {
-                        await executeWalletBind(wallet.getAccountId());
-                    }
-                }, 500);
-            }
-        <?php endif; ?>
-        
-        try {
-            const wallet = await initNearWallet();
-            const isPhpLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
-            const phpWalletAddress = "<?= $nearWallet ?? '' ?>";
-
-            if (wallet.isSignedIn() && isPhpLoggedIn) {
-                const currentWeb3Wallet = wallet.getAccountId();
-                if (phpWalletAddress && currentWeb3Wallet !== phpWalletAddress) {
-                    console.warn("Web2 and Web3 Wallet mismatch. Forcing Web3 sync.");
-                    wallet.signOut();
-                    alert("<?= addslashes(__('Wallet mismatch alert')) ?>");
-                    window.location.reload();
-                }
-            }
-        } catch (e) {
-            console.error("Auto-sync engine error:", e);
-        }
     });
 
     async function saveLLMSettings() {
@@ -439,46 +395,70 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
+    // 重置按鈕狀態的輔助函數
+    function resetBindBtnStatus() {
+        const btn = document.getElementById('bind-wallet-btn');
+        const text = document.getElementById('bind-wallet-text');
+        const icon = document.getElementById('bind-wallet-icon');
+        if (text) text.innerHTML = '<?= addslashes(__('Connect & Bind Wallet')) ?>';
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        if (icon) icon.classList.remove('hidden');
+    }
+
+    // 用戶點擊綁定按鈕
     async function bindNearWallet() {
         const btn = document.getElementById('bind-wallet-btn');
         const text = document.getElementById('bind-wallet-text');
         const icon = document.getElementById('bind-wallet-icon');
 
-        const originalText = text.innerHTML;
-        text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         if(icon) icon.classList.add('hidden');
+        text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Connecting...')) ?>';
 
         try {
-            const wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
-                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-            } else {
-                await executeWalletBind(wallet.getAccountId());
-            }
+            const wrapper = await window.initNearWallet();
+            wrapper.requestSignIn();
+            
+            // 監聽 Modal 是否被手動關閉，如果關閉就恢復按鈕
+            const observer = new MutationObserver(async () => {
+                if (!document.getElementById('near-wallet-selector-modal')) {
+                    if (!wrapper.isSignedIn()) {
+                        resetBindBtnStatus();
+                    }
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, { childList: true });
+
         } catch(e) {
-            text.innerHTML = originalText;
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            if(icon) icon.classList.remove('hidden');
+            if (window.nukeWalletState) await window.nukeWalletState();
+            resetBindBtnStatus();
         }
     }
 
-    async function executeWalletBind(accountId) {
+    // 🚀 全域暴露：供 near-wallet-scripts.php 在 signedIn (第一次授權) 成功時瞬間自動呼叫！
+    window.executeWalletBind = async function(accountId) {
         const text = document.getElementById('bind-wallet-text');
         const btn = document.getElementById('bind-wallet-btn');
+        const icon = document.getElementById('bind-wallet-icon');
         
-        if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Binding Address...')) ?>';
         if(btn) {
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
+        if(icon) icon.classList.add('hidden');
+        if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Please Approve Signature...')) ?>';
         
         try {
-            // Generate Cryptographic Payload (Ed25519)
+            // 🚀 1-Click UX：瞬間自動觸發第二次彈窗，要求用戶簽名！
             const authPayload = await window.generateNearAuthPayload(accountId);
             authPayload.action = 'bind';
+
+            if(text) text.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Binding Address...')) ?>';
 
             const res = await fetch('/api/bind-wallet', {
                 method: 'POST',
@@ -488,28 +468,22 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if (data.success) {
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?tab=web3";
                 window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                 window.location.reload();
             } else {
-                alert('<?= addslashes(__('Bind Failed')) ?>' + (data.error || ''));
-                const wallet = await initNearWallet();
-                wallet.signOut();
-                if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
-                if(btn) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                alert('<?= addslashes(__('Bind Failed')) ?>: ' + (data.error || ''));
+                
+                // 🚨 綁定失敗：執行核彈清除
+                if (window.nukeWalletState) await window.nukeWalletState();
+                resetBindBtnStatus();
             }
         } catch(e) {
-            alert('<?= addslashes(__('Network Error')) ?>');
-            if(text) text.innerText = '<?= addslashes(__('Connect & Bind NEAR Wallet')) ?>';
-            if(btn) {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
+            // 🚨 用戶取消簽章：執行核彈清除
+            if (window.nukeWalletState) await window.nukeWalletState();
+            resetBindBtnStatus();
         }
-    }
+    };
 
     function rollApiKey() {
         if(!confirm('<?= addslashes(__('Key Regen Confirm')) ?>')) return;

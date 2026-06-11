@@ -1,8 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Login Page
- * (Dynamic i18n Internationalization & Pure Native MyNearWallet Redirect Edition)
- * 🚀 V5 SEO Optimized: Semantic <main> tag, a11y Form Labels, and ARIA Live Regions
+ * 🚀 V7 FINAL: Extension Only, Nuke on Load & 1-Click Auto-Sign UX
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -17,7 +16,6 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-// 🚀 SEO Enhancement: Use dedicated SEO keys
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
 $hideNavLinks = true;
@@ -79,61 +77,85 @@ require_once __DIR__ . '/../private/includes/header.php';
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
+    // 🚀 核心要求：只要進入 login.php 頁面，無視一切，強制清空 NEAR 所有 LocalStorage 狀態！
+    (function nukeOnLoad() {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('near-wallet-selector') || key.startsWith('near-api-js:keystore:'))) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        console.log("Wallet State Nuked on Page Load.");
+    })();
+
+    // 重置按鈕狀態的輔助函數
+    function resetWalletBtnStatus() {
+        const btn = document.getElementById('near-login-btn');
+        const btnText = document.getElementById('near-btn-text');
+        const btnIcon = document.getElementById('near-btn-icon');
+        
+        btnText.innerHTML = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        if(btnIcon) btnIcon.classList.remove('hidden');
+    }
+
+    // 用戶點擊登入
     async function handleNearLogin() {
         const btn = document.getElementById('near-login-btn');
         const btnText = document.getElementById('near-btn-text');
         const btnIcon = document.getElementById('near-btn-icon');
-        const originalText = btnText.innerHTML;
+        const errorBox = document.getElementById('error-box');
 
-        btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Connecting to RPC...')) ?>';
+        errorBox.classList.add('hidden');
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         if(btnIcon) btnIcon.classList.add('hidden');
+        btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Connecting...')) ?>';
 
         try {
-            const wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
-                wallet.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
-            } else {
-                await verifyNearWallet(wallet.getAccountId());
-            }
+            // 這個時候 wrapper 已經是乾淨的，因為載入時清空了 cache
+            const wrapper = await window.initNearWallet();
+            wrapper.requestSignIn();
+            
+            // 監聽 Modal 是否被手動關閉，如果關閉就恢復按鈕
+            const observer = new MutationObserver(() => {
+                if (!document.getElementById('near-wallet-selector-modal')) {
+                    if (!wrapper.isSignedIn()) {
+                        resetWalletBtnStatus();
+                    }
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, { childList: true });
+
         } catch(e) {
-            btnText.innerHTML = originalText;
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            if(btnIcon) btnIcon.classList.remove('hidden');
+            if (window.nukeWalletState) await window.nukeWalletState();
+            resetWalletBtnStatus();
         }
     }
 
-    window.addEventListener('DOMContentLoaded', async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('account_id') || urlParams.has('all_keys')) {
-            const wallet = await initNearWallet();
-            setTimeout(async () => {
-                if (wallet.isSignedIn()) {
-                    await verifyNearWallet(wallet.getAccountId());
-                }
-            }, 500);
-        }
-    });
-
-    async function verifyNearWallet(accountId) {
+    // 🚀 全域暴露：供 near-wallet-scripts.php 在 signedIn (第一次授權) 成功時瞬間自動呼叫！
+    window.verifyNearWallet = async function(accountId) {
         const errorBox = document.getElementById('error-box');
         const errorMsg = document.getElementById('error-msg');
         const btn = document.getElementById('near-login-btn');
         const btnText = document.getElementById('near-btn-text');
         const btnIcon = document.getElementById('near-btn-icon');
         
-        if(btn) {
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            if(btnIcon) btnIcon.classList.add('hidden');
-        }
-        if(btnText) btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Verifying Session...')) ?>';
+        // 更新按鈕提示，告訴用戶「正在請求簽名」
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        if(btnIcon) btnIcon.classList.add('hidden');
+        btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Please Approve Signature...')) ?>';
 
         try {
-            // 🚀 核心密碼學驗證
+            // 🚀 1-Click UX：這裡會瞬間自動觸發第二次彈窗，要求用戶簽名！
             const authPayload = await window.generateNearAuthPayload(accountId);
+
+            btnText.innerHTML = '<i class="fas fa-spinner animate-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Verifying Session...')) ?>';
 
             const res = await fetch('/api/wallet-login', {
                 method: 'POST',
@@ -141,36 +163,28 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body: JSON.stringify(authPayload)
             });
             const data = await res.json();
+            
             if (data.success) {
                 window.location.href = '<?= url("/my-souls") ?>';
             } else {
                 errorMsg.innerText = data.error || '<?= addslashes(__('Wallet not bound')) ?>';
                 errorBox.classList.remove('hidden');
-                if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
-                if(btn) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    if(btnIcon) btnIcon.classList.remove('hidden');
-                }
                 
-                const wallet = await initNearWallet();
-                wallet.signOut();
-                
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+                // 登入失敗 (例如未綁定)，核彈清理，允許重新點擊選其他錢包
+                if (window.nukeWalletState) await window.nukeWalletState();
+                resetWalletBtnStatus();
             }
         } catch (e) {
-            errorMsg.innerText = '<?= addslashes(__('Network Error.')) ?>';
+            // 🚨 用戶按了「拒絕 (Reject)」，或是關閉了簽章視窗
+            errorMsg.innerText = 'Signature Request Cancelled.';
             errorBox.classList.remove('hidden');
-            if(btnText) btnText.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
-            if(btn) {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                if(btnIcon) btnIcon.classList.remove('hidden');
-            }
+            
+            if (window.nukeWalletState) await window.nukeWalletState();
+            resetWalletBtnStatus();
         }
-    }
+    };
 
+    // 處理原本的 Web2 帳號密碼登入
     const form = document.getElementById('login-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -183,7 +197,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         errorBox.classList.add('hidden');
         text.classList.add('hidden');
         loading.classList.remove('hidden');
-        
         btn.disabled = true;
         btn.classList.add('opacity-80', 'cursor-not-allowed');
 

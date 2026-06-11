@@ -2,7 +2,7 @@
 /**
  * SoulMD Hub - Billing & Subscription Management Dashboard
  * (V5 Dual-Track Web2.5 Hybrid Ledger & Asynchronous Blockchain Radar Edition)
- * 🚀 Patched: Fully integrated with the unified window.nearRpcQuery() service layer.
+ * 🚀 V6 FIXED: Synchronized with V16 Dual-Action Near Scripts & Strict Error Handling
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -85,14 +85,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-zinc-400 mt-2 text-sm"><?= __('Billing Subtitle') ?></p>
         </div>
         <a href="<?= url('/upgrade') ?>" class="px-6 py-3 <?= $isExpired ? 'bg-red-500 hover:bg-red-400 text-zinc-950' : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950' ?> font-bold rounded-2xl transition flex items-center gap-2 shadow-lg shrink-0 transform hover:scale-[1.02] duration-200">
-            <i class="fas <?= $isExpired ? 'fa-sync-alt' : 'fa-arrow-up' ?>"></i> <?= $isExpired ? __('Renew Subscription') : __('Upgrade Plan') ?>
+            <i class="fas <?= $isExpired ? 'fa-sync-alt' : 'fa-arrow-up' ?>" aria-hidden="true"></i> <?= $isExpired ? __('Renew Subscription') : __('Upgrade Plan') ?>
         </a>
     </div>
 
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-8 shadow-xl backdrop-blur-sm relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r <?= $isExpired ? 'from-red-500 to-amber-500' : 'from-emerald-400 to-cyan-400' ?>"></div>
         <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <i class="fas <?= $isExpired ? 'fa-exclamation-triangle text-red-400' : 'fa-shield-check text-emerald-400' ?>"></i> <?= __('Current Subscription Status') ?>
+            <i class="fas <?= $isExpired ? 'fa-exclamation-triangle text-red-400' : 'fa-shield-check text-emerald-400' ?>" aria-hidden="true"></i> <?= __('Current Subscription Status') ?>
         </h2>
         
         <?php if ($isActivePremium): ?>
@@ -116,7 +116,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
             </div>
             <p class="text-xs text-amber-400/80 mt-4 px-2 flex items-start gap-1.5 leading-relaxed">
-                <i class="fas fa-info-circle mt-0.5 shrink-0"></i> 
+                <i class="fas fa-info-circle mt-0.5 shrink-0" aria-hidden="true"></i> 
                 <span><strong><?= __('Manual Lifecycle Management:') ?></strong> <?= __('Lifecycle Desc') ?></span>
             </p>
 
@@ -125,7 +125,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <div class="absolute left-0 top-0 w-1 h-full bg-red-500"></div>
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 text-xl shrink-0">
-                        <i class="fas fa-history"></i>
+                        <i class="fas fa-history" aria-hidden="true"></i>
                     </div>
                     <div>
                         <span class="text-xl font-bold text-red-400"><?= __('Subscription Expired') ?></span>
@@ -138,7 +138,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                 </div>
                 <a href="<?= url('/upgrade') ?>" class="px-6 py-3 bg-red-500 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-red-500/20 whitespace-nowrap flex items-center justify-center gap-2 shrink-0">
-                    <i class="fas fa-sync-alt"></i> <?= __('Renew Plan') ?>
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i> <?= __('Renew Plan') ?>
                 </a>
             </div>
 
@@ -156,11 +156,11 @@ require_once __DIR__ . '/../private/includes/header.php';
     </div>
 
     <div class="flex border-b border-white/10 mb-6 gap-2">
-        <button onclick="switchLedgerTab('web2')" id="tab-btn-web2" class="px-5 py-3 text-sm font-bold border-b-2 border-emerald-400 text-emerald-400 transition-all flex items-center gap-2">
-            <i class="fab fa-paypal"></i> <?= __('Web2 Pass') ?>
+        <button type="button" onclick="switchLedgerTab('web2')" id="tab-btn-web2" class="px-5 py-3 text-sm font-bold border-b-2 border-emerald-400 text-emerald-400 transition-all flex items-center gap-2">
+            <i class="fab fa-paypal" aria-hidden="true"></i> <?= __('Web2 Pass') ?>
         </button>
-        <button onclick="switchLedgerTab('web3')" id="tab-btn-web3" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-zinc-400 hover:text-white transition-all flex items-center gap-2">
-            <i class="fas fa-gem"></i> <?= __('AgentFi Web3') ?>
+        <button type="button" onclick="switchLedgerTab('web3')" id="tab-btn-web3" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-zinc-400 hover:text-white transition-all flex items-center gap-2">
+            <i class="fas fa-gem" aria-hidden="true"></i> <?= __('AgentFi Web3') ?>
         </button>
     </div>
 
@@ -168,7 +168,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         <?php if (empty($payments)): ?>
             <div class="bg-zinc-900/20 border border-dashed border-white/10 rounded-3xl p-16 text-center text-zinc-500 flex flex-col items-center justify-center flex-grow min-h-[250px]">
                 <div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center mb-4 shadow-inner">
-                    <i class="fas fa-file-invoice-dollar text-2xl opacity-40"></i>
+                    <i class="fas fa-file-invoice-dollar text-2xl opacity-40" aria-hidden="true"></i>
                 </div>
                 <h3 class="text-lg font-bold text-zinc-400 mb-1"><?= __('No billing rows located') ?></h3>
                 <p class="text-xs text-zinc-500 max-w-xs leading-relaxed"><?= __('No billing desc') ?></p>
@@ -239,7 +239,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                     <td class="p-4 font-bold text-white whitespace-nowrap font-mono"><?= htmlspecialchars($pay['currency']) ?> $<?= number_format($pay['amount'], 2) ?></td>
                                     <td class="p-4 text-right whitespace-nowrap">
                                         <a href="<?= url('/invoice/' . $pay['id']) ?>" target="_blank" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin mr-1\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg border border-white/10 transition shadow-sm hover:text-white">
-                                            <i class="fas fa-file-invoice text-zinc-500"></i> <?= __('Receipt') ?>
+                                            <i class="fas fa-file-invoice text-zinc-500" aria-hidden="true"></i> <?= __('Receipt') ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -252,12 +252,12 @@ require_once __DIR__ . '/../private/includes/header.php';
             <?php if ($totalPages > 1): ?>
                 <div class="mt-8 flex justify-center select-none">
                     <div class="flex sm:hidden w-full max-w-sm mx-auto items-center justify-between bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-lg">
-                        <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left"></i></a>
+                        <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" aria-label="Previous Page" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
                         <span class="text-xs font-bold text-zinc-400 tracking-widest uppercase"><?= __('Page') ?> <span class="text-white text-sm font-mono"><?= $page ?></span> / <?= $totalPages ?></span>
-                        <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right"></i></a>
+                        <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" aria-label="Next Page" class="px-4 py-2.5 bg-zinc-800 rounded-xl text-sm font-bold <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                     </div>
                     <div class="hidden sm:flex items-center gap-1.5 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-lg">
-                        <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left text-xs"></i></a>
+                        <a href="<?= $page > 1 ? getPageUrl($page - 1) : '#' ?>" aria-label="Previous Page" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-left text-xs" aria-hidden="true"></i></a>
                         <?php
                         $window = 2; 
                         $start = max(1, $page - $window);
@@ -275,7 +275,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                             echo '<a href="' . getPageUrl($totalPages) . '" class="w-9 h-9 flex items-center justify-center rounded-xl text-sm text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400 transition font-mono">' . $totalPages . '</a>';
                         }
                         ?>
-                        <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right text-xs"></i></a>
+                        <a href="<?= $page < $totalPages ? getPageUrl($page + 1) : '#' ?>" aria-label="Next Page" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 <?= $page >= $totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-zinc-700 hover:text-emerald-400' ?> transition"><i class="fas fa-chevron-right text-xs" aria-hidden="true"></i></a>
                     </div>
                 </div>
             <?php endif; ?>
@@ -285,10 +285,10 @@ require_once __DIR__ . '/../private/includes/header.php';
     <div id="ledger-web3-panel" class="hidden flex-grow flex flex-col">
         <?php if (empty($nearWallet)): ?>
             <div class="text-center py-12 bg-purple-950/10 border border-dashed border-purple-500/30 rounded-3xl p-8">
-                <i class="fas fa-wallet text-purple-400 text-4xl mb-4"></i>
+                <i class="fas fa-wallet text-purple-400 text-4xl mb-4" aria-hidden="true"></i>
                 <h3 class="text-lg font-bold text-white mb-2"><?= __('No Web3 Wallet Detected') ?></h3>
                 <p class="text-sm text-zinc-400 max-w-md mx-auto mb-6"><?= __('Wallet bind prompt') ?></p>
-                <a href="<?= url('/my-setting?tab=web3') ?>" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link"></i> <?= __('Go to Bind Wallet') ?></a>
+                <a href="<?= url('/my-setting?tab=web3') ?>" class="inline-block px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-purple-500/20"><i class="fas fa-link" aria-hidden="true"></i> <?= __('Go to Bind Wallet') ?></a>
             </div>
         <?php else: ?>
             <div class="bg-zinc-900/60 border border-white/10 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm">
@@ -304,11 +304,12 @@ require_once __DIR__ . '/../private/includes/header.php';
                             </tr>
                         </thead>
                         <tbody id="web3-ledger-body" class="text-sm divide-y divide-white/5 font-medium">
-                            </tbody>
+                            <!-- JS Web3 Render Logic Here -->
+                        </tbody>
                     </table>
                 </div>
                 <div id="web3-scanning-loading" class="flex flex-col items-center justify-center py-20 bg-zinc-950/20">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-3"></div>
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-3" aria-hidden="true"></div>
                     <p class="text-zinc-400 text-xs animate-pulse"><?= __('Scanning Blockchain...') ?></p>
                 </div>
             </div>
@@ -353,6 +354,11 @@ require_once __DIR__ . '/../private/includes/header.php';
     function makeSlug(str) {
         if (!str) return 'unassigned';
         return encodeURIComponent(str.toLowerCase().replace(/[\s_:\/?#\[\]@!$&'()*+,;=<>\\|]+/g, '-').replace(/^-+|-+$/g, ''));
+    }
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
     }
 
     // 🚀 核心升級：Web3 去中心化雷達掃描與分流渲染庫 (支援無限翻頁 Chunking Polling)
@@ -425,24 +431,24 @@ require_once __DIR__ . '/../private/includes/header.php';
                             // 判斷分流
                             if (isOwner) {
                                 isMyAsset = true;
-                                typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1"></i><?= addslashes(__('Ownership')) ?></span>`;
+                                typeLabel = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-cube mr-1" aria-hidden="true"></i><?= addslashes(__('Ownership')) ?></span>`;
                                 roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Legal Owner')) ?></span>`;
                                 
                                 if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
-                                    statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1"></i><?= addslashes(__('Listed for Sale')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
+                                    statusHtml = `<span class="text-xs text-blue-400 font-bold"><i class="fas fa-tag mr-1" aria-hidden="true"></i><?= addslashes(__('Listed for Sale')) ?> (${window.nearApi.utils.format.formatNearAmount(tokenInfo.sale_price)} N)</span>`;
                                 } else if (tokenInfo.rent_price && tokenInfo.rent_price !== "0") {
-                                    statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1"></i><?= addslashes(__('Listed for Rent')) ?> (${nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
+                                    statusHtml = `<span class="text-xs text-purple-400 font-bold"><i class="fas fa-handshake mr-1" aria-hidden="true"></i><?= addslashes(__('Listed for Rent')) ?> (${window.nearApi.utils.format.formatNearAmount(tokenInfo.rent_price)} N)</span>`;
                                 } else {
-                                    statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1"></i><?= addslashes(__('Idle')) ?></span>`;
+                                    statusHtml = `<span class="text-xs text-zinc-500"><i class="fas fa-box mr-1" aria-hidden="true"></i><?= addslashes(__('Idle')) ?></span>`;
                                 }
                             } else if (isRenter) {
                                 isMyAsset = true;
-                                typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1"></i><?= addslashes(__('Active Lease')) ?></span>`;
+                                typeLabel = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-key mr-1" aria-hidden="true"></i><?= addslashes(__('Active Lease')) ?></span>`;
                                 roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Active Renter')) ?></span>`;
                                 statusHtml = `<div class="text-[11px] text-zinc-400"><div class="text-zinc-500 text-[9px] uppercase tracking-wider"><?= addslashes(__('Lease Expires At')) ?></div><div class="font-bold font-mono text-emerald-400">${leaseExpiryStr}</div></div>`;
                             } else if (isCreator) {
                                 isMyAsset = true;
-                                typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1"></i><?= addslashes(__('Royalty Node')) ?></span>`;
+                                typeLabel = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-black uppercase tracking-wider"><i class="fas fa-code-branch mr-1" aria-hidden="true"></i><?= addslashes(__('Royalty Node')) ?></span>`;
                                 roleLabel = `<span class="text-zinc-300 font-mono text-xs"><?= addslashes(__('Creator')) ?></span>`;
                                 statusHtml = `<span class="text-xs text-zinc-500"><?= addslashes(__('Perpetual 5% Royalty')) ?></span>`;
                             }
@@ -452,15 +458,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                                 const seoUrl = `<?= url('/soul/') ?>${encodeURIComponent(soul.username || 'anonymous')}/${soul.id}/${makeSlug(soul.role)}/${makeSlug(soul.title)}`;
                                 
                                 if (isOwner || isRenter) {
-                                    actionHtml = `<a href="<?= url('/chat/') ?>${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments"></i> <?= addslashes(__('Enter Chat')) ?></a>`;
+                                    actionHtml = `<a href="<?= url('/chat/') ?>${soul.id}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\' aria-hidden=\\'true\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg border border-purple-500/30 hover:bg-purple-500 transition shadow-sm"><i class="fas fa-comments" aria-hidden="true"></i> <?= addslashes(__('Enter Chat')) ?></a>`;
                                 } else {
-                                    actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye"></i> <?= addslashes(__('View Codebase')) ?></a>`;
+                                    actionHtml = `<a href="${seoUrl}" onclick="this.innerHTML='<i class=\\'fas fa-spinner fa-spin mr-1\\' aria-hidden=\\'true\\'></i>...'; this.classList.add('pointer-events-none','opacity-50');" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg border border-white/5 hover:text-white transition shadow-sm"><i class="fas fa-eye" aria-hidden="true"></i> <?= addslashes(__('View Codebase')) ?></a>`;
                                 }
 
                                 body.innerHTML += `
                                     <tr class="hover:bg-white/5 transition-colors duration-150 animate-fade-in">
                                         <td class="p-4 whitespace-nowrap">${typeLabel}</td>
-                                        <td class="p-4 text-white font-bold max-w-[200px] truncate select-all" title="${String(soul.title)}">${String(soul.title)}</td>
+                                        <td class="p-4 text-white font-bold max-w-[200px] truncate select-all" title="${escapeHTML(String(soul.title))}">${escapeHTML(String(soul.title))}</td>
                                         <td class="p-4 whitespace-nowrap">${roleLabel}</td>
                                         <td class="p-4">${statusHtml}</td>
                                         <td class="p-4 text-right whitespace-nowrap">${actionHtml}</td>
@@ -481,8 +487,9 @@ require_once __DIR__ . '/../private/includes/header.php';
                 body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500"><?= addslashes(__('No Web3 positions')) ?></td></tr>`;
             }
         } catch(e) {
+            console.error("Blockchain Scanner Error:", e);
             if(loader) loader.classList.add('hidden');
-            body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400"><?= addslashes(__('Blockchain connection failed')) ?></td></tr>`;
+            body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i><?= addslashes(__('Blockchain connection failed')) ?></td></tr>`;
         }
     }
 </script>
