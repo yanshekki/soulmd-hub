@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "near-sdk-js build src/contract.ts build/contract.wasm",
-    "deploy": "near deploy soulmd-hub.near build/contract.wasm",
+    "deploy": "NEAR_ENV=mainnet near deploy soulmd-hub.near build/contract.wasm --networkId mainnet",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
