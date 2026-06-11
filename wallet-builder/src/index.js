@@ -13,10 +13,15 @@ import { setupBitgetWallet } from "@near-wallet-selector/bitget-wallet";
 import * as nearApi from "near-api-js";
 import "@near-wallet-selector/modal-ui-js/styles.css";
 
-// 暴露給 PHP 呼叫
-window.nearApi = nearApi;
+// Robust global exposure for PHP-included pages (IIFE build safe)
+const __g = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : self));
 
-window.initWalletSelectorUI = async function(networkId, contractId) {
+// Expose nearApi immediately (used by format/parse even if selector not yet inited)
+__g.nearApi = nearApi;
+if (typeof window !== 'undefined') window.nearApi = nearApi;
+
+// Primary entry: called by near-wallet-scripts.php:initNearWallet
+__g.initWalletSelectorUI = async function(networkId, contractId) {
     const selector = await setupWalletSelector({
         network: networkId,
         modules: [
@@ -36,3 +41,4 @@ window.initWalletSelectorUI = async function(networkId, contractId) {
 
     return { selector, modal };
 };
+if (typeof window !== 'undefined') window.initWalletSelectorUI = __g.initWalletSelectorUI;

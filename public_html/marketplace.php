@@ -146,7 +146,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         const wrapper = await initNearWallet();
-        if (wrapper.isSignedIn()) {
+        if (wrapper && wrapper.isSignedIn()) {
             document.getElementById('wallet-btn-text').innerText = wrapper.getAccountId();
             document.getElementById('wallet-status-container').classList.add('opacity-80');
         }
@@ -164,7 +164,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) {
+        if (!wrapper || !wrapper.isSignedIn()) {
             await window.connectOrBindWallet(); return;
         }
 
@@ -262,7 +262,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         try {
             const wrapper = await initNearWallet();
-            const myWallet = wrapper.isSignedIn() ? wrapper.getAccountId() : null;
+            const myWallet = (wrapper && wrapper.isSignedIn()) ? wrapper.getAccountId() : null;
 
             const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);
             const data = await res.json();
@@ -434,7 +434,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     // 🚀 FIXED: Using wrapper.account().functionCall properly with Dual-Action format
     async function buyMarketSoul(id, rawPrice, btn) {
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        if (!wrapper || !wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -464,7 +464,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        if (!wrapper || !wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';

@@ -115,6 +115,9 @@ if (isset($_SESSION['user_id'])) {
         const contractId = "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>";
 
         try {
+            if (typeof window.initWalletSelectorUI !== 'function') {
+                throw new Error('initWalletSelectorUI not available (bundle not loaded or failed to expose)');
+            }
             const { selector, modal } = await window.initWalletSelectorUI(networkId, contractId);
             window.walletSelectorInstance = selector;
             window.walletModalInstance = modal;
@@ -210,7 +213,46 @@ if (isset($_SESSION['user_id'])) {
             return window.nearHubWalletWrapper;
         } catch (err) {
             console.error("Wallet Selector Init Error:", err);
+            // Always return a safe stub so callers never crash on .isSignedIn() etc.
+            const stub = {
+                isSignedIn: () => false,
+                getAccountId: () => null,
+                requestSignIn: () => {
+                    if (window.walletModalInstance && typeof window.walletModalInstance.show === 'function') {
+                        window.walletModalInstance.show();
+                    } else if (window.location) {
+                        window.location.href = '/my-setting#web3';
+                    }
+                },
+                signOut: async () => {},
+                account: () => ({
+                    functionCall: async () => { throw new Error('Wallet not initialized. Please refresh or visit /my-setting to bind.'); }
+                }),
+                requestSignTransactions: async () => { throw new Error('Wallet not initialized. Please refresh or visit /my-setting to bind.'); }
+            };
+            window.nearHubWalletWrapper = stub;
+            return stub;
         }
+    };
+
+    // 🚀 MISSING GLOBAL: connectOrBindWallet (called from marketplace, soul.php, my-souls, forms etc when !signedIn)
+    // Centralized so no "not a function" errors on any page.
+    window.connectOrBindWallet = async function() {
+        try {
+            const w = await window.initNearWallet();
+            if (w && typeof w.requestSignIn === 'function') {
+                w.requestSignIn();
+                return;
+            }
+            if (window.walletModalInstance && typeof window.walletModalInstance.show === 'function') {
+                window.walletModalInstance.show();
+                return;
+            }
+        } catch (e) {
+            console.warn('connectOrBindWallet init issue:', e);
+        }
+        // Final fallback: go bind in settings
+        if (window.location) window.location.href = '/my-setting#web3';
     };
 
     window.generateNearAuthPayload = async function(accountId) {
