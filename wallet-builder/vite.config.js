@@ -15,7 +15,7 @@ export default defineConfig({
     }),
   ],
   build: {
-    outDir: '../../public_html/assets',
+    outDir: '../public_html/assets',
     emptyOutDir: false,
     cssCodeSplit: false,
     sourcemap: false,
