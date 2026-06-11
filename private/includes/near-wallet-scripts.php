@@ -255,6 +255,28 @@ if (isset($_SESSION['user_id'])) {
         if (window.location) window.location.href = '/my-setting#web3';
     };
 
+    // 🚀 ROBUST ERROR MESSAGE EXTRACTOR (fixes "e.message is undefined" in all transaction alerts)
+    // Wallet selector, near-api, and user-rejected errors often have the real message in .message, .type, .error, or as a plain string/object.
+    window.getErrorMessage = function(e) {
+        if (!e) return 'Unknown error';
+        if (typeof e === 'string') return e;
+        if (e.message) return e.message;
+        if (e.error) {
+            if (typeof e.error === 'string') return e.error;
+            if (e.error.message) return e.error.message;
+        }
+        if (e.type) return e.type + (e.message ? ' - ' + e.message : '');
+        if (e.reason) return e.reason;
+        if (e.details) return e.details;
+        if (e.name && e.name !== 'Error') return e.name + (e.message ? ': ' + e.message : '');
+        try {
+            const str = JSON.stringify(e);
+            return str.length > 300 ? str.substring(0, 300) + '...' : str;
+        } catch (_) {
+            return String(e);
+        }
+    };
+
     window.generateNearAuthPayload = async function(accountId) {
         const wallet = await window.walletSelectorInstance.wallet();
         const timestamp = Date.now();

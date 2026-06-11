@@ -305,7 +305,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web2-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl"><i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i> <span class="font-mono text-sm">${escapeHTML(e.message)}</span></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl"><i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i> <span class="font-mono text-sm">${escapeHTML(window.getErrorMessage(e))}</span></div>`;
         }
     }
 
@@ -418,7 +418,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 document.getElementById('web3-pagination').innerHTML = '';
             }
         } catch(e) {
-            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl"><i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i> <span class="font-mono text-sm">${escapeHTML(e.message)}</span></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl"><i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i> <span class="font-mono text-sm">${escapeHTML(window.getErrorMessage(e))}</span></div>`;
         }
     }
 
@@ -546,7 +546,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } catch(e) {
             console.error("loadRentedSouls Caught Error:", e);
-            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl break-all px-4"><i class="fas fa-exclamation-triangle mr-2 text-xl mb-2" aria-hidden="true"></i><br><span class="font-mono text-sm">${escapeHTML(e.message)}</span></div>`;
+            container.innerHTML = `<div class="text-red-400 text-center py-12 border border-red-500/20 bg-red-900/10 rounded-2xl break-all px-4"><i class="fas fa-exclamation-triangle mr-2 text-xl mb-2" aria-hidden="true"></i><br><span class="font-mono text-sm">${escapeHTML(window.getErrorMessage(e))}</span></div>`;
         }
     }
 

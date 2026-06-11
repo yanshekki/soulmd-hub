@@ -498,7 +498,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         } catch(e) {
             console.error("Buy Transaction Error:", e);
-            alert("<?= addslashes(__('Swap fail')) ?>\n" + e.message);
+            alert("<?= addslashes(__('Swap fail')) ?>\n" + window.getErrorMessage(e));
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -528,7 +528,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         } catch(e) {
             console.error("Rent Transaction Error:", e);
-            alert("<?= addslashes(__('Swap fail')) ?>\n" + e.message);
+            alert("<?= addslashes(__('Swap fail')) ?>\n" + window.getErrorMessage(e));
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

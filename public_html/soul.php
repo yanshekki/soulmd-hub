@@ -495,7 +495,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         } catch (e) {
             console.error("Soul Details Buy Error:", e);
-            alert("<?= addslashes(__('Operation failed')) ?>:\n" + e.message);
+            alert("<?= addslashes(__('Operation failed')) ?>:\n" + window.getErrorMessage(e));
             textSpan.innerHTML = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -529,7 +529,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         } catch (e) {
             console.error("Soul Details Rent Error:", e);
-            alert("<?= addslashes(__('Operation failed')) ?>:\n" + e.message);
+            alert("<?= addslashes(__('Operation failed')) ?>:\n" + window.getErrorMessage(e));
             textSpan.innerHTML = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

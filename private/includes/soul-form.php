@@ -372,7 +372,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             window.location.reload();
         } catch(e) {
             console.error("AgentFi Action Error:", e);
-            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + e.message);
+            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + window.getErrorMessage(e));
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');

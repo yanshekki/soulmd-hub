@@ -414,7 +414,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch(e) {
             console.error("Buyback Error:", e);
             let errorText = `<?= addslashes(__('Buyback Failed')) ?>`.replace(':contract', '<?= NEAR_CONTRACT_ID; ?>');
-            alert(errorText + "\n" + e.message);
+            alert(errorText + "\n" + window.getErrorMessage(e));
             
             text.innerHTML = originalHtml;
             btn.disabled = false;
