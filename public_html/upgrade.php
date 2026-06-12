@@ -45,7 +45,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 // We emit it here so the wallet functions (initNearWallet, getErrorMessage, etc.) are available for the on-chain payment buttons.
 require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 ?>
+<!-- PayPal SDK hidden for now. Users pay via NEAR USDT/USDC on-chain instead.
 <script src="https://www.paypal.com/sdk/js?client-id=<?= PAYPAL_CLIENT_ID ?>&currency=USD&disable-funding=credit,card"></script>
+-->
 
 <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow flex flex-col">
     
@@ -119,7 +121,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                         <i class="fas fa-check-circle" aria-hidden="true"></i> <?= __('Included in plan') ?>
                     </button>
                 <?php else: ?>
-                    <div id="paypal-button-container-vip" class="relative z-10 w-full min-h-[45px]"></div>
+                    <!-- PayPal buttons hidden. Users now pay via NEAR USDT/USDC on-chain (see section below) -->
                 <?php endif; ?>
             </div>
         </article>
@@ -158,7 +160,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                         <i class="fas fa-check-circle" aria-hidden="true"></i> <?= __('Highest Tier Reached') ?>
                     </button>
                 <?php else: ?>
-                    <div id="paypal-button-container-pro" class="relative z-10 w-full min-h-[45px]"></div>
+                    <!-- PayPal buttons hidden. Users now pay via NEAR USDT/USDC on-chain (see section below) -->
                 <?php endif; ?>
             </div>
         </article>
@@ -214,6 +216,8 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 </main>
 
 <script>
+    // PayPal integration hidden. Users now pay exclusively via NEAR USDT/USDC on-chain (see NEAR section below).
+    /*
     function renderPayPalButton(containerId, tierName, priceStr) {
         if (!document.getElementById(containerId)) return;
 
@@ -268,8 +272,9 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
         }).render('#' + containerId);
     }
 
-    renderPayPalButton('paypal-button-container-vip', 'vip', '<?= PRICE_VIP_MONTHLY ?>');
-    renderPayPalButton('paypal-button-container-pro', 'pro', '<?= PRICE_PRO_MONTHLY ?>');
+    // renderPayPalButton('paypal-button-container-vip', 'vip', '<?= PRICE_VIP_MONTHLY ?>');
+    // renderPayPalButton('paypal-button-container-pro', 'pro', '<?= PRICE_PRO_MONTHLY ?>');
+    */
 
     // ============================================================
     // On-chain NEAR USDT/USDC payment JS (strict version)

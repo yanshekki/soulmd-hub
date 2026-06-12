@@ -49,7 +49,7 @@ return [
         
         // Legal Footer
         'Terms of Purchase & No Refund Policy:' => 'Terms of Purchase & No Refund Policy:',
-        'Legal Text' => 'By proceeding with the payment, you agree to our Terms of Service. All transactions are final and processed securely via PayPal. Because this service provides immediate access to digital API resources, smart contract syncing, and premium server capacities, <span class="text-red-400/80 font-semibold">all payments are strictly non-refundable</span> under any circumstances, including partial usage or account termination.',
+        'Legal Text' => 'By proceeding with the payment, you agree to our Terms of Service. All transactions are final and processed securely via NEAR blockchain (USDT/USDC on-chain). Because this service provides immediate access to digital API resources, smart contract syncing, and premium server capacities, <span class="text-red-400/80 font-semibold">all payments are strictly non-refundable</span> under any circumstances, including partial usage or account termination.',
         
         // JavaScript Checkout States
         'Verifying transaction...' => 'Verifying cryptographic transaction signature. Do not close this browser...',
@@ -103,7 +103,7 @@ return [
         
         // Legal Footer
         'Terms of Purchase & No Refund Policy:' => '購買條款與不退款政策：',
-        'Legal Text' => '繼續付款即表示您同意我們的服務條款。所有交易均透過 PayPal 安全處理且為最終決定。由於本服務提供即時的數位 API 資源存取、智能合約同步及優質的伺服器算力，<span class="text-red-400/80 font-semibold">在任何情況下所有付款皆嚴格禁止退款</span>，這包括部分使用或帳號終止之情形。',
+        'Legal Text' => '繼續付款即表示您同意我們的服務條款。所有交易均透過 NEAR 區塊鏈 (USDT/USDC 鏈上) 安全處理且為最終決定。由於本服務提供即時的數位 API 資源存取、智能合約同步及優質的伺服器算力，<span class="text-red-400/80 font-semibold">在任何情況下所有付款皆嚴格禁止退款</span>，這包括部分使用或帳號終止之情形。',
         
         // JavaScript Checkout States
         'Verifying transaction...' => '正在驗證加密交易簽章，請勿關閉此瀏覽器...',
