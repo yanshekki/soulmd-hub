@@ -279,7 +279,10 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         const urlParams = new URLSearchParams(window.location.search);
         
         if (urlParams.has('errorMessage') || urlParams.has('errorCode')) {
-            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (urlParams.get('errorMessage') || urlParams.get('errorCode')));
+            const raw = (urlParams.get('errorMessage') || urlParams.get('errorCode') || '');
+            let nice = raw;
+            try { nice = window.getErrorMessage(raw.trim().startsWith('{') ? JSON.parse(decodeURIComponent(raw)) : decodeURIComponent(raw)); } catch(_) { nice = window.getErrorMessage(raw) || raw; }
+            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + nice);
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         } else if (urlParams.has('transactionHashes')) {

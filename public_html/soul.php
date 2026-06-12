@@ -496,11 +496,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch (e) {
             console.error("Soul Details Buy Error:", e);
             const errMsg = window.getErrorMessage(e) || '';
-            if (errMsg.includes('Transaction not found, but maybe executed')) {
-                // Expected error when using walletCallbackUrl redirect flow.
-                // The transaction result (success or errorMessage) will be handled
-                // on page reload via URL query params in DOMContentLoaded.
-                // Do not show failure alert to user.
+            if (errMsg.includes('Transaction not found, but maybe executed') && !errMsg.includes('panick') && !errMsg.includes('ExecutionError') && !errMsg.includes('ActionError')) {
                 textSpan.innerHTML = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -541,11 +537,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch (e) {
             console.error("Soul Details Rent Error:", e);
             const errMsg = window.getErrorMessage(e) || '';
-            if (errMsg.includes('Transaction not found, but maybe executed')) {
-                // Expected error when using walletCallbackUrl redirect flow.
-                // The transaction result (success or errorMessage) will be handled
-                // on page reload via URL query params in DOMContentLoaded.
-                // Do not show failure alert to user.
+            if (errMsg.includes('Transaction not found, but maybe executed') && !errMsg.includes('panick') && !errMsg.includes('ExecutionError') && !errMsg.includes('ActionError')) {
                 textSpan.innerHTML = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');

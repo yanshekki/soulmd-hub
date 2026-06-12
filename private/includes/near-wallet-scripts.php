@@ -269,26 +269,78 @@ if (isset($_SESSION['user_id'])) {
         if (window.location) window.location.href = '/my-setting#web3';
     };
 
-    // 🚀 ROBUST ERROR MESSAGE EXTRACTOR (fixes "e.message is undefined" in all transaction alerts)
-    // Wallet selector, near-api, and user-rejected errors often have the real message in .message, .type, .error, or as a plain string/object.
+    // 🚀 ROBUST ERROR MESSAGE EXTRACTOR (fixes silent fails on real contract panics like ActionError/ExecutionError)
+    // Handles NEAR tx results, wallet selector rejections, and the exact deep structure:
+    // { ActionError: { kind: { FunctionCallError: { ExecutionError: "Smart contract panicked: ..." } } } }
+    // Also copes with the errorMessage query param carrying raw JSON or the panic string.
     window.getErrorMessage = function(e) {
         if (!e) return 'Unknown error';
         if (typeof e === 'string') return e;
-        if (e.message) return e.message;
+
+        // 1. Deep NEAR ActionError / ExecutionError / panic extraction (the structure from the user's report)
+        const extractNearPanic = (obj, depth = 0) => {
+            if (!obj || typeof obj !== 'object' || depth > 6) return null;
+            // Direct hits
+            if (typeof obj.ExecutionError === 'string') return obj.ExecutionError;
+            if (obj.FunctionCallError && typeof obj.FunctionCallError.ExecutionError === 'string')
+                return obj.FunctionCallError.ExecutionError;
+            if (obj.kind && obj.kind.FunctionCallError && typeof obj.kind.FunctionCallError.ExecutionError === 'string')
+                return obj.kind.FunctionCallError.ExecutionError;
+            if (obj.ActionError && obj.ActionError.kind)
+                return extractNearPanic(obj.ActionError.kind, depth + 1);
+            // Common wrappers from wallet / rpc
+            if (obj.error && typeof obj.error === 'object') {
+                const sub = extractNearPanic(obj.error, depth + 1);
+                if (sub) return sub;
+            }
+            if (obj.cause && typeof obj.cause === 'object') {
+                const sub = extractNearPanic(obj.cause, depth + 1);
+                if (sub) return sub;
+            }
+            // Recursive search for any key that looks like it carries the error
+            for (const key of Object.keys(obj)) {
+                const val = obj[key];
+                if (key.toLowerCase().includes('error') || key === 'kind' || key === 'ActionError' || key === 'FunctionCallError') {
+                    const sub = extractNearPanic(val, depth + 1);
+                    if (sub) return sub;
+                }
+            }
+            return null;
+        };
+
+        const nearPanic = extractNearPanic(e);
+        if (nearPanic) {
+            // Clean up the common prefix for user-friendly alert
+            let msg = String(nearPanic);
+            msg = msg.replace(/^Smart contract panicked:\s*/i, 'Contract panicked: ');
+            return msg.length > 400 ? msg.substring(0, 400) + '...' : msg;
+        }
+
+        // 2. Standard paths
+        if (e.message && typeof e.message === 'string') return e.message;
         if (e.error) {
             if (typeof e.error === 'string') return e.error;
             if (e.error.message) return e.error.message;
+            const sub = extractNearPanic(e.error);
+            if (sub) return sub;
+        }
+        if (typeof e === 'object' && e.toString && !e.message) {
+            const s = e.toString();
+            if (s && s !== '[object Object]') return s;
         }
         if (e.type) return e.type + (e.message ? ' - ' + e.message : '');
         if (e.reason) return e.reason;
         if (e.details) return e.details;
         if (e.name && e.name !== 'Error') return e.name + (e.message ? ': ' + e.message : '');
+
+        // 3. Last resort: safe stringify (shows the ActionError JSON if nothing else matched)
         try {
             const str = JSON.stringify(e);
-            return str.length > 300 ? str.substring(0, 300) + '...' : str;
-        } catch (_) {
-            return String(e);
-        }
+            if (str && str !== '{}' && str !== 'null') {
+                return str.length > 350 ? str.substring(0, 350) + '...' : str;
+            }
+        } catch (_) {}
+        return String(e);
     };
 
     window.generateNearAuthPayload = async function(accountId) {

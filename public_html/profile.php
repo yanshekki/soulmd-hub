@@ -183,7 +183,18 @@ require_once __DIR__ . '/../private/includes/header.php';
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         } else if (urlParams.has('errorMessage')) {
-            alert('<?= addslashes(__('Swap fail')) ?>\n' + decodeURIComponent(urlParams.get('errorMessage')));
+            const raw = decodeURIComponent(urlParams.get('errorMessage') || '');
+            let nice = raw;
+            try {
+                if (raw.trim().startsWith('{')) {
+                    nice = window.getErrorMessage(JSON.parse(raw));
+                } else {
+                    nice = window.getErrorMessage(raw);
+                }
+            } catch (_) {
+                nice = window.getErrorMessage(raw) || raw;
+            }
+            alert('<?= addslashes(__('Swap fail')) ?>\n' + nice);
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
@@ -499,11 +510,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch(e) {
             console.error("Buy Transaction Error:", e);
             const errMsg = window.getErrorMessage(e) || '';
-            if (errMsg.includes('Transaction not found, but maybe executed')) {
-                // Expected error when using walletCallbackUrl redirect flow.
-                // The transaction result (success or errorMessage) will be handled
-                // on page reload via URL query params in DOMContentLoaded.
-                // Do not show failure alert to user.
+            if (errMsg.includes('Transaction not found, but maybe executed') && !errMsg.includes('panick') && !errMsg.includes('ExecutionError') && !errMsg.includes('ActionError')) {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -540,11 +547,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch(e) {
             console.error("Rent Transaction Error:", e);
             const errMsg = window.getErrorMessage(e) || '';
-            if (errMsg.includes('Transaction not found, but maybe executed')) {
-                // Expected error when using walletCallbackUrl redirect flow.
-                // The transaction result (success or errorMessage) will be handled
-                // on page reload via URL query params in DOMContentLoaded.
-                // Do not show failure alert to user.
+            if (errMsg.includes('Transaction not found, but maybe executed') && !errMsg.includes('panick') && !errMsg.includes('ExecutionError') && !errMsg.includes('ActionError')) {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
