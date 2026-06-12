@@ -303,7 +303,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending ${amount} ${token.toUpperCase()} to the contract (msg: ${msg})...`;
 
             // The existing wrapper supports arbitrary contractId — we use it here to call the TOKEN's ft_transfer_call
-            await wrapper.account().functionCall({
+            const payResult = await wrapper.account().functionCall({
                 contractId: tokenContract,
                 methodName: 'ft_transfer_call',
                 args: {
@@ -318,8 +318,9 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-emerald-900/30 text-emerald-200 border-emerald-500/40';
             status.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Transaction signed on-chain. Verifying credit...';
 
-            // Strict claim (the API will do the real view_call proof)
-            await claimNearUpgrade(tier, token, status);
+            // Strict claim (the API will do the real view_call proof + exact credit ts binding)
+            // Pass payResult for potential tx hash verification (if available in outcome)
+            await claimNearUpgrade(tier, token, status, payResult);
 
         } catch (e) {
             console.error('NEAR FT payment error', e);
@@ -329,12 +330,14 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
         }
     }
 
-    async function claimNearUpgrade(tier, token, statusEl) {
+    async function claimNearUpgrade(tier, token, statusEl, payResult = null) {
         try {
+            const payload = { tier, token };
+            if (payResult) payload.tx = payResult; // pass for future/server-side tx verification
             const res = await fetch('/api/near-upgrade', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tier, token })
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
 

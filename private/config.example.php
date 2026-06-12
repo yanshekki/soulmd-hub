@@ -146,8 +146,11 @@ define('PAYPAL_MODE', 'sandbox');
 // ==========================================
 // 🪙 NEAR FT On-chain Payment Tokens (USDT / USDC for upgrade.php)
 // These replace or supplement PayPal for tier upgrades.
-// IMPORTANT: Update the values in contract/src/contract.ts (USDT_CONTRACT / USDC_CONTRACT) 
-// to match BEFORE running `npm run build` in the contract directory.
+// IMPORTANT: 
+// 1. Update the values in contract/src/contract.ts (USDT_CONTRACT / USDC_CONTRACT) 
+//    to match BEFORE running `npm run build` in the contract directory.
+// 2. The platform account (soulmd-hub.near) MUST call storage_deposit on both token contracts
+//    once (one-time ~0.00125 NEAR per token) so the contract can receive FTs as NEP-141 receiver.
 // Always verify the latest mainnet addresses on https://explorer.near.org
 // ==========================================
 define('NEAR_USDT_CONTRACT', 'usdt.tether-token.near');

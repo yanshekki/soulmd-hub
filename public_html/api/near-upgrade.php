@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true);
 $tier = strtolower(trim($input['tier'] ?? ''));
 $token = strtolower(trim($input['token'] ?? 'usdt')); // for logging/amount display only
+$payTx = $input['tx'] ?? null; // optional tx outcome from frontend for audit / future verification
 
 if (!in_array($tier, ['vip', 'pro'])) {
     http_response_code(400);
@@ -84,48 +85,53 @@ if (!$nearAccount) {
 
 $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
 
-// === STRICT on-chain verification ===
+// === STRICT on-chain verification (now returns exact credit ts or "0" for binding) ===
+// Use project's known reliable RPCs with simple failover for robustness
+$rpcNodes = ["https://rpc.mainnet.near.org", "https://free.rpc.fastnear.com"];
 $args = ['account_id' => $nearAccount, 'tier' => $tier];
 $argsBase64 = base64_encode(json_encode($args));
+$creditTsStr = "0";
 
-$rpcUrl = 'https://rpc.mainnet.near.org'; // TODO: use the project's rpcNodesPool for production
-$rpcPayload = [
-    'jsonrpc' => '2.0',
-    'id' => 'near-upgrade-claim',
-    'method' => 'query',
-    'params' => [
-        'request_type' => 'call_function',
-        'finality' => 'optimistic',
-        'account_id' => $contractId,
-        'method_name' => 'has_upgrade_credit',
-        'args_base64' => $argsBase64
-    ]
-];
-
-$ch = curl_init($rpcUrl);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => json_encode($rpcPayload),
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-    CURLOPT_TIMEOUT => 8,
-]);
-$rpcResponse = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-$hasCredit = false;
-if ($httpCode === 200 && $rpcResponse) {
-    $decoded = json_decode($rpcResponse, true);
-    if (isset($decoded['result']['result'])) {
-        $bytes = $decoded['result']['result'];
-        $resultStr = '';
-        foreach ($bytes as $b) $resultStr .= chr($b);
-        $hasCredit = (strtolower(trim($resultStr)) === 'true');
+foreach ($rpcNodes as $rpcUrl) {
+    $rpcPayload = [
+        'jsonrpc' => '2.0',
+        'id' => 'near-upgrade-claim',
+        'method' => 'query',
+        'params' => [
+            'request_type' => 'call_function',
+            'finality' => 'optimistic',
+            'account_id' => $contractId,
+            'method_name' => 'has_upgrade_credit',
+            'args_base64' => $argsBase64
+        ]
+    ];
+    $ch = curl_init($rpcUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($rpcPayload),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT => 6,
+    ]);
+    $rpcResponse = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($httpCode === 200 && $rpcResponse) {
+        $decoded = json_decode($rpcResponse, true);
+        if (isset($decoded['result']['result'])) {
+            $bytes = $decoded['result']['result'];
+            $resultStr = '';
+            foreach ($bytes as $b) $resultStr .= chr($b);
+            $trimmed = trim($resultStr);
+            if ($trimmed !== "0") {
+                $creditTsStr = $trimmed;
+                break; // got valid ts
+            }
+        }
     }
 }
 
-if (!$hasCredit) {
+if ($creditTsStr === "0") {
     http_response_code(402);
     echo json_encode([
         'success' => false,
@@ -134,13 +140,22 @@ if (!$hasCredit) {
     exit;
 }
 
-// Prevent double-claim for the same on-chain payment (credit persists in contract as proof of receipt to soulmd-hub.near, but DB records the claim)
-$checkStmt = $pdo->prepare("SELECT id FROM payments WHERE paypal_order_id LIKE ? LIMIT 1");
-$checkStmt->execute(['near-ft:' . $nearAccount . ':' . $tier . ':%']);
+// Prevent double-claim using exact credit timestamp binding (ties claim to this specific payment instance)
+$exactRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . $creditTsStr;
+$checkStmt = $pdo->prepare("SELECT id FROM payments WHERE paypal_order_id = ? LIMIT 1");
+$checkStmt->execute([$exactRef]);
 if ($checkStmt->fetch()) {
     echo json_encode(['success' => false, 'error' => 'This on-chain upgrade payment has already been claimed.'], JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+// Simple rate limit (session-based, like other APIs in project)
+if (isset($_SESSION['last_near_claim_time']) && (time() - $_SESSION['last_near_claim_time'] < 5)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'error' => 'Too many claims, please wait a moment.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+$_SESSION['last_near_claim_time'] = time();
 
 // === Apply entitlement (exact same logic as PayPal path) ===
 $now = time();
@@ -170,7 +185,7 @@ try {
         ->execute([$tier, $newExpiryStr, $userId]);
 
     $amountStr = ($tier === 'vip') ? (NEAR_UPGRADE_VIP_USD_AMOUNT . '.00') : (NEAR_UPGRADE_PRO_USD_AMOUNT . '.00');
-    $paymentRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . time();
+    $paymentRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . $creditTsStr;
 
     $ins = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");
     $ins->execute([$userId, $paymentRef, $amountStr, strtoupper($token), $tier, 'COMPLETED']);

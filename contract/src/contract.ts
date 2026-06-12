@@ -364,9 +364,17 @@ class SoulMDAgentFi {
     }
 
     @view({})
-    has_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }): boolean {
+    has_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }): string {
         const key = `${account_id}:${tier}`;
-        return this.upgrade_credits.get(key) !== null;
+        const tsStr = this.upgrade_credits.get(key);
+        if (!tsStr) return "0";
+        const ts = BigInt(tsStr);
+        const now = near.blockTimestamp();
+        const expiryNs = 86400000000000n; // 24 hours in nanoseconds
+        if (now - ts > expiryNs) {
+            return "0"; // expired credit
+        }
+        return tsStr; // return the exact credit timestamp for one-time claim binding
     }
 
     @call({})
@@ -378,4 +386,8 @@ class SoulMDAgentFi {
         this.upgrade_credits.remove(key);
         near.log(`Credit cleared for ${account_id} ${tier} (by platform)`);
     }
+
+    // Note: Funds intentionally stay in soulmd-hub.near contract account (safe cool wallet per user).
+    // No sweep/transfer logic added. Platform holds received USDT/USDC directly.
+    // Storage registration with USDT/USDC contracts must be done once by platform account before receiving.
 }
