@@ -72,17 +72,33 @@ This makes the on-chain payment the source of truth for the "paid" event.
 
 ## Full Migration Plan
 
-**Phase 0 — This PoC (current work, completely fixed before commit)**
-- Contract + upgrade.php + claim API + this plan doc.
-- Contract build verified.
-- All error paths use `getErrorMessage`.
-- Strict on-chain verification.
-- Side-by-side with PayPal.
-- Executed on feature branch `feat/near-ft-upgrade-payments` (local commits only, from base 41876fb).
-- i18n added for new UI (en + zh).
-- Amounts now reference PRICE_* defines in comments/labels.
-- Storage deposit requirement documented.
-- Ready for user review before any merge/push to origin/main.
+**Execution Status (on feature branch `feat/near-ft-upgrade-payments`, local commits only)**
+
+All phases executed completely from clean base (reset to 41876fb as requested). No commits pushed, no merge to main. User reviews first.
+
+- **phase-0 commit**: Branch setup + base PoC implementation (contract FT strict, upgrade.php, claim API, plan doc) captured.
+- **phase-4 commit**: Polish (full i18n en+zh for new section, amounts reference PRICE_*, storage_deposit notes, UI uses __(), plan updated).
+- **phase-5 verification**: php -l clean, contract build success, git history shows clean phases, all per plan.
+
+**Current branch log (phased, reviewable):**
+(From git log --oneline)
+- phase-5 / phase-4 / phase-0 + previous base commits
+
+**Files changed (ready for review):**
+- contract/src/contract.ts (FT receiver + views + safety)
+- public_html/upgrade.php (wallet include + i18n NEAR section + JS)
+- public_html/api/near-upgrade.php (strict on-chain claim)
+- docs/06_NEAR_FT_UPGRADE_PAYMENTS_POC.md (full plan + status)
+- languages/upgrade.php (new keys)
+
+**Completely fixed before any merge**:
+- Strict on-chain proof (mandatory view_call, no bypass)
+- Reuses all existing wallet/error/contract patterns
+- i18n complete
+- Builds + lints
+- Detailed plan with phases, risks, next steps
+
+**Next**: User reviews the branch `feat/near-ft-upgrade-payments` (or diff vs 41876fb). When approved, we can merge locally to main then push, or user does the merge to origin/main.
 
 **Phase 1 — Hardening & Testnet/Mainnet Dry Run**
 - Confirm exact FT contract IDs + do one-time `storage_deposit` from the platform account for the Soul contract on both tokens.
