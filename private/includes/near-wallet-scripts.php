@@ -33,20 +33,34 @@ if (isset($_SESSION['user_id'])) {
     window.activeNearRpcUrl = window.rpcNodesPool[0];
 
     async function getHealthyRpc() {
-        for (const url of window.rpcNodesPool) {
-            try {
-                const controller = new AbortController();
-                const id = setTimeout(() => controller.abort(), 2500);
-                const res = await fetch(url, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ jsonrpc: "2.0", id: "ping", method: "status", params: [] }),
-                    signal: controller.signal
-                });
-                clearTimeout(id);
-                if (res.ok) return url;
-            } catch (e) {}
-        }
-        return window.rpcNodesPool[0];
+        // Use NEAR_RPC_NODES and find the FASTEST RPC by measured ping time (for all NEAR RPC usage in wallet/upgrade flows)
+        const results = await Promise.allSettled(
+            window.rpcNodesPool.map(async (url) => {
+                const start = performance.now();
+                try {
+                    const controller = new AbortController();
+                    const id = setTimeout(() => controller.abort(), 3000);
+                    const res = await fetch(url, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ jsonrpc: "2.0", id: "ping", method: "status", params: [] }),
+                        signal: controller.signal
+                    });
+                    clearTimeout(id);
+                    const time = performance.now() - start;
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        if (data && data.result) return { url, time };
+                    }
+                } catch (e) {}
+                return null;
+            })
+        );
+        const valid = results
+            .map(r => (r.status === 'fulfilled' ? r.value : null))
+            .filter(Boolean);
+        if (valid.length === 0) return window.rpcNodesPool[0];
+        valid.sort((a, b) => a.time - b.time);
+        return valid[0].url;
     }
 
     window.nearRpcQuery = async function(methodName, args = {}, finality = 'optimistic') {

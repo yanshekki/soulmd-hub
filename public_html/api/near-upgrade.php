@@ -85,14 +85,17 @@ if (!$nearAccount) {
 
 $contractId = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
 
-// === STRICT on-chain verification (now returns exact credit ts or "0" for binding) ===
-// Use project's known reliable RPCs with simple failover for robustness
-$rpcNodes = ["https://rpc.mainnet.near.org", "https://free.rpc.fastnear.com"];
+// === STRICT on-chain verification using NEAR_RPC_NODES, pick the fastest RPC ===
+// All RPC in this NEAR payment upgrade now use the project's NEAR_RPC_NODES config.
+// We ping/measure the actual has_upgrade_credit query on each and pick the fastest successful one.
+$rpcNodes = defined('NEAR_RPC_NODES') ? NEAR_RPC_NODES : ["https://rpc.mainnet.near.org", "https://free.rpc.fastnear.com"];
 $args = ['account_id' => $nearAccount, 'tier' => $tier];
 $argsBase64 = base64_encode(json_encode($args));
 $creditTsStr = "0";
+$bestTime = PHP_FLOAT_MAX;
 
 foreach ($rpcNodes as $rpcUrl) {
+    $start = microtime(true);
     $rpcPayload = [
         'jsonrpc' => '2.0',
         'id' => 'near-upgrade-claim',
@@ -111,11 +114,13 @@ foreach ($rpcNodes as $rpcUrl) {
         CURLOPT_POSTFIELDS => json_encode($rpcPayload),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT => 6,
+        CURLOPT_TIMEOUT => 5,
     ]);
     $rpcResponse = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $elapsed = microtime(true) - $start;
     curl_close($ch);
+
     if ($httpCode === 200 && $rpcResponse) {
         $decoded = json_decode($rpcResponse, true);
         if (isset($decoded['result']['result'])) {
@@ -123,9 +128,9 @@ foreach ($rpcNodes as $rpcUrl) {
             $resultStr = '';
             foreach ($bytes as $b) $resultStr .= chr($b);
             $trimmed = trim($resultStr);
-            if ($trimmed !== "0") {
+            if ($trimmed !== "0" && $elapsed < $bestTime) {
+                $bestTime = $elapsed;
                 $creditTsStr = $trimmed;
-                break; // got valid ts
             }
         }
     }
