@@ -179,7 +179,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
                     <div class="text-emerald-400 text-xs font-bold tracking-widest">STANDARD</div>
-                    <div class="font-bold text-lg">VIP — 5 USDT or USDC <span class="text-xs text-zinc-500">(30 days, demo equiv. to $<?= PRICE_VIP_MONTHLY ?>)</span></div>
+                    <div class="font-bold text-lg">VIP — <?= NEAR_UPGRADE_VIP_USD_AMOUNT ?> USDT or USDC <span class="text-xs text-zinc-500">(30 days, equiv. to $<?= PRICE_VIP_MONTHLY ?>)</span></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
                     <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
@@ -192,7 +192,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
                     <div class="text-amber-400 text-xs font-bold tracking-widest">ADVANCED</div>
-                    <div class="font-bold text-lg">PRO — 15 USDT or USDC <span class="text-xs text-zinc-500">(30 days, demo equiv. to $<?= PRICE_PRO_MONTHLY ?>)</span></div>
+                    <div class="font-bold text-lg">PRO — <?= NEAR_UPGRADE_PRO_USD_AMOUNT ?> USDT or USDC <span class="text-xs text-zinc-500">(30 days, equiv. to $<?= PRICE_PRO_MONTHLY ?>)</span></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
                     <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>

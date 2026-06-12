@@ -189,7 +189,7 @@ try {
     $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?")
         ->execute([$tier, $newExpiryStr, $userId]);
 
-    $amountStr = ($tier === 'vip') ? (NEAR_UPGRADE_VIP_USD_AMOUNT . '.00') : (NEAR_UPGRADE_PRO_USD_AMOUNT . '.00');
+    $amountStr = ($tier === 'vip') ? number_format((float)NEAR_UPGRADE_VIP_USD_AMOUNT, 2) : number_format((float)NEAR_UPGRADE_PRO_USD_AMOUNT, 2);
     $paymentRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . $creditTsStr;
 
     $ins = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");
