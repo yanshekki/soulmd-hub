@@ -173,7 +173,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <h3 id="near-payments-heading" class="text-xl font-bold text-white tracking-tight"><?= __('Pay with USDT or USDC on NEAR') ?></h3>
         </div>
         <p class="text-sm text-zinc-400 mb-5 max-w-3xl">
-            <?= __('Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.') ?>
+            <?= __('Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant. The contract records a credit that we verify on-chain before applying your tier.') ?>
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

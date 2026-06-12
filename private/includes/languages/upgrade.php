@@ -112,10 +112,8 @@ return [
         'Connection timeout.' => '連線交握超時，請確保網路穩定或稍後重試。',
         'Unknown error.' => '發生未知錯誤。',
 
-        // NEAR FT PoC (USDT/USDC on-chain upgrade payments) - NEW
         'Pay with USDT or USDC on NEAR' => 'Pay with USDT or USDC on NEAR',
-        'PoC — completely implemented' => 'PoC — completely implemented',
-        'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.' => 'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.',
+        'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant. The contract records a credit that we verify on-chain before applying your tier.' => 'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant. The contract records a credit that we verify on-chain before applying your tier.',
         'Pay with %s USDT' => 'Pay with %s USDT',
         'Pay with %s USDC' => 'Pay with %s USDC',
 
@@ -126,8 +124,7 @@ return [
 
         // Chinese
         'Pay with USDT or USDC on NEAR' => '使用 USDT 或 USDC 在 NEAR 鏈上支付',
-        'PoC — completely implemented' => 'PoC — 已完全實作',
-        'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.' => '連接你已在 Marketplace 綁定的 NEAR 錢包，以精確的穩定幣金額在鏈上支付。手續費極低、即時到帳、無 PayPal。合約會記錄信用，我們會在鏈上驗證後才更新你的方案。',
+        'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant. The contract records a credit that we verify on-chain before applying your tier.' => '連接你已在 Marketplace 綁定的 NEAR 錢包，以精確的穩定幣金額在鏈上支付。手續費極低、即時到帳。合約會記錄信用，我們會在鏈上驗證後才更新你的方案。',
         'Pay with %s USDT' => '以 %s USDT 支付',
         'Pay with %s USDC' => '以 %s USDC 支付',
 
