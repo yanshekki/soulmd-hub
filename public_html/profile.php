@@ -498,7 +498,18 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         } catch(e) {
             console.error("Buy Transaction Error:", e);
-            alert("<?= addslashes(__('Swap fail')) ?>\n" + window.getErrorMessage(e));
+            const errMsg = window.getErrorMessage(e) || '';
+            if (errMsg.includes('Transaction not found, but maybe executed')) {
+                // Expected error when using walletCallbackUrl redirect flow.
+                // The transaction result (success or errorMessage) will be handled
+                // on page reload via URL query params in DOMContentLoaded.
+                // Do not show failure alert to user.
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                return;
+            }
+            alert("<?= addslashes(__('Swap fail')) ?>\n" + errMsg);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -528,7 +539,18 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         } catch(e) {
             console.error("Rent Transaction Error:", e);
-            alert("<?= addslashes(__('Swap fail')) ?>\n" + window.getErrorMessage(e));
+            const errMsg = window.getErrorMessage(e) || '';
+            if (errMsg.includes('Transaction not found, but maybe executed')) {
+                // Expected error when using walletCallbackUrl redirect flow.
+                // The transaction result (success or errorMessage) will be handled
+                // on page reload via URL query params in DOMContentLoaded.
+                // Do not show failure alert to user.
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                return;
+            }
+            alert("<?= addslashes(__('Swap fail')) ?>\n" + errMsg);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             btn.classList.remove('opacity-80', 'cursor-not-allowed');
