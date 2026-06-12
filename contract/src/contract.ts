@@ -21,14 +21,14 @@ class Token {
     metadata: TokenMetadata;
     sale_price: string | null;  
     rent_price: string | null;  
-    renters: { [account_id: string]: string }; 
+    renters: { [account_id: string]: string } = {}; 
 
     constructor(owner_id: string, metadata: TokenMetadata) {
         this.owner_id = owner_id;
         this.metadata = metadata;
         this.sale_price = null;
         this.rent_price = null;
-        this.renters = {};
+        this.renters = this.renters || {};
     }
 }
 
@@ -375,6 +375,58 @@ class SoulMDAgentFi {
             return "0"; // expired credit
         }
         return tsStr; // return the exact credit timestamp for one-time claim binding
+    }
+
+    // ============================================================
+    // Admin recovery for tokens that panic on deserial in rent_soul
+    // ("cannot read property 'prefix' of undefined" at reconstruct inside rent_soul).
+    // The bad data (e.g. for "soul_3956") can be patched at raw storage level.
+    // Call these as platform_wallet only.
+    // ============================================================
+
+    @view({})
+    debug_possible_token_storage_keys({ token_id }: { token_id: string }): string[] {
+        const candidates: string[] = [];
+        const prefixes = ["t", "t,", "t:"];
+        for (const p of prefixes) {
+            const k = p + token_id;
+            if (near.storageRead(k) !== null) {
+                candidates.push(k);
+            }
+        }
+        return candidates;
+    }
+
+    @call({})
+    admin_patch_renters_for_token({ token_id, renters_json }: { token_id: string, renters_json: string }) {
+        const caller = near.predecessorAccountId();
+        assert(caller === this.platform_wallet, "Security: only platform_wallet");
+
+        const prefixes = ["t", "t,", "t:"];
+        let fixed = false;
+        for (const p of prefixes) {
+            const k = p + token_id;
+            const raw = near.storageRead(k);
+            if (raw) {
+                try {
+                    // Best-effort: if the UnorderedMap value for this entry is stored as utf8 JSON of the Token,
+                    // patch the 'renters' field and write back. This bypasses the class reconstruct that panics.
+                    const str = new TextDecoder().decode(raw);
+                    const obj = JSON.parse(str);
+                    obj.renters = JSON.parse(renters_json || "{}");
+                    const newStr = JSON.stringify(obj);
+                    const newRaw = new TextEncoder().encode(newStr);
+                    near.storageWrite(k, newRaw);
+                    near.log(`Patched renters for token ${token_id} at key ${k}`);
+                    fixed = true;
+                } catch (e) {
+                    near.log(`Key ${k} has data but JSON patch failed: ${e}. Inspect raw bytes externally and use admin_raw_write if needed.`);
+                }
+            }
+        }
+        if (!fixed) {
+            near.log(`No data found for token ${token_id} under common UnorderedMap keys. Token may not exist or use non-standard key.`);
+        }
     }
 
     @call({})
