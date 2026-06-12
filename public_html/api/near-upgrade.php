@@ -134,6 +134,14 @@ if (!$hasCredit) {
     exit;
 }
 
+// Prevent double-claim for the same on-chain payment (credit persists in contract as proof of receipt to soulmd-hub.near, but DB records the claim)
+$checkStmt = $pdo->prepare("SELECT id FROM payments WHERE paypal_order_id LIKE ? LIMIT 1");
+$checkStmt->execute(['near-ft:' . $nearAccount . ':' . $tier . ':%']);
+if ($checkStmt->fetch()) {
+    echo json_encode(['success' => false, 'error' => 'This on-chain upgrade payment has already been claimed.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // === Apply entitlement (exact same logic as PayPal path) ===
 $now = time();
 $currentTier = $user['tier'] ?? 'free';
@@ -161,7 +169,7 @@ try {
     $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?")
         ->execute([$tier, $newExpiryStr, $userId]);
 
-    $amountStr = ($tier === 'vip') ? '5.00' : '15.00';
+    $amountStr = ($tier === 'vip') ? (NEAR_UPGRADE_VIP_USD_AMOUNT . '.00') : (NEAR_UPGRADE_PRO_USD_AMOUNT . '.00');
     $paymentRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . time();
 
     $ins = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");

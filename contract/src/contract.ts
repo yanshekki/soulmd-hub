@@ -324,26 +324,20 @@ class SoulMDAgentFi {
             return amount; // full refund
         }
 
-        // Robust msg parsing (string first for simplicity, JSON as future-proof)
+        // Strict msg parsing: prefer JSON {action: "upgrade", tier: "vip|pro"}, fallback to exact "upgrade:vip"
         let tier = '';
-        const raw = (msg || '').toLowerCase().trim();
-        if (raw.includes('vip') || raw.includes('standard') || raw === 'upgrade:vip') {
-            tier = 'vip';
-        } else if (raw.includes('pro') || raw.includes('advanced') || raw === 'upgrade:pro') {
-            tier = 'pro';
-        }
-
-        // Try JSON fallback
-        if (!tier) {
-            try {
-                const parsed = JSON.parse(msg || '{}');
-                const action = (parsed.action || parsed.intent || '').toLowerCase();
+        try {
+            const parsed = JSON.parse(msg || '{}');
+            if ((parsed.action || '').toLowerCase() === 'upgrade' || (parsed.intent || '').toLowerCase() === 'upgrade') {
                 const t = (parsed.tier || parsed.level || '').toLowerCase();
-                if (action.includes('upgrade') || action.includes('pay')) {
-                    if (t.includes('vip')) tier = 'vip';
-                    else if (t.includes('pro')) tier = 'pro';
-                }
-            } catch (_) {}
+                if (t === 'vip' || t === 'standard') tier = 'vip';
+                else if (t === 'pro' || t === 'advanced') tier = 'pro';
+            }
+        } catch (_) {}
+        if (!tier) {
+            const raw = (msg || '').toLowerCase().trim();
+            if (raw === 'upgrade:vip') tier = 'vip';
+            else if (raw === 'upgrade:pro') tier = 'pro';
         }
 
         if (!tier) {
@@ -351,7 +345,8 @@ class SoulMDAgentFi {
             return amount;
         }
 
-        // Demo pricing (5 / 15 with 6 decimals). In prod map from PRICE_* constants.
+        // Pricing must match config NEAR_UPGRADE_*_USD_AMOUNT * 1_000_000 (6 decimals)
+        // Current: 5 USDT/USDC for VIP, 15 for PRO
         const required = tier === 'vip' ? '5000000' : '15000000';
         if (BigInt(amount) < BigInt(required)) {
             near.log(`FT payment rejected for ${sender_id} ${tier}: amount ${amount} < required ${required}`);

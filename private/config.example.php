@@ -153,6 +153,10 @@ define('PAYPAL_MODE', 'sandbox');
 define('NEAR_USDT_CONTRACT', 'usdt.tether-token.near');
 define('NEAR_USDC_CONTRACT', '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1');
 
+// On-chain upgrade payment amounts in USDT/USDC (6 decimals in contract/JS)
+define('NEAR_UPGRADE_VIP_USD_AMOUNT', '5');
+define('NEAR_UPGRADE_PRO_USD_AMOUNT', '15');
+
 // ==========================================
 // 💰 Premium SaaS Tier Pricing Architecture (USD/30 Days)
 // ==========================================

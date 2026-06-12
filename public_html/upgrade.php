@@ -202,7 +202,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             </div>
         </div>
 
-        <div id="near-poc-status" class="hidden mt-4 p-3 rounded-2xl text-sm font-medium border" aria-live="polite"></div>
+        <div id="near-payment-status" class="hidden mt-4 p-3 rounded-2xl text-sm font-medium border" aria-live="polite"></div>
     </section>
 
     <footer class="max-w-3xl mx-auto mt-auto border-t border-white/5 pt-6 sm:pt-8 text-center">
@@ -281,7 +281,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
     const NEAR_USDC_CONTRACT = '<?= defined('NEAR_USDC_CONTRACT') ? NEAR_USDC_CONTRACT : '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1' ?>'; // VERIFY on explorer before real money
 
     async function payWithNearFt(tier, token) {
-        const status = document.getElementById('near-poc-status');
+        const status = document.getElementById('near-payment-status');
         if (!status) return;
 
         status.style.display = 'block';
@@ -297,7 +297,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             }
 
             const tokenContract = (token === 'usdt') ? NEAR_USDT_CONTRACT : NEAR_USDC_CONTRACT;
-            const amount = (tier === 'vip') ? '5000000' : '15000000'; // 5 or 15 with 6 decimals (demo)
+            const amount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT * 1000000 ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT * 1000000 ?>'; // from config, 6 decimals
             const msg = `upgrade:${tier}`;
 
             status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending ${amount} ${token.toUpperCase()} to the contract (msg: ${msg})...`;
