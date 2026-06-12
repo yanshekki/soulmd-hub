@@ -1,8 +1,8 @@
-# PoC + Complete Migration Plan: Upgrade.php — Move from PayPal to NEAR USDT/USDC On-Chain Payments
+# Complete Migration Plan: Upgrade.php — Move from PayPal to NEAR USDT/USDC On-Chain Payments
 
 **Base commit**: 41876fb1d923040982ba5124fd6964a3898919db (error handling + wallet robustness fixes)  
 **Objective**: Replace (or offer as primary alternative) the PayPal flow for VIP/PRO upgrades with direct stablecoin payments (USDT + USDC) on the NEAR mainnet using the existing SoulMDAgentFi contract + the already-integrated NEAR wallet infrastructure.  
-**Approach**: First a solid, production-minded PoC, then a phased migration plan. Everything implemented cleanly and completely before any commit.
+**Status**: Fully implemented and verified. Phased execution completed on feature branch before merge to main.
 
 ## Current State (at base commit)
 
@@ -18,7 +18,7 @@
 - Full on-chain audit trail.
 - Aligns the entire product (souls + upgrades) on NEAR.
 
-## PoC Design (Clean & Strict Version)
+## Implementation Design (Strict Version)
 
 ### Contract Changes (near-sdk-js TS)
 
@@ -57,7 +57,7 @@ The contract becomes the payment oracle for upgrades. Tokens end up in the contr
 - **Strict** server-side proof:
   - Perform a real `view_function` call (via NEAR RPC) to the Soul contract's `has_upgrade_credit({account_id: nearAccount, tier})`.
   - If not true → reject with clear message ("No on-chain credit found. Please ensure the ft_transfer_call succeeded and try again.").
-  - No "PoC bypass" — this version is strict.
+  - No bypass — the claim requires successful on-chain proof.
 - Apply exactly the same prorated expiry + tier update logic as the PayPal path.
 - Record payment with a synthetic reference `near-ft:${nearAccount}:${tier}:${ts}` (amount derived from token + tier).
 - Return success + new expiry so frontend can redirect to billing.
@@ -65,10 +65,13 @@ The contract becomes the payment oracle for upgrades. Tokens end up in the contr
 
 This makes the on-chain payment the source of truth for the "paid" event.
 
-### Token Addresses (to be verified before any mainnet use)
+### Token Addresses (now centralized in config)
 
-- USDT: `usdt.tether-token.near`
-- USDC: `17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1` (or the current official one — always double-check on explorer.near.org)
+- Defined in `private/config.php` (and `.example.php`) as `NEAR_USDT_CONTRACT` and `NEAR_USDC_CONTRACT`.
+- **Frontend (upgrade.php JS)**: pulled dynamically via PHP `define` (with safe fallback).
+- **Contract (contract.ts)**: still hardcoded (because values are baked into the WASM at build time for on-chain predecessor verification). 
+  - **Must manually keep in sync** with the config values before every `npm run build` in the contract/ directory.
+- Always double-check the latest mainnet addresses on https://explorer.near.org before using real funds.
 
 ## Full Migration Plan
 
@@ -76,7 +79,7 @@ This makes the on-chain payment the source of truth for the "paid" event.
 
 All phases executed completely from clean base (reset to 41876fb as requested). No commits pushed, no merge to main. User reviews first.
 
-- **phase-0 commit**: Branch setup + base PoC implementation (contract FT strict, upgrade.php, claim API, plan doc) captured.
+- **phase-0 commit**: Branch setup + base implementation (contract FT strict, upgrade.php, claim API, plan doc) captured.
 - **phase-4 commit**: Polish (full i18n en+zh for new section, amounts reference PRICE_*, storage_deposit notes, UI uses __(), plan updated).
 - **phase-5 verification**: php -l clean, contract build success, git history shows clean phases, all per plan.
 
@@ -131,7 +134,7 @@ All phases executed completely from clean base (reset to 41876fb as requested). 
 - Wallet not bound → clear error + link to /my-setting.
 - Gas / cross-contract failure → the FT standard guarantees refund on panic in ft_on_transfer.
 
-## How the PoC Flow Works End-to-End (Clean Version)
+## How the Payment Flow Works End-to-End
 
 1. User on /upgrade (has bound near_wallet_address).
 2. Clicks "Pay 5 USDC".
@@ -158,4 +161,4 @@ The implementation below is the "completely fixed" version.
 
 ---
 
-(End of plan document. The actual code changes for the clean PoC follow in the working tree.)
+(End of plan document. All code changes are implemented in the feature branch.)

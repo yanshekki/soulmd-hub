@@ -1,6 +1,6 @@
 <?php
 /**
- * STRICT PoC claim endpoint for NEAR USDT/USDC upgrade payments.
+ * On-chain claim endpoint for NEAR USDT/USDC upgrade payments.
  *
  * Flow:
  * 1. User paid via ft_transfer_call (msg = "upgrade:vip" or "upgrade:pro") to the Soul contract.
@@ -9,7 +9,7 @@
  * 4. If the credit exists → apply the exact same prorated tier/expiry logic as /api/paypal.
  * 5. Record the payment and return success.
  *
- * This version has NO bypass/fallback. If the on-chain proof is missing the claim will fail cleanly.
+ * The claim requires on-chain proof via view call. If the credit is missing the claim will fail cleanly.
  * Security follows the same patterns as the PayPal endpoint (session + CSRF).
  */
 

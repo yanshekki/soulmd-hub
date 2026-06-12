@@ -144,6 +144,16 @@ define('PAYPAL_SECRET', 'your_paypal_secret_here');
 define('PAYPAL_MODE', 'sandbox'); 
 
 // ==========================================
+// 🪙 NEAR FT On-chain Payment Tokens (USDT / USDC for upgrade.php)
+// These replace or supplement PayPal for tier upgrades.
+// IMPORTANT: Update the values in contract/src/contract.ts (USDT_CONTRACT / USDC_CONTRACT) 
+// to match BEFORE running `npm run build` in the contract directory.
+// Always verify the latest mainnet addresses on https://explorer.near.org
+// ==========================================
+define('NEAR_USDT_CONTRACT', 'usdt.tether-token.near');
+define('NEAR_USDC_CONTRACT', '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1');
+
+// ==========================================
 // 💰 Premium SaaS Tier Pricing Architecture (USD/30 Days)
 // ==========================================
 define('PRICE_VIP_MONTHLY', '4.99');

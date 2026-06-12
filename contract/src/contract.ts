@@ -35,11 +35,13 @@ class Token {
 @NearBindgen({})
 class SoulMDAgentFi {
     tokens = new UnorderedMap<Token>('t');
-    upgrade_credits = new UnorderedMap<string>('uc'); // PoC (strict): account:tier -> timestamp. Used for on-chain proof of USDT/USDC upgrade payment.
+    upgrade_credits = new UnorderedMap<string>('uc'); // account:tier -> timestamp. Used for on-chain proof of USDT/USDC upgrade payment.
 
     platform_wallet: string = 'soulmd-hub.near';
 
     // === FT payment tokens (mainnet) - MUST VERIFY BEFORE ANY DEPLOY ===
+    // These MUST exactly match the values defined in private/config.php (NEAR_USDT_CONTRACT and NEAR_USDC_CONTRACT).
+    // Always update BOTH places before building the contract!
     // Always double-check on https://explorer.near.org
     // IMPORTANT: Before first mainnet use, the platform account (soulmd-hub.near) MUST call storage_deposit on both token contracts
     // for this contract so it can receive FTs (one-time ~0.00125 NEAR per token).
@@ -289,7 +291,7 @@ class SoulMDAgentFi {
     }
 
     // ============================================================
-    // STRICT PoC: Receive USDT / USDC for VIP/PRO upgrades
+    // Receive USDT / USDC for VIP/PRO upgrades (on-chain)
     // (replaces or supplements PayPal in upgrade.php)
     //
     // User flow (via existing wallet bridge):
