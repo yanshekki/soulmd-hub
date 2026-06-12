@@ -78,7 +78,11 @@ This makes the on-chain payment the source of truth for the "paid" event.
 - All error paths use `getErrorMessage`.
 - Strict on-chain verification.
 - Side-by-side with PayPal.
-- Uncommitted until user approves "完全改好哂".
+- Executed on feature branch `feat/near-ft-upgrade-payments` (local commits only, from base 41876fb).
+- i18n added for new UI (en + zh).
+- Amounts now reference PRICE_* defines in comments/labels.
+- Storage deposit requirement documented.
+- Ready for user review before any merge/push to origin/main.
 
 **Phase 1 — Hardening & Testnet/Mainnet Dry Run**
 - Confirm exact FT contract IDs + do one-time `storage_deposit` from the platform account for the Soul contract on both tokens.

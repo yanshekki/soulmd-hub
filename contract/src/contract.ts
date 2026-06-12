@@ -41,6 +41,8 @@ class SoulMDAgentFi {
 
     // === FT payment tokens (mainnet) - MUST VERIFY BEFORE ANY DEPLOY ===
     // Always double-check on https://explorer.near.org
+    // IMPORTANT: Before first mainnet use, the platform account (soulmd-hub.near) MUST call storage_deposit on both token contracts
+    // for this contract so it can receive FTs (one-time ~0.00125 NEAR per token).
     // USDT (Tether official NEP-141)
     readonly USDT_CONTRACT: string = 'usdt.tether-token.near';
     // USDC (common NEAR mainnet NEP-141 bridged/official address)

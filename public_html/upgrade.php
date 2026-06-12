@@ -168,11 +168,10 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
     <section aria-labelledby="near-payments-heading" class="max-w-4xl mx-auto mt-10 mb-14 border border-amber-500/30 bg-amber-950/10 rounded-3xl p-6 sm:p-8">
         <div class="flex items-center gap-3 mb-3">
             <i class="fas fa-wallet text-amber-400" aria-hidden="true"></i>
-            <h3 id="near-payments-heading" class="text-xl font-bold text-white tracking-tight">Pay with USDT or USDC on NEAR <span class="ml-2 text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono align-middle">PoC — completely implemented</span></h3>
+            <h3 id="near-payments-heading" class="text-xl font-bold text-white tracking-tight"><?= __('Pay with USDT or USDC on NEAR') ?> <span class="ml-2 text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono align-middle"><?= __('PoC — completely implemented') ?></span></h3>
         </div>
         <p class="text-sm text-zinc-400 mb-5 max-w-3xl">
-            Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain.
-            Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.
+            <?= __('Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.') ?>
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -180,26 +179,26 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
                     <div class="text-emerald-400 text-xs font-bold tracking-widest">STANDARD</div>
-                    <div class="font-bold text-lg">VIP — 5 USDT or USDC <span class="text-xs text-zinc-500">(30 days)</span></div>
+                    <div class="font-bold text-lg">VIP — 5 USDT or USDC <span class="text-xs text-zinc-500">(30 days, demo equiv. to $<?= PRICE_VIP_MONTHLY ?>)</span></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition">Pay with 5 USDT</button>
-                    <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition">Pay with 5 USDC</button>
+                    <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 5 USDT') ?></button>
+                    <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 5 USDC') ?></button>
                 </div>
-                <div class="mt-2 text-[10px] text-zinc-500">ft_transfer_call → on-chain credit → verified before upgrade</div>
+                <div class="mt-2 text-[10px] text-zinc-500"><?= __('ft_transfer_call → on-chain credit → verified before upgrade') ?></div>
             </div>
 
             <!-- PRO on NEAR -->
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
                     <div class="text-amber-400 text-xs font-bold tracking-widest">ADVANCED</div>
-                    <div class="font-bold text-lg">PRO — 15 USDT or USDC <span class="text-xs text-zinc-500">(30 days)</span></div>
+                    <div class="font-bold text-lg">PRO — 15 USDT or USDC <span class="text-xs text-zinc-500">(30 days, demo equiv. to $<?= PRICE_PRO_MONTHLY ?>)</span></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition">Pay with 15 USDT</button>
-                    <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition">Pay with 15 USDC</button>
+                    <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 15 USDT') ?></button>
+                    <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 15 USDC') ?></button>
                 </div>
-                <div class="mt-2 text-[10px] text-zinc-500">Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.</div>
+                <div class="mt-2 text-[10px] text-zinc-500"><?= __('Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.') ?></div>
             </div>
         </div>
 

@@ -111,5 +111,33 @@ return [
         'Integrity Verification Failed:' => '資料完整性驗證失敗：',
         'Connection timeout.' => '連線交握超時，請確保網路穩定或稍後重試。',
         'Unknown error.' => '發生未知錯誤。',
+
+        // NEAR FT PoC (USDT/USDC on-chain upgrade payments) - NEW
+        'Pay with USDT or USDC on NEAR' => 'Pay with USDT or USDC on NEAR',
+        'PoC — completely implemented' => 'PoC — completely implemented',
+        'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.' => 'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.',
+        'Pay with 5 USDT' => 'Pay with 5 USDT',
+        'Pay with 5 USDC' => 'Pay with 5 USDC',
+        'Pay with 15 USDT' => 'Pay with 15 USDT',
+        'Pay with 15 USDC' => 'Pay with 15 USDC',
+        'ft_transfer_call → on-chain credit → verified before upgrade' => 'ft_transfer_call → on-chain credit → verified before upgrade',
+        'Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.' => 'Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.',
+        'On-chain payment verified!' => 'On-chain payment verified!',
+        'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.' => 'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.',
+        'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.' => 'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.',
+
+        // Chinese
+        'Pay with USDT or USDC on NEAR' => '使用 USDT 或 USDC 在 NEAR 鏈上支付',
+        'PoC — completely implemented' => 'PoC — 已完全實作',
+        'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.' => '連接你已在 Marketplace 綁定的 NEAR 錢包，以精確的穩定幣金額在鏈上支付。手續費極低、即時到帳、無 PayPal。合約會記錄信用，我們會在鏈上驗證後才更新你的方案。',
+        'Pay with 5 USDT' => '以 5 USDT 支付',
+        'Pay with 5 USDC' => '以 5 USDC 支付',
+        'Pay with 15 USDT' => '以 15 USDT 支付',
+        'Pay with 15 USDC' => '以 15 USDC 支付',
+        'ft_transfer_call → on-chain credit → verified before upgrade' => 'ft_transfer_call → 鏈上信用 → 驗證後升級',
+        'Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.' => '相同嚴格鏈上流程。必須在鏈上存在信用，Claim 才會成功。',
+        'On-chain payment verified!' => '鏈上付款已驗證！',
+        'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.' => '未在你的 NEAR 帳戶找到有效的鏈上升級信用。請確認 ft_transfer_call 交易已成功，稍後再試。',
+        'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.' => '使用鏈上支付前，請先在「我的設定 → Web3 Wallet」綁定你的 NEAR 錢包。',
     ]
 ];
