@@ -306,7 +306,7 @@ class SoulMDAgentFi {
     // Contract side (this ft_on_transfer):
     // - Only the exact whitelisted FT contracts can call us (predecessor check).
     // - msg can be "upgrade:vip" / "upgrade:pro" or JSON.
-    // - Amount must meet minimum (demo: 5 USDT/USDC for VIP, 15 for PRO — 6 decimals).
+    // - Amount must meet minimum (tied to NEAR_UPGRADE_*_USD_AMOUNT from config * 1_000_000, 6 decimals; e.g. 4.99 -> 4990000, 14.99 -> 14990000).
     // - State is written FIRST. Then (optionally) we can forward later.
     // - Return '0' to keep funds in the contract, or the original amount on any rejection (automatic refund).
     // - Credit is recorded so PHP can do a view_call for proof before applying the DB tier/expiry.
