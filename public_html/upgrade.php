@@ -182,8 +182,8 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     <div class="font-bold text-lg">VIP — 5 USDT or USDC <span class="text-xs text-zinc-500">(30 days, demo equiv. to $<?= PRICE_VIP_MONTHLY ?>)</span></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 5 USDT') ?></button>
-                    <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 5 USDC') ?></button>
+                    <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
+                    <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
                 </div>
                 <div class="mt-2 text-[10px] text-zinc-500"><?= __('ft_transfer_call → on-chain credit → verified before upgrade') ?></div>
             </div>
@@ -195,8 +195,8 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     <div class="font-bold text-lg">PRO — 15 USDT or USDC <span class="text-xs text-zinc-500">(30 days, demo equiv. to $<?= PRICE_PRO_MONTHLY ?>)</span></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 15 USDT') ?></button>
-                    <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= __('Pay with 15 USDC') ?></button>
+                    <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
+                    <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
                 </div>
                 <div class="mt-2 text-[10px] text-zinc-500"><?= __('Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.') ?></div>
             </div>

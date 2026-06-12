@@ -346,8 +346,8 @@ class SoulMDAgentFi {
         }
 
         // Pricing must match config NEAR_UPGRADE_*_USD_AMOUNT * 1_000_000 (6 decimals)
-        // Current: 5 USDT/USDC for VIP, 15 for PRO
-        const required = tier === 'vip' ? '5000000' : '15000000';
+        // e.g. for 4.99 -> 4990000 , for 14.99 -> 14990000
+        const required = tier === 'vip' ? '4990000' : '14990000';
         if (BigInt(amount) < BigInt(required)) {
             near.log(`FT payment rejected for ${sender_id} ${tier}: amount ${amount} < required ${required}`);
             return amount;
