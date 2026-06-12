@@ -35,7 +35,16 @@ class Token {
 @NearBindgen({})
 class SoulMDAgentFi {
     tokens = new UnorderedMap<Token>('t');
-    platform_wallet: string = 'soulmd-hub.near'; 
+    upgrade_credits = new UnorderedMap<string>('uc'); // PoC (strict): account:tier -> timestamp. Used for on-chain proof of USDT/USDC upgrade payment.
+
+    platform_wallet: string = 'soulmd-hub.near';
+
+    // === FT payment tokens (mainnet) - MUST VERIFY BEFORE ANY DEPLOY ===
+    // Always double-check on https://explorer.near.org
+    // USDT (Tether official NEP-141)
+    readonly USDT_CONTRACT: string = 'usdt.tether-token.near';
+    // USDC (common NEAR mainnet NEP-141 bridged/official address)
+    readonly USDC_CONTRACT: string = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1';
 
     @call({ payableFunction: true })
     mint_soul({ token_id, title, description, hash, reference }: { token_id: string, title: string, description: string, hash: string, reference: string }) {
@@ -275,5 +284,99 @@ class SoulMDAgentFi {
         
         // 無 token state 變更，純 cross-contract（platform 權限）
         near.log(`🌪️ Auto-Buyback triggered! Wrapped ${amount_in_near} NEAR and routed to Pool 8546 for $SOUL burn.`);
+    }
+
+    // ============================================================
+    // STRICT PoC: Receive USDT / USDC for VIP/PRO upgrades
+    // (replaces or supplements PayPal in upgrade.php)
+    //
+    // User flow (via existing wallet bridge):
+    //   wrapper.account().functionCall({
+    //     contractId: tokenContract,          // USDT or USDC
+    //     methodName: 'ft_transfer_call',
+    //     args: { receiver_id: 'soulmd-hub.near', amount, msg: 'upgrade:vip' },
+    //     gas: '300000000000000',
+    //     attachedDeposit: '1'
+    //   })
+    //
+    // Contract side (this ft_on_transfer):
+    // - Only the exact whitelisted FT contracts can call us (predecessor check).
+    // - msg can be "upgrade:vip" / "upgrade:pro" or JSON.
+    // - Amount must meet minimum (demo: 5 USDT/USDC for VIP, 15 for PRO — 6 decimals).
+    // - State is written FIRST. Then (optionally) we can forward later.
+    // - Return '0' to keep funds in the contract, or the original amount on any rejection (automatic refund).
+    // - Credit is recorded so PHP can do a view_call for proof before applying the DB tier/expiry.
+    //
+    // After successful claim in PHP, platform can call clear_upgrade_credit (privileged).
+    // ============================================================
+    @call({})
+    ft_on_transfer({ sender_id, amount, msg }: { sender_id: string, amount: string, msg: string }): string {
+        const token = near.predecessorAccountId();
+
+        const isUsdt = token === this.USDT_CONTRACT;
+        const isUsdc = token === this.USDC_CONTRACT;
+        if (!isUsdt && !isUsdc) {
+            near.log(`FT payment rejected: unknown token ${token} from ${sender_id}`);
+            return amount; // full refund
+        }
+
+        // Robust msg parsing (string first for simplicity, JSON as future-proof)
+        let tier = '';
+        const raw = (msg || '').toLowerCase().trim();
+        if (raw.includes('vip') || raw.includes('standard') || raw === 'upgrade:vip') {
+            tier = 'vip';
+        } else if (raw.includes('pro') || raw.includes('advanced') || raw === 'upgrade:pro') {
+            tier = 'pro';
+        }
+
+        // Try JSON fallback
+        if (!tier) {
+            try {
+                const parsed = JSON.parse(msg || '{}');
+                const action = (parsed.action || parsed.intent || '').toLowerCase();
+                const t = (parsed.tier || parsed.level || '').toLowerCase();
+                if (action.includes('upgrade') || action.includes('pay')) {
+                    if (t.includes('vip')) tier = 'vip';
+                    else if (t.includes('pro')) tier = 'pro';
+                }
+            } catch (_) {}
+        }
+
+        if (!tier) {
+            near.log(`FT payment rejected: no valid upgrade tier in msg="${msg}"`);
+            return amount;
+        }
+
+        // Demo pricing (5 / 15 with 6 decimals). In prod map from PRICE_* constants.
+        const required = tier === 'vip' ? '5000000' : '15000000';
+        if (BigInt(amount) < BigInt(required)) {
+            near.log(`FT payment rejected for ${sender_id} ${tier}: amount ${amount} < required ${required}`);
+            return amount;
+        }
+
+        // === STATE FIRST (follow the proven safety pattern used in buy_soul / rent_soul / mint) ===
+        const creditKey = `${sender_id}:${tier}`;
+        this.upgrade_credits.set(creditKey, near.blockTimestamp().toString());
+
+        near.log(`✅ FT upgrade credit recorded: ${sender_id} paid ${amount} of ${isUsdt ? 'USDT' : 'USDC'} for ${tier} (key=${creditKey})`);
+
+        // Funds stay in the contract for now. Later we can add a privileged sweep that does ft_transfer to platform_wallet.
+        return '0';
+    }
+
+    @view({})
+    has_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }): boolean {
+        const key = `${account_id}:${tier}`;
+        return this.upgrade_credits.get(key) !== null;
+    }
+
+    @call({})
+    clear_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }) {
+        const caller = near.predecessorAccountId();
+        assert(caller === this.platform_wallet, 'Security: only platform_wallet can clear credits');
+
+        const key = `${account_id}:${tier}`;
+        this.upgrade_credits.remove(key);
+        near.log(`Credit cleared for ${account_id} ${tier} (by platform)`);
     }
 }

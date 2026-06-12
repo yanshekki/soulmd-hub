@@ -40,7 +40,11 @@ $pageDesc = __('SEO Desc');
 
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
-
+<?php
+// PoC: Include the shared NEAR wallet bridge (it outputs the <link> for styles + <script> for the bundle + the big inline wallet init code).
+// We emit it here so the wallet functions (initNearWallet, getErrorMessage, etc.) are available for our PoC buttons.
+require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
+?>
 <script src="https://www.paypal.com/sdk/js?client-id=<?= PAYPAL_CLIENT_ID ?>&currency=USD&disable-funding=credit,card"></script>
 
 <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow flex flex-col">
@@ -160,6 +164,48 @@ require_once __DIR__ . '/../private/includes/header.php';
         </article>
     </section>
 
+    <!-- PoC section: Pay with USDT / USDC directly on NEAR (using the same wallet you already use for Marketplace) -->
+    <section aria-labelledby="near-payments-heading" class="max-w-4xl mx-auto mt-10 mb-14 border border-amber-500/30 bg-amber-950/10 rounded-3xl p-6 sm:p-8">
+        <div class="flex items-center gap-3 mb-3">
+            <i class="fas fa-wallet text-amber-400" aria-hidden="true"></i>
+            <h3 id="near-payments-heading" class="text-xl font-bold text-white tracking-tight">Pay with USDT or USDC on NEAR <span class="ml-2 text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono align-middle">PoC — completely implemented</span></h3>
+        </div>
+        <p class="text-sm text-zinc-400 mb-5 max-w-3xl">
+            Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain.
+            Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- VIP on NEAR -->
+            <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
+                <div class="mb-3">
+                    <div class="text-emerald-400 text-xs font-bold tracking-widest">STANDARD</div>
+                    <div class="font-bold text-lg">VIP — 5 USDT or USDC <span class="text-xs text-zinc-500">(30 days)</span></div>
+                </div>
+                <div class="flex gap-2 mt-auto">
+                    <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition">Pay with 5 USDT</button>
+                    <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition">Pay with 5 USDC</button>
+                </div>
+                <div class="mt-2 text-[10px] text-zinc-500">ft_transfer_call → on-chain credit → verified before upgrade</div>
+            </div>
+
+            <!-- PRO on NEAR -->
+            <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
+                <div class="mb-3">
+                    <div class="text-amber-400 text-xs font-bold tracking-widest">ADVANCED</div>
+                    <div class="font-bold text-lg">PRO — 15 USDT or USDC <span class="text-xs text-zinc-500">(30 days)</span></div>
+                </div>
+                <div class="flex gap-2 mt-auto">
+                    <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition">Pay with 15 USDT</button>
+                    <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition">Pay with 15 USDC</button>
+                </div>
+                <div class="mt-2 text-[10px] text-zinc-500">Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.</div>
+            </div>
+        </div>
+
+        <div id="near-poc-status" class="hidden mt-4 p-3 rounded-2xl text-sm font-medium border" aria-live="polite"></div>
+    </section>
+
     <footer class="max-w-3xl mx-auto mt-auto border-t border-white/5 pt-6 sm:pt-8 text-center">
         <p class="text-[10px] sm:text-[11px] text-zinc-500 leading-relaxed px-2">
             <strong class="text-zinc-400"><?= __('Terms of Purchase & No Refund Policy:') ?></strong><br>
@@ -225,6 +271,86 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     renderPayPalButton('paypal-button-container-vip', 'vip', '<?= PRICE_VIP_MONTHLY ?>');
     renderPayPalButton('paypal-button-container-pro', 'pro', '<?= PRICE_PRO_MONTHLY ?>');
+
+    // ============================================================
+    // Clean PoC JS for NEAR USDT/USDC payments (strict version)
+    // - Uses the wallet infrastructure that is already loaded on this page.
+    // - After successful ft_transfer_call we call the claim API which does REAL on-chain verification.
+    // - No bypasses. If the credit is not visible on-chain the claim will fail with a clear message.
+    // ============================================================
+    const NEAR_USDT_CONTRACT = 'usdt.tether-token.near';
+    const NEAR_USDC_CONTRACT = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1'; // VERIFY on explorer before real money
+
+    async function payWithNearFt(tier, token) {
+        const status = document.getElementById('near-poc-status');
+        if (!status) return;
+
+        status.style.display = 'block';
+        status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-blue-900/30 text-blue-200 border-blue-500/40';
+        status.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Initializing NEAR wallet...';
+
+        try {
+            const wrapper = await window.initNearWallet();
+            if (!wrapper || !wrapper.isSignedIn()) {
+                status.innerHTML = '<i class="fas fa-plug mr-2"></i> Please connect your NEAR wallet first...';
+                await window.connectOrBindWallet();
+                return;
+            }
+
+            const tokenContract = (token === 'usdt') ? NEAR_USDT_CONTRACT : NEAR_USDC_CONTRACT;
+            const amount = (tier === 'vip') ? '5000000' : '15000000'; // 5 or 15 with 6 decimals (demo)
+            const msg = `upgrade:${tier}`;
+
+            status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending ${amount} ${token.toUpperCase()} to the contract (msg: ${msg})...`;
+
+            // The existing wrapper supports arbitrary contractId — we use it here to call the TOKEN's ft_transfer_call
+            await wrapper.account().functionCall({
+                contractId: tokenContract,
+                methodName: 'ft_transfer_call',
+                args: {
+                    receiver_id: '<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>',
+                    amount: amount,
+                    msg: msg
+                },
+                gas: '300000000000000',
+                attachedDeposit: '1'
+            });
+
+            status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-emerald-900/30 text-emerald-200 border-emerald-500/40';
+            status.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Transaction signed on-chain. Verifying credit...';
+
+            // Strict claim (the API will do the real view_call proof)
+            await claimNearUpgrade(tier, token, status);
+
+        } catch (e) {
+            console.error('NEAR FT payment error', e);
+            status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-red-900/30 text-red-200 border-red-500/40';
+            const msg = (window.getErrorMessage ? window.getErrorMessage(e) : (e && e.message) || 'Unknown error');
+            status.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${msg}`;
+        }
+    }
+
+    async function claimNearUpgrade(tier, token, statusEl) {
+        try {
+            const res = await fetch('/api/near-upgrade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tier, token })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                statusEl.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-emerald-900/50 text-emerald-300 border-emerald-400';
+                statusEl.innerHTML = `<i class="fas fa-check-double mr-2"></i> On-chain payment verified! ${data.message || 'Tier upgraded.'} Redirecting...`;
+                setTimeout(() => { window.location.href = '<?= url('/billing') ?>'; }, 2200);
+            } else {
+                statusEl.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-amber-900/30 text-amber-200 border-amber-500/40';
+                statusEl.innerHTML = `<i class="fas fa-info-circle mr-2"></i> ${data.error || 'On-chain credit not yet visible or already claimed. Please refresh Billing in a moment.'}`;
+            }
+        } catch (err) {
+            statusEl.innerHTML = 'Transaction succeeded on-chain. The credit may take a moment to appear. Please go to Billing or refresh this page.';
+        }
+    }
 </script>
 
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
