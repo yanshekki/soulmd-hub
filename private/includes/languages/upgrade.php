@@ -118,8 +118,8 @@ return [
         'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.' => 'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.',
         'Pay with %s USDT' => 'Pay with %s USDT',
         'Pay with %s USDC' => 'Pay with %s USDC',
-        'ft_transfer_call → on-chain credit → verified before upgrade' => 'ft_transfer_call → on-chain credit → verified before upgrade',
-        'Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.' => 'Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.',
+
+
         'On-chain payment verified!' => 'On-chain payment verified!',
         'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.' => 'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.',
         'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.' => 'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.',
@@ -130,8 +130,7 @@ return [
         'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant, no PayPal. The contract records a credit that we verify on-chain before applying your tier.' => '連接你已在 Marketplace 綁定的 NEAR 錢包，以精確的穩定幣金額在鏈上支付。手續費極低、即時到帳、無 PayPal。合約會記錄信用，我們會在鏈上驗證後才更新你的方案。',
         'Pay with %s USDT' => '以 %s USDT 支付',
         'Pay with %s USDC' => '以 %s USDC 支付',
-        'ft_transfer_call → on-chain credit → verified before upgrade' => 'ft_transfer_call → 鏈上信用 → 驗證後升級',
-        'Same strict on-chain flow. Credit must exist on-chain for the claim to succeed.' => '相同嚴格鏈上流程。必須在鏈上存在信用，Claim 才會成功。',
+
         'On-chain payment verified!' => '鏈上付款已驗證！',
         'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.' => '未在你的 NEAR 帳戶找到有效的鏈上升級信用。請確認 ft_transfer_call 交易已成功，稍後再試。',
         'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.' => '使用鏈上支付前，請先在「我的設定 → Web3 Wallet」綁定你的 NEAR 錢包。',
