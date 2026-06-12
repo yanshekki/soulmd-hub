@@ -35,7 +35,14 @@ class Token {
 @NearBindgen({})
 class SoulMDAgentFi {
     tokens = new UnorderedMap<Token>('t');
-    platform_wallet: string = 'soulmd-hub.near'; 
+    upgrade_credits = new UnorderedMap<string>('uc'); // PoC: account:tier -> timestamp for FT upgrade payments (USDT/USDC)
+    platform_wallet: string = 'soulmd-hub.near';
+
+    // FT payment token contracts (mainnet) - VERIFY THESE ON EXPLORER BEFORE DEPLOY
+    // USDT (Tether NEP-141): https://explorer.near.org/accounts/usdt.tether-token.near
+    readonly USDT_CONTRACT: string = 'usdt.tether-token.near';
+    // USDC on NEAR (common bridged/official NEP-141 address - confirm current mainnet)
+    readonly USDC_CONTRACT: string = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1';
 
     @call({ payableFunction: true })
     mint_soul({ token_id, title, description, hash, reference }: { token_id: string, title: string, description: string, hash: string, reference: string }) {
@@ -275,5 +282,77 @@ class SoulMDAgentFi {
         
         // 無 token state 變更，純 cross-contract（platform 權限）
         near.log(`🌪️ Auto-Buyback triggered! Wrapped ${amount_in_near} NEAR and routed to Pool 8546 for $SOUL burn.`);
+    }
+
+    // =====================================================
+    // PoC: Accept USDT / USDC for Upgrade payments (replace PayPal flow)
+    // User calls ft_transfer_call on the token contract, targeting this contract.
+    // msg = "upgrade:vip" or "upgrade:pro"
+    // Contract accepts only from whitelisted FT contracts, for minimum amounts (demo 5/15 USD equiv with 6 decimals).
+    // On success: record credit in upgrade_credits. Frontend/PHP can claim + apply to DB.
+    // Tokens stay in contract (or can be forwarded to platform_wallet via ft_transfer in prod).
+    // =====================================================
+    @call({})
+    ft_on_transfer({ sender_id, amount, msg }: { sender_id: string, amount: string, msg: string }): string {
+        const token = near.predecessorAccountId(); // The FT contract that called us (security critical)
+        const isUsdt = token === this.USDT_CONTRACT;
+        const isUsdc = token === this.USDC_CONTRACT;
+
+        if (!isUsdt && !isUsdc) {
+            near.log(`Reject FT: unknown token ${token}`);
+            return amount; // full refund to sender
+        }
+
+        // Simple PoC parsing (production: use JSON.parse with try/catch + validation)
+        let tier = '';
+        const lowerMsg = (msg || '').toLowerCase();
+        if (lowerMsg.includes('vip') || lowerMsg.includes('standard')) {
+            tier = 'vip';
+        } else if (lowerMsg.includes('pro') || lowerMsg.includes('advanced')) {
+            tier = 'pro';
+        }
+
+        if (!tier) {
+            near.log(`Reject: no valid tier in msg="${msg}"`);
+            return amount;
+        }
+
+        // Demo pricing: 5 USDT/USDC for VIP, 15 for PRO (6 decimals)
+        const required = tier === 'vip' ? '5000000' : '15000000';
+        const paid = BigInt(amount);
+
+        if (paid < BigInt(required)) {
+            near.log(`Reject: insufficient ${tier} payment. Paid ${amount}, need ${required}`);
+            return amount;
+        }
+
+        // Grant credit (idempotent key)
+        const creditKey = `${sender_id}:${tier}`;
+        const now = near.blockTimestamp().toString();
+        this.upgrade_credits.set(creditKey, now);
+
+        near.log(`✅ FT Upgrade credit granted: ${sender_id} paid ${amount} ${isUsdt ? 'USDT' : 'USDC'} for ${tier}`);
+
+        // Keep the funds in the contract for now (PoC). In real: ft_transfer to platform_wallet
+        return '0';
+    }
+
+    @view({})
+    has_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }): boolean {
+        const key = `${account_id}:${tier}`;
+        const ts = this.upgrade_credits.get(key);
+        if (!ts) return false;
+        // Optional: expiry on credit itself (e.g. 1 hour), but for PoC just existence
+        return true;
+    }
+
+    @call({})
+    clear_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }) {
+        // Called by platform after successful DB upgrade (only platform can clear)
+        const caller = near.predecessorAccountId();
+        assert(caller === this.platform_wallet, 'Only platform can clear credits');
+        const key = `${account_id}:${tier}`;
+        this.upgrade_credits.remove(key);
+        near.log(`Cleared upgrade credit for ${account_id} ${tier}`);
     }
 }
