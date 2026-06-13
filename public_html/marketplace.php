@@ -103,6 +103,26 @@ require_once __DIR__ . '/../private/includes/header.php';
         return url.toString();
     }
 
+    async function updateWalletButton() {
+        const btnTextEl = document.getElementById('wallet-btn-text');
+        const container = document.getElementById('wallet-status-container');
+        if (!btnTextEl) return;
+        try {
+            const w = await initNearWallet();
+            if (w && w.isSignedIn()) {
+                const addr = w.getAccountId();
+                btnTextEl.innerText = addr || '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+                if (container) container.classList.add('opacity-80');
+            } else {
+                btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+                if (container) container.classList.remove('opacity-80');
+            }
+        } catch (e) {
+            console.warn('updateWalletButton error:', e);
+            btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+        }
+    }
+
     async function ensureWalletConnection() {
         const wrapper = await initNearWallet();
         if (wrapper && wrapper.isSignedIn()) {
@@ -159,26 +179,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             alert('<?= addslashes(__('Swap fail')) ?>\n' + nice);
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (urlParams.has('page') ? '?page=' + urlParams.get('page') : '');
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
-        }
-
-        async function updateWalletButton() {
-            const btnTextEl = document.getElementById('wallet-btn-text');
-            const container = document.getElementById('wallet-status-container');
-            if (!btnTextEl) return;
-            try {
-                const w = await initNearWallet();
-                if (w && w.isSignedIn()) {
-                    const addr = w.getAccountId();
-                    btnTextEl.innerText = addr || '<?= addslashes(__('Connect Wallet to Trade')) ?>';
-                    if (container) container.classList.add('opacity-80');
-                } else {
-                    btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
-                    if (container) container.classList.remove('opacity-80');
-                }
-            } catch (e) {
-                console.warn('updateWalletButton error:', e);
-                btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
-            }
         }
 
         await updateWalletButton();
