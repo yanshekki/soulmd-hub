@@ -498,7 +498,13 @@ require_once __DIR__ . '/../private/includes/header.php';
     // 🚀 FIXED: Using wrapper.account().functionCall properly with Dual-Action format
     async function buyMarketSoul(id, rawPrice, btn) {
         const wrapper = await initNearWallet();
-        if (!wrapper || !wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        // Use getAccountId() instead of isSignedIn() for the guard:
+        // getAccountId prefers DB-bound address if user has logged-in near_wallet_address in DB.
+        // This prevents forcing a "login" / connect prompt on rent/buy actions even when the site
+        // already knows the user's bound wallet address (user considers themselves "logged in").
+        // The actual signing will still require the wallet to be active; connectOrBindWallet is only
+        // forced if we have no address identity at all.
+        if (!wrapper || !wrapper.getAccountId()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -548,7 +554,9 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
         const wrapper = await initNearWallet();
-        if (!wrapper || !wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        // Use getAccountId() instead of isSignedIn() for the guard (same reason as buy):
+        // Avoids "login" prompt when user has DB-bound near address (already "login 左").
+        if (!wrapper || !wrapper.getAccountId()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
