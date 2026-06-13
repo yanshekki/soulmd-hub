@@ -88,8 +88,8 @@ class SoulMDAgentFi {
                   )
                 : new TokenMetadata('', '', '', '', '');
             const t = new Token(o.owner_id || '', meta);
-            t.sale_price = (o.sale_price !== undefined && o.sale_price !== null) ? String(o.sale_price) : null;
-            t.rent_price = (o.rent_price !== undefined && o.rent_price !== null) ? String(o.rent_price) : null;
+            t.sale_price = this.safePriceString(o.sale_price);
+            t.rent_price = this.safePriceString(o.rent_price);
             t.renters = (o.renters && typeof o.renters === 'object') ? o.renters : {};
             return t;
         } catch (e) {
@@ -107,8 +107,8 @@ class SoulMDAgentFi {
                 reference: t.metadata ? t.metadata.reference : '',
                 creator_id: t.metadata ? t.metadata.creator_id : ''
             },
-            sale_price: t.sale_price,
-            rent_price: t.rent_price,
+            sale_price: t.sale_price != null ? String(t.sale_price) : null,
+            rent_price: t.rent_price != null ? String(t.rent_price) : null,
             renters: t.renters || {}
         }));
     }
@@ -126,6 +126,17 @@ class SoulMDAgentFi {
 
     private _removeCredit(account_id: string, tier: string): void {
         near.storageRemove(this._creditKey(account_id, tier));
+    }
+
+    // helper to safely convert price from storage (handles old polluted data saved as number causing '1e+23' which BigInt can't parse)
+    private safePriceString(val: any): string | null {
+        if (val === undefined || val === null) return null;
+        let s = String(val);
+        if (/[eE]/.test(s)) {
+            // old data from JSON number scientific notation - treat as invalid, user must re-list
+            return null;
+        }
+        return s;
     }
 
     @call({ payableFunction: true })
