@@ -99,16 +99,16 @@ require_once __DIR__ . '/../private/includes/header.php';
     <!-- Manual on-chain claim for NEAR FT USDT/USDC upgrades -->
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 mb-8">
         <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
-            <i class="fas fa-link text-emerald-400"></i> On-chain Upgrade Claim
+            <i class="fas fa-link text-emerald-400"></i> <?= __('On-chain Upgrade Claim') ?>
         </h2>
         <p class="text-sm text-zinc-400 mb-4">
-            If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below. Manual claim only works for credits granted in the last hour.
+            <?= __('If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below. Manual claim only works for credits granted in the last hour.') ?>
         </p>
         <div class="flex flex-wrap gap-3">
-            <button onclick="manualClaimNearBilling('vip')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-2xl transition">Claim VIP (30 days)</button>
-            <button onclick="manualClaimNearBilling('pro')" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-2xl transition">Claim PRO (30 days)</button>
+            <button onclick="manualClaimNearBilling('vip')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-2xl transition"><?= __('Claim VIP (30 days)') ?></button>
+            <button onclick="manualClaimNearBilling('pro')" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-2xl transition"><?= __('Claim PRO (30 days)') ?></button>
         </div>
-        <p class="mt-2 text-[10px] text-zinc-500">Requires your bound NEAR wallet (<?= htmlspecialchars($nearWallet) ?>) to have a valid unclaimed on-chain credit.</p>
+        <p class="mt-2 text-[10px] text-zinc-500"><?= __('Requires your bound NEAR wallet ( :wallet ) to have a valid unclaimed on-chain credit.', ['wallet' => htmlspecialchars($nearWallet)]) ?></p>
     </div>
     <?php endif; ?>
 
@@ -349,7 +349,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function manualClaimNearBilling(tier) {
         if (!boundWallet) {
-            alert('No NEAR wallet bound to your account. Please bind one in My Settings first.');
+            alert('<?= addslashes(__('No Web3 Wallet Detected')) ?>\n<?= addslashes(__('Wallet bind prompt')) ?>');
             return;
         }
         const btns = document.querySelectorAll('button');

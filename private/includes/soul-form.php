@@ -297,7 +297,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                         window.history.replaceState({path: cleanUrl}, '', cleanUrl);
                         const successBox = document.getElementById('success-box');
                         if (successBox) {
-                            successBox.innerHTML = '✅ Mint succeeded on-chain (verified via RPC). Syncing...';
+                            successBox.innerHTML = '✅ <?= addslashes(__('Mint succeeded on-chain! Reloading...')) ?>';
                             successBox.classList.remove('hidden');
                             setTimeout(() => window.location.reload(), 1200);
                         } else {
@@ -381,7 +381,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
         }
 
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> Processing...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Processing...')) ?>';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
@@ -395,7 +395,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 walletCallbackUrl: window.location.href
             });
             
-            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> Syncing to DB...';
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Syncing to DB...')) ?>';
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             await fetch(`/api/soul/${soulId}`);
@@ -431,7 +431,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 
             if (onChainStateMatches) {
                 // On-chain already reflects the listing/cancel we wanted. Do the normal success cleanup.
-                btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> Syncing to DB...';
+                btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> <?= addslashes(__('Syncing to DB...')) ?>';
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await fetch(`/api/soul/${soulId}`);
                 window.location.reload();
@@ -530,7 +530,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                     if (wantMintOrSync) {
                         // 用 live check 嘅結果決定用 update_soul_hash 定 mint_soul（每次都 check on-chain 係唔係真係 NFT）
                         if (isEditMode && onChainNftExists) {
-                            text.innerText = "Processing...";
+                            text.innerText = "<?= addslashes(__('Processing...')) ?>";
                             text.classList.remove('hidden'); loading.classList.remove('hidden');
                             
                             // update hash for existing on-chain NFT
@@ -543,7 +543,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                                 walletCallbackUrl: targetUrl
                             });
 
-                            text.innerText = "Syncing to DB...";
+                            text.innerText = "<?= addslashes(__('Syncing to DB...')) ?>";
                             await new Promise(resolve => setTimeout(resolve, 2000));
                             await fetch(`/api/soul/${soulId}`);
                             

@@ -82,6 +82,8 @@ return [
         'Please connect NEAR wallet first' => 'Please connect NEAR wallet first.',
         'Buyback Failed' => 'Blockchain transaction failed. Make sure you are logged in with the official Treasury account (:contract).',
         'Operation failed' => 'Operation failed.',
+        'Processing...' => 'Processing...',
+        'Syncing...' => 'Syncing...',
     ],
     
     'zh' => [
@@ -161,5 +163,7 @@ return [
         'Please connect NEAR wallet first' => '請先連接 NEAR 錢包。',
         'Buyback Failed' => '區塊鏈交易失敗。請確定您是使用官方國庫帳號 (:contract) 登入。',
         'Operation failed' => '操作失敗。',
+        'Processing...' => '處理中...',
+        'Syncing...' => '同步中...',
     ]
 ];

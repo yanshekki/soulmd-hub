@@ -399,7 +399,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const text = document.getElementById('buyback-text');
         const originalHtml = text.innerHTML;
         
-        text.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+        text.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> <?= addslashes(__('Processing...')) ?>';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
@@ -416,7 +416,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 walletCallbackUrl: window.location.href
             });
             
-            text.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> Syncing...';
+            text.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> <?= addslashes(__('Syncing...')) ?>';
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             alert("<?= addslashes(__('Buyback initiated successfully!')) ?>");

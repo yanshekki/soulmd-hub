@@ -91,6 +91,13 @@ return [
         'Page' => 'Page',
         'Legal Footer 1' => 'All localized frame logs comply with global cryptographic ledger signatures. As locked inside your binding purchase contract, all active or terminated subscription licenses are completely',
         'NON-REFUNDABLE' => 'NON-REFUNDABLE',
+
+        // Manual On-chain Claim (added for NEAR FT payment fallback)
+        'On-chain Upgrade Claim' => 'On-chain Upgrade Claim',
+        'If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below. Manual claim only works for credits granted in the last hour.' => 'If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below. Manual claim only works for credits granted in the last hour.',
+        'Claim VIP (30 days)' => 'Claim VIP (30 days)',
+        'Claim PRO (30 days)' => 'Claim PRO (30 days)',
+        'Requires your bound NEAR wallet ( :wallet ) to have a valid unclaimed on-chain credit.' => 'Requires your bound NEAR wallet (:wallet) to have a valid unclaimed on-chain credit.',
     ],
     
     'zh' => [
@@ -179,5 +186,12 @@ return [
         'Page' => '頁數',
         'Legal Footer 1' => '所有本地化的帳單日誌皆符合全球加密帳本簽章標準。根據具有約束力的購買合約，所有生效中或已終止的訂閱授權均嚴格規定',
         'NON-REFUNDABLE' => '不設退款 (NON-REFUNDABLE)',
+
+        // Manual On-chain Claim (added for NEAR FT payment fallback)
+        'On-chain Upgrade Claim' => '鏈上升級認領',
+        'If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below. Manual claim only works for credits granted in the last hour.' => '如果您已透過 <code>ft_transfer_call</code> 成功發送 USDT 或 USDC（鏈上交易成功），但支付後的自動認領因錢包錯誤（如 "Request validation error"）而失敗，請使用下方按鈕。手動認領僅適用於最近一小時內產生的信用額度。',
+        'Claim VIP (30 days)' => '認領 VIP（30 天）',
+        'Claim PRO (30 days)' => '認領 PRO（30 天）',
+        'Requires your bound NEAR wallet ( :wallet ) to have a valid unclaimed on-chain credit.' => '需要您綁定的 NEAR 錢包（:wallet）擁有有效的未認領鏈上信用額度。',
     ]
 ];
