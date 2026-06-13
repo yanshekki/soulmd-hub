@@ -425,7 +425,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             // 監聽 Modal 是否被手動關閉，如果關閉就恢復按鈕
             const observer = new MutationObserver(async () => {
                 if (!document.getElementById('near-wallet-selector-modal')) {
-                    if (!wrapper.isSignedIn()) {
+                    if (!wrapper || !wrapper.getAccountId()) {
                         resetBindBtnStatus();
                     }
                     observer.disconnect();

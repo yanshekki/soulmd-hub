@@ -196,7 +196,7 @@
         if (!confirm("<?= addslashes(__('Mint Confirm')) ?>")) return;
 
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
+        if (!wallet || !wallet.getAccountId()) {
             await window.connectOrBindWallet();
             return;
         }
@@ -498,7 +498,7 @@
     async function agentfiAction(actionType, btn) {
         if (!currentEditId) return;
         const wallet = await initNearWallet();
-        if (!wallet.isSignedIn()) {
+        if (!wallet || !wallet.getAccountId()) {
             await window.connectOrBindWallet();
             return;
         }
@@ -597,7 +597,7 @@
 
         if (wantSync) {
             wallet = await initNearWallet();
-            if (!wallet.isSignedIn()) {
+            if (!wallet || !wallet.getAccountId()) {
                 await window.connectOrBindWallet();
                 return;
             }

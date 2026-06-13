@@ -245,7 +245,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         try {
             if (typeof initNearWallet === 'function') {
                 const wallet = await initNearWallet();
-                if (wallet && wallet.isSignedIn()) {
+                if (wallet && wallet.getAccountId()) {
                     wallet.signOut();
                 }
             }

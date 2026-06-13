@@ -165,7 +165,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function ensurePlatformWallet() {
         const wrapper = await initNearWallet();
-        if (!wrapper || !wrapper.isSignedIn()) {
+        if (!wrapper || !wrapper.getAccountId()) {
             await window.connectOrBindWallet();
             return null;
         }
@@ -298,7 +298,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     // Auto-enforce owner on connect
     window.addEventListener('DOMContentLoaded', async () => {
         const wrapper = await initNearWallet();
-        if (wrapper && wrapper.isSignedIn()) {
+        if (wrapper && wrapper.getAccountId()) {
             const acc = wrapper.getAccountId();
             if (acc !== CONTRACT_ID) {
                 log("WARNING: Connected wallet is not the contract owner. Admin buttons will be limited.");

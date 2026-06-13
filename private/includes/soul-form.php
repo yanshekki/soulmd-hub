@@ -348,7 +348,9 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
     async function agentfiAction(actionType, btn) {
         if (!isEditMode) return;
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) {
+        // Use getAccountId() (not isSignedIn) to respect DB-bound near_wallet_address (already "login 左" via PHP).
+        // Prevents unwanted wallet popup when changing sale/rent prices for owned NFT.
+        if (!wrapper || !wrapper.getAccountId()) {
             await window.connectOrBindWallet();
             return;
         }
@@ -461,7 +463,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             let wrapper = null;
             if (wantMintOrSync) {
                 wrapper = await initNearWallet();
-                if (!wrapper.isSignedIn()) {
+                // Use getAccountId() to avoid forcing popup when DB-bound wallet (consistent with other pages)
+                if (!wrapper || !wrapper.getAccountId()) {
                     await window.connectOrBindWallet();
                     return;
                 }

@@ -232,7 +232,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (hasWalletCallback) {
                 const wrapper = await initNearWallet();
                 setTimeout(async () => {
-                    if (wrapper.isSignedIn()) {
+                    if (wrapper && wrapper.getAccountId()) {
                         await executeWalletBind(wrapper.getAccountId());
                     }
                 }, 500);
@@ -253,7 +253,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         try {
             const wrapper = await initNearWallet();
-            if (!wrapper.isSignedIn()) {
+            if (!wrapper || !wrapper.getAccountId()) {
                 wrapper.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             } else {
                 await executeWalletBind(wrapper.getAccountId());
@@ -389,7 +389,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!confirm(confirmText)) return;
 
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) {
+        if (!wrapper || !wrapper.getAccountId()) {
             alert("<?= addslashes(__('Please connect NEAR wallet first')) ?>");
             wrapper.requestSignIn({ contractId: "<?= NEAR_CONTRACT_ID; ?>" });
             return;

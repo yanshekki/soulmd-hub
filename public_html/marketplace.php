@@ -231,7 +231,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
 
         const wrapper = await initNearWallet();
-        if (!wrapper || !wrapper.isSignedIn()) {
+        if (!wrapper || !wrapper.getAccountId()) {
             await window.connectOrBindWallet(); return;
         }
 
@@ -337,7 +337,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         try {
             const wrapper = await initNearWallet();
-            const myWallet = (wrapper && wrapper.isSignedIn()) ? wrapper.getAccountId() : null;
+            const myWallet = (wrapper && wrapper.getAccountId()) ? wrapper.getAccountId() : null;
             window.currentMyWallet = myWallet;
 
             const res = await fetch(`/api/souls?limit=12&page=${currentPage}&sort=newest&is_nft=1`);

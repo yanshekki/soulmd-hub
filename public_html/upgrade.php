@@ -297,7 +297,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 
         try {
             const wrapper = await window.initNearWallet();
-            if (!wrapper || !wrapper.isSignedIn()) {
+            if (!wrapper || !wrapper.getAccountId()) {
                 status.innerHTML = '<i class="fas fa-plug mr-2"></i> Please connect your NEAR wallet first...';
                 await window.connectOrBindWallet();
                 return;

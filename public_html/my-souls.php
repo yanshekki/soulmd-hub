@@ -632,7 +632,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (typeof initNearWallet !== 'function') return;
             const wallet = await initNearWallet();
             
-            if (!wallet.isSignedIn()) {
+            if (!wallet || !wallet.getAccountId()) {
                 await window.connectOrBindWallet();
                 return;
             }
