@@ -263,14 +263,14 @@ class SoulMDAgentFi {
             creator_value = (price * 5n) / 100n;
             seller_value -= creator_value;
             const cp = BigInt(near.promiseBatchCreate(creator).toString());
-            near.promiseBatchActionTransfer(cp, creator_value);
+            near.promiseBatchActionTransfer(cp, BigInt(creator_value.toString()));
         }
 
         const pp = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
-        near.promiseBatchActionTransfer(pp, platform_fee);
+        near.promiseBatchActionTransfer(pp, BigInt(platform_fee.toString()));
 
         const sp = BigInt(near.promiseBatchCreate(prev_owner).toString());
-        near.promiseBatchActionTransfer(sp, seller_value);
+        near.promiseBatchActionTransfer(sp, BigInt(seller_value.toString()));
 
         near.log(`Soul [${token_id}] bought by ${buyer} from ${prev_owner}`);
     }
@@ -336,10 +336,13 @@ class SoulMDAgentFi {
 
         // 🛡️ 防禦 2：強制將 Promise Index 轉做 BigInt，解決底層 C++ 崩潰 Bug
         const pp = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
-        near.promiseBatchActionTransfer(pp, platform_fee);
+        
+        // 🛡️ 防禦 3 (終極殺招)：將計好嘅 fee 先轉 String，再包 BigInt()。
+        // 咁樣做可以 100% 洗走打包工具 (Webpack/Babel) 偷偷加落去嘅 JSBI Object 屬性！
+        near.promiseBatchActionTransfer(pp, BigInt(platform_fee.toString()));
 
         const op = BigInt(near.promiseBatchCreate(token.owner_id).toString());
-        near.promiseBatchActionTransfer(op, owner_share);
+        near.promiseBatchActionTransfer(op, BigInt(owner_share.toString()));
 
         near.log(`Soul [${token_id}] rented by ${renter} (expiry ${token.renters[renter]})`);
     }
@@ -366,10 +369,10 @@ class SoulMDAgentFi {
         const platform_burn_fee = 50000000000000000000000n;
 
         const rp = BigInt(near.promiseBatchCreate(caller).toString());
-        near.promiseBatchActionTransfer(rp, refund_amount);
+        near.promiseBatchActionTransfer(rp, BigInt(refund_amount.toString()));
 
         const bp = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
-        near.promiseBatchActionTransfer(bp, platform_burn_fee);
+        near.promiseBatchActionTransfer(bp, BigInt(platform_burn_fee.toString()));
 
         near.log(`Soul [${token_id}] burned by ${caller}`);
     }
