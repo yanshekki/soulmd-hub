@@ -91,6 +91,21 @@ class SoulMDAgentFi {
             t.sale_price = this.safePriceString(o.sale_price);
             t.rent_price = this.safePriceString(o.rent_price);
             t.renters = (o.renters && typeof o.renters === 'object') ? o.renters : {};
+            // sanitize renters values too, old data may have bad expiries
+            if (t.renters) {
+                for (const k in t.renters) {
+                    if (t.renters[k] !== undefined && t.renters[k] !== null) {
+                        let vs = String(t.renters[k]);
+                        if (/[eE]/.test(vs)) {
+                            delete t.renters[k];
+                        } else {
+                            t.renters[k] = vs;
+                        }
+                    } else {
+                        delete t.renters[k];
+                    }
+                }
+            }
             return t;
         } catch (e) {
             return null;
@@ -275,7 +290,12 @@ class SoulMDAgentFi {
         if (!token.renters) token.renters = {};
         assert(token.rent_price, "Error: Token not listed for rent.");
 
-        const price = BigInt(token.rent_price);
+        let price: bigint;
+        try {
+            price = BigInt(token.rent_price);
+        } catch (e) {
+            assert(false, "Error: Invalid rent price format.");
+        }
         assert(price > 0n, "Error: Invalid rent price.");
         assert(deposit >= price, "Error: Insufficient deposit for rent.");
 
@@ -288,7 +308,13 @@ class SoulMDAgentFi {
         // clean expired (collect first to avoid for-in delete during iteration issues)
         const toDelete: string[] = [];
         for (const r in token.renters) {
-            if (BigInt(token.renters[r]) < now) {
+            let exp: bigint;
+            try {
+                exp = BigInt(token.renters[r]);
+            } catch (e) {
+                exp = 0n;
+            }
+            if (exp < now) {
                 toDelete.push(r);
             }
         }
@@ -297,7 +323,16 @@ class SoulMDAgentFi {
         }
 
         // extend or new (adds full 30d on top of any remaining — renews lease)
-        let current_expiry = token.renters[renter] ? BigInt(token.renters[renter]) : now;
+        let current_expiry: bigint;
+        if (token.renters[renter]) {
+            try {
+                current_expiry = BigInt(token.renters[renter]);
+            } catch (e) {
+                current_expiry = now;
+            }
+        } else {
+            current_expiry = now;
+        }
         if (current_expiry < now) current_expiry = now;
         token.renters[renter] = (current_expiry + this.RENT_DURATION_NS).toString();
 
@@ -323,7 +358,13 @@ class SoulMDAgentFi {
 
         const now = near.blockTimestamp();
         for (const r in token.renters) {
-            assert(BigInt(token.renters[r]) < now, "Error: Cannot burn while active renters exist.");
+            let exp: bigint;
+            try {
+                exp = BigInt(token.renters[r]);
+            } catch (e) {
+                exp = 0n;
+            }
+            assert(exp < now, "Error: Cannot burn while active renters exist.");
         }
 
         near.storageRemove(this._tokenKey(token_id));
@@ -353,7 +394,15 @@ class SoulMDAgentFi {
         const renters = token.renters || {};
         if (token.owner_id === account_id) return true;
         const exp = renters[account_id];
-        if (exp && BigInt(exp) > near.blockTimestamp()) return true;
+        if (exp) {
+            let expBig: bigint;
+            try {
+                expBig = BigInt(exp);
+            } catch (e) {
+                expBig = 0n;
+            }
+            if (expBig > near.blockTimestamp()) return true;
+        }
         return false;
     }
 
