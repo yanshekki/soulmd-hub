@@ -3,7 +3,7 @@ use near_sdk::collections::LookupMap;
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    env, near, near_bindgen, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue,
+    env, near, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue,
 };
 use std::collections::HashMap;
 
@@ -90,7 +90,7 @@ impl SoulMDAgentFi {
         self.tokens.insert(&key, &token);
 
         let platform_fee: u128 = 100000000000000000000000; // 0.1 NEAR
-        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee));
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee)).detach();
 
         env::log_str(&format!("Minted Soul [{}] by {}", token_id, caller));
     }
@@ -152,11 +152,11 @@ impl SoulMDAgentFi {
         self.tokens.insert(&key, &token);
 
         // Now effects (transfers). Platform 5%, optional creator 5%, seller rest.
-        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee));
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee)).detach();
         if creator_value > 0 {
-            Promise::new(creator.clone()).transfer(NearToken::from_yoctonear(creator_value));
+            Promise::new(creator.clone()).transfer(NearToken::from_yoctonear(creator_value)).detach();
         }
-        Promise::new(prev_owner.clone()).transfer(NearToken::from_yoctonear(seller_value));
+        Promise::new(prev_owner.clone()).transfer(NearToken::from_yoctonear(seller_value)).detach();
 
         env::log_str(&format!("[{}] bought by {} from {}", token_id, buyer, prev_owner));
     }
@@ -213,8 +213,8 @@ impl SoulMDAgentFi {
         self.tokens.insert(&key, &token);
 
         // Now effects (transfers): 10% platform, 90% to current owner.
-        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee));
-        Promise::new(token.owner_id.clone()).transfer(NearToken::from_yoctonear(owner_share));
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee)).detach();
+        Promise::new(token.owner_id.clone()).transfer(NearToken::from_yoctonear(owner_share)).detach();
 
         env::log_str(&format!("Soul [{}] rented by {} (expiry {})", token_id, renter, token.renters.get(&renter).unwrap()));
     }
@@ -235,8 +235,8 @@ impl SoulMDAgentFi {
         let refund_amount: u128 = 450000000000000000000000;
         let platform_burn_fee: u128 = 50000000000000000000000;
 
-        Promise::new(caller.clone()).transfer(NearToken::from_yoctonear(refund_amount));
-        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_burn_fee));
+        Promise::new(caller.clone()).transfer(NearToken::from_yoctonear(refund_amount)).detach();
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_burn_fee)).detach();
 
         env::log_str(&format!("Soul [{}] burned by {}", token_id, caller));
     }
@@ -270,7 +270,7 @@ impl SoulMDAgentFi {
 
         // Simplified, in real would wrap and swap, but to match logic
         Promise::new("wrap.near".parse().unwrap())
-            .function_call("near_deposit".to_string(), vec![], NearToken::from_yoctonear(amount), Gas::from_tgas(30));
+            .function_call("near_deposit".to_string(), vec![], NearToken::from_yoctonear(amount), Gas::from_tgas(30)).detach();
 
         // For full, would do the ref finance swap, but for brevity keep similar.
         env::log_str(&format!("Auto-Buyback triggered for {}", amount_in_near.0));
