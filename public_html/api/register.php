@@ -22,9 +22,11 @@ require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 // 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
-// Central security (no prior auth needed for registration)
-$security = ApiSecurity::initialize(false);
-$pdo = $security['pdo'];
+// Allow calls without CSRF for automation (cronjobs that auto-register members).
+// Use ensureCsrfToken only for token setup (no enforcement for this public auth endpoint).
+ApiSecurity::ensureCsrfToken();
+$db = Database::getInstance();
+$pdo = $db->getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
