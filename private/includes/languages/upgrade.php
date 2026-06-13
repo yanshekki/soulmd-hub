@@ -141,6 +141,7 @@ return [
         'STANDARD' => 'STANDARD',
         'ADVANCED' => 'ADVANCED',
         'VIP purchase disabled (PRO active - downgrade not allowed)' => 'VIP purchase disabled (PRO active - downgrade not allowed)',
+        'Purchasing VIP while having active VIP will add another 30 days to your subscription (stacking).' => 'Purchasing VIP while having active VIP will add another 30 days to your subscription (stacking).',
 
         // Chinese
         'Pay with USDT or USDC on NEAR' => '使用 USDT 或 USDC 在 NEAR 鏈上支付',
@@ -168,5 +169,6 @@ return [
         'PRO — $%s USDT or USDC (30 days)' => 'PRO — $%s USDT 或 USDC（30 天）',
         'STANDARD' => '標準',
         'ADVANCED' => '進階',
+        'Purchasing VIP while having active VIP will add another 30 days to your subscription (stacking).' => '當你已有活躍 VIP 時，購買 VIP 會疊加額外 30 天到你的訂閱。',
     ]
 ];
