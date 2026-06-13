@@ -173,7 +173,7 @@ class SoulMDAgentFi {
     @call({ payableFunction: true })
     mint_soul({ token_id, title, description, hash, reference }: { token_id: string, title: string, description: string, hash: string, reference: string }) {
         const caller = near.predecessorAccountId();
-        const deposit = near.attachedDeposit() as bigint;
+        const deposit = BigInt(near.attachedDeposit().toString());
 
         const required = 600000000000000000000000n; // 0.6 NEAR
         assert(deposit >= required, "Error: Minting requires exactly 0.6 NEAR");
@@ -191,7 +191,7 @@ class SoulMDAgentFi {
 
         // state first, then platform fee (0.1 NEAR)
         const platform_fee = 100000000000000000000000n;
-        const promise = near.promiseBatchCreate(this.platform_wallet);
+        const promise = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
         near.promiseBatchActionTransfer(promise, platform_fee);
 
         near.log(`Minted Soul [${token_id}] by ${caller}`);
@@ -231,14 +231,14 @@ class SoulMDAgentFi {
     @call({ payableFunction: true })
     buy_soul({ token_id }: { token_id: string }) {
         const buyer = near.predecessorAccountId();
-        const deposit = near.attachedDeposit() as bigint;
+        const deposit = BigInt(near.attachedDeposit().toString());
         const token = this._loadToken(token_id);
 
         assert(token !== null, "Error: Token not found.");
         if (!token.renters) token.renters = {};
         assert(token.sale_price, "Error: Token not listed for sale.");
 
-        const price = BigInt(token.sale_price);
+        const price = this.safeBigInt(token.sale_price);
         assert(price > 0n, "Error: Invalid sale price.");
         assert(deposit >= price, "Error: Insufficient deposit.");
 
@@ -262,14 +262,14 @@ class SoulMDAgentFi {
         if (creator !== prev_owner) {
             creator_value = (price * 5n) / 100n;
             seller_value -= creator_value;
-            const cp = near.promiseBatchCreate(creator);
+            const cp = BigInt(near.promiseBatchCreate(creator).toString());
             near.promiseBatchActionTransfer(cp, creator_value);
         }
 
-        const pp = near.promiseBatchCreate(this.platform_wallet);
+        const pp = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
         near.promiseBatchActionTransfer(pp, platform_fee);
 
-        const sp = near.promiseBatchCreate(prev_owner);
+        const sp = BigInt(near.promiseBatchCreate(prev_owner).toString());
         near.promiseBatchActionTransfer(sp, seller_value);
 
         near.log(`Soul [${token_id}] bought by ${buyer} from ${prev_owner}`);
@@ -295,7 +295,10 @@ class SoulMDAgentFi {
     @call({ payableFunction: true })
     rent_soul({ token_id }: { token_id: string }) {
         const renter = near.predecessorAccountId();
-        const deposit = near.attachedDeposit() as bigint;
+        
+        // 🛡️ 防禦 1：強制將 deposit 轉做確實嘅 BigInt，防禦 SDK 傳回 String/Number
+        const deposit = BigInt(near.attachedDeposit().toString()); 
+        
         const token = this._loadToken(token_id);
 
         assert(token !== null, "Error: Token not found.");
@@ -310,7 +313,7 @@ class SoulMDAgentFi {
         const platform_fee = (price * 10n) / 100n;
         const owner_share = price - platform_fee;
 
-        const now = near.blockTimestamp();
+        const now = BigInt(near.blockTimestamp().toString());
 
         // clean expired (collect first to avoid for-in delete during iteration issues)
         const toDelete: string[] = [];
@@ -331,10 +334,11 @@ class SoulMDAgentFi {
 
         this._saveToken(token_id, token);
 
-        const pp = near.promiseBatchCreate(this.platform_wallet);
+        // 🛡️ 防禦 2：強制將 Promise Index 轉做 BigInt，解決底層 C++ 崩潰 Bug
+        const pp = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
         near.promiseBatchActionTransfer(pp, platform_fee);
 
-        const op = near.promiseBatchCreate(token.owner_id);
+        const op = BigInt(near.promiseBatchCreate(token.owner_id).toString());
         near.promiseBatchActionTransfer(op, owner_share);
 
         near.log(`Soul [${token_id}] rented by ${renter} (expiry ${token.renters[renter]})`);
@@ -349,7 +353,7 @@ class SoulMDAgentFi {
         if (!token.renters) token.renters = {};
         assert(token.owner_id === caller, "Error: Only owner can burn.");
 
-        const now = near.blockTimestamp();
+        const now = BigInt(near.blockTimestamp().toString());
         for (const r in token.renters) {
             const exp = this.safeBigInt(token.renters[r]);
             assert(exp < now, "Error: Cannot burn while active renters exist.");
@@ -361,10 +365,10 @@ class SoulMDAgentFi {
         const refund_amount = 450000000000000000000000n;
         const platform_burn_fee = 50000000000000000000000n;
 
-        const rp = near.promiseBatchCreate(caller);
+        const rp = BigInt(near.promiseBatchCreate(caller).toString());
         near.promiseBatchActionTransfer(rp, refund_amount);
 
-        const bp = near.promiseBatchCreate(this.platform_wallet);
+        const bp = BigInt(near.promiseBatchCreate(this.platform_wallet).toString());
         near.promiseBatchActionTransfer(bp, platform_burn_fee);
 
         near.log(`Soul [${token_id}] burned by ${caller}`);
@@ -392,10 +396,10 @@ class SoulMDAgentFi {
         assert(caller === this.platform_wallet, "platform only");
 
         const amount = BigInt(amount_in_near);
-        const attached = near.attachedDeposit() as bigint;
+        const attached = BigInt(near.attachedDeposit().toString());
         assert(attached >= amount, "Error: attach exactly the NEAR amount to use for buyback (funds the wrap + swap)");
 
-        const p1 = near.promiseBatchCreate("wrap.near");
+        const p1 = BigInt(near.promiseBatchCreate("wrap.near").toString());
         near.promiseBatchActionFunctionCall(p1, "near_deposit", "", amount, 30000000000000n);
 
         const msg = JSON.stringify({
