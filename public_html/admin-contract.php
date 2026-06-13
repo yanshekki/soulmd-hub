@@ -13,7 +13,7 @@
  * - Manage upgrade credits for testing the USDT/USDC flow
  *
  * All actions call the on-chain admin_* god-mode methods (only callable by platform_wallet).
- * Old test data under the previous 't' prefix is ignored (contract now uses 't-v2').
+ * Fresh start on prefix 't': old test data cleared by user (DB + on-chain zero start).
  *
  * Security: 
  * - PHP checks the logged-in user's bound near_wallet_address === NEAR_CONTRACT_ID
@@ -65,7 +65,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tighter text-white">Contract Admin Control</h1>
         <p class="text-sm sm:text-base text-zinc-400 mt-2">Connected as <span class="font-mono text-red-400"><?= htmlspecialchars($currentUserWallet) ?></span>. All actions are irreversible on-chain.</p>
         <div class="mt-3 text-xs text-amber-400 bg-amber-950/30 border border-amber-500/30 px-3 py-2 rounded-xl">
-            This is the <strong>test data phase</strong>. Old records under the previous storage prefix are ignored. Use the raw tools only when you know the exact key (run debug first).
+            Fresh start 't'. Records are new. Use admin_set_token for B prices (3 NEAR sale / 0.1 NEAR rent) or raw only if recovery needed.
         </div>
     </div>
 
@@ -113,7 +113,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <div class="space-y-3 text-sm">
                 <button onclick="adminClearAll()" class="w-full px-4 py-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold">admin_clear_all_tokens (wipe everything under live prefix)</button>
-                <div class="text-[10px] text-red-400">This only affects the current map prefix (t-v2). Old test data under 't' is already isolated.</div>
+                <div class="text-[10px] text-red-400">Wipes ALL under live prefix 't'. For zero-start resets (pair with your DB clear).</div>
 
                 <div class="pt-4 border-t border-white/10">
                     <div class="font-bold text-amber-400 mb-1">Advanced: Raw Storage (use debug first to discover keys)</div>
