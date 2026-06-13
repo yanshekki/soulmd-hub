@@ -627,6 +627,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     async function burnWeb3Soul(id, btn) {
         if (!confirm(lang_BurnConfirm)) return;
+        let originalHtml = btn ? btn.innerHTML : '';
         try {
             if (typeof initNearWallet !== 'function') return;
             const wallet = await initNearWallet();
@@ -635,7 +636,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 await window.connectOrBindWallet();
                 return;
             }
-            const originalHtml = btn.innerHTML;
+            originalHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin sm:text-base" aria-hidden="true"></i>';
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -652,7 +653,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             window.location.reload();
         } catch (e) {
             console.error("Burn execution error:", e);
-            if(btn) {
+            // Recovery: verify on-chain if token is burned (get_soul returns null/not found)
+            // even if wallet-selector throws "Request validation error" or similar (common with callbackUrl flows)
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + id });
+                if (check && (!check.success || !check.data || check.data === null || check.data === undefined)) {
+                    // Burn succeeded on-chain
+                    if (btn) {
+                        btn.innerHTML = '<i class="fas fa-check sm:text-base" aria-hidden="true"></i>';
+                    }
+                    setTimeout(() => location.reload(), 800);
+                    return;
+                }
+            } catch (_) {}
+            if (btn && typeof originalHtml !== 'undefined') {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
