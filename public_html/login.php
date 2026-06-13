@@ -9,6 +9,9 @@ require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
 
+require_once __DIR__ . '/../private/src/ApiSecurity.php';
+$csrfToken = ApiSecurity::ensureCsrfToken();
+
 loadTranslations('login');
 
 if (isset($_SESSION['user_id'])) {
@@ -77,6 +80,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 <?php require_once __DIR__ . '/../private/includes/near-wallet-scripts.php'; ?>
 
 <script>
+    const serverCsrfToken = "<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>";
+
     // 🚀 核心要求：只要進入 login.php 頁面，無視一切，強制清空 NEAR 所有 LocalStorage 狀態！
     (function nukeOnLoad() {
         const keysToRemove = [];
@@ -159,7 +164,10 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             const res = await fetch('/api/wallet-login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': serverCsrfToken
+                },
                 body: JSON.stringify(authPayload)
             });
             const data = await res.json();
@@ -209,7 +217,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/login', { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': serverCsrfToken
+                },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
