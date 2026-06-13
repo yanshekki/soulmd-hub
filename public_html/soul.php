@@ -400,7 +400,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function fetchMarketStatus() {
         try {
             const wrapper = typeof initNearWallet === 'function' ? await initNearWallet() : null;
-            const myWallet = wrapper && wrapper.isSignedIn() ? wrapper.getAccountId() : null;
+            const myWallet = wrapper && wrapper.getAccountId() ? wrapper.getAccountId() : null;
             const rpcRes = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulDbId });
             
             if (rpcRes.success && rpcRes.data) {
@@ -496,7 +496,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         const originalText = textSpan.innerHTML;
         
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        if (!wrapper || !wrapper.getAccountId()) { await window.connectOrBindWallet(); return; }
         
         const price = btn.dataset.price;
         
@@ -544,13 +544,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     // 🚀 FIXED: Synchronized with wrapper.account().functionCall Logic & Exposed Errors
     async function rentSoul() {
-        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         const btn = document.getElementById('btn-rent');
         const textSpan = document.getElementById('text-rent');
         const originalText = textSpan.innerHTML;
         
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        if (!wrapper || !wrapper.getAccountId()) { await window.connectOrBindWallet(); return; }
         
         const currentUser = wrapper.getAccountId();
         try {
@@ -561,14 +560,17 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const exp = Number(BigInt(check.data.renters[acc]) / 1000000n);
                     if (exp > now && acc === currentUser) {
                         alert(<?= json_encode(__('You are already an active renter')) ?>);
-                        textSpan.innerHTML = originalText;
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
+                        btn.classList.remove('hover:bg-purple-600');
+                        btn.removeAttribute('onclick');
                         return;
                     }
                 }
             }
         } catch (_) {}
+        
+        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
         const price = btn.dataset.price;
         

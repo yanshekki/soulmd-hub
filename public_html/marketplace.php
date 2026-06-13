@@ -392,7 +392,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const nowMs = Date.now();
                     for (const accountId in soul.market.renters) {
                         const expiryMs = Number(BigInt(soul.market.renters[accountId]) / 1000000n);
-                        if (expiryMs > nowMs) {
+                        if (expiryMs > nowMs && accountId !== soul.market.owner_id) {
+                            // Never show current owner as "renter" in the active renters list (belt-and-suspenders; contract should not have owner in map)
                             activeRenters.push({ account: accountId, expiry: expiryMs });
                         }
                     }
@@ -566,8 +567,6 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     // 🚀 FIXED: Using wrapper.account().functionCall properly with Dual-Action format
     async function rentMarketSoul(id, rawPrice, btn) {
-        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
-        
         const wrapper = await initNearWallet();
         // Use getAccountId() instead of isSignedIn() for the guard (same reason as buy):
         // Avoids "login" prompt when user has DB-bound near address (already "login 左").
@@ -582,14 +581,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const exp = Number(BigInt(check.data.renters[acc]) / 1000000n);
                     if (exp > now && acc === currentUser) {
                         alert(<?= json_encode(__('You are already an active renter')) ?>);
-                        btn.innerHTML = originalHtml;
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        btn.disabled = true;
+                        btn.classList.add('opacity-80', 'cursor-not-allowed');
                         return;
                     }
                 }
             }
         } catch (_) {}
+        
+        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';

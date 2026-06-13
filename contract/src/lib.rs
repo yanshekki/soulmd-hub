@@ -207,6 +207,12 @@ impl SoulMDAgentFi {
         token.owner_id = buyer.clone();
         token.sale_price = None;
         token.rent_price = None;
+        // On ownership transfer via buy:
+        // - Existing valid rentals (paid to the *previous* owner) remain valid under the *new* owner until their expiry.
+        //   This is correct: the rental right is tied to the token, not revoked on sale.
+        // - Only remove the *buyer's own previous rental entry* (if any) so the new owner does not appear in the "active renters list" for their own token.
+        //   (Owner should not be listed as a renter of their own asset.)
+        token.renters.remove(&buyer);
         Self::save_token(&token_id, &token);
 
         // Now effects (transfers). Platform 5%, optional creator 5%, seller rest.

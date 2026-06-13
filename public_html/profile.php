@@ -345,7 +345,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                 await Promise.all(rpcPromises);
 
                 const wrapper = typeof initNearWallet === 'function' ? await initNearWallet() : null;
-                const myWallet = wrapper && wrapper.isSignedIn() ? wrapper.getAccountId() : null;
+                const myWallet = wrapper && wrapper.getAccountId() ? wrapper.getAccountId() : null;
                 window.currentMyWallet = myWallet;
 
                 let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
@@ -365,7 +365,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                         const nowMs = Date.now();
                         for (const accountId in soul.market.renters) {
                             const expiryMs = Number(BigInt(soul.market.renters[accountId]) / 1000000n);
-                            if (expiryMs > nowMs) {
+                            if (expiryMs > nowMs && accountId !== (soul.market.owner_id || '')) {
+                                // Never show current owner as "renter" in the active renters list (belt-and-suspenders)
                                 activeRenters.push({ account: accountId, expiry: expiryMs });
                             }
                         }
@@ -495,7 +496,7 @@ require_once __DIR__ . '/../private/includes/header.php';
     // 🚀 FIXED: Native Selector Transactions for Buying
     async function buyMarketSoul(id, rawPrice, btn) {
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        if (!wrapper || !wrapper.getAccountId()) { await window.connectOrBindWallet(); return; }
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
@@ -542,10 +543,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     // 🚀 FIXED: Native Selector Transactions for Renting
     async function rentMarketSoul(id, rawPrice, btn) {
-        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
-        
         const wrapper = await initNearWallet();
-        if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        if (!wrapper || !wrapper.getAccountId()) { await window.connectOrBindWallet(); return; }
         
         const currentUser = wrapper.getAccountId();
         try {
@@ -556,14 +555,15 @@ require_once __DIR__ . '/../private/includes/header.php';
                     const exp = Number(BigInt(check.data.renters[acc]) / 1000000n);
                     if (exp > now && acc === currentUser) {
                         alert(<?= json_encode(__('You are already an active renter')) ?>);
-                        btn.innerHTML = originalHtml;
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        btn.disabled = true;
+                        btn.classList.add('opacity-80', 'cursor-not-allowed');
                         return;
                     }
                 }
             }
         } catch (_) {}
+        
+        if (!confirm(<?= json_encode(__('Rent Warning Desc'), JSON_UNESCAPED_UNICODE) ?>)) return;
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
