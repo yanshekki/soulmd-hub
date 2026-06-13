@@ -650,6 +650,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
             
             btn.innerHTML = '<i class="fas fa-sync fa-spin sm:text-base" aria-hidden="true"></i>';
+            await fetch(`/api/soul/${id}`);
             window.location.reload();
         } catch (e) {
             console.error("Burn execution error:", e);
@@ -662,6 +663,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     if (btn) {
                         btn.innerHTML = '<i class="fas fa-check sm:text-base" aria-hidden="true"></i>';
                     }
+                    await fetch(`/api/soul/${id}`);
                     setTimeout(() => location.reload(), 800);
                     return;
                 }
