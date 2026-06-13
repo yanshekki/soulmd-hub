@@ -225,7 +225,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                 <div class="flex-1">
                     <h3 class="font-bold text-lg mb-1">Already sent USDT or USDC on-chain?</h3>
                     <p class="text-sm text-zinc-400 mb-3">
-                        If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error like "Request validation error" or "Transaction not found", click below to manually claim your upgrade credit.
+                        If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.
                     </p>
                     <div class="flex flex-wrap gap-3">
                         <button onclick="manualClaimNear('vip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">

@@ -8,6 +8,7 @@
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/ApiSecurity.php';
 
 session_start();
 
@@ -16,7 +17,10 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$csrfToken = ensureCsrfToken();
+// Use ApiSecurity only for CSRF token setup on this normal HTML page.
+// Do NOT call ApiSecurity::initialize() here — it forces Content-Type: application/json
+// which would break the HTML output for /billing.
+$csrfToken = ApiSecurity::ensureCsrfToken();
 
 // 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('billing');
@@ -98,7 +102,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             <i class="fas fa-link text-emerald-400"></i> On-chain Upgrade Claim
         </h2>
         <p class="text-sm text-zinc-400 mb-4">
-            If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below to verify the credit and apply your tier.
+            If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below. Manual claim only works for credits granted in the last hour.
         </p>
         <div class="flex flex-wrap gap-3">
             <button onclick="manualClaimNearBilling('vip')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-2xl transition">Claim VIP (30 days)</button>

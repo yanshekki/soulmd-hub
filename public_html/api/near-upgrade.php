@@ -147,7 +147,31 @@ if (isset($_SESSION['last_near_claim_time']) && (time() - $_SESSION['last_near_c
 }
 $_SESSION['last_near_claim_time'] = time();
 
-// === Apply entitlement (exact same logic as PayPal path) ===
+// For manual claims (no payTx proof of a just-completed ft_transfer_call), require the credit to be very recent.
+// This prevents abuse where users bind a wallet that had an old/test/admin-set credit and claim free time
+// without ever performing a real on-chain payment.
+$isManualClaim = empty($payTx);
+if ($isManualClaim) {
+    $creditNs = (int) $creditTsStr;
+    $nowNs = time() * 1_000_000_000; // current wall time in ns (good enough approximation)
+    $maxAgeNs = 3600 * 1_000_000_000; // 1 hour
+    if (($nowNs - $creditNs) > $maxAgeNs) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error' => 'This on-chain credit is too old for manual claim. Please use the automatic claim right after a successful payment, or contact support if your wallet had confirmation issues after sending USDT/USDC.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+// === Apply entitlement (exact same prorated logic as /api/paypal.php) ===
+// When upgrading VIP → PRO:
+//   - Calculate remaining unused VIP days' monetary value
+//   - Convert that value into equivalent PRO days (using daily price ratio)
+//   - Grant full 30-day PRO purchase + the converted bonus days
+// This implements the "top-up to PRO" behavior the user requested:
+// remaining VIP value is not lost, but converted.
 $now = time();
 $currentTier = $user['tier'] ?? 'free';
 $currentExpiry = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
@@ -161,8 +185,13 @@ if ($isActivePremium && $currentTier === 'pro' && $tier === 'vip') {
 
 $purchasedSeconds = 30 * 24 * 60 * 60;
 
-if ($isActivePremium && $currentTier === $tier) {
-    $newExpiry = $currentExpiry + $purchasedSeconds;
+if ($currentTier === 'vip' && $tier === 'pro' && $currentExpiry > $now) {
+    // Prorated VIP → PRO upgrade (exact same math as /api/paypal.php)
+    // Convert remaining unused VIP days' value into equivalent PRO days.
+    $remainingVipSeconds = $currentExpiry - $now;
+    $conversionRatio = (PRICE_VIP_MONTHLY / 30) / (PRICE_PRO_MONTHLY / 30);
+    $convertedProSeconds = $remainingVipSeconds * $conversionRatio;
+    $newExpiry = $now + $purchasedSeconds + $convertedProSeconds;
 } else {
     $newExpiry = max($currentExpiry, $now) + $purchasedSeconds;
 }
