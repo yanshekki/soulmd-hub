@@ -11,6 +11,7 @@
  * - Remove individual tokens or wipe all test data
  * - Use raw storage write/remove for ultimate repair of any key (use after debug)
  * - Manage upgrade credits for testing the USDT/USDC flow
+ * - One-time FT receiver registration (storage_deposit) so soulmd-hub.near can accept USDT/USDC via ft_transfer_call (fixes "account not registered" panic)
  *
  * All actions call the on-chain admin_* god-mode methods (only callable by platform_wallet).
  * Fresh start on prefix 't': old test data cleared by user (DB + on-chain zero start).
@@ -147,6 +148,21 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
             </div>
             <div class="mt-2 text-[10px] text-zinc-500">These credits are what the PHP near-upgrade.php checks via has_upgrade_credit before applying DB tier.</div>
+            <div class="mt-1 text-[10px] text-amber-400">After registering above, users can send USDT/USDC to this contract for upgrades (ft_transfer_call will succeed and call ft_on_transfer).</div>
+
+            <!-- FT Receiver Registration (required for platform to accept USDT/USDC via ft_transfer_call) -->
+            <div class="mt-4 pt-3 border-t border-white/10">
+                <div class="text-xs text-amber-400 mb-1">
+                    ⚠️ One-time setup: Register soulmd-hub.near on the FT token contracts so it can receive USDT/USDC.
+                    Without this, ft_transfer_call will panic with "account ... is not registered".
+                    Costs ~0.00125 NEAR storage staking per token (refundable on unregister).
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="registerFtReceiver('usdt')" class="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-xl text-sm font-bold">Register on USDT</button>
+                    <button onclick="registerFtReceiver('usdc')" class="flex-1 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-bold">Register on USDC</button>
+                </div>
+                <div class="mt-1 text-[10px] text-zinc-500">Do this from the platform owner wallet (soulmd-hub.near). Use "registration_only: true" to just pay storage.</div>
+            </div>
         </div>
     </div>
 
@@ -155,6 +171,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     const CONTRACT_ID = "<?= addslashes($contractOwner) ?>";
+    const NEAR_USDT_CONTRACT = 'usdt.tether-token.near';
+    const NEAR_USDC_CONTRACT = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1';
     const logEl = document.getElementById('admin-log');
 
     function log(msg) {
@@ -293,6 +311,43 @@ require_once __DIR__ . '/../private/includes/header.php';
         const tier = document.getElementById('credit-tier').value.trim();
         if (!acc || !tier) return;
         await callAdmin('admin_remove_upgrade_credit', { account_id: acc, tier });
+    }
+
+    async function registerFtReceiver(token) {
+        const wrapper = await ensurePlatformWallet();
+        if (!wrapper || !wrapper.getAccountId()) {
+            log('Please connect as platform owner first.');
+            return;
+        }
+        if (wrapper.getAccountId() !== CONTRACT_ID) {
+            log('WARNING: Connected wallet is not ' + CONTRACT_ID + '. Registration must be done by the owner account.');
+            // still allow, but warn
+        }
+
+        const tokenContract = (token === 'usdt') ? NEAR_USDT_CONTRACT : NEAR_USDC_CONTRACT;
+        log(`Registering ${CONTRACT_ID} as receiver on ${tokenContract} (storage_deposit, registration_only=true, ~0.00125 NEAR)...`);
+
+        try {
+            await wrapper.requestSignTransactions({
+                transactions: [{
+                    receiverId: tokenContract,
+                    actions: [{
+                        methodName: 'storage_deposit',
+                        args: {
+                            account_id: CONTRACT_ID,
+                            registration_only: true
+                        },
+                        gas: '30000000000000',
+                        deposit: window.nearApi.utils.format.parseNearAmount('0.00125')
+                    }]
+                }]
+            });
+            log(`✅ Success. ${CONTRACT_ID} is now registered on ${token.toUpperCase()} FT contract and can receive via ft_transfer_call + ft_on_transfer.`);
+            log('Note: You can later unregister to reclaim the storage deposit if needed.');
+        } catch (e) {
+            const errMsg = (window.getErrorMessage ? window.getErrorMessage(e) : (e && e.message) || String(e));
+            log(`Registration failed: ${errMsg}`);
+        }
     }
 
     // Auto-enforce owner on connect
