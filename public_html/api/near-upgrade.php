@@ -24,28 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-session_start();
 loadTranslations('api');
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => __('Auth required for transaction')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// CSRF (same pattern as paypal.php)
-$userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (empty($userCsrfToken) && function_exists('getallheaders')) {
-    $headers = getallheaders();
-    $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-}
-$serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+$security = ApiSecurity::initialize(true);  // session + CSRF enforced (no api_key expected for this claim usually)
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

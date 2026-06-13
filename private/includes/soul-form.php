@@ -274,6 +274,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
     const soulId = <?= $soulId ?? 0 ?>;
     const isNft = <?= ($soulData['is_nft'] ?? 0) == 1 ? 'true' : 'false' ?>;
     const initialContent = <?= json_encode($presetContent ?? '', JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    const serverCsrfToken = "<?= htmlspecialchars($csrfToken ?? '', ENT_QUOTES) ?>";  // provided by includer (edit.php / upload.php) for session CSRF protection on form submit
 
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -440,7 +441,9 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             const endpoint = isEditMode ? `/api/soul/${soulId}` : '/api/souls';
 
             try {
-                const res = await fetch(endpoint, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const headers = { 'Content-Type': 'application/json' };
+                if (serverCsrfToken) headers['X-CSRF-Token'] = serverCsrfToken;
+                const res = await fetch(endpoint, { method: method, headers: headers, body: JSON.stringify(payload) });
                 const data = await res.json();
 
                 if (data.success) {

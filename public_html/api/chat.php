@@ -22,38 +22,22 @@ require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 loadTranslations('api');
-loadTranslations('chat'); // 載入 chat 語言包以獲取 Anonymous / AI Assistant 等翻譯
+loadTranslations('chat');
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+$security = ApiSecurity::initialize(false);
+$userId   = $security['user_id'];
+$pdo      = $security['pdo'];
+$isApiKey = $security['is_api_key'];
 
 $method = $_SERVER['REQUEST_METHOD'];
-$db = Database::getInstance();
-$pdo = $db->getConnection();
 
-// ==========================================
-// 1. API Key Auth (Headless API Access)
-// ==========================================
-$isApiCall = false;
-$apiUserId = null;
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-$apiKey = trim(str_replace('Bearer', '', $authHeader));
-
-if (!empty($apiKey)) {
-    $isApiCall = true;
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
-    $stmt->execute([$apiKey]);
-    if ($user = $stmt->fetch()) {
-        $apiUserId = $user['id'];
-    } else {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => __('Invalid API Key')], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-}
+// Centralized security already handled by ApiSecurity::initialize() above.
+// $isApiKey and $userId are available. Keep old var names for minimal diff in rest of file.
+$isApiCall = $isApiKey;
+$apiUserId = $userId;
 
 function getCurrentUser($pdo, $apiUserId = null) {
     $userId = $apiUserId ?? ($_SESSION['user_id'] ?? null);

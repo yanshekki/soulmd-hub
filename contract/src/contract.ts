@@ -7,6 +7,17 @@ import { NearBindgen, near, call, view, UnorderedMap, assert } from 'near-sdk-js
  * Safety: state first then promises; reconstruct + !renters defensive; strict platform admin only.
  * Admin god-mode (practical, soulmd-hub.near only): full set any token/renters/raw/credits, clear for zero start.
  * User cleared DB + old on-chain data; new records start here.
+ *
+ * AUDIT NOTES (2026-06-13 strict review):
+ * - All payable paths: MUTATE STATE BEFORE any promiseBatch (reentrancy / inconsistency protection).
+ * - All sensitive: predecessorAccountId() + assert guards (no signer reliance).
+ * - Prices always string yocto; validated on list to prevent BigInt panics downstream.
+ * - Renters: active leases survive ownership transfer on buy (by design for leased asset trading); cleaned lazily on rent/burn.
+ * - Raw admin + map internals: powerful escape hatch for past storage corruption ("prefix of undefined"). Use only from soulmd-hub.near full-access.
+ * - FT receiver: returns "0" to keep funds; strict token + amount + tier parse; 24h credit.
+ * - No unbounded loops on hot paths (for-in limited to per-token renters, expected small).
+ * - Cross contract (ref-finance buyback): platform-only, requires attached NEAR.
+ * - Invariant: contract accumulates NEAR/FT (cool wallet soulmd-hub.near). No auto-drain except explicit admin buyback or burn refunds.
  */
 
 class TokenMetadata {
@@ -65,6 +76,11 @@ class SoulMDAgentFi {
     upgrade_credits = new UnorderedMap<string>('uc');
     platform_wallet: string = 'soulmd-hub.near';
 
+    // WARNING (storage hygiene): UnorderedMap relies on internal collection metadata under the prefix.
+    // Past raw patches caused SDK-level "cannot read property 'prefix' of undefined" on any .get/.set.
+    // Current design (fresh 't', defensive Token.reconstruct, admin_raw_* as last resort) + user zero-start DB clear mitigates.
+    // Never write directly under 't' or 'uc' except via the provided admin_raw_* from the platform account.
+
     // Mainnet FT (must match private/config.php)
     readonly USDT: string = 'usdt.tether-token.near';
     readonly USDC: string = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1';
@@ -114,13 +130,15 @@ class SoulMDAgentFi {
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Error: Only owner can list for sale.");
 
-        if (price === "0" || price === "") {
-            token.sale_price = null;
-            near.log(`[${token_id}] sale listing cancelled.`);
-        } else {
-            token.sale_price = price;
-            near.log(`[${token_id}] listed for sale at ${price} yoctoNEAR`);
+        // Validate price to prevent later BigInt panics on buy (garbage price would brick the token until admin fix)
+        let sale_price: string | null = null;
+        if (price !== "0" && price !== "") {
+            try {
+                if (BigInt(price) > 0n) sale_price = price;
+            } catch (_) {}
         }
+        token.sale_price = sale_price;
+        near.log(`[${token_id}] sale ${sale_price ? 'listed at ' + sale_price : 'cancelled'}`);
         this.tokens.set(token_id, token);
     }
 
@@ -135,12 +153,16 @@ class SoulMDAgentFi {
         assert(token.sale_price, "Error: Token not listed for sale.");
 
         const price = BigInt(token.sale_price);
+        assert(price > 0n, "Error: Invalid sale price.");
         assert(deposit >= price, "Error: Insufficient deposit.");
 
         const prev_owner = token.owner_id;
         const creator = token.metadata.creator_id;
 
         // transfer ownership + clear listings
+        // IMPORTANT: active renters (leases) are intentionally preserved across sale.
+        // This allows trading of encumbered souls (the lease claim stays until expiry or burn).
+        // New owner inherits the token subject to existing renter access via check_access.
         token.owner_id = buyer;
         token.sale_price = null;
         token.rent_price = null;
@@ -174,13 +196,15 @@ class SoulMDAgentFi {
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Error: Only owner can list for rent.");
 
-        if (price === "0" || price === "") {
-            token.rent_price = null;
-            near.log(`[${token_id}] rent listing cancelled.`);
-        } else {
-            token.rent_price = price;
-            near.log(`[${token_id}] listed for rent at ${price} yoctoNEAR`);
+        // Validate price (see list_for_sale)
+        let rent_price: string | null = null;
+        if (price !== "0" && price !== "") {
+            try {
+                if (BigInt(price) > 0n) rent_price = price;
+            } catch (_) {}
         }
+        token.rent_price = rent_price;
+        near.log(`[${token_id}] rent ${rent_price ? 'listed at ' + rent_price : 'cancelled'}`);
         this.tokens.set(token_id, token);
     }
 
@@ -195,6 +219,7 @@ class SoulMDAgentFi {
         assert(token.rent_price, "Error: Token not listed for rent.");
 
         const price = BigInt(token.rent_price);
+        assert(price > 0n, "Error: Invalid rent price.");
         assert(deposit >= price, "Error: Insufficient deposit for rent.");
 
         // 10% platform, 90% owner
@@ -203,14 +228,18 @@ class SoulMDAgentFi {
 
         const now = near.blockTimestamp();
 
-        // clean expired
+        // clean expired (collect first to avoid for-in delete during iteration issues)
+        const toDelete: string[] = [];
         for (const r in token.renters) {
             if (BigInt(token.renters[r]) < now) {
-                delete token.renters[r];
+                toDelete.push(r);
             }
         }
+        for (const r of toDelete) {
+            delete token.renters[r];
+        }
 
-        // extend or new
+        // extend or new (adds full 30d on top of any remaining — renews lease)
         let current_expiry = token.renters[renter] ? BigInt(token.renters[renter]) : now;
         if (current_expiry < now) current_expiry = now;
         token.renters[renter] = (current_expiry + this.RENT_DURATION_NS).toString();
@@ -264,19 +293,22 @@ class SoulMDAgentFi {
     check_access({ token_id, account_id }: { token_id: string, account_id: string }): boolean {
         const token = this.tokens.get(token_id);
         if (!token) return false;
-        if (!token.renters) token.renters = {};
+        const renters = token.renters || {};
         if (token.owner_id === account_id) return true;
-        const exp = token.renters[account_id];
+        const exp = renters[account_id];
         if (exp && BigInt(exp) > near.blockTimestamp()) return true;
         return false;
     }
 
-    @call({})
+    @call({ payableFunction: true })
     auto_buyback_and_burn({ amount_in_near }: { amount_in_near: string }) {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "platform only");
 
         const amount = BigInt(amount_in_near);
+        const attached = near.attachedDeposit() as bigint;
+        assert(attached >= amount, "Error: attach exactly the NEAR amount to use for buyback (funds the wrap + swap)");
+
         const p1 = near.promiseBatchCreate("wrap.near");
         near.promiseBatchActionFunctionCall(p1, "near_deposit", "", amount, 30000000000000n);
 
@@ -344,6 +376,10 @@ class SoulMDAgentFi {
     }
 
     // === Practical admin (platform_wallet only) - for fresh start / recovery ===
+    // These are god-mode. They can arbitrarily rewrite tokens, renters, raw storage keys, or credits.
+    // Risk: if soulmd-hub.near account is compromised (full access key leaked), attacker can steal all data, mint fakes, or corrupt maps.
+    // Mitigation in practice: soulmd-hub.near is described as "cool wallet", hardware / high security, only used via audited admin-contract.php with wallet-selector.
+    // Raw write/remove can be used to repair after storage corruption but can also be used to destroy. Use with extreme care + on-chain logging.
     @view({})
     debug({ token_id }: { token_id: string }): any[] {
         const res: any[] = [];

@@ -11,26 +11,19 @@ header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
-session_start();
+require_once __DIR__ . '/../../private/config.php';
+require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 loadTranslations('api');
+
+$security = ApiSecurity::initialize(true);  // enforces session + CSRF
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ✅ Phase 2 修復：session based mutating 補 CSRF（低風險但一致性）
-$userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (empty($userCsrfToken) && function_exists('getallheaders')) {
-    $headers = getallheaders();
-    $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-}
-$serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-    http_response_code(403); 
-    echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
     exit;
 }
 

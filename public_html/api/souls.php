@@ -18,25 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-loadTranslations('api');
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$security = ApiSecurity::initialize(false);   // false = public list is allowed without auth
+$userId   = $security['user_id'];
+$pdo      = $security['pdo'];
+$isApiKey = $security['is_api_key'];
+
 $method = $_SERVER['REQUEST_METHOD'];
-
-function getAuthUserId($pdo) {
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if ($apiKey) {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
-        $stmt->execute([$apiKey]);
-        if ($user = $stmt->fetch()) return $user['id'];
-    } else {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (isset($_SESSION['user_id'])) return $_SESSION['user_id'];
-    }
-    return null;
-}
 
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));
@@ -69,7 +58,7 @@ if ($method === 'GET') {
     $binds = [];
 
     if ($scope === 'me') {
-        $authUserId = getAuthUserId($pdo);
+        $authUserId = $userId;
         if (!$authUserId) { 
             http_response_code(401); 
             echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
@@ -162,30 +151,13 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
-    $userId = getAuthUserId($pdo);
     if (!$userId) { 
         http_response_code(401); 
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
         exit; 
     }
 
-    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if (empty($apiKey)) {
-        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (empty($userCsrfToken) && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-        }
-        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-            http_response_code(403); 
-            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-    }
-
+    // CSRF / auth already handled centrally at top via ApiSecurity::initialize()
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $title = trim($input['title'] ?? '');
     $content = $input['content'] ?? '';

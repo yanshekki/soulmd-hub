@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 loadTranslations('api');
 
@@ -24,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 $username = trim($_GET['username'] ?? '');
 if (empty($username)) { http_response_code(400); echo json_encode(['success' => false, 'error' => __('Username parameter is required')], JSON_UNESCAPED_UNICODE); exit; }
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+// Centralized for consistency (this endpoint is public)
+$security = ApiSecurity::initialize(false);
+$pdo = $security['pdo'];
 
 $userStmt = $pdo->prepare("SELECT id, username, created_at FROM users WHERE username = ?");
 $userStmt->execute([$username]);

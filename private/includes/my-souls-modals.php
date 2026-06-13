@@ -180,9 +180,16 @@
 </div>
 
 <script>
+    const serverCsrfToken = "<?= htmlspecialchars($csrfToken ?? '', ENT_QUOTES) ?>";  // from my-souls.php for CSRF on modal PUTs to /api/soul
+
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+    }
+
+    function withCsrf(headers = {}) {
+        if (serverCsrfToken) headers['X-CSRF-Token'] = serverCsrfToken;
+        return headers;
     }
 
     async function mintExistingSoul(id) {
@@ -197,7 +204,7 @@
         try {
             const res = await fetch(`/api/soul/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: withCsrf({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ is_minting: true })
             });
             const data = await res.json();
@@ -579,7 +586,7 @@
         try {
             const res = await fetch(`/api/soul/${currentEditId}`, { 
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: withCsrf({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload)
             });
             const data = await res.json();

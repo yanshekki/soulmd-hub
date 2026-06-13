@@ -14,9 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit; 
 }
 
-session_start();
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+
+$security = ApiSecurity::initialize(false);  // logout can work with or without prior full auth check
+$pdo = $security['pdo'];
+
+session_start();  // ensure after central (central also starts if needed)
 
 if (isset($_SESSION['user_id'])) {
     try {

@@ -7,19 +7,13 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-session_start();
-loadTranslations('api'); // 🚨 載入全域 API 語言包
+loadTranslations('api');
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401); 
-    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
-    exit;
-}
-
-$userId = $_SESSION['user_id'];
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$security = ApiSecurity::initialize(true);  // requires login + CSRF for session POSTs
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
@@ -57,19 +51,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (empty($userCsrfToken) && function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-    }
-    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-
-    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-        http_response_code(403); 
-        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-        exit;
-    }
-
+    // CSRF already enforced centrally by ApiSecurity::initialize() for session users
     $input = json_decode(file_get_contents('php://input'), true);
     
     $stmt = $pdo->prepare("SELECT text_api_key, vision_api_key FROM user_llm_settings WHERE user_id = ?");

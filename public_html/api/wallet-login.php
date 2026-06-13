@@ -9,9 +9,12 @@ try {
     require_once __DIR__ . '/../../private/config.php';
     require_once __DIR__ . '/../../private/src/Database.php';
     require_once __DIR__ . '/../../private/src/NearAuthService.php';
+    require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-    session_start();
     loadTranslations('api');
+
+    $security = ApiSecurity::initialize(false);  // wallet login creates the session
+    $pdo = $security['pdo'];
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);

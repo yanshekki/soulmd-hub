@@ -11,6 +11,11 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
+// CSRF for on-chain upgrade claim (api/near-upgrade enforces for session)
+if (empty($_SESSION['chat_csrf_token'])) {
+    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['chat_csrf_token'];
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ' . url('/login'));
@@ -240,7 +245,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 
                 return fetch('/api/paypal', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' },
                     body: JSON.stringify({ orderID: data.orderID, tier: tierName })
                 }).then(function(res) {
                     return res.json();
@@ -339,7 +344,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             if (payResult) payload.tx = payResult; // pass for future/server-side tx verification
             const res = await fetch('/api/near-upgrade', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();

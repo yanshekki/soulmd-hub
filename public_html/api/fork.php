@@ -8,51 +8,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 loadTranslations('api');
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$security = ApiSecurity::initialize(true);  // api_key skips CSRF + rate limited; session enforces CSRF
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
+$apiKey = $security['api_key'];  // may be null
 
-$userId = null;
+// For compatibility with later code in this file
 $username = 'anonymous';
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-$apiKey = trim(str_replace('Bearer', '', $authHeader));
-
-if ($apiKey) {
-    $stmt = $pdo->prepare("SELECT id, username FROM users WHERE api_key = ?");
-    $stmt->execute([$apiKey]);
-    if ($user = $stmt->fetch()) {
-        $userId = $user['id'];
-        $username = $user['username'];
-    }
-} else {
-    if (session_status() === PHP_SESSION_NONE) session_start();
-    if (isset($_SESSION['user_id'])) {
-        $userId = $_SESSION['user_id'];
-        $username = $_SESSION['username'];
-    }
-}
-
-if (!$userId) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => __('Login or valid API Key required')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 路徑跳過，與其他 endpoint 一致）
-if (! $apiKey) {  // 只有純 session 時檢查 CSRF
-    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (empty($userCsrfToken) && function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-    }
-    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-        http_response_code(403); 
-        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-        exit;
-    }
+if ($userId) {
+    $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    if ($u = $stmt->fetch()) $username = $u['username'];
 }
 
 // ✅ Phase 2 業務邏輯修復：簡單 rate limit 防 spam fork (session based, 5秒)

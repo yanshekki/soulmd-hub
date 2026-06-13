@@ -17,6 +17,12 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// CSRF token for browser session mutating calls (edit form submit hits api/soul PUT which enforces it)
+if (empty($_SESSION['chat_csrf_token'])) {
+    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['chat_csrf_token'];
+
 loadTranslations('upload');
 
 $db = Database::getInstance();

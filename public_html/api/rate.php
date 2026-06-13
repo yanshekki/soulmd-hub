@@ -8,45 +8,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 loadTranslations('api');
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
-$userId = null;
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-$apiKey = trim(str_replace('Bearer', '', $authHeader));
-
-if ($apiKey) {
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
-    $stmt->execute([$apiKey]);
-    if ($user = $stmt->fetch()) $userId = $user['id'];
-} else {
-    if (session_status() === PHP_SESSION_NONE) session_start();
-    if (isset($_SESSION['user_id'])) $userId = $_SESSION['user_id'];
-}
-
-if (!$userId) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => __('Login or valid API Key required')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
-if (empty($apiKey)) {
-    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (empty($userCsrfToken) && function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-    }
-    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-    if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-        http_response_code(403); 
-        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-        exit;
-    }
-}
+$security = ApiSecurity::initialize(true);  // api_key: skip CSRF + rate limit; session: CSRF enforced
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
 
 // ✅ Phase 2 業務邏輯修復：簡單 rate limit 防 spam rate (session based, 5秒)
 if (!empty($_SESSION['last_rate_time']) && (time() - $_SESSION['last_rate_time']) < 5) {

@@ -8,8 +8,12 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-session_start();
+$security = ApiSecurity::initialize(false);  // supports guest + logged, for future rate/throttle centralization
+$pdo = $security['pdo'];
+
+session_start();  // ensure
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405); exit;

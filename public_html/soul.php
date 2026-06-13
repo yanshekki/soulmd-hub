@@ -10,6 +10,12 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
 session_start();
+// CSRF for logged-in browser actions (rate, like, fork) that hit protected APIs
+if (empty($_SESSION['chat_csrf_token'])) {
+    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['chat_csrf_token'];
+
 loadTranslations('soul');
 
 $db = Database::getInstance();
@@ -644,7 +650,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/rate', { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' }, 
                 body: JSON.stringify({ soul_id: <?= $id ?>, rating: stars }) 
             });
             const data = await res.json();
@@ -689,7 +695,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         try {
             const res = await fetch('/api/like', { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' }, 
                 body: JSON.stringify({ soul_id: <?= $id ?> }) 
             });
             const data = await res.json();
@@ -725,7 +731,7 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.style.pointerEvents = 'none';
         btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> <?= addslashes(__('Forking...')) ?>`;
         try {
-            const res = await fetch('/api/fork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
+            const res = await fetch('/api/fork', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' }, body: JSON.stringify({ soul_id: <?= $id ?> }) });
             const data = await res.json();
             if (data.success && data.new_soul_id) window.location.href = data.url;
             else {

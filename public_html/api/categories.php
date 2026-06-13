@@ -16,8 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 loadTranslations('api');
+
+$security = ApiSecurity::initialize(false);  // public list
+$pdo = $security['pdo'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
@@ -26,8 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
-    $db = Database::getInstance();
-    $pdo = $db->getConnection();
 
     // 撈取資料庫中設定的所有分類，供開發者白名單對照
     $stmt = $pdo->query("SELECT id, name, slug, icon FROM categories ORDER BY id ASC");

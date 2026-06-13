@@ -19,30 +19,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 // 🌍 載入後端 API 全域專屬語言包
 loadTranslations('api');
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$method = $_SERVER['REQUEST_METHOD'];
+$security = ApiSecurity::initialize(false);
+$userId   = $security['user_id'];
+$pdo      = $security['pdo'];
+$isApiKey = $security['is_api_key'];
 
-// ==========================================
-// 權限助手函數
-// ==========================================
-function getAuthUserId($pdo) {
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if ($apiKey) {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
-        $stmt->execute([$apiKey]);
-        if ($user = $stmt->fetch()) return $user['id'];
-    } else {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (isset($_SESSION['user_id'])) return $_SESSION['user_id'];
-    }
-    return null;
-}
+$method = $_SERVER['REQUEST_METHOD'];
 
 // ==========================================
 // 路由處理
@@ -58,7 +45,7 @@ if ($method === 'GET') {
         exit;
     }
 
-    $userId = getAuthUserId($pdo);
+    // $userId resolved at top (may be null for public souls)
     
     // 🚨 完美修復 3：允許 Web3 持有人讀取歷史
     $checkStmt = $pdo->prepare("SELECT is_public, user_id, is_nft, nft_owner_wallet FROM souls WHERE id = ?");
@@ -117,29 +104,13 @@ if ($method === 'GET') {
 
 } elseif ($method === 'POST') {
     // 還原歷史版本 (Restore Logic)
-    $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if (empty($apiKey)) {
-        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (empty($userCsrfToken) && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-        }
-        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-            http_response_code(403); 
-            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-    }
+    // CSRF handled centrally at top of file by ApiSecurity
 
     $input = json_decode(file_get_contents('php://input'), true);
     $versionId = (int)($input['version_id'] ?? 0);

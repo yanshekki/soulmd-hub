@@ -9,19 +9,17 @@ try {
     require_once __DIR__ . '/../../private/config.php';
     require_once __DIR__ . '/../../private/src/Database.php';
     require_once __DIR__ . '/../../private/src/NearAuthService.php';
+    require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-    session_start();
     loadTranslations('api');
+
+    $security = ApiSecurity::initialize(true);  // requires authenticated session (or api_key if supported)
+    $userId = $security['user_id'];
+    $pdo = $security['pdo'];
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);
         echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    if (!isset($_SESSION['user_id'])) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => __('Unauthorized')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 

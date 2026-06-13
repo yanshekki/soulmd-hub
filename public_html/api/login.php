@@ -17,9 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 // 🌍 載入後端 API 全域專屬語言包（自動依據 Cookie 語系切換）
 loadTranslations('api');
+
+// Use central security (false = no prior auth required, this endpoint creates the key/session)
+$security = ApiSecurity::initialize(false);
+$pdo = $security['pdo'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -28,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// 🚨 完美安全機制：強制只接收 JSON，杜絕 $_POST CSRF 攻擊
+// 🚨 完美安全機制：強制只接收 JSON，杜絕 $_POST CSRF 攻擊 (centralized now handles CSRF skip for non-session)
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $username = trim($input['username'] ?? '');

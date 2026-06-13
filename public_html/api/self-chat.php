@@ -24,10 +24,15 @@ require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 // 🌍 載入全域 API 與 Chat 語言包以獲取 Anonymous 翻譯
 loadTranslations('api');
 loadTranslations('chat');
+
+$security = ApiSecurity::initialize(true);  // requires auth (api_key or session + CSRF)
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -93,25 +98,10 @@ if (!$currentUser) {
     exit;
 }
 
-// ==========================================
-// 1. CSRF 安全檢查
-// ==========================================
-$userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (empty($userCsrfToken) && function_exists('getallheaders')) {
-    $headers = getallheaders();
-    $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-}
-$serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+// CSRF / auth already enforced by ApiSecurity::initialize(true) at top
+// (skipped for valid api_key, enforced for session)
 
-if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-    http_response_code(403); 
-    echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-    exit;
-}
-
-// ==========================================
-// 2. 接收參數與 BYOK 檢查
-// ==========================================
+// 接收參數與 BYOK 檢查
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $soulId = (int)($input['soul_id'] ?? 0);
 $sessionToken = trim($input['session_token'] ?? '');

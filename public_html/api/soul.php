@@ -22,11 +22,12 @@ require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 require_once __DIR__ . '/../../private/includes/token-gate.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-loadTranslations('api');
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$security = ApiSecurity::initialize(false);   // allow public GET; auth checked inside per-method
+$userId   = $security['user_id'];
+$pdo      = $security['pdo'];
+$isApiKey = $security['is_api_key'];
 
 $id = (int)($_GET['id'] ?? 0);
 
@@ -37,23 +38,6 @@ if (!$id) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-
-// ==========================================
-// 🛡️ 權限與標籤助手函數
-// ==========================================
-function getAuthUserId($pdo) {
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if ($apiKey) {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE api_key = ?");
-        $stmt->execute([$apiKey]);
-        if ($user = $stmt->fetch()) return $user['id'];
-    } else {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (isset($_SESSION['user_id'])) return $_SESSION['user_id'];
-    }
-    return null;
-}
 
 function syncTags($pdo, $table, $oldStr, $newStr) {
     $oldTags = array_filter(array_map('trim', explode(',', $oldStr)));
@@ -77,8 +61,7 @@ function syncTags($pdo, $table, $oldStr, $newStr) {
 // 路由主矩陣
 // ==========================================
 if ($method === 'GET') {
-    $userId = getAuthUserId($pdo);
-    
+    // $userId may be null here (public access allowed; ownership checked below)
     $stmt = $pdo->prepare("SELECT * FROM souls WHERE id = ?");
     $stmt->execute([$id]);
     $soul = $stmt->fetch();
@@ -100,30 +83,13 @@ if ($method === 'GET') {
     echo json_encode(['success' => true, 'data' => $soul], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } elseif ($method === 'PUT') {
-    $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過）
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if (empty($apiKey)) {
-        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (empty($userCsrfToken) && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-        }
-        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-            http_response_code(403); 
-            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-    }
-
+    // CSRF/auth handled centrally by ApiSecurity::initialize() at top of file
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         http_response_code(400);
@@ -269,30 +235,13 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'DELETE') {
-    $userId = getAuthUserId($pdo);
     if (!$userId) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // ✅ Phase 2 修復：browser session 路徑補 CSRF（API key 跳過） for DELETE
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $apiKey = trim(str_replace('Bearer', '', $authHeader));
-    if (empty($apiKey)) {
-        $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (empty($userCsrfToken) && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-        }
-        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-            http_response_code(403); 
-            echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-    }
-
+    // CSRF/auth handled centrally
     $stmt = $pdo->prepare("SELECT user_id, is_nft, nft_owner_wallet, domain, compatibility FROM souls WHERE id = ?");
     $stmt->execute([$id]);
     $old = $stmt->fetch();

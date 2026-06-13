@@ -17,14 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-session_start();
 loadTranslations('api');
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$security = ApiSecurity::initialize(false);  // GET for guests via tokens in some cases; POST may need auth
+$userId = $security['user_id'] ?? 0;
+$pdo = $security['pdo'];
 $method = $_SERVER['REQUEST_METHOD'];
-$userId = $_SESSION['user_id'] ?? 0;
 
 if ($method === 'GET') {
     if (!$userId) {
@@ -74,19 +74,7 @@ if ($method === 'GET') {
     exit;
 
 } elseif ($method === 'POST') {
-    // ✅ Phase 2 修復：POST for guest tokens, 但若有 session 則檢查 CSRF (防 CSRF on logged user)
-    $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (empty($userCsrfToken) && function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-    }
-    $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-    if (!empty($userId) && (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken))) {
-        http_response_code(403); 
-        echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-        exit;
-    }
-
+    // CSRF for session users already enforced by ApiSecurity at top (guest token paths are allowed)
     $input = json_decode(file_get_contents('php://input'), true);
     $tokens = $input['tokens'] ?? [];
 

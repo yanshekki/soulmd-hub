@@ -6,12 +6,12 @@
 
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
-session_start();
 
 loadTranslations('api');
 
@@ -21,28 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ✅ Phase 2 修復：純 session mutating endpoint 補 CSRF
-$userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (empty($userCsrfToken) && function_exists('getallheaders')) {
-    $headers = getallheaders();
-    $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
-}
-$serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
-if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
-    http_response_code(403); 
-    echo json_encode(['success' => false, 'error' => __('Security validation failed')], JSON_UNESCAPED_UNICODE); 
-    exit;
-}
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+$security = ApiSecurity::initialize(true);  // requires auth + enforces CSRF for session
+$userId = $security['user_id'];
+$pdo = $security['pdo'];
 
 // 生成全新的 64 字元高強度金鑰
 $newApiKey = bin2hex(random_bytes(32));
