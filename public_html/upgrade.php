@@ -327,17 +327,28 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 
             status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending $${displayAmount} worth of ${token.toUpperCase()} via ${tokenContract} (msg: ${msg})...`;
 
-            // The existing wrapper supports arbitrary contractId — we use it here to call the TOKEN's ft_transfer_call
-            const payResult = await wrapper.account().functionCall({
-                contractId: tokenContract,
-                methodName: 'ft_transfer_call',
-                args: {
-                    receiver_id: hubContract,
-                    amount: amount,
-                    msg: msg
-                },
-                gas: '300000000000000',
-                attachedDeposit: '1'
+            // Use requestSignTransactions with explicit per-tx receiverId instead of account().functionCall.
+            // This gives us direct control over the transaction receiver (the token contract),
+            // and is the same pattern used elsewhere in the project for FT operations (e.g. marketplace swap).
+            // It avoids some quirks in the single functionCall path + custom bundle's NAJ handling
+            // that were causing either "Unsupported NAJ action" or the wallet UI showing the wrong "To".
+            //
+            // The actual on-chain transaction will have receiverId = tokenContract (usdt or usdc),
+            // with the ft_transfer_call args telling it to forward to soulmd-hub.near with the upgrade msg.
+            const payResult = await wrapper.requestSignTransactions({
+                transactions: [{
+                    receiverId: tokenContract,
+                    actions: [{
+                        methodName: 'ft_transfer_call',
+                        args: {
+                            receiver_id: hubContract,
+                            amount: amount,
+                            msg: msg
+                        },
+                        gas: '300000000000000',
+                        deposit: '1'
+                    }]
+                }]
             });
 
             // Some wallet implementations resolve even on on-chain ActionError (e.g. MethodNotFound, insufficient storage, panic in ft_on_transfer).
