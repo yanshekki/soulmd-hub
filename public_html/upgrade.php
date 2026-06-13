@@ -227,8 +227,8 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <?php if ($isPro): ?>
                 <p class="mt-3 text-xs text-amber-400"><?= __('Purchasing PRO while having active PRO will stack +30 days to your subscription.') ?></p>
             <?php elseif ($isVip): ?>
-                <p class="mt-3 text-xs text-amber-400"><?= __('Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.') ?></p>
-                <p class="mt-1 text-xs text-emerald-400"><?= __('Purchasing VIP while having active VIP will add another 30 days to your subscription (stacking).') ?></p>
+                <p class="mt-3 text-xs text-emerald-400 text-center"><?= __('Purchasing VIP while having active VIP will add another 30 days to your subscription (stacking).') ?></p>
+                <p class="mt-3 text-xs text-amber-400 text-center" ><?= __('Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.') ?></p>
             <?php endif; ?>
         </div>
 
