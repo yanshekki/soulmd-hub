@@ -29,10 +29,10 @@ if (!defined('BASE_URL')) exit;
             <table class="w-full text-left border-collapse font-mono text-sm">
                 <thead>
                     <tr class="bg-black/40 border-b border-white/10 text-zinc-400 uppercase tracking-wider text-xs">
-                        <th class="p-5 font-bold w-1/4">Segment</th>
-                        <th class="p-5 font-bold w-1/6">Percentage</th>
-                        <th class="p-5 font-bold w-1/4">Supply</th>
-                        <th class="p-5 font-bold">Vesting & Utility</th>
+                        <th class="p-5 font-bold w-1/4"><?= __('Table_Header_Segment') ?></th>
+                        <th class="p-5 font-bold w-1/6"><?= __('Table_Header_Percentage') ?></th>
+                        <th class="p-5 font-bold w-1/4"><?= __('Table_Header_Supply') ?></th>
+                        <th class="p-5 font-bold"><?= __('Table_Header_Vesting_Utility') ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5 text-zinc-300">

@@ -33,6 +33,12 @@ return [
         'Alloc_Staking_Amt' => '200,000,000 $SOUL',
         'Alloc_Staking_Desc' => 'Allocated for high-yield validation staking, ecosystem creator mining, and incentivizing users to lock tokens, reducing circulating market supply.',
 
+        // Table Headers for Tokenomics Allocation
+        'Table_Header_Segment' => 'Segment',
+        'Table_Header_Percentage' => 'Percentage',
+        'Table_Header_Supply' => 'Supply',
+        'Table_Header_Vesting_Utility' => 'Vesting & Utility',
+
         // 2. Protocol Revenue Streams (Based on contract.ts)
         'Revenue_Stream_Title' => '2. Native Smart Contract Value Capture (Treasury Inflows)',
         'Revenue_Stream_Desc' => 'The SoulMD smart contract executes non-discretionary value capture at every lifecycle milestone of an AI Agent, directly fortifying the soulmd-hub.near treasury vault.',
@@ -96,6 +102,12 @@ return [
         'Alloc_Staking_Pct' => '20%',
         'Alloc_Staking_Amt' => '200,000,000 $SOUL',
         'Alloc_Staking_Desc' => '用於分配給長期鎖倉質押者、驅動生態創作者開採，並透過高收益利息激勵用戶鎖定代幣，大幅降低市場流通拋壓。',
+
+        // Table Headers for Tokenomics Allocation
+        'Table_Header_Segment' => '部分',
+        'Table_Header_Percentage' => '百分比',
+        'Table_Header_Supply' => '供應量',
+        'Table_Header_Vesting_Utility' => '歸屬與用途',
 
         // 2. Protocol Revenue Streams (Based on contract.ts)
         'Revenue_Stream_Title' => '二、智能合約硬性價值捕獲 (國庫收入流)',
