@@ -28,6 +28,11 @@ return [
         'Important Warning:' => 'Immutable Blockchain Binding:',
         'Wallet one-time warning' => 'For extreme security and Web3 asset integrity, you can only bind your wallet ONCE. After binding, you cannot migrate the wallet address linked to this account.',
         
+        // Special for platform owner (NEAR_CONTRACT_ID) in Web3 binding section
+        'Platform Owner Badge' => 'PLATFORM OWNER — Contract Treasury',
+        'Owner Dashboard Desc' => 'This wallet controls the live soulmd-hub.near smart contract. Click below to open the full system dashboard for token management, upgrade credits, FT revenue, and all buy/sell records.',
+        'Open Contract Admin Dashboard' => 'Open Contract Admin Dashboard',
+        
         // Tab 3: API
         'Platform API Key' => 'Platform API Secret Key',
         'API Key Desc' => 'This cryptographic key is used to authenticate requests to the SoulMD Hub `/api/chat` Headless API endpoint (subject to your SaaS tier limits). Keep it strictly confidential.',
@@ -104,6 +109,11 @@ return [
         'Connect & Bind Wallet' => '連接並永久綁定 NEAR 錢包',
         'Important Warning:' => '不可逆的區塊鏈綁定：',
         'Wallet one-time warning' => '為確保極致的安全性與 Web3 資產完整性，您只能綁定錢包「一次」。一旦綁定完成，您將永遠無法轉移或修改連結到此帳號的錢包地址。',
+        
+        // Special for platform owner (NEAR_CONTRACT_ID) in Web3 binding section (AgentFi 區塊鏈錢包綁定)
+        'Platform Owner Badge' => '平台擁有者 — 合約國庫',
+        'Owner Dashboard Desc' => '此錢包控制 soulmd-hub.near 智能合約。點擊下方按鈕開啟完整系統管理控制台，可管理代幣、升級信用、查看 FT 收入及所有買賣記錄。',
+        'Open Contract Admin Dashboard' => '開啟合約管理控制台',
         
         // Tab 3: API
         'Platform API Key' => '平台 API 專屬金鑰 (Secret Key)',

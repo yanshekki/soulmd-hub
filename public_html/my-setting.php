@@ -29,6 +29,9 @@ $stmt = $pdo->prepare("SELECT username, email, api_key, near_wallet_address FROM
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
+$contractOwner = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
+$isPlatformOwner = !empty($user['near_wallet_address']) && $user['near_wallet_address'] === $contractOwner;
+
 $pageTitle = __('SEO Title');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
@@ -84,13 +87,32 @@ require_once __DIR__ . '/../private/includes/header.php';
             <p class="text-sm text-zinc-400 mb-6"><?= __('Wallet Binding Desc') ?></p>
             
             <?php if ($user['near_wallet_address']): ?>
-                <div class="bg-zinc-950 border border-emerald-500/30 p-5 rounded-2xl flex items-center gap-4 shadow-inner">
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-8 h-8 opacity-90" alt="NEAR Protocol Logo">
-                    <div>
-                        <div class="text-xs text-emerald-500 font-bold uppercase tracking-widest mb-1"><?= __('Bound Permanently') ?></div>
-                        <code class="text-lg text-white font-mono"><?= htmlspecialchars($user['near_wallet_address']) ?></code>
+                <?php if ($isPlatformOwner): ?>
+                    <!-- Special case for NEAR_CONTRACT_ID owner: entire action button leads to admin-contract.php dashboard -->
+                    <div class="bg-red-950/40 border border-red-500/40 p-5 rounded-2xl shadow-inner">
+                        <div class="flex items-start gap-3 mb-4">
+                            <i class="fas fa-shield-alt text-red-400 text-2xl mt-0.5" aria-hidden="true"></i>
+                            <div class="flex-1 min-w-0">
+                                <div class="inline-flex items-center gap-2 bg-red-950/60 text-red-400 border border-red-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-[1.5px] uppercase mb-1.5"><?= __('Platform Owner Badge') ?></div>
+                                <code class="block text-base text-white font-mono break-all"><?= htmlspecialchars($user['near_wallet_address']) ?></code>
+                                <div class="text-xs text-red-300/80 mt-1"><?= __('Owner Dashboard Desc') ?></div>
+                            </div>
+                        </div>
+                        <a href="/admin-contract.php" 
+                           class="block w-full text-center px-6 py-3.5 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-black rounded-2xl transition flex items-center justify-center gap-3 text-base shadow-lg border border-red-400/30">
+                            <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
+                            <span><?= __('Open Contract Admin Dashboard') ?></span>
+                        </a>
                     </div>
-                </div>
+                <?php else: ?>
+                    <div class="bg-zinc-950 border border-emerald-500/30 p-5 rounded-2xl flex items-center gap-4 shadow-inner">
+                        <img src="https://cryptologos.cc/logos/near-protocol-near-logo.svg?v=033" class="w-8 h-8 opacity-90" alt="NEAR Protocol Logo">
+                        <div>
+                            <div class="text-xs text-emerald-500 font-bold uppercase tracking-widest mb-1"><?= __('Bound Permanently') ?></div>
+                            <code class="text-lg text-white font-mono"><?= htmlspecialchars($user['near_wallet_address']) ?></code>
+                        </div>
+                    </div>
+                <?php endif; ?>
             <?php else: ?>
                 <div class="bg-blue-900/10 border border-blue-500/30 p-4 rounded-2xl mb-4 text-[11px] sm:text-xs text-blue-300 leading-relaxed flex items-start gap-2 shadow-inner">
                     <i class="fas fa-exclamation-triangle text-blue-400 mt-0.5 shrink-0" aria-hidden="true"></i>
