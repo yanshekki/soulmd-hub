@@ -24,6 +24,8 @@ if (isset($_SESSION['user_id'])) {
 <script src="<?= url('/assets/wallet-selector-bundle.js?v=1.0.0') ?>"></script>
 
 <script>
+    window.isPhpLoggedIn = <?= $sync_isPhpLoggedIn ?>;
+    window.phpBoundNearAddress = '<?= htmlspecialchars($sync_phpUserWallet, ENT_QUOTES) ?>';
     window.nearHubWalletWrapper = null;
     window.walletSelectorInstance = null;
     window.walletModalInstance = null;

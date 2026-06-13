@@ -106,45 +106,56 @@ require_once __DIR__ . '/../private/includes/header.php';
     async function updateWalletButton() {
         const btnTextEl = document.getElementById('wallet-btn-text');
         const container = document.getElementById('wallet-status-container');
+        const btn = document.getElementById('marketplace-wallet-btn');
         if (!btnTextEl) return;
         try {
             const w = await initNearWallet();
             const addr = w ? w.getAccountId() : null;
-            if (addr) {
-                // Show the current address (prefers DB-bound near_wallet_address if user is web2-logged,
-                // else the live wallet selector account). This way, if user has logged-in near address in DB,
-                // the button shows it instead of always falling back to "Connect NEAR wallet to trade".
+            const isPhpLogged = window.isPhpLoggedIn === true || window.isPhpLoggedIn === 'true';
+
+            if (isPhpLogged && addr) {
+                // Has near address (from DB bound): disabled + display the near address
                 btnTextEl.innerText = addr;
-                if (container) {
-                    if (w && w.isSignedIn()) {
-                        container.classList.add('opacity-80');
-                    } else {
-                        container.classList.remove('opacity-80');
-                    }
-                }
+                if (btn) btn.disabled = true;
+                if (container) container.classList.add('opacity-80');
+            } else if (isPhpLogged && !addr) {
+                // Logged in (web2) but no near address: show connect text, not disabled (click will redirect to settings)
+                btnTextEl.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+                if (btn) btn.disabled = false;
+                if (container) container.classList.remove('opacity-80');
             } else {
-                btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+                // No login at all: show connect text, not disabled (click will redirect to login page)
+                btnTextEl.innerText = '<?= addslashes(__('Connect NEAR Wallet')) ?>';
+                if (btn) btn.disabled = false;
                 if (container) container.classList.remove('opacity-80');
             }
         } catch (e) {
             console.warn('updateWalletButton error:', e);
             btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+            const btn = document.getElementById('marketplace-wallet-btn');
+            if (btn) btn.disabled = false;
+            if (container) container.classList.remove('opacity-80');
         }
     }
 
     async function ensureWalletConnection() {
+        const isPhpLogged = window.isPhpLoggedIn === true || window.isPhpLoggedIn === 'true';
         const wrapper = await initNearWallet();
-        if (wrapper && wrapper.isSignedIn()) {
-            if(confirm("Wallet Connected: " + wrapper.getAccountId() + "\nDo you want to sign out?")) {
-                wrapper.signOut();
-                window.location.reload();
-            }
-        } else {
-            await window.connectOrBindWallet();
-            // After connect (new account may have been selected), force update the button
-            // using the shared update function (handles live getAccountId from current selector state).
-            setTimeout(updateWalletButton, 600);
+        const addr = wrapper ? wrapper.getAccountId() : null;
+
+        if (!isPhpLogged) {
+            // 無 login: redirect to login page
+            window.location.href = '<?= url("/login") ?>';
+            return;
         }
+
+        if (addr) {
+            // 有 near address: button is disabled and only displays the address; no click action
+            return;
+        }
+
+        // 有 login 但冇 near address: redirect to settings.php near wallet tab
+        window.location.href = '<?= url("/my-setting?tab=web3") ?>';
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
