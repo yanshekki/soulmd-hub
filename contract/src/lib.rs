@@ -1,9 +1,9 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, UnorderedMap};
-use near_sdk::json_types::{U128, U64};
+use near_sdk::collections::LookupMap;
+use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    env, near_bindgen, AccountId, Balance, Gas, PanicOnDefault, Promise, PromiseOrValue,
+    env, near, near_bindgen, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue,
 };
 use std::collections::HashMap;
 
@@ -27,8 +27,8 @@ pub struct Token {
     pub renters: HashMap<AccountId, u64>, // expiry ns
 }
 
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+#[near(contract_state)]
+#[derive(PanicOnDefault)]
 pub struct SoulMDAgentFi {
     tokens: LookupMap<String, Token>, // key = "t:" + token_id
     platform_wallet: AccountId,
@@ -38,7 +38,7 @@ pub struct SoulMDAgentFi {
     credits: LookupMap<String, String>, // "account:tier" -> ts string
 }
 
-#[near_bindgen]
+#[near]
 impl SoulMDAgentFi {
     #[init]
     pub fn new() -> Self {
@@ -65,9 +65,9 @@ impl SoulMDAgentFi {
         reference: String,
     ) {
         let caller = env::predecessor_account_id();
-        let deposit = env::attached_deposit();
+        let deposit = env::attached_deposit().as_yoctonear();
 
-        let required: Balance = 600000000000000000000000; // 0.6 NEAR
+        let required: u128 = 600000000000000000000000; // 0.6 NEAR
         assert!(deposit >= required, "Error: Minting requires exactly 0.6 NEAR");
 
         let key = format!("t:{}", token_id);
@@ -89,8 +89,8 @@ impl SoulMDAgentFi {
         };
         self.tokens.insert(&key, &token);
 
-        let platform_fee: Balance = 100000000000000000000000; // 0.1 NEAR
-        Promise::new(self.platform_wallet.clone()).transfer(platform_fee);
+        let platform_fee: u128 = 100000000000000000000000; // 0.1 NEAR
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee));
 
         env::log_str(&format!("Minted Soul [{}] by {}", token_id, caller));
     }
@@ -126,7 +126,7 @@ impl SoulMDAgentFi {
     #[payable]
     pub fn buy_soul(&mut self, token_id: String) {
         let buyer = env::predecessor_account_id();
-        let deposit = env::attached_deposit();
+        let deposit = env::attached_deposit().as_yoctonear();
         let key = format!("t:{}", token_id);
         let mut token = self.tokens.get(&key).expect("Error: Token not found.");
 
@@ -137,22 +137,26 @@ impl SoulMDAgentFi {
         let creator = token.metadata.creator_id.clone();
 
         let platform_fee = sale_price.0 * 5 / 100;
-        let mut creator_value: Balance = 0;
+        let mut creator_value: u128 = 0;
         let mut seller_value = sale_price.0 - platform_fee;
 
         if creator != prev_owner {
             creator_value = sale_price.0 * 5 / 100;
             seller_value -= creator_value;
-            Promise::new(creator.clone()).transfer(creator_value);
         }
 
-        Promise::new(self.platform_wallet.clone()).transfer(platform_fee);
-        Promise::new(prev_owner.clone()).transfer(seller_value);
-
+        // State mutation BEFORE effects (payments). Per strict audit + prior TS safety pattern.
         token.owner_id = buyer.clone();
         token.sale_price = None;
         token.rent_price = None;
         self.tokens.insert(&key, &token);
+
+        // Now effects (transfers). Platform 5%, optional creator 5%, seller rest.
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee));
+        if creator_value > 0 {
+            Promise::new(creator.clone()).transfer(NearToken::from_yoctonear(creator_value));
+        }
+        Promise::new(prev_owner.clone()).transfer(NearToken::from_yoctonear(seller_value));
 
         env::log_str(&format!("[{}] bought by {} from {}", token_id, buyer, prev_owner));
     }
@@ -176,7 +180,7 @@ impl SoulMDAgentFi {
     #[payable]
     pub fn rent_soul(&mut self, token_id: String) {
         let renter = env::predecessor_account_id();
-        let deposit = env::attached_deposit();
+        let deposit = env::attached_deposit().as_yoctonear();
         let key = format!("t:{}", token_id);
         let mut token = self.tokens.get(&key).expect("Error: Token not found.");
 
@@ -185,9 +189,6 @@ impl SoulMDAgentFi {
 
         let platform_fee = rent_price.0 * 10 / 100;
         let owner_share = rent_price.0 - platform_fee;
-
-        Promise::new(self.platform_wallet.clone()).transfer(platform_fee);
-        Promise::new(token.owner_id.clone()).transfer(owner_share);
 
         let now = env::block_timestamp();
 
@@ -208,7 +209,12 @@ impl SoulMDAgentFi {
         }
         token.renters.insert(renter.clone(), current_expiry + self.rent_duration_ns);
 
+        // State mutation BEFORE effects (payments). Per strict audit + prior TS safety pattern.
         self.tokens.insert(&key, &token);
+
+        // Now effects (transfers): 10% platform, 90% to current owner.
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee));
+        Promise::new(token.owner_id.clone()).transfer(NearToken::from_yoctonear(owner_share));
 
         env::log_str(&format!("Soul [{}] rented by {} (expiry {})", token_id, renter, token.renters.get(&renter).unwrap()));
     }
@@ -226,11 +232,11 @@ impl SoulMDAgentFi {
 
         self.tokens.remove(&key);
 
-        let refund_amount: Balance = 450000000000000000000000;
-        let platform_burn_fee: Balance = 50000000000000000000000;
+        let refund_amount: u128 = 450000000000000000000000;
+        let platform_burn_fee: u128 = 50000000000000000000000;
 
-        Promise::new(caller.clone()).transfer(refund_amount);
-        Promise::new(self.platform_wallet.clone()).transfer(platform_burn_fee);
+        Promise::new(caller.clone()).transfer(NearToken::from_yoctonear(refund_amount));
+        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_burn_fee));
 
         env::log_str(&format!("Soul [{}] burned by {}", token_id, caller));
     }
@@ -259,12 +265,12 @@ impl SoulMDAgentFi {
         assert!(caller == self.platform_wallet, "Security Error: Only platform treasury can trigger buyback.");
 
         let amount = amount_in_near.0;
-        let attached = env::attached_deposit();
+        let attached = env::attached_deposit().as_yoctonear();
         assert!(attached >= amount, "Error: attach exactly the NEAR amount to use for buyback");
 
         // Simplified, in real would wrap and swap, but to match logic
         Promise::new("wrap.near".parse().unwrap())
-            .function_call("near_deposit".to_string(), vec![], amount, Gas(30_000_000_000_000));
+            .function_call("near_deposit".to_string(), vec![], NearToken::from_yoctonear(amount), Gas::from_tgas(30));
 
         // For full, would do the ref finance swap, but for brevity keep similar.
         env::log_str(&format!("Auto-Buyback triggered for {}", amount_in_near.0));
