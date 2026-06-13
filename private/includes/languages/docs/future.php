@@ -46,6 +46,10 @@ return [
         'Rev_Burn' => 'Asset Burning Fee',
         'Rev_Burn_Desc' => 'Users destroying an NFT to reclaim liquidity face a 0.05 NEAR burn fee, ensuring deflationary pressure on the underlying asset pool.',
 
+        // New: USDT/USDC Upgrade Revenue (NEAR FT)
+        'USDT_USDC_Revenue_Title' => '6. USDT / USDC Upgrade Revenue → 100% $SOUL Buy & Burn',
+        'USDT_USDC_Revenue_Desc' => 'All net revenue received in USDT and USDC from users purchasing VIP/PRO upgrades via the on-chain ft_transfer_call mechanism (with "upgrade:vip" / "upgrade:pro" messages sent to soulmd-hub.near) will have bare operational costs deducted. 100% of the remaining stablecoin revenue is automatically converted into $SOUL tokens on the Ref Finance AMM (Pool 8546) and permanently burned, directly amplifying the deflationary pressure on the token supply.',
+
         // 3. Deflationary Spiral
         'AMM_Burn_Title' => '3. The Deflationary AMM Burn Blackhole',
         'AMM_Burn_Desc' => 'The treasury does not hoard accumulated capital. After deducting bare-metal server operations and core development expenditures, the protocol unleashes a permanent deflationary vortex.',
@@ -105,6 +109,10 @@ return [
         'Rev_Rent_Desc' => '租客支付租金取得 30 天對話授權時，合約會即時攔截資金流，自動扣留 10% 作為平台網絡租賃稅。',
         'Rev_Burn' => '資產銷毀手續費 (Burn Fee)',
         'Rev_Burn_Desc' => '擁有者主動銷毀 NFT 以取回底層質押金時，合約將硬性扣除 0.05 NEAR 作為銷毀手續費，加劇資產稀缺性。',
+
+        // New: USDT/USDC Upgrade Revenue (NEAR FT)
+        'USDT_USDC_Revenue_Title' => '六、USDT / USDC 升級收入 → 100% 回購 $SOUL 並銷毀',
+        'USDT_USDC_Revenue_Desc' => '所有透過鏈上 ft_transfer_call 機制（訊息為 "upgrade:vip" / "upgrade:pro"，發送到 soulmd-hub.near）購買 VIP/PRO 升級所收到的 USDT 和 USDC 淨收入，在扣除基礎營運成本後，剩餘的 100% 穩定幣收入將自動透過 Ref Finance AMM (Pool 8546) 按市價全數買入 $SOUL 代幣，並立即打入區塊鏈黑洞地址永久銷毀，直接加強代幣的通縮壓力。',
 
         // 3. Deflationary Spiral
         'AMM_Burn_Title' => '三、淨收入全量回購與代幣強通縮黑洞',

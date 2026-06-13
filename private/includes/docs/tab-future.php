@@ -104,6 +104,22 @@ if (!defined('BASE_URL')) exit;
         </div>
     </div>
 
+    <!-- New dedicated section for USDT/USDC upgrade revenue (from NEAR FT ft_transfer_call) feeding directly into the $SOUL buy & burn -->
+    <div class="bg-zinc-950/40 border border-cyan-500/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-inner">
+        <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-3">
+            <i class="fas fa-coins text-cyan-400 bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-500/20"></i>
+            <?= __('USDT_USDC_Revenue_Title') ?>
+        </h3>
+        <p class="text-sm text-zinc-400 mb-8 leading-relaxed"><?= __('USDT_USDC_Revenue_Desc') ?></p>
+        
+        <div class="bg-black/60 border border-cyan-500/30 p-6 rounded-2xl">
+            <div class="text-cyan-400 mb-3 font-bold text-sm">100% Net Stablecoin Revenue → $SOUL Buy & Burn</div>
+            <p class="text-xs text-zinc-300 leading-relaxed">
+                All USDT/USDC received via <code>ft_transfer_call</code> (with <code>"upgrade:vip"</code> / <code>"upgrade:pro"</code> msg) to <code>soulmd-hub.near</code> will have operational costs deducted. The remaining 100% is automatically used to market-buy $SOUL on Ref Finance AMM and burned permanently.
+            </p>
+        </div>
+    </div>
+
     <div class="bg-gradient-to-b from-zinc-950 to-indigo-950/30 border border-indigo-500/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl relative overflow-hidden">
         <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
         <div class="flex items-center gap-4 mb-6 relative z-10">
