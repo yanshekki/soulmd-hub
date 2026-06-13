@@ -42,6 +42,15 @@ if ($userId > 0) {
 }
 
 $contractOwner = defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near';
+
+// Enforce FT contract defines (same pattern as upgrade.php + other Web3 pages).
+// All contract addresses must come from private/config.php.
+if (!defined('NEAR_USDT_CONTRACT') || !defined('NEAR_USDC_CONTRACT')) {
+    die('FATAL CONFIG ERROR: NEAR_USDT_CONTRACT and NEAR_USDC_CONTRACT must be defined in private/config.php (see config.example.php).');
+}
+$usdtContract = NEAR_USDT_CONTRACT;
+$usdcContract = NEAR_USDC_CONTRACT;
+
 $isOwner = ($currentUserWallet === $contractOwner);
 
 if (!$isOwner) {
@@ -111,12 +120,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5">
             <div class="text-xs text-zinc-400 uppercase tracking-widest mb-1"><?= __('USDT Balance (Platform)') ?></div>
             <div id="usdt-balance" class="text-3xl font-black text-white font-mono">Loading...</div>
-            <div class="text-[10px] text-emerald-400"><?= __('USDT Contract') ?></div>
+            <div class="text-[10px] text-emerald-400"><?= htmlspecialchars($usdtContract) ?></div>
         </div>
         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5">
             <div class="text-xs text-zinc-400 uppercase tracking-widest mb-1"><?= __('USDC Balance (Platform)') ?></div>
             <div id="usdc-balance" class="text-3xl font-black text-white font-mono">Loading...</div>
-            <div class="text-[10px] text-emerald-400"><?= __('USDC Contract') ?></div>
+            <div class="text-[10px] text-emerald-400"><?= htmlspecialchars($usdcContract) ?></div>
         </div>
         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5">
             <div class="text-xs text-zinc-400 uppercase tracking-widest mb-1"><?= __('Quick Links') ?></div>
@@ -365,9 +374,12 @@ require_once __DIR__ . '/../private/includes/header.php';
 </main>
 
 <script>
-    const CONTRACT_ID = "<?= addslashes($contractOwner) ?>";
-    const NEAR_USDT_CONTRACT = 'usdt.tether-token.near';
-    const NEAR_USDC_CONTRACT = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1';
+    // All contract IDs come from private/config.php defines (centralized, same as upgrade.php + other Web3 pages).
+    // near-wallet-scripts.php already provides initNearWallet, nearRpcQuery (hub), nearContractView (any contract),
+    // getErrorMessage, requestSignTransactions, account().functionCall etc.
+    const CONTRACT_ID = "<?= defined('NEAR_CONTRACT_ID') ? addslashes(NEAR_CONTRACT_ID) : 'soulmd-hub.near' ?>";
+    const NEAR_USDT_CONTRACT = "<?= defined('NEAR_USDT_CONTRACT') ? NEAR_USDT_CONTRACT : 'usdt.tether-token.near' ?>";
+    const NEAR_USDC_CONTRACT = "<?= defined('NEAR_USDC_CONTRACT') ? NEAR_USDC_CONTRACT : '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1' ?>";
     const logEl = document.getElementById('admin-log');
     let currentLoadedTokenId = null;
 
@@ -377,36 +389,6 @@ require_once __DIR__ . '/../private/includes/header.php';
             logEl.textContent = `[${ts}] ${msg}\n` + logEl.textContent;
         }
         console.log(msg);
-    }
-
-    // Professional helper: view call on ANY contract (used for FT balances + storage + get_soul)
-    async function nearView(targetContract, methodName, args = {}, finality = 'optimistic') {
-        const payload = {
-            jsonrpc: "2.0",
-            id: "admin_view",
-            method: "query",
-            params: {
-                request_type: "call_function",
-                finality: finality,
-                account_id: targetContract,
-                method_name: methodName,
-                args_base64: btoa(unescape(encodeURIComponent(JSON.stringify(args))))
-            }
-        };
-        const nodes = window.rpcNodesPool || ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"];
-        for (const url of nodes) {
-            try {
-                const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                if (!res.ok) continue;
-                const data = await res.json();
-                if (data && data.result && data.result.result) {
-                    const str = new TextDecoder().decode(new Uint8Array(data.result.result));
-                    if (str.trim() === 'null') return { success: true, data: null, status: 'not_found' };
-                    return { success: true, data: JSON.parse(str), status: 'success' };
-                }
-            } catch (e) {}
-        }
-        return { success: false, error: 'All RPC failed', status: 'timeout' };
     }
 
     async function ensurePlatformWallet() {
@@ -639,8 +621,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         // USDT
         if (usdtBox) usdtBox.textContent = 'Checking...';
-        const usdtBal = await nearView(NEAR_USDT_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
-        const usdtStor = await nearView(NEAR_USDT_CONTRACT, 'storage_balance_of', { account_id: CONTRACT_ID });
+        const usdtBal = await window.nearContractView(NEAR_USDT_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
+        const usdtStor = await window.nearContractView(NEAR_USDT_CONTRACT, 'storage_balance_of', { account_id: CONTRACT_ID });
         if (usdtBox) {
             const bal = (usdtBal.success && usdtBal.data) ? (parseInt(usdtBal.data) / 1e6).toFixed(2) + ' USDT' : '0';
             const reg = (usdtStor.success && usdtStor.data) ? '✅ <?= addslashes(__('Registered')) ?>' : '❌ <?= addslashes(__('Not Registered')) ?>';
@@ -649,8 +631,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         // USDC
         if (usdcBox) usdcBox.textContent = 'Checking...';
-        const usdcBal = await nearView(NEAR_USDC_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
-        const usdcStor = await nearView(NEAR_USDC_CONTRACT, 'storage_balance_of', { account_id: CONTRACT_ID });
+        const usdcBal = await window.nearContractView(NEAR_USDC_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
+        const usdcStor = await window.nearContractView(NEAR_USDC_CONTRACT, 'storage_balance_of', { account_id: CONTRACT_ID });
         if (usdcBox) {
             const bal = (usdcBal.success && usdcBal.data) ? (parseInt(usdcBal.data) / 1e6).toFixed(2) + ' USDC' : '0';
             const reg = (usdcStor.success && usdcStor.data) ? '✅ <?= addslashes(__('Registered')) ?>' : '❌ <?= addslashes(__('Not Registered')) ?>';
@@ -708,8 +690,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         } catch (e) { const el = document.getElementById('near-balance'); if (el) el.textContent = 'Error'; }
 
         // 2. USDT + USDC balances (via nearView)
-        const usdtB = await nearView(NEAR_USDT_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
-        const usdcB = await nearView(NEAR_USDC_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
+        const usdtB = await window.nearContractView(NEAR_USDT_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
+        const usdcB = await window.nearContractView(NEAR_USDC_CONTRACT, 'ft_balance_of', { account_id: CONTRACT_ID });
         const uEl = document.getElementById('usdt-balance');
         const cEl = document.getElementById('usdc-balance');
         if (uEl) uEl.textContent = (usdtB.success && usdtB.data) ? (parseInt(usdtB.data)/1e6).toFixed(2) + ' USDT' : '0';

@@ -105,6 +105,51 @@ if (isset($_SESSION['user_id'])) {
         return { success: false, error: 'All RPC nodes failed', status: 'timeout' };
     };
 
+    // General cross-contract view call (for FT contracts like USDT/USDC, storage_balance_of, or any other NEAR contract).
+    // Re-uses the exact same healthy RPC pool selection, failover, timeout, signal abort, and JSON-RPC 2.0 validation
+    // that nearRpcQuery (hub-specific) uses. Other pages (e.g. admin-contract dashboard for on-chain balances)
+    // must use this centralized helper instead of duplicating fetch logic.
+    window.nearContractView = async function(targetContractId, methodName, args = {}, finality = 'optimistic') {
+        if (!targetContractId) {
+            return { success: false, error: 'targetContractId is required', status: 'error' };
+        }
+        const argsBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(args))));
+
+        const payload = {
+            jsonrpc: "2.0", id: "soulmd_contract_view", method: "query",
+            params: { request_type: "call_function", finality: finality, account_id: targetContractId, method_name: methodName, args_base64: argsBase64 }
+        };
+
+        if (!window.activeNearRpcUrl) window.activeNearRpcUrl = await getHealthyRpc();
+        const nodesToTry = [window.activeNearRpcUrl, ...window.rpcNodesPool.filter(url => url !== window.activeNearRpcUrl)];
+
+        for (const url of nodesToTry) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data || data.jsonrpc !== "2.0" || data.id !== "soulmd_contract_view") {
+                        if (data && data.error) return { success: false, error: data.error, status: 'error' };
+                        return { success: false, error: 'Invalid RPC response structure', status: 'error' };
+                    }
+                    if (data.error) return { success: false, error: data.error, status: 'error' };
+                    if (data.result && data.result.result) {
+                        const resString = new TextDecoder().decode(new Uint8Array(data.result.result));
+                        if (resString.trim() === 'null') return { success: true, data: null, status: 'not_found' };
+                        return { success: true, data: JSON.parse(resString), status: 'success' };
+                    }
+                }
+            } catch (e) {
+                if (url === window.activeNearRpcUrl) window.activeNearRpcUrl = null;
+            }
+        }
+        return { success: false, error: 'All RPC nodes failed', status: 'timeout' };
+    };
+
     window.nukeWalletState = async function() {
         try {
             if (window.walletSelectorInstance) {
