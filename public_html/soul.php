@@ -410,6 +410,18 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                 const isOwner = myWallet && tokenInfo.owner_id === myWallet;
 
+                let isAlreadyRenting = false;
+                if (myWallet && tokenInfo.renters) {
+                    const now = Date.now();
+                    for (const acc in tokenInfo.renters) {
+                        const exp = Number(BigInt(tokenInfo.renters[acc]) / 1000000n);
+                        if (exp > now && acc === myWallet) {
+                            isAlreadyRenting = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (tokenInfo.sale_price && tokenInfo.sale_price !== "0") {
                     const price = window.nearApi.utils.format.formatNearAmount(tokenInfo.sale_price);
                     document.getElementById('price-buy').innerText = `${<?= json_encode(__('Buy Ownership'), JSON_UNESCAPED_UNICODE) ?>} - ${price}`;
@@ -432,11 +444,14 @@ require_once __DIR__ . '/../private/includes/header.php';
                     btnRent.classList.remove('hidden');
                     btnRent.dataset.price = tokenInfo.rent_price;
                     
-                    if (isOwner) {
+                    if (isOwner || isAlreadyRenting) {
                         btnRent.disabled = true;
                         btnRent.classList.add('opacity-50', 'cursor-not-allowed', 'text-zinc-950/50');
                         btnRent.classList.remove('hover:bg-purple-600');
                         btnRent.removeAttribute('onclick');
+                        if (isAlreadyRenting) {
+                            btnRent.title = <?= json_encode(__('You are already an active renter')) ?>;
+                        }
                     }
                 }
             }
@@ -536,6 +551,24 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         const wrapper = await initNearWallet();
         if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        
+        const currentUser = wrapper.getAccountId();
+        try {
+            const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulDbId });
+            if (check.success && check.data && check.data.renters) {
+                const now = Date.now();
+                for (const acc in check.data.renters) {
+                    const exp = Number(BigInt(check.data.renters[acc]) / 1000000n);
+                    if (exp > now && acc === currentUser) {
+                        alert(<?= json_encode(__('You are already an active renter')) ?>);
+                        textSpan.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        return;
+                    }
+                }
+            }
+        } catch (_) {}
         
         const price = btn.dataset.price;
         

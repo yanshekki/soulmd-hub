@@ -1,5 +1,4 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LookupMap;
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
@@ -27,30 +26,41 @@ pub struct Token {
     pub renters: HashMap<AccountId, u64>, // expiry ns
 }
 
+// RAW STORAGE ONLY version for soulmd-hub.near polluted account.
+// No LookupMap / collections in persistent state to avoid any SDK deserial/prefix issues
+// from previous TS raw storage ("t:xxx", "uc:xxx", old STATE).
+// Tokens stored as raw Borsh under key "t:{token_id}".
+// Credits stored as raw string (timestamp) under key "uc:{account}:{tier}".
+// All previous security (exact deposits, state-before-effects, .detach(), admin platform only,
+// 50-renters cap) retained. Zero-start after aggressive clear.
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct SoulMDAgentFi {
-    tokens: LookupMap<String, Token>, // key = "t:" + token_id
     platform_wallet: AccountId,
     usdt: AccountId,
     usdc: AccountId,
     rent_duration_ns: u64,
-    credits: LookupMap<String, String>, // "account:tier" -> ts string
 }
 
 #[near]
 impl SoulMDAgentFi {
-    #[init]
+    // Critical migration fix for soulmd-hub.near (JS -> Rust):
+    // The old near-sdk-js stored main state as JSON in the "STATE" key.
+    // near-sdk-rs expects Borsh. Without ignore_state, any call that loads
+    // the contract state (including mint_soul) will hit unreachable when
+    // trying to deserialize old JSON as Borsh.
+    // ignore_state forces re-init, writing a clean Borsh STATE without
+    // affecting our raw "t:xxx" and "uc:xxx" token/credit data.
+    #[init(ignore_state)]
     pub fn new() -> Self {
+        // No collection init here - raw storage only.
         Self {
-            tokens: LookupMap::new(b"t".to_vec()),
             platform_wallet: "soulmd-hub.near".parse().unwrap(),
             usdt: "usdt.tether-token.near".parse().unwrap(),
             usdc: "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
                 .parse()
                 .unwrap(),
             rent_duration_ns: 2592000000000000,
-            credits: LookupMap::new(b"uc".to_vec()),
         }
     }
 
@@ -70,8 +80,7 @@ impl SoulMDAgentFi {
         let required: u128 = 600000000000000000000000; // 0.6 NEAR
         assert_eq!(deposit, required, "Error: Minting requires exactly 0.6 NEAR");
 
-        let key = format!("t:{}", token_id);
-        assert!(self.tokens.get(&key).is_none(), "Error: Token ID already exists.");
+        assert!(Self::load_token(&token_id).is_none(), "Error: Token ID already exists.");
 
         let metadata = TokenMetadata {
             title,
@@ -87,7 +96,7 @@ impl SoulMDAgentFi {
             rent_price: None,
             renters: HashMap::new(),
         };
-        self.tokens.insert(&key, &token);
+        Self::save_token(&token_id, &token);
 
         let platform_fee: u128 = 100000000000000000000000; // 0.1 NEAR
         Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee)).detach();
@@ -95,22 +104,72 @@ impl SoulMDAgentFi {
         env::log_str(&format!("Minted Soul [{}] by {}", token_id, caller));
     }
 
+    // ========== RAW STORAGE HELPERS (no LookupMap - tolerant of account history) ==========
+    // Keys exactly match the successful TS raw version for compatibility on this account:
+    //   tokens:  "t:{token_id}"  (Borsh serialized Token)
+    //   credits: "uc:{account}:{tier}" (utf8 timestamp string)
+    fn token_key(token_id: &str) -> Vec<u8> {
+        format!("t:{}", token_id).into_bytes()
+    }
+
+    fn load_token(token_id: &str) -> Option<Token> {
+        let key = Self::token_key(token_id);
+        if let Some(bytes) = env::storage_read(&key) {
+            Token::try_from_slice(&bytes).ok()
+        } else {
+            None
+        }
+    }
+
+    fn save_token(token_id: &str, token: &Token) {
+        let key = Self::token_key(token_id);
+        let bytes = borsh::to_vec(token).expect("borsh token serialize failed");
+        env::storage_write(&key, &bytes);
+    }
+
+    fn remove_token(token_id: &str) {
+        let key = Self::token_key(token_id);
+        env::storage_remove(&key);
+    }
+
+    fn credit_key(account: &str, tier: &str) -> Vec<u8> {
+        format!("uc:{}:{}", account, tier).into_bytes()
+    }
+
+    fn load_credit(account: &str, tier: &str) -> Option<String> {
+        let key = Self::credit_key(account, tier);
+        if let Some(bytes) = env::storage_read(&key) {
+            String::from_utf8(bytes).ok()
+        } else {
+            None
+        }
+    }
+
+    fn save_credit(account: &str, tier: &str, ts: &str) {
+        let key = Self::credit_key(account, tier);
+        env::storage_write(&key, ts.as_bytes());
+    }
+
+    fn remove_credit(account: &str, tier: &str) {
+        let key = Self::credit_key(account, tier);
+        env::storage_remove(&key);
+    }
+
     pub fn update_soul_hash(&mut self, token_id: String, new_hash: String) {
         let caller = env::predecessor_account_id();
-        let key = format!("t:{}", token_id);
-        let mut token = self.tokens.get(&key).expect("Error: Token not found.");
+        let mut token = Self::load_token(&token_id).expect("Error: Token not found.");
         assert!(token.owner_id == caller, "Security Error: Only the current owner can update hash.");
 
         token.metadata.extra = new_hash;
-        self.tokens.insert(&key, &token);
+        // State before effects (no effects here, but consistent).
+        Self::save_token(&token_id, &token);
 
         env::log_str(&format!("Soul [{}] evolved to new hash: {}", token_id, token.metadata.extra));
     }
 
     pub fn list_for_sale(&mut self, token_id: String, price: U128) {
         let caller = env::predecessor_account_id();
-        let key = format!("t:{}", token_id);
-        let mut token = self.tokens.get(&key).expect("Error: Token not found.");
+        let mut token = Self::load_token(&token_id).expect("Error: Token not found.");
         assert!(token.owner_id == caller, "Error: Only owner can list for sale.");
 
         if price.0 == 0 {
@@ -120,15 +179,14 @@ impl SoulMDAgentFi {
             token.sale_price = Some(price);
             env::log_str(&format!("[{}] listed for sale at {}", token_id, price.0));
         }
-        self.tokens.insert(&key, &token);
+        Self::save_token(&token_id, &token);
     }
 
     #[payable]
     pub fn buy_soul(&mut self, token_id: String) {
         let buyer = env::predecessor_account_id();
         let deposit = env::attached_deposit().as_yoctonear();
-        let key = format!("t:{}", token_id);
-        let mut token = self.tokens.get(&key).expect("Error: Token not found.");
+        let mut token = Self::load_token(&token_id).expect("Error: Token not found.");
 
         let sale_price = token.sale_price.expect("Error: Token not listed for sale.");
         assert_eq!(deposit, sale_price.0, "Error: Must attach exactly the sale price.");
@@ -149,7 +207,7 @@ impl SoulMDAgentFi {
         token.owner_id = buyer.clone();
         token.sale_price = None;
         token.rent_price = None;
-        self.tokens.insert(&key, &token);
+        Self::save_token(&token_id, &token);
 
         // Now effects (transfers). Platform 5%, optional creator 5%, seller rest.
         Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee)).detach();
@@ -163,8 +221,7 @@ impl SoulMDAgentFi {
 
     pub fn list_for_rent(&mut self, token_id: String, price: U128) {
         let caller = env::predecessor_account_id();
-        let key = format!("t:{}", token_id);
-        let mut token = self.tokens.get(&key).expect("Error: Token not found.");
+        let mut token = Self::load_token(&token_id).expect("Error: Token not found.");
         assert!(token.owner_id == caller, "Error: Only owner can list for rent.");
 
         if price.0 == 0 {
@@ -174,17 +231,17 @@ impl SoulMDAgentFi {
             token.rent_price = Some(price);
             env::log_str(&format!("[{}] listed for rent at {} yoctoNEAR / 30 Days", token_id, price.0));
         }
-        self.tokens.insert(&key, &token);
+        Self::save_token(&token_id, &token);
     }
 
     #[payable]
     pub fn rent_soul(&mut self, token_id: String) {
         let renter = env::predecessor_account_id();
         let deposit = env::attached_deposit().as_yoctonear();
-        let key = format!("t:{}", token_id);
-        let mut token = self.tokens.get(&key).expect("Error: Token not found.");
+        let mut token = Self::load_token(&token_id).expect("Error: Token not found.");
 
         let rent_price = token.rent_price.expect("Error: Token not listed for rent.");
+        // Exact match (audit).
         assert_eq!(deposit, rent_price.0, "Error: Must attach exactly the rent price.");
 
         let platform_fee = rent_price.0 * 10 / 100;
@@ -215,20 +272,23 @@ impl SoulMDAgentFi {
         }
         token.renters.insert(renter.clone(), current_expiry + self.rent_duration_ns);
 
-        // State mutation BEFORE effects (payments). Per strict audit + prior TS safety pattern.
-        self.tokens.insert(&key, &token);
+        // State mutation BEFORE effects (payments).
+        Self::save_token(&token_id, &token);
 
         // Now effects (transfers): 10% platform, 90% to current owner.
-        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_fee)).detach();
-        Promise::new(token.owner_id.clone()).transfer(NearToken::from_yoctonear(owner_share)).detach();
+        Promise::new(self.platform_wallet.clone())
+            .transfer(NearToken::from_yoctonear(platform_fee))
+            .detach();
+        Promise::new(token.owner_id.clone())
+            .transfer(NearToken::from_yoctonear(owner_share))
+            .detach();
 
         env::log_str(&format!("Soul [{}] rented by {} (expiry {})", token_id, renter, token.renters.get(&renter).unwrap()));
     }
 
     pub fn burn_soul(&mut self, token_id: String) {
         let caller = env::predecessor_account_id();
-        let key = format!("t:{}", token_id);
-        let token = self.tokens.get(&key).expect("Error: Token not found.");
+        let token = Self::load_token(&token_id).expect("Error: Token not found.");
         assert!(token.owner_id == caller, "Error: Only owner can burn.");
 
         let now = env::block_timestamp();
@@ -236,23 +296,28 @@ impl SoulMDAgentFi {
             assert!(*exp < now, "Error: Cannot burn while active renters exist.");
         }
 
-        self.tokens.remove(&key);
+        // State remove BEFORE effects.
+        Self::remove_token(&token_id);
 
         let refund_amount: u128 = 450000000000000000000000;
         let platform_burn_fee: u128 = 50000000000000000000000;
 
-        Promise::new(caller.clone()).transfer(NearToken::from_yoctonear(refund_amount)).detach();
-        Promise::new(self.platform_wallet.clone()).transfer(NearToken::from_yoctonear(platform_burn_fee)).detach();
+        Promise::new(caller.clone())
+            .transfer(NearToken::from_yoctonear(refund_amount))
+            .detach();
+        Promise::new(self.platform_wallet.clone())
+            .transfer(NearToken::from_yoctonear(platform_burn_fee))
+            .detach();
 
         env::log_str(&format!("Soul [{}] burned by {}", token_id, caller));
     }
 
     pub fn get_soul(&self, token_id: String) -> Option<Token> {
-        self.tokens.get(&format!("t:{}", token_id))
+        Self::load_token(&token_id)
     }
 
     pub fn check_access(&self, token_id: String, account_id: AccountId) -> bool {
-        if let Some(token) = self.tokens.get(&format!("t:{}", token_id)) {
+        if let Some(token) = Self::load_token(&token_id) {
             if token.owner_id == account_id {
                 return true;
             }
@@ -282,7 +347,7 @@ impl SoulMDAgentFi {
         env::log_str(&format!("Auto-Buyback triggered for {}", amount_in_near.0));
     }
 
-    // FT for USDT/USDC credits (raw storage "uc:acct:tier")
+    // FT for USDT/USDC credits - raw storage "uc:{account}:{tier}"
     pub fn ft_on_transfer(
         &mut self,
         sender_id: AccountId,
@@ -311,17 +376,16 @@ impl SoulMDAgentFi {
             return PromiseOrValue::Value(amount);
         }
 
-        let key = format!("{}:{}", sender_id, tier);
         let ts = env::block_timestamp().to_string();
-        self.credits.insert(&key, &ts);
+        // State write (raw credit).
+        Self::save_credit(&sender_id.to_string(), &tier, &ts);
 
         env::log_str(&format!("FT credit granted: {} {}", sender_id, tier));
         PromiseOrValue::Value(U128(0))
     }
 
     pub fn has_upgrade_credit(&self, account_id: AccountId, tier: String) -> String {
-        let key = format!("{}:{}", account_id, tier);
-        if let Some(ts) = self.credits.get(&key) {
+        if let Some(ts) = Self::load_credit(&account_id.to_string(), &tier) {
             let ts_val: u64 = ts.parse().unwrap_or(0);
             if env::block_timestamp() - ts_val > 86_400_000_000_000 {
                 "0".to_string()
@@ -333,10 +397,9 @@ impl SoulMDAgentFi {
         }
     }
 
-    // Practical admin god-mode for soulmd-hub.near
+    // Practical admin god-mode for soulmd-hub.near (raw storage)
     pub fn admin_set_token(&mut self, token_id: String, owner_id: AccountId, title: String, description: String, hash: String, reference: String, sale_price: Option<U128>, rent_price: Option<U128>) {
         self.assert_platform();
-        let key = format!("t:{}", token_id);
         let metadata = TokenMetadata {
             title,
             description,
@@ -351,15 +414,27 @@ impl SoulMDAgentFi {
             rent_price,
             renters: HashMap::new(),
         };
-        self.tokens.insert(&key, &token);
+        Self::save_token(&token_id, &token);
         env::log_str(&format!("ADMIN set [{}]", token_id));
     }
 
     pub fn admin_remove_token(&mut self, token_id: String) {
         self.assert_platform();
-        let key = format!("t:{}", token_id);
-        self.tokens.remove(&key);
+        Self::remove_token(&token_id);
         env::log_str(&format!("ADMIN remove [{}]", token_id));
+    }
+
+    // Keep raw admin for future maintenance / deeper cleans on this account
+    pub fn admin_raw_storage_remove(&mut self, key: String) {
+        self.assert_platform();
+        env::storage_remove(key.as_bytes());
+        env::log_str(&format!("ADMIN raw remove {}", key));
+    }
+
+    pub fn admin_raw_storage_write(&mut self, key: String, value: String) {
+        self.assert_platform();
+        env::storage_write(key.as_bytes(), value.as_bytes());
+        env::log_str(&format!("ADMIN raw write {}", key));
     }
 
     fn assert_platform(&self) {

@@ -64,6 +64,10 @@ return [
         'Buy success' => 'NFT successfully purchased! You are now the owner.',
         'Rent success' => 'NFT successfully rented for 30 days! You can now interact with it in the Chat Engine.',
         'Transaction Success' => 'Transaction successfully submitted!',
+        'Rent Warning Desc' => "⚠️ 租賃警告：\n原作者保留隨時更新或修改該模型核心指令的權利。平台無法保證模型的效能或行為將永久保持不變。\n\n您是否同意繼續，並租賃此 AI 模型 30 天？",
+        'You are already an active renter' => '您已經是活躍承租人',
+        'Rent Warning Desc' => "⚠️ RENTAL WARNING:\nThe original author retains the right to update or modify the model's core instructions at any time. The platform cannot guarantee that the model's performance or behavior will remain permanently unchanged.\n\nDo you wish to proceed and lease this AI model for 30 days?",
+        'You are already an active renter' => 'You are already an active renter',
     ],
     
     'zh' => [

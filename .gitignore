@@ -4,6 +4,9 @@
 /contract/node_modules/*
 /contract/build/*
 package-lock.json
+Cargo.lock
+/contract/target/release/*
+/contract/target/*
 
 # PHP
 /vendor/

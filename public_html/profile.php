@@ -346,6 +346,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
                 const wrapper = typeof initNearWallet === 'function' ? await initNearWallet() : null;
                 const myWallet = wrapper && wrapper.isSignedIn() ? wrapper.getAccountId() : null;
+                window.currentMyWallet = myWallet;
 
                 let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
                 data.data.forEach(soul => {
@@ -371,6 +372,8 @@ require_once __DIR__ . '/../private/includes/header.php';
                     }
                     const rentersJson = encodeURIComponent(JSON.stringify(activeRenters));
                     const rentersCount = activeRenters.length;
+
+                    const isAlreadyRenting = myWallet && activeRenters.some(r => r.account === myWallet);
 
                     html += `
                         <div class="bg-zinc-900/80 border border-purple-500/20 rounded-3xl p-6 hover:border-purple-400/50 transition-all shadow-xl flex flex-col justify-between h-full backdrop-blur-sm relative overflow-hidden group">
@@ -413,7 +416,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                                         <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5"><?= addslashes(__('Rent')) ?></div>
                                         <div class="text-lg font-black text-emerald-400 font-mono truncate">${rentPrice} <span class="text-xs text-zinc-500">NEAR</span></div>
                                     </div>
-                                    <button aria-label="Rent for ${rentPrice} NEAR" ${isOwner ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}', this)"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${isOwner ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap flex items-center justify-center gap-1.5 min-w-[110px]">
+                                    <button aria-label="Rent for ${rentPrice} NEAR" ${(isOwner || isAlreadyRenting) ? 'disabled' : `onclick="rentMarketSoul(${soul.id}, '${soul.market.rent_price}', this)"`} class="shrink-0 px-4 py-2 bg-emerald-500 ${(isOwner || isAlreadyRenting) ? 'opacity-50 cursor-not-allowed text-zinc-950/50' : 'hover:bg-emerald-400 text-zinc-950'} text-xs font-bold rounded-lg transition shadow-md whitespace-nowrap flex items-center justify-center gap-1.5 min-w-[110px]" ${isAlreadyRenting ? 'title="' + <?= json_encode(__('You are already an active renter')) ?> + ' (see Active Renters list)"' : ''}>
                                         <i class="fas fa-handshake" aria-hidden="true"></i> <span><?= addslashes(__('Rent (30d)')) ?></span>
                                     </button>
                                 </div>` : ''}
@@ -455,9 +458,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             renters.forEach(r => {
                 const d = new Date(r.expiry);
                 const dateStr = d.toLocaleString();
+                const isSelf = window.currentMyWallet && r.account === window.currentMyWallet;
                 listContainer.innerHTML += `
-                    <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition">
-                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5" aria-hidden="true"></i>${escapeHTML(r.account)}</div>
+                    <div class="bg-zinc-950 border border-white/5 p-3 rounded-xl flex justify-between items-center hover:border-blue-500/30 transition ${isSelf ? 'ring-1 ring-emerald-500/60' : ''}">
+                        <div class="font-mono text-sm text-blue-300 truncate pr-2 font-bold"><i class="fas fa-user-circle text-zinc-600 mr-1.5" aria-hidden="true"></i>${escapeHTML(r.account)} ${isSelf ? '<span class="text-emerald-400 text-[10px]">(You)</span>' : ''}</div>
                         <div class="text-[10px] text-zinc-500 shrink-0 text-right">
                             <div class="uppercase tracking-wider"><?= addslashes(__('Expires At')) ?></div>
                             <div class="text-zinc-300 font-bold">${dateStr}</div>
@@ -542,6 +546,24 @@ require_once __DIR__ . '/../private/includes/header.php';
         
         const wrapper = await initNearWallet();
         if (!wrapper.isSignedIn()) { await window.connectOrBindWallet(); return; }
+        
+        const currentUser = wrapper.getAccountId();
+        try {
+            const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + id });
+            if (check.success && check.data && check.data.renters) {
+                const now = Date.now();
+                for (const acc in check.data.renters) {
+                    const exp = Number(BigInt(check.data.renters[acc]) / 1000000n);
+                    if (exp > now && acc === currentUser) {
+                        alert(<?= json_encode(__('You are already an active renter')) ?>);
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        return;
+                    }
+                }
+            }
+        } catch (_) {}
         
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i> <span><?= addslashes(__('Processing...')) ?></span>';
