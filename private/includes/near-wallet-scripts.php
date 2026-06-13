@@ -161,8 +161,29 @@ if (isset($_SESSION['user_id'])) {
             });
 
             window.nearHubWalletWrapper = {
-                isSignedIn: () => selector.isSignedIn(),
+                isSignedIn: () => {
+                    // If web2 user is logged in and has a bound near_wallet_address in DB,
+                    // we consider "signed in" for site purposes only if the selector is also connected
+                    // with a matching account (to ensure signing power matches the bound identity).
+                    const dbWallet = '<?= htmlspecialchars($sync_phpUserWallet, ENT_QUOTES) ?>';
+                    if (dbWallet) {
+                        const state = selector.store.getState();
+                        const selAccount = state.accounts.length > 0 ? state.accounts[0].accountId : null;
+                        return selector.isSignedIn() && selAccount === dbWallet;
+                    }
+                    return selector.isSignedIn();
+                },
                 getAccountId: () => {
+                    // Priority: if the logged-in user (PHP/DB) has a bound near_wallet_address,
+                    // use that as the "current" address for this site (display, actions, etc.).
+                    // This prevents the UI from showing a random/wrong accounts[0] from the
+                    // wallet selector when the user has explicitly bound one in their profile.
+                    const dbWallet = '<?= htmlspecialchars($sync_phpUserWallet, ENT_QUOTES) ?>';
+                    if (dbWallet) {
+                        return dbWallet;
+                    }
+                    // Fallback: use the wallet selector's current primary account (not blindly [0]
+                    // if we want the "active" one, but accounts[0] is the standard primary).
                     const state = selector.store.getState();
                     return state.accounts.length > 0 ? state.accounts[0].accountId : null;
                 },
