@@ -1,23 +1,24 @@
-import { NearBindgen, near, call, view, UnorderedMap, assert } from 'near-sdk-js';
+import { NearBindgen, near, call, view, assert } from 'near-sdk-js';
 
 /**
- * SoulMD Hub - Clean Contract (fresh start, prefix 't')
- * Features: mint 0.6 NEAR, update hash (owner), list/buy (5%+5% royalty), list/rent 30d, rent_soul (10% fee), burn (renter guard + refund).
- * FT: USDT/USDC via ft_on_transfer -> upgrade_credits (keep funds in soulmd-hub.near), 24h expiry.
- * Safety: state first then promises; reconstruct + !renters defensive; strict platform admin only.
- * Admin god-mode (practical, soulmd-hub.near only): full set any token/renters/raw/credits, clear for zero start.
- * User cleared DB + old on-chain data; new records start here.
- *
- * AUDIT NOTES (2026-06-13 strict review):
- * - All payable paths: MUTATE STATE BEFORE any promiseBatch (reentrancy / inconsistency protection).
- * - All sensitive: predecessorAccountId() + assert guards (no signer reliance).
- * - Prices always string yocto; validated on list to prevent BigInt panics downstream.
- * - Renters: active leases survive ownership transfer on buy (by design for leased asset trading); cleaned lazily on rent/burn.
- * - Raw admin + map internals: powerful escape hatch for past storage corruption ("prefix of undefined"). Use only from soulmd-hub.near full-access.
- * - FT receiver: returns "0" to keep funds; strict token + amount + tier parse; 24h credit.
- * - No unbounded loops on hot paths (for-in limited to per-token renters, expected small).
- * - Cross contract (ref-finance buyback): platform-only, requires attached NEAR.
- * - Invariant: contract accumulates NEAR/FT (cool wallet soulmd-hub.near). No auto-drain except explicit admin buyback or burn refunds.
+ * SoulMD Hub - RAW STORAGE ONLY (full bypass of near-sdk-js#358 + SO "prefix of undefined")
+ * SEE THE LINKS THE USER PROVIDED.
+ * Root: ANY UnorderedMap (even 'uc' for credits) + class field initializer causes SDK reconstruct()
+ * to do `new UnorderedMap(data.prefix)` with data=undefined when STATE lacks the collection blob
+ * (after zero-start clear, only platform_wallet in STATE, fresh deploy, prior raw patches).
+ * 
+ * THIS VERSION: ZERO collections. 100% direct storageRead/Write/Remove.
+ * - tokens: "t:" + token_id  (plain JSON, 5 fields from frontend mint payload exactly)
+ * - upgrade credits: "uc:" + `${account}:${tier}`  (plain ts string, 24h)
+ * 
+ * No Token.reconstruct. No upgrade_credits = new UnorderedMap. No import of UnorderedMap.
+ * No prefix to ever change again. Chinese in title/desc = fine (JSON strings).
+ * Frontend mint {token_id, title, description, hash, reference} -> direct store, no side pulls.
+ * All records fresh start. On-chain was verified clean (only STATE) before this.
+ * 
+ * Admin: practical god-mode from soulmd-hub.near (cool secure wallet) only. Use to fix any desync.
+ * 
+ * AUDIT: state-mutate before promises on all pay; predecessor + strict asserts; raw bypass eliminates the reconstruct panic vector entirely.
  */
 
 class TokenMetadata {
@@ -50,47 +51,16 @@ class Token {
         this.rent_price = null;
         this.renters = {};
     }
-
-    static reconstruct(data: any): Token {
-        if (!data) return null as any;
-        const meta = data.metadata
-            ? new TokenMetadata(
-                data.metadata.title || '',
-                data.metadata.description || '',
-                data.metadata.extra || '',
-                data.metadata.reference || '',
-                data.metadata.creator_id || ''
-              )
-            : null as any;
-        const t = new Token(data.owner_id || '', meta);
-        t.sale_price = (data.sale_price !== undefined && data.sale_price !== null) ? String(data.sale_price) : null;
-        t.rent_price = (data.rent_price !== undefined && data.rent_price !== null) ? String(data.rent_price) : null;
-        t.renters = (data.renters && typeof data.renters === 'object') ? data.renters : {};
-        return t;
-    }
 }
 
 @NearBindgen({})
 class SoulMDAgentFi {
-    // Tokens use raw per-key storage ("t:" + token_id) instead of UnorderedMap.
-    // This completely avoids the SDK UnorderedMap's hidden collection metadata (the 'prefix', length vector, etc.)
-    // that gets corrupted by previous raw patches / brute cleans / zero-start nukes, causing the persistent
-    // "cannot read property 'prefix' of undefined at reconstruct" panic on ANY map access (get/set in mint/get_soul etc.).
-    //
-    // Benefits for your use case:
-    // - Mint only needs the fields YOU pass (token_id + title/desc/hash/reference). No "reconstruct pulling old metadata".
-    // - Each token is 100% independent. Clearing one doesn't affect others. Zero-start is just removing keys.
-    // - No hidden SDK state. Safe after storage clean or fresh deploy.
-    // - get_soul / existence = simple storageRead. No map reconstruct.
-    //
-    // upgrade_credits stays as small UnorderedMap (less critical, was not the source of token panics).
-    //
-    // Token.reconstruct stays for defensive load of whatever JSON is stored (handles partial/old data gracefully).
-    // When minting or admin_set, we store PLAIN data from the input you provide.
-    upgrade_credits = new UnorderedMap<string>('uc');
+    // FULL RAW BYPASS - NO UnorderedMap ANYWHERE (tokens + credits).
+    // This is the actual fix for the exact panic in the 2 links you gave (near-sdk-js#358 + SO).
+    // Old versions (including the "raw attempt") still left upgrade_credits = new UnorderedMap + import + Token.reconstruct.
+    // That is why "咪一柒樣" - the reconstruct vector for missing collection data remained.
+    // Now: 0 collections, 0 reconstruct, 0 prefixes. Direct keys only. Safe for clean STATE (only platform_wallet) + zero-start + redeploy.
     platform_wallet: string = 'soulmd-hub.near';
-
-    // NOTE: no more "WARNING (storage hygiene)" for tokens - raw keys are simple and explicit.
 
     // Mainnet FT (must match private/config.php)
     readonly USDT: string = 'usdt.tether-token.near';
@@ -99,22 +69,35 @@ class SoulMDAgentFi {
     // 30 days in nanoseconds
     readonly RENT_DURATION_NS: bigint = 2592000000000000n;
 
-    // Raw token storage helpers - "t:" + token_id
+    // ---- RAW token storage: "t:" + token_id (plain JSON, matches frontend 5-field payload exactly) ----
     private _tokenKey(token_id: string): string { return "t:" + token_id; }
 
     private _loadToken(token_id: string): Token | null {
         const s = near.storageRead(this._tokenKey(token_id));
         if (!s) return null;
         try {
-            const obj = JSON.parse(s);
-            return Token.reconstruct(obj);
+            const o = JSON.parse(s);
+            if (!o) return null;
+            const meta = o.metadata
+                ? new TokenMetadata(
+                    o.metadata.title || '',
+                    o.metadata.description || '',
+                    o.metadata.extra || '',
+                    o.metadata.reference || '',
+                    o.metadata.creator_id || ''
+                  )
+                : new TokenMetadata('', '', '', '', '');
+            const t = new Token(o.owner_id || '', meta);
+            t.sale_price = (o.sale_price !== undefined && o.sale_price !== null) ? String(o.sale_price) : null;
+            t.rent_price = (o.rent_price !== undefined && o.rent_price !== null) ? String(o.rent_price) : null;
+            t.renters = (o.renters && typeof o.renters === 'object') ? o.renters : {};
+            return t;
         } catch (e) {
-            return null; // corrupted -> treat as absent (safe for zero-start)
+            return null;
         }
     }
 
     private _saveToken(token_id: string, t: any): void {
-        // store plain serializable data
         near.storageWrite(this._tokenKey(token_id), JSON.stringify({
             owner_id: t.owner_id,
             metadata: {
@@ -130,6 +113,21 @@ class SoulMDAgentFi {
         }));
     }
 
+    // ---- RAW upgrade credits (was the remaining UnorderedMap('uc') that would still panic). Now per-key too. ----
+    private _creditKey(account_id: string, tier: string): string { return "uc:" + account_id + ":" + tier; }
+
+    private _getCredit(account_id: string, tier: string): string | null {
+        return near.storageRead(this._creditKey(account_id, tier));
+    }
+
+    private _setCredit(account_id: string, tier: string, ts: string): void {
+        near.storageWrite(this._creditKey(account_id, tier), ts);
+    }
+
+    private _removeCredit(account_id: string, tier: string): void {
+        near.storageRemove(this._creditKey(account_id, tier));
+    }
+
     @call({ payableFunction: true })
     mint_soul({ token_id, title, description, hash, reference }: { token_id: string, title: string, description: string, hash: string, reference: string }) {
         const caller = near.predecessorAccountId();
@@ -138,7 +136,7 @@ class SoulMDAgentFi {
         const required = 600000000000000000000000n; // 0.6 NEAR
         assert(deposit >= required, "Error: Minting requires exactly 0.6 NEAR");
 
-        // Raw check - no map reconstruct that can panic
+        // Raw check - no SDK map, no reconstruct panic possible
         const key = this._tokenKey(token_id);
         assert(!near.storageRead(key), "Error: Token ID already exists.");
 
@@ -146,7 +144,7 @@ class SoulMDAgentFi {
         const metadata = new TokenMetadata(title, description, hash, reference, caller);
         const token = new Token(caller, metadata);
 
-        // Store plain - reconstruct only on future _loadToken
+        // Store plain JSON under t: key
         this._saveToken(token_id, token);
 
         // state first, then platform fee (0.1 NEAR)
@@ -408,16 +406,15 @@ class SoulMDAgentFi {
             return amount; // insufficient, refund
         }
 
-        // record credit, keep funds (return "0")
-        this.upgrade_credits.set(`${sender_id}:${tier}`, near.blockTimestamp().toString());
+        // record credit, keep funds (return "0") - RAW
+        this._setCredit(sender_id, tier, near.blockTimestamp().toString());
         near.log(`FT credit granted: ${sender_id} ${tier}`);
         return "0";
     }
 
     @view({})
     has_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }): string {
-        const key = `${account_id}:${tier}`;
-        const ts = this.upgrade_credits.get(key);
+        const ts = this._getCredit(account_id, tier);
         if (!ts) return "0";
         if (near.blockTimestamp() - BigInt(ts) > 86400000000000n) return "0"; // 24h
         return ts;
@@ -445,7 +442,15 @@ class SoulMDAgentFi {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
         const obj = JSON.parse(token_json || "{}");
-        const t = Token.reconstruct(obj);
+        // manual construct (no Token.reconstruct, no map)
+        const meta = obj.metadata ? new TokenMetadata(
+            obj.metadata.title || '', obj.metadata.description || '', obj.metadata.extra || '',
+            obj.metadata.reference || '', obj.metadata.creator_id || ''
+        ) : new TokenMetadata('', '', '', '', '');
+        const t = new Token(obj.owner_id || this.platform_wallet, meta);
+        t.sale_price = obj.sale_price || null;
+        t.rent_price = obj.rent_price || null;
+        t.renters = obj.renters || {};
         this._saveToken(token_id, t);
         near.log(`admin_set_token ${token_id}`);
     }
@@ -475,10 +480,9 @@ class SoulMDAgentFi {
     admin_clear_all_tokens() {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
-        // Raw clear not trivial without knowing all ids.
-        // For zero-start / test: use the recovery stub + raw remove, or individual admin_remove_token.
-        // Or call this after you have cleared via external means.
-        near.log("admin_clear_all_tokens: use raw or individual remove for full wipe (no map)");
+        // No map to clear. For zero-start: call admin_raw or individual admin_remove_token for the ids you know.
+        // Or after DB clear, just start minting new (old soul_ ids will simply not exist).
+        near.log("admin_clear_all_tokens: raw/individual remove (full raw storage, no map)");
     }
 
     @call({})
@@ -501,17 +505,15 @@ class SoulMDAgentFi {
     admin_set_upgrade_credit({ account_id, tier, ts }: { account_id: string, tier: string, ts: string }) {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
-        const key = `${account_id}:${tier}`;
-        this.upgrade_credits.set(key, ts || near.blockTimestamp().toString());
-        near.log(`admin_set_upgrade_credit ${key}`);
+        this._setCredit(account_id, tier, ts || near.blockTimestamp().toString());
+        near.log(`admin_set_upgrade_credit ${account_id}:${tier}`);
     }
 
     @call({})
     admin_remove_upgrade_credit({ account_id, tier }: { account_id: string, tier: string }) {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
-        const key = `${account_id}:${tier}`;
-        this.upgrade_credits.remove(key);
-        near.log(`admin_remove_upgrade_credit ${key}`);
+        this._removeCredit(account_id, tier);
+        near.log(`admin_remove_upgrade_credit ${account_id}:${tier}`);
     }
 }
