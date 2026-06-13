@@ -63,7 +63,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             <!-- Prominent Deploy CTA, right-aligned on lg+ -->
             <a href="<?= url('/upload') ?>" aria-label="<?= __('New Soul') ?>" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto lg:w-auto">
-                <i class="fas fa-plus" aria-hidden="true"></i> + <?= __('New Soul') ?>
+                <i class="fas fa-plus" aria-hidden="true"></i> <?= __('New Soul') ?>
             </a>
         </div>
     </header>
