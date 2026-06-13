@@ -220,24 +220,25 @@ if (isset($_SESSION['user_id'])) {
                         let mGas = (gas || "30000000000000").toString();
                         let mDep = (attachedDeposit || "0").toString();
                         
-                        // Use standard modern wallet-selector action format.
-                        // receiverId is explicitly set at the transaction level (this is what should appear as "To" in the wallet prompt).
-                        // The previous dual (params + functionCall) format was causing some wallets to ignore the outer receiverId
-                        // and fall back to the selector's default contract (soulmd-hub.near).
-                        const action = {
-                            type: 'FunctionCall',
-                            params: {
-                                methodName: methodName,
-                                args: args || {},
-                                gas: mGas,
-                                deposit: mDep
-                            }
+                        // 雙棲 Action (同時滿足新版與舊版 NAJ 格式)
+                        // This format is required to avoid "Unsupported NAJ action" in najActionToInternal
+                        // inside the custom wallet-selector-bundle. The clean modern {type, params} alone
+                        // triggers the NAJ converter error for some wallets (e.g. the one used by yanshekki.tg).
+                        // We still set receiverId explicitly at tx level so the correct token contract
+                        // (usdt.tether-token.near or USDC) is the actual target of the transaction.
+                        // Note: Some wallet UIs may display the inner args.receiver_id as "To" / destination
+                        // for ft_transfer_call, which is the expected logical destination (soulmd-hub.near),
+                        // while the contract being called is the token (shown in your debug contractId).
+                        const dualAction = {
+                            type: "FunctionCall",
+                            params: { methodName: methodName, args: args || {}, gas: mGas, deposit: mDep },
+                            functionCall: { methodName: methodName, args: args || {}, gas: mGas, deposit: mDep }
                         };
 
                         const receiverId = (callContractId != null && callContractId !== '') ? callContractId : contractId;
                         return wallet.signAndSendTransaction({
                             receiverId: receiverId,
-                            actions: [action],
+                            actions: [dualAction],
                             callbackUrl: walletCallbackUrl
                         });
                     }
