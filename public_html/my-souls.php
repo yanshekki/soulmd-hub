@@ -46,27 +46,24 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-grow">
     
-    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 border-b border-white/10 pb-6">
-        <div>
+    <header class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10 border-b border-white/10 pb-6">
+        <div class="max-w-xl">
             <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter"><?= __('My Souls') ?></h1>
-            <p class="text-sm sm:text-base text-zinc-400 mt-2"><?= __('Manage and edit your uploaded AI personalities') ?></p>
+            <p class="text-sm sm:text-base text-zinc-400 mt-2">Manage and deploy your custom Web2 AI prototypes and Web3 AgentFi assets.</p>
         </div>
         
-        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full lg:w-auto">
-            <select id="sort-filter" aria-label="Sort AI Models" onchange="changeSort(this.value)" class="col-span-2 sm:col-span-1 w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm bg-zinc-900 border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition focus:outline-none focus:border-emerald-400 shadow-inner cursor-pointer appearance-none">
-                <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>><?= __('  Newest') ?></option>
-                <option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>><?= __('  Like Count') ?></option>
-                <option value="forks" <?= $sort === 'forks' ? 'selected' : '' ?>><?= __('  Fork Count') ?></option>
-            </select>
-            
-            <a href="<?= url('/profile/' . rawurlencode($username)) ?>" target="_blank" title="<?= __('Profile') ?>" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition flex items-center justify-center gap-2 whitespace-nowrap">
-                <i class="fas fa-external-link-alt text-[10px] text-zinc-500" aria-hidden="true"></i> <?= __('Profile') ?>
-            </a>
-            <a href="<?= url('/my-api') ?>" title="<?= __('My API Key') ?>" class="col-span-1 px-4 sm:px-5 py-3 sm:py-2.5 text-xs sm:text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition text-center whitespace-nowrap">
-                <?= __('My API Key') ?>
-            </a>
-            <a href="<?= url('/upload') ?>" aria-label="<?= __('New Soul') ?>" class="col-span-2 sm:col-span-1 px-6 py-3 sm:py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto">
-                <i class="fas fa-plus" aria-hidden="true"></i> <?= __('New Soul') ?>
+        <!-- Right side action group: filter pills on top row, prominent Deploy CTA below, right-aligned on large screens. Prevents button 走位 / overflow. -->
+        <div class="flex flex-col gap-3 w-full lg:w-auto lg:items-end">
+            <!-- Top row: pill-style filters (Newest Creation active, Public Portfolio, My API Key) -->
+            <div class="flex items-center gap-2 flex-wrap justify-start lg:justify-end w-full">
+                <span class="px-4 py-1.5 text-sm bg-zinc-800 text-white rounded-2xl border border-white/10 whitespace-nowrap">Newest Creation</span>
+                <a href="<?= url('/profile/' . rawurlencode($username)) ?>" target="_blank" class="px-4 py-1.5 text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition whitespace-nowrap">Public Portfolio</a>
+                <a href="<?= url('/my-api') ?>" class="px-4 py-1.5 text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition whitespace-nowrap">My API Key</a>
+            </div>
+
+            <!-- Prominent Deploy CTA, right-aligned on lg+ -->
+            <a href="<?= url('/upload') ?>" aria-label="Deploy New Agent" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto lg:w-auto">
+                <i class="fas fa-plus" aria-hidden="true"></i> + Deploy New Agent
             </a>
         </div>
     </header>
