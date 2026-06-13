@@ -516,6 +516,19 @@ require_once __DIR__ . '/../private/includes/header.php';
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
                 return;
             }
+            // Recovery verify
+            try {
+                const currentUser = (await initNearWallet()).getAccountId();
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + id });
+                if (check.success && check.data) {
+                    const acc = await window.nearRpcQuery('check_access', { token_id: "soul_" + id, account_id: currentUser });
+                    if ((check.data.owner_id === currentUser) || (acc.success && acc.data)) {
+                        btn.innerHTML = 'Success!';
+                        setTimeout(() => location.reload(), 600);
+                        return;
+                    }
+                }
+            } catch (_) {}
             alert("<?= addslashes(__('Swap fail')) ?>\n" + errMsg);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -553,6 +566,16 @@ require_once __DIR__ . '/../private/includes/header.php';
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
                 return;
             }
+            // Recovery verify
+            try {
+                const currentUser = (await initNearWallet()).getAccountId();
+                const acc = await window.nearRpcQuery('check_access', { token_id: "soul_" + id, account_id: currentUser });
+                if (acc.success && acc.data) {
+                    btn.innerHTML = 'Rented!';
+                    setTimeout(() => location.reload(), 600);
+                    return;
+                }
+            } catch (_) {}
             alert("<?= addslashes(__('Swap fail')) ?>\n" + errMsg);
             btn.innerHTML = originalHtml;
             btn.disabled = false;

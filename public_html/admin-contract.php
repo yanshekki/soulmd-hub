@@ -214,10 +214,27 @@ require_once __DIR__ . '/../private/includes/header.php';
                 attachedDeposit: "0"
             });
             log(`${method} submitted successfully (check explorer for result)`);
+            // Auto-verify state for token/credit actions so admin sees the result without manual reload
+            if (method.includes('token') || method === 'admin_set_token' || method.includes('credit')) {
+                setTimeout(async () => {
+                    try {
+                        if (method.includes('token') || method === 'admin_set_token' || method.includes('remove')) {
+                            await loadToken();
+                            log('Token state refreshed from chain.');
+                        } else if (method.includes('credit')) {
+                            log('Credit action done. Use has_upgrade_credit view or re-test in upgrade flow.');
+                        }
+                    } catch (_) {}
+                }, 1500);
+            }
         } catch (e) {
             const err = window.getErrorMessage ? window.getErrorMessage(e) : String(e);
             log(`${method} failed: ${err}`);
-            alert("Admin call failed:\n" + err);
+            // For admin, still attempt state verify so false "fail" doesn't block (tx may have landed)
+            if (method.includes('token') || method.includes('set') || method.includes('remove')) {
+                try { await loadToken(); log('State re-loaded from chain after admin call (may have succeeded)'); } catch(_) {}
+            }
+            alert("Admin call failed:\n" + err + "\n(State may still be updated — reload or re-load token to check.)");
         } finally {
             btns.forEach(b => b.disabled = false);
         }

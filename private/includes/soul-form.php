@@ -283,9 +283,34 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             const raw = (urlParams.get('errorMessage') || urlParams.get('errorCode') || '');
             let nice = raw;
             try { nice = window.getErrorMessage(raw.trim().startsWith('{') ? JSON.parse(decodeURIComponent(raw)) : decodeURIComponent(raw)); } catch(_) { nice = window.getErrorMessage(raw) || raw; }
-            alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + nice);
-            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
-            window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+
+            // On callback error, still verify on-chain (the tx often landed despite the selector "validation" complaint)
+            let recovered = false;
+            const checkId = soulId;
+            if (checkId) {
+                try {
+                    const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + checkId });
+                    if (check && check.success && check.data && check.data.owner_id) {
+                        recovered = true;
+                        // Clean URL and show non-blocking success instead of scary alert
+                        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
+                        window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+                        const successBox = document.getElementById('success-box');
+                        if (successBox) {
+                            successBox.innerHTML = '✅ Mint succeeded on-chain (verified via RPC). Syncing...';
+                            successBox.classList.remove('hidden');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            window.location.reload();
+                        }
+                    }
+                } catch(_) {}
+            }
+            if (!recovered) {
+                alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + nice);
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
+                window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+            }
         } else if (urlParams.has('transactionHashes')) {
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (soulId ? '?id=' + soulId : '');
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
@@ -376,6 +401,42 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             window.location.reload();
         } catch(e) {
             console.error("AgentFi Action Error:", e);
+
+            // Same resilient pattern as main mint flow:
+            // wallet-selector often throws "Request validation error" / internal validation even when the
+            // list_for_sale / list_for_rent tx actually succeeded on-chain (callbackUrl + INCLUDED case).
+            // Verify with live get_soul. If the price state now matches what we tried to set → treat as success.
+            let onChainStateMatches = false;
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulId });
+                if (check && check.success && check.data) {
+                    const t = check.data;
+                    if (actionType.includes('sale')) {
+                        const wanted = (args.price === "0" || args.price === 0) ? null : args.price;
+                        const now = t.sale_price;
+                        onChainStateMatches = (wanted == null)
+                            ? (!now || now === "0" || now === null)
+                            : (now === wanted);
+                    } else if (actionType.includes('rent')) {
+                        const wanted = (args.price === "0" || args.price === 0) ? null : args.price;
+                        const now = t.rent_price;
+                        onChainStateMatches = (wanted == null)
+                            ? (!now || now === "0" || now === null)
+                            : (now === wanted);
+                    }
+                }
+            } catch (_) {}
+
+            if (onChainStateMatches) {
+                // On-chain already reflects the listing/cancel we wanted. Do the normal success cleanup.
+                btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1" aria-hidden="true"></i> Syncing to DB...';
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await fetch(`/api/soul/${soulId}`);
+                window.location.reload();
+                return;
+            }
+
+            // Only show failure if on-chain does NOT match what we attempted.
             alert("<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + window.getErrorMessage(e));
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -512,9 +573,36 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 }
             } catch(err) {
                 console.error("Form Submit Error:", err);
-                errorMsg.innerText = "<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (err.message || '');
+
+                // Even if wallet throws "Request validation error" or similar (common with callbackUrl + selector),
+                // the tx may have succeeded (as proven by explorer receipt + logs). Always double-check on-chain.
+                const newIdForCheck = isEditMode ? soulId : (data && data.id ? data.id : null);
+                if (newIdForCheck) {
+                    try {
+                        // Use the same live RPC the form already trusts for mint-vs-update decision
+                        const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + newIdForCheck });
+                        if (check && check.success && check.data && check.data.owner_id) {
+                            // ✅ On-chain success! Hide error, sync DB, go to my-souls.
+                            errorBox.classList.add('hidden');
+                            if (text) text.innerText = "Mint succeeded on blockchain (verified)!";
+                            if (loading) loading.classList.remove('hidden');
+                            try { await fetch(`/api/soul/${newIdForCheck}`); } catch(_) {}
+                            setTimeout(() => {
+                                window.location.href = "<?= url('/my-souls') ?>";
+                            }, 900);
+                            return;
+                        }
+                    } catch (verifyErr) {
+                        console.warn('Post-tx on-chain verify failed:', verifyErr);
+                    }
+                }
+
+                // Only show the scary banner if on-chain check also didn't find the token.
+                errorMsg.innerText = "<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (window.getErrorMessage ? window.getErrorMessage(err) : (err.message || ''));
                 errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
-                text.classList.remove('hidden'); loading.classList.add('hidden'); btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                if (text) text.classList.remove('hidden');
+                if (loading) loading.classList.add('hidden');
+                if (btn) btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         });
     }

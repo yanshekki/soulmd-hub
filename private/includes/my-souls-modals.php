@@ -231,6 +231,15 @@
                 alert(data.error || <?= json_encode(__('Failed to prepare minting.'), JSON_UNESCAPED_UNICODE) ?>);
             }
         } catch(e) {
+            // Recovery: even if wallet validation error, check if the mint landed on-chain
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + id });
+                if (check.success && check.data && check.data.owner_id) {
+                    alert(<?= json_encode(__('Mint succeeded on-chain! Reloading...'), JSON_UNESCAPED_UNICODE) ?>);
+                    location.reload();
+                    return;
+                }
+            } catch (_) {}
             alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>);
         }
     }
@@ -544,6 +553,30 @@
             
             window.location.reload();
         } catch(e) { 
+            // Full recovery like soul-form: verify on-chain state for list/cancel
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + currentEditId });
+                if (check.success && check.data) {
+                    const t = check.data;
+                    let matches = false;
+                    if (actionType.includes('sale')) {
+                        const wanted = (args.price === "0") ? null : args.price;
+                        const now = t.sale_price;
+                        matches = (wanted == null) ? (!now || now === "0" || now === null) : (now === wanted);
+                    } else if (actionType.includes('rent')) {
+                        const wanted = (args.price === "0") ? null : args.price;
+                        const now = t.rent_price;
+                        matches = (wanted == null) ? (!now || now === "0" || now === null) : (now === wanted);
+                    }
+                    if (matches) {
+                        btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing...';
+                        await new Promise(r => setTimeout(r, 1500));
+                        await fetch(`/api/soul/${currentEditId}`);
+                        location.reload();
+                        return;
+                    }
+                }
+            } catch (_) {}
             alert(<?= json_encode(__('Blockchain transaction failed or rejected.'), JSON_UNESCAPED_UNICODE) ?>); 
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -626,6 +659,15 @@
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         } catch(e) { 
+            // Recovery for hash sync: verify the extra/hash updated on-chain
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + currentEditId });
+                if (check.success && check.data && check.data.metadata && check.data.metadata.extra === data.hash) {
+                    alert(<?= json_encode(__('Hash sync succeeded on-chain!'), JSON_UNESCAPED_UNICODE) ?>);
+                    closeModal(); location.reload(); 
+                    return;
+                }
+            } catch (_) {}
             alert(<?= json_encode(__('Network error.'), JSON_UNESCAPED_UNICODE) ?>); 
             text.classList.remove('hidden'); spinner.classList.add('hidden'); 
             btn.classList.remove('opacity-80', 'cursor-not-allowed');

@@ -273,9 +273,15 @@ if (isset($_SESSION['user_id'])) {
     // Handles NEAR tx results, wallet selector rejections, and the exact deep structure:
     // { ActionError: { kind: { FunctionCallError: { ExecutionError: "Smart contract panicked: ..." } } } }
     // Also copes with the errorMessage query param carrying raw JSON or the panic string.
+    // Extra: swallow "Request validation error" / selector internal validation when tx may have still landed (common with callbackUrl + certain wallets).
     window.getErrorMessage = function(e) {
         if (!e) return 'Unknown error';
-        if (typeof e === 'string') return e;
+        if (typeof e === 'string') {
+            if (/request validation error/i.test(e) || /validation error/i.test(e)) {
+                return 'Wallet returned a validation notice (transaction may still have succeeded — checking on-chain).';
+            }
+            return e;
+        }
 
         // 1. Deep NEAR ActionError / ExecutionError / panic extraction (the structure from the user's report)
         const extractNearPanic = (obj, depth = 0) => {

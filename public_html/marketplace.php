@@ -480,6 +480,19 @@ require_once __DIR__ . '/../private/includes/header.php';
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
                 return;
             }
+            // Full recovery: verify buyer now owns or has the token
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + id });
+                const currentUser = (await initNearWallet()).getAccountId();
+                if (check.success && check.data && (check.data.owner_id === currentUser || (await (async () => {
+                    const acc = await window.nearRpcQuery('check_access', { token_id: "soul_" + id, account_id: currentUser });
+                    return acc.success && acc.data;
+                })()))) {
+                    btn.innerHTML = '<?= addslashes(__('Success! Reloading...')) ?>';
+                    setTimeout(() => location.reload(), 800);
+                    return;
+                }
+            } catch (_) {}
             alert("<?= addslashes(__('Transaction failed')) ?>: \n" + errMsg);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -517,6 +530,19 @@ require_once __DIR__ . '/../private/includes/header.php';
                 btn.classList.remove('opacity-80', 'cursor-not-allowed');
                 return;
             }
+            // Full recovery: verify renter now has access
+            try {
+                const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + id });
+                const currentUser = (await initNearWallet()).getAccountId();
+                if (check.success && check.data) {
+                    const acc = await window.nearRpcQuery('check_access', { token_id: "soul_" + id, account_id: currentUser });
+                    if (acc.success && acc.data) {
+                        btn.innerHTML = '<?= addslashes(__('Rented successfully! Reloading...')) ?>';
+                        setTimeout(() => location.reload(), 800);
+                        return;
+                    }
+                }
+            } catch (_) {}
             alert("<?= addslashes(__('Transaction failed')) ?>: \n" + errMsg);
             btn.innerHTML = originalHtml;
             btn.disabled = false;
