@@ -574,12 +574,14 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             } catch(err) {
                 console.error("Form Submit Error:", err);
 
-                // Even if wallet throws "Request validation error" or similar (common with callbackUrl + selector),
-                // the tx may have succeeded (as proven by explorer receipt + logs). Always double-check on-chain.
+                // Even if wallet throws "Request validation error" or "Failed to execute 'json' on 'Response'"
+                // (common with callbackUrl + selector/RPC issues), the tx may have succeeded.
+                // Always double-check on-chain, with delay for mint to land.
                 const newIdForCheck = isEditMode ? soulId : (data && data.id ? data.id : null);
                 if (newIdForCheck) {
                     try {
-                        // Use the same live RPC the form already trusts for mint-vs-update decision
+                        // for new mint, give extra time for tx inclusion and indexing in RPC
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                         const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + newIdForCheck });
                         if (check && check.success && check.data && check.data.owner_id) {
                             // ✅ On-chain success! Hide error, sync DB, go to my-souls.
@@ -598,7 +600,11 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                 }
 
                 // Only show the scary banner if on-chain check also didn't find the token.
-                errorMsg.innerText = "<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + (window.getErrorMessage ? window.getErrorMessage(err) : (err.message || ''));
+                let displayErr = (window.getErrorMessage ? window.getErrorMessage(err) : (err.message || ''));
+                if (displayErr.includes("Failed to execute 'json' on 'Response'") || displayErr.includes("Unexpected end of JSON input")) {
+                    displayErr = "Wallet or RPC issue during the transaction (common with some wallets). Please check the NEAR explorer for the mint tx, or go to My Souls and refresh. The NFT may have been created successfully.";
+                }
+                errorMsg.innerText = "<?= addslashes(__('Blockchain transaction failed or rejected.')) ?>\n" + displayErr;
                 errorBox.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
                 if (text) text.classList.remove('hidden');
                 if (loading) loading.classList.add('hidden');
