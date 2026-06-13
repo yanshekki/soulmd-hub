@@ -143,23 +143,13 @@ class ApiSecurity {
 
     /**
      * Rate limiting: max 10 calls per minute per individual api_key.
-     * Uses a lightweight bucket table (created on first use).
+     * Uses the api_rate_limits table (created in private/sql/init.sql).
      */
     private static function enforceRateLimit(PDO $pdo, string $apiKey): void {
         $keyHash = hash('sha256', $apiKey);
         $currentWindow = (int)(time() / 60);   // minute bucket
 
-        // Create tracking table if it doesn't exist (one-time, safe)
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS api_rate_limits (
-                api_key_hash   VARCHAR(64) PRIMARY KEY,
-                window_minute  INT UNSIGNED NOT NULL,
-                call_count     TINYINT UNSIGNED NOT NULL DEFAULT 1,
-                updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX (window_minute)
-            ) ENGINE=InnoDB
-        ");
-
+        // Table is now created in private/sql/init.sql (not here) for proper schema management.
         // Atomic increment or reset on new minute window
         $stmt = $pdo->prepare("
             INSERT INTO api_rate_limits (api_key_hash, window_minute, call_count)

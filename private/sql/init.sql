@@ -253,3 +253,16 @@ CREATE TABLE IF NOT EXISTS used_auth_nonces (
   PRIMARY KEY (nonce_hash),
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Prevents replay of NEAR wallet auth signatures within the validity window';
+
+-- ==========================================
+-- 15. API Rate Limits (for ApiSecurity enforceRateLimit)
+-- ==========================================
+-- Lightweight per-minute bucket table for rate limiting API keys (max 10 calls/min).
+-- Created here in init.sql (not dynamically in code) for proper schema management.
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+  api_key_hash  VARCHAR(64) PRIMARY KEY,
+  window_minute INT UNSIGNED NOT NULL,
+  call_count    TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_window_minute (window_minute)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Rate limiting buckets: 10 calls per minute per API key';
