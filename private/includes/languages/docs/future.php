@@ -56,6 +56,9 @@ return [
         'USDT_USDC_Revenue_Title' => '6. USDT / USDC Upgrade Revenue → 100% $SOUL Buy & Burn',
         'USDT_USDC_Revenue_Desc' => 'All net revenue received in USDT and USDC from users purchasing VIP/PRO upgrades via the on-chain ft_transfer_call mechanism (with "upgrade:vip" / "upgrade:pro" messages sent to soulmd-hub.near) will have bare operational costs deducted. 100% of the remaining stablecoin revenue is automatically converted into $SOUL tokens on the Ref Finance AMM (Pool 8546) and permanently burned, directly amplifying the deflationary pressure on the token supply.',
 
+        'USDT_USDC_Example_Title' => '100% Net Stablecoin Revenue → $SOUL Buy & Burn',
+        'USDT_USDC_Example_Desc' => 'All USDT/USDC received via <code>ft_transfer_call</code> (with <code>"upgrade:vip"</code> / <code>"upgrade:pro"</code> msg) to <code>soulmd-hub.near</code> will have operational costs deducted. The remaining 100% is automatically used to market-buy $SOUL on Ref Finance AMM and burned permanently.',
+
         // 3. Deflationary Spiral
         'AMM_Burn_Title' => '3. The Deflationary AMM Burn Blackhole',
         'AMM_Burn_Desc' => 'The treasury does not hoard accumulated capital. After deducting bare-metal server operations and core development expenditures, the protocol unleashes a permanent deflationary vortex.',
@@ -125,6 +128,9 @@ return [
         // New: USDT/USDC Upgrade Revenue (NEAR FT)
         'USDT_USDC_Revenue_Title' => '六、USDT / USDC 升級收入 → 100% 回購 $SOUL 並銷毀',
         'USDT_USDC_Revenue_Desc' => '所有透過鏈上 ft_transfer_call 機制（訊息為 "upgrade:vip" / "upgrade:pro"，發送到 soulmd-hub.near）購買 VIP/PRO 升級所收到的 USDT 和 USDC 淨收入，在扣除基礎營運成本後，剩餘的 100% 穩定幣收入將自動透過 Ref Finance AMM (Pool 8546) 按市價全數買入 $SOUL 代幣，並立即打入區塊鏈黑洞地址永久銷毀，直接加強代幣的通縮壓力。',
+
+        'USDT_USDC_Example_Title' => '100% 淨穩定幣收入 → $SOUL 回購與銷毀',
+        'USDT_USDC_Example_Desc' => '所有透過 <code>ft_transfer_call</code>（訊息為 <code>"upgrade:vip"</code> / <code>"upgrade:pro"</code>）發送到 <code>soulmd-hub.near</code> 的 USDT/USDC，在扣除營運成本後，剩餘的 100% 會自動用於在 Ref Finance AMM 按市價買入 $SOUL，並永久銷毀。',
 
         // 3. Deflationary Spiral
         'AMM_Burn_Title' => '三、淨收入全量回購與代幣強通縮黑洞',

@@ -113,9 +113,9 @@ if (!defined('BASE_URL')) exit;
         <p class="text-sm text-zinc-400 mb-8 leading-relaxed"><?= __('USDT_USDC_Revenue_Desc') ?></p>
         
         <div class="bg-black/60 border border-cyan-500/30 p-6 rounded-2xl">
-            <div class="text-cyan-400 mb-3 font-bold text-sm">100% Net Stablecoin Revenue → $SOUL Buy & Burn</div>
+            <div class="text-cyan-400 mb-3 font-bold text-sm"><?= __('USDT_USDC_Example_Title') ?></div>
             <p class="text-xs text-zinc-300 leading-relaxed">
-                All USDT/USDC received via <code>ft_transfer_call</code> (with <code>"upgrade:vip"</code> / <code>"upgrade:pro"</code> msg) to <code>soulmd-hub.near</code> will have operational costs deducted. The remaining 100% is automatically used to market-buy $SOUL on Ref Finance AMM and burned permanently.
+                <?= __('USDT_USDC_Example_Desc') ?>
             </p>
         </div>
     </div>
