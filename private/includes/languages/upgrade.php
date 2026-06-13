@@ -122,6 +122,26 @@ return [
         'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.' => 'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.',
         'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.' => 'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.',
 
+        // Manual claim section (for wallet confirmation errors after successful on-chain payment)
+        'Already sent USDT or USDC on-chain?' => 'Already sent USDT or USDC on-chain?',
+        'If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.' => 'If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.',
+        'Claim VIP upgrade' => 'Claim VIP upgrade',
+        'Claim PRO upgrade' => 'Claim PRO upgrade',
+        'You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.' => 'You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.',
+
+        // NEAR payment section notes for tier restrictions
+        'Important for multiple payments:' => 'Important for multiple payments:',
+        'The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.' => 'The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.',
+        'VIP purchase disabled (PRO active - downgrade not allowed)' => 'VIP purchase disabled (PRO active - downgrade not allowed)',
+        'Purchasing PRO while having active PRO will stack +30 days to your subscription.' => 'Purchasing PRO while having active PRO will stack +30 days to your subscription.',
+        'Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.' => 'Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.',
+        'Already Subscribed' => 'Already Subscribed',
+        'VIP — $%s USDT or USDC (30 days)' => 'VIP — $%s USDT or USDC (30 days)',
+        'PRO — $%s USDT or USDC (30 days)' => 'PRO — $%s USDT or USDC (30 days)',
+        'STANDARD' => 'STANDARD',
+        'ADVANCED' => 'ADVANCED',
+        'VIP purchase disabled (PRO active - downgrade not allowed)' => 'VIP purchase disabled (PRO active - downgrade not allowed)',
+
         // Chinese
         'Pay with USDT or USDC on NEAR' => '使用 USDT 或 USDC 在 NEAR 鏈上支付',
         'Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant. The contract records a credit that we verify on-chain before applying your tier.' => '連接你已在 Marketplace 綁定的 NEAR 錢包，以精確的穩定幣金額在鏈上支付。手續費極低、即時到帳。合約會記錄信用，我們會在鏈上驗證後才更新你的方案。',
@@ -131,5 +151,22 @@ return [
         'On-chain payment verified!' => '鏈上付款已驗證！',
         'No valid on-chain upgrade credit found for your NEAR account. Please make sure the ft_transfer_call transaction succeeded and try again in a moment.' => '未在你的 NEAR 帳戶找到有效的鏈上升級信用。請確認 ft_transfer_call 交易已成功，稍後再試。',
         'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.' => '使用鏈上支付前，請先在「我的設定 → Web3 Wallet」綁定你的 NEAR 錢包。',
+
+        'Already sent USDT or USDC on-chain?' => '已經用 USDT 或 USDC 在鏈上支付過？',
+        'If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.' => '如果你的 <code>ft_transfer_call</code> 在區塊鏈上成功（你可以在 nearblocks.io 查到），但此頁顯示錯誤（例如錢包 "Request validation error"），請點擊下方手動認領。手動認領僅適用於最近一小時內的信用。',
+        'Claim VIP upgrade' => '認領 VIP 升級',
+        'Claim PRO upgrade' => '認領 PRO 升級',
+        'You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.' => '你必須使用發送付款的 NEAR 錢包登入。系統會自動驗證鏈上信用。',
+
+        'Important for multiple payments:' => '多次支付注意事項：',
+        'The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.' => '鏈上信用每個方案只有一個槽位。支付後請等待成功跳轉 + 認領完成，才發送下一次 USDT/USDC 支付以疊加時間。在認領前再次支付會覆蓋之前的信用證明（你付了兩次錢，但只有最後一次可認領）。每筆成功支付只能認領一次。',
+        'VIP purchase disabled (PRO active - downgrade not allowed)' => 'VIP 購買已停用（PRO 使用中 - 不允許降級）',
+        'Purchasing PRO while having active PRO will stack +30 days to your subscription.' => '當你已有活躍 PRO 時，購買 PRO 會疊加額外 30 天到你的訂閱。',
+        'Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.' => '從 VIP 升級至 PRO 會將你剩餘的 VIP 價值轉換為額外 PRO 天數。',
+        'Already Subscribed' => '已訂閱',
+        'VIP — $%s USDT or USDC (30 days)' => 'VIP — $%s USDT 或 USDC（30 天）',
+        'PRO — $%s USDT or USDC (30 days)' => 'PRO — $%s USDT 或 USDC（30 天）',
+        'STANDARD' => '標準',
+        'ADVANCED' => '進階',
     ]
 ];

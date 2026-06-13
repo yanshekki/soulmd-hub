@@ -126,9 +126,13 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             </div>
             
             <div class="pt-4 border-t border-white/5 mt-auto">
-                <?php if ($isVip || $isPro): ?>
-                    <button disabled aria-label="Already Subscribed" class="w-full py-3 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition flex items-center justify-center gap-2 text-sm">
-                        <i class="fas fa-check-circle" aria-hidden="true"></i> <?= __('Included in plan') ?>
+                <?php if ($isVip): ?>
+                    <button disabled class="w-full py-3 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i> <?= __('Already Subscribed') ?>
+                    </button>
+                <?php elseif ($isPro): ?>
+                    <button disabled class="w-full py-3 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fas fa-ban" aria-hidden="true"></i> <?= __('VIP purchase disabled (PRO active - downgrade not allowed)') ?>
                     </button>
                 <?php else: ?>
                     <!-- PayPal buttons hidden. Users now pay via NEAR USDT/USDC on-chain (see section below) -->
@@ -166,9 +170,8 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             
             <div class="pt-4 border-t border-emerald-500/10 mt-auto">
                 <?php if ($isPro): ?>
-                    <button disabled aria-label="Highest Tier Reached" class="w-full py-3 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition flex items-center justify-center gap-2 text-sm">
-                        <i class="fas fa-check-circle" aria-hidden="true"></i> <?= __('Highest Tier Reached') ?>
-                    </button>
+                    <span class="px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider"><?= __('Current') ?></span>
+                    <!-- PRO stacking available via NEAR payment section below (add +30 days each time) -->
                 <?php else: ?>
                     <!-- PayPal buttons hidden. Users now pay via NEAR USDT/USDC on-chain (see section below) -->
                 <?php endif; ?>
@@ -187,33 +190,45 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
         </p>
 
         <div class="mb-4 p-3 rounded-xl bg-amber-900/20 border border-amber-500/30 text-amber-300 text-xs">
-            ⚠️ <strong>Important for multiple payments:</strong> The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.
+            ⚠️ <strong><?= __('Important for multiple payments:') ?></strong> <?= __('The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.') ?>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- VIP on NEAR -->
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
-                    <div class="text-emerald-400 text-xs font-bold tracking-widest">STANDARD</div>
-                    <div class="font-bold text-lg">VIP — $<?= NEAR_UPGRADE_VIP_USD_AMOUNT ?> USDT or USDC (30 days)</div>
+                    <div class="text-emerald-400 text-xs font-bold tracking-widest"><?= __('STANDARD') ?></div>
+                    <div class="font-bold text-lg"><?= sprintf(__('VIP — $%s USDT or USDC (30 days)'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
-                    <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
+                    <?php if ($isPro): ?>
+                        <button disabled class="flex-1 py-2.5 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition text-sm">
+                            <?= __('VIP purchase disabled (PRO active - downgrade not allowed)') ?>
+                        </button>
+                    <?php else: ?>
+                        <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
+                        <button onclick="payWithNearFt('vip','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <!-- PRO on NEAR -->
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
-                    <div class="text-amber-400 text-xs font-bold tracking-widest">ADVANCED</div>
-                    <div class="font-bold text-lg">PRO — $<?= NEAR_UPGRADE_PRO_USD_AMOUNT ?> USDT or USDC (30 days)</div>
+                    <div class="text-amber-400 text-xs font-bold tracking-widest"><?= __('ADVANCED') ?></div>
+                    <div class="font-bold text-lg"><?= sprintf(__('PRO — $%s USDT or USDC (30 days)'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
                     <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
                     <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
                 </div>
             </div>
+
+            <?php if ($isPro): ?>
+                <p class="mt-3 text-xs text-amber-400"><?= __('Purchasing PRO while having active PRO will stack +30 days to your subscription.') ?></p>
+            <?php elseif ($isVip): ?>
+                <p class="mt-3 text-xs text-amber-400"><?= __('Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.') ?></p>
+            <?php endif; ?>
         </div>
 
         <div id="near-payment-status" class="hidden mt-4 p-3 rounded-2xl text-sm font-medium border" aria-live="polite"></div>
@@ -223,19 +238,19 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <div class="flex items-start gap-3">
                 <i class="fas fa-wallet text-emerald-400 mt-1" aria-hidden="true"></i>
                 <div class="flex-1">
-                    <h3 class="font-bold text-lg mb-1">Already sent USDT or USDC on-chain?</h3>
+                    <h3 class="font-bold text-lg mb-1"><?= __('Already sent USDT or USDC on-chain?') ?></h3>
                     <p class="text-sm text-zinc-400 mb-3">
-                        If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.
+                        <?= __('If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.') ?>
                     </p>
                     <div class="flex flex-wrap gap-3">
                         <button onclick="manualClaimNear('vip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
-                            <i class="fas fa-check-circle"></i> Claim VIP upgrade
+                            <i class="fas fa-check-circle"></i> <?= __('Claim VIP upgrade') ?>
                         </button>
                         <button onclick="manualClaimNear('pro')" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
-                            <i class="fas fa-check-circle"></i> Claim PRO upgrade
+                            <i class="fas fa-check-circle"></i> <?= __('Claim PRO upgrade') ?>
                         </button>
                     </div>
-                    <p class="mt-2 text-[10px] text-zinc-500">You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.</p>
+                    <p class="mt-2 text-[10px] text-zinc-500"><?= __('You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.') ?></p>
                 </div>
             </div>
         </div>
