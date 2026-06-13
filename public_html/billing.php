@@ -16,6 +16,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$csrfToken = ensureCsrfToken();
+
 // 🌍 載入此頁面的專屬獨立多語言詞典
 loadTranslations('billing');
 
@@ -88,6 +90,23 @@ require_once __DIR__ . '/../private/includes/header.php';
             <i class="fas <?= $isExpired ? 'fa-sync-alt' : 'fa-arrow-up' ?>" aria-hidden="true"></i> <?= $isExpired ? __('Renew Subscription') : __('Upgrade Plan') ?>
         </a>
     </div>
+
+    <?php if ($nearWallet): ?>
+    <!-- Manual on-chain claim for NEAR FT USDT/USDC upgrades -->
+    <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 mb-8">
+        <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fas fa-link text-emerald-400"></i> On-chain Upgrade Claim
+        </h2>
+        <p class="text-sm text-zinc-400 mb-4">
+            If you sent USDT or USDC via <code>ft_transfer_call</code> (and the transaction succeeded on-chain) but the automatic claim after payment failed (wallet errors like "Request validation error"), use the buttons below to verify the credit and apply your tier.
+        </p>
+        <div class="flex flex-wrap gap-3">
+            <button onclick="manualClaimNearBilling('vip')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-2xl transition">Claim VIP (30 days)</button>
+            <button onclick="manualClaimNearBilling('pro')" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-2xl transition">Claim PRO (30 days)</button>
+        </div>
+        <p class="mt-2 text-[10px] text-zinc-500">Requires your bound NEAR wallet (<?= htmlspecialchars($nearWallet) ?>) to have a valid unclaimed on-chain credit.</p>
+    </div>
+    <?php endif; ?>
 
     <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-8 mb-8 shadow-xl backdrop-blur-sm relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r <?= $isExpired ? 'from-red-500 to-amber-500' : 'from-emerald-400 to-cyan-400' ?>"></div>
@@ -323,6 +342,36 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     const boundWallet = <?= json_encode($nearWallet) ?>;
+
+    async function manualClaimNearBilling(tier) {
+        if (!boundWallet) {
+            alert('No NEAR wallet bound to your account. Please bind one in My Settings first.');
+            return;
+        }
+        const btns = document.querySelectorAll('button');
+        btns.forEach(b => b.disabled = true);
+
+        try {
+            const res = await fetch('/api/near-upgrade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' },
+                body: JSON.stringify({ tier, token: 'usdt' })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert('On-chain credit claimed! ' + (data.message || 'Tier upgraded.'));
+                window.location.reload();
+            } else {
+                alert(data.error || 'No valid unclaimed on-chain credit found for your bound NEAR wallet.');
+            }
+        } catch (e) {
+            alert('Claim request failed. Please try again or contact support.');
+            console.error(e);
+        } finally {
+            btns.forEach(b => b.disabled = false);
+        }
+    }
 
     function switchLedgerTab(type) {
         document.querySelectorAll('.tab-btn-ledger').forEach(el => {

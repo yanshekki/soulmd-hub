@@ -217,6 +217,28 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
         </div>
 
         <div id="near-payment-status" class="hidden mt-4 p-3 rounded-2xl text-sm font-medium border" aria-live="polite"></div>
+
+        <!-- Manual Claim for users who paid on-chain but frontend claim failed due to wallet errors -->
+        <div class="mt-8 p-5 bg-zinc-900/70 border border-white/10 rounded-3xl">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-wallet text-emerald-400 mt-1" aria-hidden="true"></i>
+                <div class="flex-1">
+                    <h3 class="font-bold text-lg mb-1">Already sent USDT or USDC on-chain?</h3>
+                    <p class="text-sm text-zinc-400 mb-3">
+                        If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error like "Request validation error" or "Transaction not found", click below to manually claim your upgrade credit.
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="manualClaimNear('vip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i> Claim VIP upgrade
+                        </button>
+                        <button onclick="manualClaimNear('pro')" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i> Claim PRO upgrade
+                        </button>
+                    </div>
+                    <p class="mt-2 text-[10px] text-zinc-500">You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.</p>
+                </div>
+            </div>
+        </div>
     </section>
 
     <footer class="max-w-3xl mx-auto mt-auto border-t border-white/5 pt-6 sm:pt-8 text-center">
@@ -335,41 +357,68 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             //
             // The actual on-chain transaction will have receiverId = tokenContract (usdt or usdc),
             // with the ft_transfer_call args telling it to forward to soulmd-hub.near with the upgrade msg.
-            const payResult = await wrapper.requestSignTransactions({
-                transactions: [{
-                    receiverId: tokenContract,
-                    actions: [{
-                        methodName: 'ft_transfer_call',
-                        args: {
-                            receiver_id: hubContract,
-                            amount: amount,
-                            msg: msg
-                        },
-                        gas: '300000000000000',
-                        deposit: '1'
-                    }]
-                }]
-            });
+            let payResult = null;
+            let shouldProceedToClaim = false;
 
-            // Some wallet implementations resolve even on on-chain ActionError (e.g. MethodNotFound, insufficient storage, panic in ft_on_transfer).
-            // Inspect common shapes so we fail fast with a clear message instead of proceeding to claim.
-            const outcomeFailed = payResult && (
-                payResult.status?.Failure ||
-                payResult.error ||
-                (payResult.receipts_outcome && Array.isArray(payResult.receipts_outcome) && payResult.receipts_outcome.some(r => r?.outcome?.status?.Failure)) ||
-                (typeof payResult.status === 'object' && 'Failure' in payResult.status)
-            );
-            if (outcomeFailed) {
-                const errMsg = (window.getErrorMessage ? window.getErrorMessage(payResult) : 'On-chain transaction failed (see explorer for details)');
-                throw new Error(errMsg);
+            try {
+                payResult = await wrapper.requestSignTransactions({
+                    transactions: [{
+                        receiverId: tokenContract,
+                        actions: [{
+                            methodName: 'ft_transfer_call',
+                            args: {
+                                receiver_id: hubContract,
+                                amount: amount,
+                                msg: msg
+                            },
+                            gas: '300000000000000',
+                            deposit: '1'
+                        }]
+                    }]
+                });
+
+                // Some wallet implementations resolve even on on-chain ActionError (e.g. MethodNotFound, insufficient storage, panic in ft_on_transfer).
+                // Inspect common shapes so we fail fast with a clear message instead of proceeding to claim.
+                const outcomeFailed = payResult && (
+                    payResult.status?.Failure ||
+                    payResult.error ||
+                    (payResult.receipts_outcome && Array.isArray(payResult.receipts_outcome) && payResult.receipts_outcome.some(r => r?.outcome?.status?.Failure)) ||
+                    (typeof payResult.status === 'object' && 'Failure' in payResult.status)
+                );
+                if (outcomeFailed) {
+                    const errMsg = (window.getErrorMessage ? window.getErrorMessage(payResult) : 'On-chain transaction failed (see explorer for details)');
+                    throw new Error(errMsg);
+                }
+
+                shouldProceedToClaim = true;
+                status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-emerald-900/30 text-emerald-200 border-emerald-500/40';
+                status.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Transaction signed on-chain. Verifying credit...';
+
+            } catch (signErr) {
+                console.error('NEAR FT sign error', signErr);
+                const rawMsg = (window.getErrorMessage ? window.getErrorMessage(signErr) : (signErr && signErr.message) || 'Unknown sign error');
+                const lower = rawMsg.toLowerCase();
+
+                // Some wallets (e.g. HereWallet) throw "Request validation error", "Transaction not found, but maybe executed",
+                // or ProviderError even when the tx actually landed on-chain and executed successfully.
+                // In those cases we still want to attempt the claim (which does independent on-chain credit verification).
+                if (lower.includes('validation') || lower.includes('not found') || lower.includes('executed') ||
+                    lower.includes('providererror') || lower.includes('request validation error')) {
+                    shouldProceedToClaim = true;
+                    status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-amber-900/30 text-amber-200 border-amber-500/40';
+                    status.innerHTML = `<i class="fas fa-info-circle mr-2"></i> Transaction was submitted (wallet had trouble confirming the result). Checking for on-chain credit now... (or use the buttons below)`;
+                } else {
+                    status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-red-900/30 text-red-200 border-red-500/40';
+                    status.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${rawMsg}`;
+                    throw signErr; // rethrow to outer catch so we don't claim
+                }
             }
 
-            status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-emerald-900/30 text-emerald-200 border-emerald-500/40';
-            status.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Transaction signed on-chain. Verifying credit...';
-
-            // Strict claim (the API will do the real view_call proof + exact credit ts binding)
-            // Pass payResult for potential tx hash verification (if available in outcome)
-            await claimNearUpgrade(tier, token, status, payResult);
+            if (shouldProceedToClaim) {
+                // Strict claim (the API will do the real view_call proof + exact credit ts binding)
+                // Pass payResult for potential tx hash verification (if available in outcome)
+                await claimNearUpgrade(tier, token, status, payResult);
+            }
 
         } catch (e) {
             console.error('NEAR FT payment error', e);
@@ -399,8 +448,24 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                 statusEl.innerHTML = `<i class="fas fa-info-circle mr-2"></i> ${data.error || 'On-chain credit not yet visible or already claimed. Please refresh Billing in a moment.'}`;
             }
         } catch (err) {
-            statusEl.innerHTML = 'Transaction succeeded on-chain. The credit may take a moment to appear. Please go to Billing or refresh this page.';
+            statusEl.innerHTML = 'Transaction succeeded on-chain. The credit may take a moment to appear. Use the "Already sent USDT or USDC on-chain?" buttons below.';
         }
+    }
+
+    // Manual claim for users who paid successfully on-chain (ft_transfer_call succeeded)
+    // but the automatic claim after signing failed due to wallet confirmation issues
+    // (e.g. "ProviderError: Request validation error", "Transaction not found but maybe executed").
+    // The claim API is safe to call multiple times; it will only succeed once per credit.
+    async function manualClaimNear(tier) {
+        const status = document.getElementById('near-payment-status');
+        if (!status) return;
+
+        status.style.display = 'block';
+        status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-blue-900/30 text-blue-200 border-blue-500/40';
+        status.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Checking on-chain credit for your bound NEAR wallet...';
+
+        // token is only for logging/display; the server uses the user's bound near_wallet_address
+        await claimNearUpgrade(tier, 'usdt', status, null);
     }
 </script>
 
