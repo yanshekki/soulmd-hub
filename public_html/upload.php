@@ -9,24 +9,12 @@ require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
-session_start();
+require_once __DIR__ . '/../private/includes/soul-page-setup.php';  // shared session, CSRF, loadTranslations, pdo, user_id with upload.php + edit.php
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
-
-// CSRF token for browser session mutating calls (upload form submit hits api/souls which enforces it for non-API-key)
-if (empty($_SESSION['chat_csrf_token'])) {
-    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['chat_csrf_token'];
-
-loadTranslations('upload');
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$user_id = $_SESSION['user_id'];
+// upload-specific: always new soul
+$isEditMode = false;
+$soulId = 0;
+$soulData = [];
 
 $isEditMode = false;
 $soulId = 0;

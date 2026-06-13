@@ -72,14 +72,25 @@ class Token {
 
 @NearBindgen({})
 class SoulMDAgentFi {
-    tokens = new UnorderedMap<Token>('t');
+    // Tokens use raw per-key storage ("t:" + token_id) instead of UnorderedMap.
+    // This completely avoids the SDK UnorderedMap's hidden collection metadata (the 'prefix', length vector, etc.)
+    // that gets corrupted by previous raw patches / brute cleans / zero-start nukes, causing the persistent
+    // "cannot read property 'prefix' of undefined at reconstruct" panic on ANY map access (get/set in mint/get_soul etc.).
+    //
+    // Benefits for your use case:
+    // - Mint only needs the fields YOU pass (token_id + title/desc/hash/reference). No "reconstruct pulling old metadata".
+    // - Each token is 100% independent. Clearing one doesn't affect others. Zero-start is just removing keys.
+    // - No hidden SDK state. Safe after storage clean or fresh deploy.
+    // - get_soul / existence = simple storageRead. No map reconstruct.
+    //
+    // upgrade_credits stays as small UnorderedMap (less critical, was not the source of token panics).
+    //
+    // Token.reconstruct stays for defensive load of whatever JSON is stored (handles partial/old data gracefully).
+    // When minting or admin_set, we store PLAIN data from the input you provide.
     upgrade_credits = new UnorderedMap<string>('uc');
     platform_wallet: string = 'soulmd-hub.near';
 
-    // WARNING (storage hygiene): UnorderedMap relies on internal collection metadata under the prefix.
-    // Past raw patches caused SDK-level "cannot read property 'prefix' of undefined" on any .get/.set.
-    // Current design (fresh 't', defensive Token.reconstruct, admin_raw_* as last resort) + user zero-start DB clear mitigates.
-    // Never write directly under 't' or 'uc' except via the provided admin_raw_* from the platform account.
+    // NOTE: no more "WARNING (storage hygiene)" for tokens - raw keys are simple and explicit.
 
     // Mainnet FT (must match private/config.php)
     readonly USDT: string = 'usdt.tether-token.near';
@@ -88,6 +99,37 @@ class SoulMDAgentFi {
     // 30 days in nanoseconds
     readonly RENT_DURATION_NS: bigint = 2592000000000000n;
 
+    // Raw token storage helpers - "t:" + token_id
+    private _tokenKey(token_id: string): string { return "t:" + token_id; }
+
+    private _loadToken(token_id: string): Token | null {
+        const s = near.storageRead(this._tokenKey(token_id));
+        if (!s) return null;
+        try {
+            const obj = JSON.parse(s);
+            return Token.reconstruct(obj);
+        } catch (e) {
+            return null; // corrupted -> treat as absent (safe for zero-start)
+        }
+    }
+
+    private _saveToken(token_id: string, t: any): void {
+        // store plain serializable data
+        near.storageWrite(this._tokenKey(token_id), JSON.stringify({
+            owner_id: t.owner_id,
+            metadata: {
+                title: t.metadata ? t.metadata.title : '',
+                description: t.metadata ? t.metadata.description : '',
+                extra: t.metadata ? t.metadata.extra : '',
+                reference: t.metadata ? t.metadata.reference : '',
+                creator_id: t.metadata ? t.metadata.creator_id : ''
+            },
+            sale_price: t.sale_price,
+            rent_price: t.rent_price,
+            renters: t.renters || {}
+        }));
+    }
+
     @call({ payableFunction: true })
     mint_soul({ token_id, title, description, hash, reference }: { token_id: string, title: string, description: string, hash: string, reference: string }) {
         const caller = near.predecessorAccountId();
@@ -95,11 +137,17 @@ class SoulMDAgentFi {
 
         const required = 600000000000000000000000n; // 0.6 NEAR
         assert(deposit >= required, "Error: Minting requires exactly 0.6 NEAR");
-        assert(!this.tokens.get(token_id), "Error: Token ID already exists.");
 
+        // Raw check - no map reconstruct that can panic
+        const key = this._tokenKey(token_id);
+        assert(!near.storageRead(key), "Error: Token ID already exists.");
+
+        // Create from YOUR input only. No pulling old metadata from storage.
         const metadata = new TokenMetadata(title, description, hash, reference, caller);
         const token = new Token(caller, metadata);
-        this.tokens.set(token_id, token);
+
+        // Store plain - reconstruct only on future _loadToken
+        this._saveToken(token_id, token);
 
         // state first, then platform fee (0.1 NEAR)
         const platform_fee = 100000000000000000000000n;
@@ -112,13 +160,13 @@ class SoulMDAgentFi {
     @call({})
     update_soul_hash({ token_id, new_hash }: { token_id: string, new_hash: string }) {
         const caller = near.predecessorAccountId();
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
 
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Security Error: Only the current owner can update hash.");
 
         token.metadata.extra = new_hash;
-        this.tokens.set(token_id, token);
+        this._saveToken(token_id, token);
 
         near.log(`Soul [${token_id}] evolved to new hash: ${new_hash}`);
     }
@@ -126,7 +174,7 @@ class SoulMDAgentFi {
     @call({})
     list_for_sale({ token_id, price }: { token_id: string, price: string }) {
         const caller = near.predecessorAccountId();
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Error: Only owner can list for sale.");
 
@@ -139,14 +187,14 @@ class SoulMDAgentFi {
         }
         token.sale_price = sale_price;
         near.log(`[${token_id}] sale ${sale_price ? 'listed at ' + sale_price : 'cancelled'}`);
-        this.tokens.set(token_id, token);
+        this._saveToken(token_id, token);
     }
 
     @call({ payableFunction: true })
     buy_soul({ token_id }: { token_id: string }) {
         const buyer = near.predecessorAccountId();
         const deposit = near.attachedDeposit() as bigint;
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
 
         assert(token !== null, "Error: Token not found.");
         if (!token.renters) token.renters = {};
@@ -166,7 +214,7 @@ class SoulMDAgentFi {
         token.owner_id = buyer;
         token.sale_price = null;
         token.rent_price = null;
-        this.tokens.set(token_id, token);
+        this._saveToken(token_id, token);
 
         // fees: 5% platform, 5% creator (if not seller), rest to seller
         const platform_fee = (price * 5n) / 100n;
@@ -192,7 +240,7 @@ class SoulMDAgentFi {
     @call({})
     list_for_rent({ token_id, price }: { token_id: string, price: string }) {
         const caller = near.predecessorAccountId();
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
         assert(token !== null, "Error: Token not found.");
         assert(token.owner_id === caller, "Error: Only owner can list for rent.");
 
@@ -205,14 +253,14 @@ class SoulMDAgentFi {
         }
         token.rent_price = rent_price;
         near.log(`[${token_id}] rent ${rent_price ? 'listed at ' + rent_price : 'cancelled'}`);
-        this.tokens.set(token_id, token);
+        this._saveToken(token_id, token);
     }
 
     @call({ payableFunction: true })
     rent_soul({ token_id }: { token_id: string }) {
         const renter = near.predecessorAccountId();
         const deposit = near.attachedDeposit() as bigint;
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
 
         assert(token !== null, "Error: Token not found.");
         if (!token.renters) token.renters = {};
@@ -244,7 +292,7 @@ class SoulMDAgentFi {
         if (current_expiry < now) current_expiry = now;
         token.renters[renter] = (current_expiry + this.RENT_DURATION_NS).toString();
 
-        this.tokens.set(token_id, token);
+        this._saveToken(token_id, token);
 
         const pp = near.promiseBatchCreate(this.platform_wallet);
         near.promiseBatchActionTransfer(pp, platform_fee);
@@ -258,7 +306,7 @@ class SoulMDAgentFi {
     @call({})
     burn_soul({ token_id }: { token_id: string }) {
         const caller = near.predecessorAccountId();
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
 
         assert(token !== null, "Error: Token not found.");
         if (!token.renters) token.renters = {};
@@ -269,7 +317,7 @@ class SoulMDAgentFi {
             assert(BigInt(token.renters[r]) < now, "Error: Cannot burn while active renters exist.");
         }
 
-        this.tokens.remove(token_id);
+        near.storageRemove(this._tokenKey(token_id));
 
         // refunds: 0.45 NEAR to owner, 0.05 to platform
         const refund_amount = 450000000000000000000000n;
@@ -286,12 +334,12 @@ class SoulMDAgentFi {
 
     @view({})
     get_soul({ token_id }: { token_id: string }): Token | null {
-        return this.tokens.get(token_id);
+        return this._loadToken(token_id);
     }
 
     @view({})
     check_access({ token_id, account_id }: { token_id: string, account_id: string }): boolean {
-        const token = this.tokens.get(token_id);
+        const token = this._loadToken(token_id);
         if (!token) return false;
         const renters = token.renters || {};
         if (token.owner_id === account_id) return true;
@@ -398,7 +446,7 @@ class SoulMDAgentFi {
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
         const obj = JSON.parse(token_json || "{}");
         const t = Token.reconstruct(obj);
-        this.tokens.set(token_id, t);
+        this._saveToken(token_id, t);
         near.log(`admin_set_token ${token_id}`);
     }
 
@@ -406,7 +454,7 @@ class SoulMDAgentFi {
     admin_remove_token({ token_id }: { token_id: string }) {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
-        this.tokens.remove(token_id);
+        near.storageRemove(this._tokenKey(token_id));
         near.log(`admin_remove_token ${token_id}`);
     }
 
@@ -414,12 +462,12 @@ class SoulMDAgentFi {
     admin_update_renters({ token_id, renters_json }: { token_id: string, renters_json: string }) {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
-        let t = this.tokens.get(token_id);
+        let t = this._loadToken(token_id);
         if (!t) {
             t = new Token(this.platform_wallet, new TokenMetadata("", "", "", "", this.platform_wallet));
         }
         t.renters = JSON.parse(renters_json || "{}");
-        this.tokens.set(token_id, t);
+        this._saveToken(token_id, t);
         near.log(`admin_update_renters ${token_id}`);
     }
 
@@ -427,8 +475,10 @@ class SoulMDAgentFi {
     admin_clear_all_tokens() {
         const caller = near.predecessorAccountId();
         assert(caller === this.platform_wallet, "Security: only platform_wallet");
-        this.tokens.clear();
-        near.log("admin_clear_all_tokens");
+        // Raw clear not trivial without knowing all ids.
+        // For zero-start / test: use the recovery stub + raw remove, or individual admin_remove_token.
+        // Or call this after you have cleared via external means.
+        near.log("admin_clear_all_tokens: use raw or individual remove for full wipe (no map)");
     }
 
     @call({})

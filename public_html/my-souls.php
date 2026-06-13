@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/ApiSecurity.php';
 
 session_start();
 
@@ -15,11 +16,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// CSRF token for browser session mutating calls from modals (PUT to /api/soul/* etc.)
-if (empty($_SESSION['chat_csrf_token'])) {
-    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['chat_csrf_token'];
+// Centralized CSRF token (replaces repeated bin2hex block)
+$csrfToken = ensureCsrfToken();
 
 loadTranslations('my-souls');
 

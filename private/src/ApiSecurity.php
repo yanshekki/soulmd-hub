@@ -32,10 +32,8 @@ class ApiSecurity {
             header('Content-Type: application/json; charset=utf-8');
         }
 
-        // Ensure session is available for browser paths
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Ensure session is available for browser paths (also ensures CSRF token exists)
+        self::ensureCsrfToken();
 
         $db = Database::getInstance();
         $pdo = $db->getConnection();
@@ -102,17 +100,38 @@ class ApiSecurity {
     }
 
     /**
+     * Global helper to ensure the chat_csrf_token exists in session.
+     * Replaces all the repeated:
+     *   if (empty($_SESSION['chat_csrf_token'])) {
+     *       $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
+     *   }
+     *   $csrfToken = $_SESSION['chat_csrf_token'];
+     *
+     * Call this early in page/API that needs to pass the token to JS
+     * or for CSRF-protected browser mutating calls.
+     */
+    public static function ensureCsrfToken(): string {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (empty($_SESSION['chat_csrf_token'])) {
+            $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['chat_csrf_token'];
+    }
+
+    /**
      * CSRF check (only called for session/browser mutating calls)
      */
     private static function enforceCsrfCheck(): void {
+        $serverCsrfToken = self::ensureCsrfToken();
+
         $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
         if (empty($userCsrfToken) && function_exists('getallheaders')) {
             $headers = getallheaders();
             $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
         }
-
-        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
 
         if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
             http_response_code(403);
@@ -189,5 +208,16 @@ class ApiSecurity {
             if (empty($tag)) continue;
             $pdo->prepare("INSERT INTO {$table} (name, usage_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1")->execute([$tag]);
         }
+    }
+}
+
+/**
+ * Convenience global function so you can just call ensureCsrfToken() anywhere
+ * (after requiring ApiSecurity). This eliminates all the repeated
+ * $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32)) blocks.
+ */
+if (!function_exists('ensureCsrfToken')) {
+    function ensureCsrfToken(): string {
+        return ApiSecurity::ensureCsrfToken();
     }
 }

@@ -167,7 +167,7 @@ if ($method === 'POST') {
             $headers = getallheaders();
             $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
         }
-        $serverCsrfToken = $_SESSION['chat_csrf_token'] ?? '';
+        $serverCsrfToken = ApiSecurity::ensureCsrfToken();
 
         if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
             http_response_code(403); 

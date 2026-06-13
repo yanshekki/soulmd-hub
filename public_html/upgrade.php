@@ -9,13 +9,12 @@
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/ApiSecurity.php';
 
 session_start();
-// CSRF for on-chain upgrade claim (api/near-upgrade enforces for session)
-if (empty($_SESSION['chat_csrf_token'])) {
-    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['chat_csrf_token'];
+
+// Centralized CSRF token (replaces repeated bin2hex block)
+$csrfToken = ensureCsrfToken();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ' . url('/login'));

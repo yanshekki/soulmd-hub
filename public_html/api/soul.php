@@ -126,7 +126,9 @@ if ($method === 'GET') {
         exit;
     }
 
-    if (!empty($input['is_minting']) && $old['is_nft'] == 0) {
+    if (!empty($input['is_minting'])) {
+        // 允許重試 mint / 完成 NFT 上鏈，即使 DB 有 stale is_nft=1（之前 mint 失敗但 web2 save 已經標記）
+        // 前端 submit 時會 live check on-chain，如果 on-chain 唔存在先 set is_minting=1 要求呢度處理
         if (empty($myWallet)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => __('Please connect NEAR wallet first')], JSON_UNESCAPED_UNICODE);

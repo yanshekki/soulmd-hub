@@ -420,6 +420,19 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
 
             text.classList.add('hidden'); loading.classList.remove('hidden'); btn.classList.add('opacity-80', 'cursor-not-allowed');
 
+            // 每次 submit 都 live on-chain check（用 nearRpcQuery），確保只有真正 on-chain 存在嘅 NFT 先用 update_soul_hash
+            // 解決「第一次 mint 失敗後，DB is_nft=1 但 on-chain 無，永遠鎖死喺 update 模式」問題
+            let onChainNftExists = false;
+            if (isEditMode && "<?= $nearWallet ?>") {
+                try {
+                    const check = await window.nearRpcQuery('get_soul', { token_id: "soul_" + soulId });
+                    onChainNftExists = check.success && check.data && check.data.owner_id;
+                } catch (e) {
+                    console.warn('Live on-chain NFT check failed, will treat as not-minted for retry:', e);
+                    onChainNftExists = false;
+                }
+            }
+
             const payload = {
                 title: document.getElementById('title').value,
                 description: document.getElementById('description').value,
@@ -432,7 +445,8 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
             if (isEditMode) {
                 const pubNode = document.getElementById('is_public');
                 payload.is_public = pubNode ? parseInt(pubNode.value) : <?= $soulData['is_public'] ?? 0 ?>;
-                if (wantMintOrSync && !isNft) payload.is_minting = 1;
+                // 只有當我們決定要做 on-chain mint（而唔係 update）先 set is_minting，讓 backend 正確標記
+                if (wantMintOrSync && !onChainNftExists) payload.is_minting = 1;
             } else {
                 payload.is_minting = wantMintOrSync ? 1 : 0;
             }
@@ -450,11 +464,12 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                     const targetUrl = isEditMode ? window.location.href : data.url.replace("<?= BASE_URL ?>", "<?= url('') ?>");
                     
                     if (wantMintOrSync) {
-                        if (isEditMode && isNft) {
+                        // 用 live check 嘅結果決定用 update_soul_hash 定 mint_soul（每次都 check on-chain 係唔係真係 NFT）
+                        if (isEditMode && onChainNftExists) {
                             text.innerText = "Processing...";
                             text.classList.remove('hidden'); loading.classList.remove('hidden');
                             
-                            // 🚀 FIXED: Using the restored functionCall wrapper directly
+                            // update hash for existing on-chain NFT
                             await wrapper.account().functionCall({
                                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                                 methodName: "update_soul_hash",
@@ -477,7 +492,7 @@ $isNftLocked = ($isEditMode && $soulData['is_nft'] == 1 && empty($nearWallet));
                             const newId = isEditMode ? soulId : data.id;
                             const refUrl = "<?= url('/soul/') ?>" + "<?= rawurlencode($sessionUsername) ?>/" + newId;
                             
-                            // 🚀 FIXED: Using the restored functionCall wrapper directly
+                            // mint new NFT on-chain (retry path if previous failed or DB stale)
                             await wrapper.account().functionCall({
                                 contractId: "<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>",
                                 methodName: "mint_soul",

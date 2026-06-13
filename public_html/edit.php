@@ -10,24 +10,9 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 require_once __DIR__ . '/../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 
-session_start();
+require_once __DIR__ . '/../private/includes/soul-page-setup.php';  // shared session, CSRF, loadTranslations, pdo, user_id with upload.php + edit.php
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
-
-// CSRF token for browser session mutating calls (edit form submit hits api/soul PUT which enforces it)
-if (empty($_SESSION['chat_csrf_token'])) {
-    $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['chat_csrf_token'];
-
-loadTranslations('upload');
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$user_id = $_SESSION['user_id'];
+// edit-specific continues below (soul fetch, lazy sync, permission, etc.)
 
 $soulId = (int)($_GET['id'] ?? 0);
 if (!$soulId) {
@@ -59,7 +44,7 @@ if ($soulData['is_nft'] == 1) {
     $rpcRes = $rpc->viewCall($contractId, 'get_soul', ['token_id' => 'soul_' . $soulId], 'optimistic');
 
     if ($rpcRes['status'] === 'not_found') {
-        // 區塊鏈上查無此物！執行降級自癒，解鎖前端表單！
+        // 區塊鏈上查無此物！執行降級自癒，解鎖前端表單！（允許重新 mint）
         $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL WHERE id = ?")->execute([$soulId]);
         $soulData['is_nft'] = 0;
     } elseif ($rpcRes['status'] === 'success' && !empty($rpcRes['data'])) {
@@ -77,6 +62,14 @@ if ($soulData['is_nft'] == 1) {
                 $soulData['user_id'] = $newOwnerId;
                 $soulData['nft_owner_wallet'] = $chainOwner;
             }
+        }
+    } else {
+        // RPC 查詢失敗（error / timeout / contract panic 等），無法正面確認 on-chain 確實係 NFT
+        // 為避免「第一次 mint 失敗後永遠鎖死喺 update 模式」，降級以便用戶重試 mint
+        // （真正係 NFT 嘅情況，下次 RPC 成功時會再 sync 返嚟）
+        if ($soulData['is_nft'] == 1) {
+            $pdo->prepare("UPDATE souls SET is_nft = 0, nft_owner_wallet = NULL, nft_salt = NULL, nft_hash = NULL WHERE id = ?")->execute([$soulId]);
+            $soulData['is_nft'] = 0;
         }
     }
 }
