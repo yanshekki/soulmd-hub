@@ -58,6 +58,9 @@ if (!$isPublicApiPage) {
     }
 }
 
+require_once __DIR__ . '/../private/src/ApiSecurity.php';
+$csrfToken = ensureCsrfToken();
+
 $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : ("https://" . $_SERVER['HTTP_HOST']);
 loadTranslations('my-api');
 
@@ -205,6 +208,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 </main>
 
 <script>
+    const serverCsrfToken = "<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>";
     <?php if (!$isPublicApiPage): ?>
     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -280,7 +284,7 @@ require_once __DIR__ . '/../private/includes/header.php';
 
             const res = await fetch('/api/bind-wallet', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': serverCsrfToken },
                 body: JSON.stringify(authPayload)
             });
             const data = await res.json();
@@ -336,7 +340,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         errorBox.classList.add('hidden');
 
         try {
-            const res = await fetch('/api/regenerate-key', { method: 'POST' });
+            const res = await fetch('/api/regenerate-key', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': serverCsrfToken }
+            });
             const data = await res.json();
 
             if (data.success) {

@@ -604,7 +604,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         try {
-            const res = await fetch(`/api/soul/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/soul/${id}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>' }
+            });
             const data = await res.json();
             if (data.success) { 
                 location.reload(); 
