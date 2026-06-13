@@ -145,10 +145,24 @@ require_once __DIR__ . '/../private/includes/header.php';
             </div>
             <div class="md:text-right">
                 <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2"><?= __('Payment Method') ?></h3>
+                <?php
+                $isNearFt = str_starts_with($invoice['paypal_order_id'] ?? '', 'near-ft:') || in_array(strtoupper($invoice['currency'] ?? ''), ['USDT', 'USDC']);
+                if ($isNearFt) {
+                    $pmIcon = 'fas fa-link text-emerald-400';
+                    $pmText = strtoupper(htmlspecialchars($invoice['currency'])) . ' (NEAR On-chain)';
+                    $txnLabel = 'NEAR Ref';
+                    $txnTitle = 'NEAR FT Payment Reference';
+                } else {
+                    $pmIcon = 'fab fa-paypal text-blue-400';
+                    $pmText = 'PayPal (Gateway)';
+                    $txnLabel = 'PayPal Order ID';
+                    $txnTitle = 'PayPal Order ID';
+                }
+                ?>
                 <div class="text-white font-medium flex items-center md:justify-end gap-2">
-                    <i class="fab fa-paypal text-blue-400"></i> PayPal (Gateway)
+                    <i class="<?= $pmIcon ?>"></i> <?= $pmText ?>
                 </div>
-                <div class="text-zinc-400 text-sm font-mono mt-1" title="PayPal Order ID">TXN: <?= htmlspecialchars($invoice['paypal_order_id']) ?></div>
+                <div class="text-zinc-400 text-sm font-mono mt-1" title="<?= $txnTitle ?>"><?= $txnLabel ?>: <?= htmlspecialchars($invoice['paypal_order_id']) ?></div>
                 <div class="text-zinc-500 text-xs mt-1"><?= __('Date Paid') ?>: <?= date('F j, Y', strtotime($invoice['created_at'])) ?></div>
             </div>
         </div>

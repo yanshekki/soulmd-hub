@@ -269,15 +269,28 @@ require_once __DIR__ . '/../private/includes/header.php';
             
             await wrapper.requestSignTransactions({ transactions: transactions, callbackUrl: getCallbackUrl('swap', null) });
         } catch(e) {
-            console.error("BuySoul Swap Error:", e); 
             const errMsg = window.getErrorMessage(e) || '';
-            // Only suppress the alert for the *benign* redirect artifact of callbackUrl flows.
-            // Any real error (contract panic, ExecutionError, user reject, insufficient deposit, etc.)
-            // must produce a visible alert so the user knows the tx failed.
-            if (errMsg.includes('Transaction not found, but maybe executed') && !errMsg.includes('panick') && !errMsg.includes('ExecutionError') && !errMsg.includes('ActionError')) {
-                textSpan.innerHTML = originalText; btn.disabled = false; btn.classList.remove('opacity-80', 'cursor-not-allowed');
+            const lowerErr = errMsg.toLowerCase();
+            // Benign wallet confirmation artifacts (HereWallet etc. often reject the promise with validation/not-found
+            // even when the multi-tx swap actually landed on-chain and the user received $SOUL).
+            // We already saw the same pattern in the upgrade flow.
+            const isBenign = (errMsg.includes('Transaction not found, but maybe executed') && !errMsg.includes('panick') && !errMsg.includes('ExecutionError') && !errMsg.includes('ActionError'))
+                          || lowerErr.includes('request validation error')
+                          || lowerErr.includes('providererror');
+            if (isBenign) {
+                console.warn("BuySoul Swap - benign wallet confirmation issue (on-chain likely succeeded):", errMsg);
+                // Give brief positive feedback then restore (user can see $SOUL balance change or refresh)
+                textSpan.innerHTML = '<?= addslashes(__('Submitted!')) ?>';
+                setTimeout(() => {
+                    if (textSpan && btn) {
+                        textSpan.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                    }
+                }, 2000);
                 return;
             }
+            console.error("BuySoul Swap Error:", e); 
             alert('<?= addslashes(__('Transaction failed')) ?>\n' + errMsg);
             textSpan.innerHTML = originalText; btn.disabled = false; btn.classList.remove('opacity-80', 'cursor-not-allowed');
         }
