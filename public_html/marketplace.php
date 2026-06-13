@@ -112,6 +112,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             }
         } else {
             await window.connectOrBindWallet();
+            // After connect (new account may have been selected), force update the button
+            // using the shared update function (handles live getAccountId from current selector state).
+            setTimeout(updateWalletButton, 600);
         }
     }
 
@@ -158,28 +161,40 @@ require_once __DIR__ . '/../private/includes/header.php';
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
 
-        const wrapper = await initNearWallet();
-        if (wrapper && wrapper.isSignedIn()) {
-            document.getElementById('wallet-btn-text').innerText = wrapper.getAccountId();
-            document.getElementById('wallet-status-container').classList.add('opacity-80');
-        }
-
-        // Live subscription to selector store: fixes stale address display when user switches accounts
-        // in their NEAR wallet extension (e.g. after previous login, change active account, the button
-        // previously kept showing old address until manual refresh).
-        if (window.walletSelectorInstance && window.walletSelectorInstance.store && window.walletSelectorInstance.store.observable) {
-            window.walletSelectorInstance.store.observable.subscribe((state) => {
-                const btnTextEl = document.getElementById('wallet-btn-text');
-                const container = document.getElementById('wallet-status-container');
-                if (!btnTextEl) return;
-                const account = (state && state.accounts && state.accounts.length > 0) ? state.accounts[0].accountId : null;
-                if (account) {
-                    btnTextEl.innerText = account;
+        async function updateWalletButton() {
+            const btnTextEl = document.getElementById('wallet-btn-text');
+            const container = document.getElementById('wallet-status-container');
+            if (!btnTextEl) return;
+            try {
+                const w = await initNearWallet();
+                if (w && w.isSignedIn()) {
+                    const addr = w.getAccountId();
+                    btnTextEl.innerText = addr || '<?= addslashes(__('Connect Wallet to Trade')) ?>';
                     if (container) container.classList.add('opacity-80');
                 } else {
                     btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
                     if (container) container.classList.remove('opacity-80');
                 }
+            } catch (e) {
+                console.warn('updateWalletButton error:', e);
+                btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+            }
+        }
+
+        await updateWalletButton();
+
+        // Explicit signedIn listener for this page to force button refresh when account changes
+        // (previous subscription to observable had no effect for some wallets/switches).
+        // Also listen to signedOut to reset the button text immediately.
+        if (window.walletSelectorInstance) {
+            window.walletSelectorInstance.on("signedIn", async () => {
+                await updateWalletButton();
+            });
+            window.walletSelectorInstance.on("signedOut", () => {
+                const btnTextEl = document.getElementById('wallet-btn-text');
+                const container = document.getElementById('wallet-status-container');
+                if (btnTextEl) btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+                if (container) container.classList.remove('opacity-80');
             });
         }
 
