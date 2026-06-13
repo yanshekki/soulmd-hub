@@ -49,21 +49,21 @@ require_once __DIR__ . '/../private/includes/header.php';
     <header class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10 border-b border-white/10 pb-6">
         <div class="max-w-xl">
             <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter"><?= __('My Souls') ?></h1>
-            <p class="text-sm sm:text-base text-zinc-400 mt-2">Manage and deploy your custom Web2 AI prototypes and Web3 AgentFi assets.</p>
+            <p class="text-sm sm:text-base text-zinc-400 mt-2"><?= __('Manage and edit your uploaded AI personalities') ?></p>
         </div>
         
-        <!-- Right side action group: filter pills on top row, prominent Deploy CTA below, right-aligned on large screens. Prevents button 走位 / overflow. -->
+        <!-- Right side action group: filter pills on top row, prominent Deploy CTA below, right-aligned on large screens. All text via language pack. -->
         <div class="flex flex-col gap-3 w-full lg:w-auto lg:items-end">
             <!-- Top row: pill-style filters (Newest Creation active, Public Portfolio, My API Key) -->
             <div class="flex items-center gap-2 flex-wrap justify-start lg:justify-end w-full">
-                <span class="px-4 py-1.5 text-sm bg-zinc-800 text-white rounded-2xl border border-white/10 whitespace-nowrap">Newest Creation</span>
-                <a href="<?= url('/profile/' . rawurlencode($username)) ?>" target="_blank" class="px-4 py-1.5 text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition whitespace-nowrap">Public Portfolio</a>
-                <a href="<?= url('/my-api') ?>" class="px-4 py-1.5 text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition whitespace-nowrap">My API Key</a>
+                <span class="px-4 py-1.5 text-sm bg-zinc-800 text-white rounded-2xl border border-white/10 whitespace-nowrap"><?= trim(__('  Newest')) ?></span>
+                <a href="<?= url('/profile/' . rawurlencode($username)) ?>" target="_blank" class="px-4 py-1.5 text-sm border border-white/10 text-zinc-300 rounded-2xl hover:bg-white/5 transition whitespace-nowrap"><?= __('Profile') ?></a>
+                <a href="<?= url('/my-api') ?>" class="px-4 py-1.5 text-sm border border-emerald-500/30 text-emerald-400 rounded-2xl hover:bg-emerald-900/10 transition whitespace-nowrap"><?= __('My API Key') ?></a>
             </div>
 
             <!-- Prominent Deploy CTA, right-aligned on lg+ -->
-            <a href="<?= url('/upload') ?>" aria-label="Deploy New Agent" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto lg:w-auto">
-                <i class="fas fa-plus" aria-hidden="true"></i> + Deploy New Agent
+            <a href="<?= url('/upload') ?>" aria-label="<?= __('New Soul') ?>" class="px-6 py-2.5 bg-emerald-500 text-zinc-950 rounded-2xl font-bold hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto lg:w-auto">
+                <i class="fas fa-plus" aria-hidden="true"></i> + <?= __('New Soul') ?>
             </a>
         </div>
     </header>
