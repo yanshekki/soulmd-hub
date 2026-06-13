@@ -120,12 +120,12 @@ require_once __DIR__ . '/../private/includes/header.php';
         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5">
             <div class="text-xs text-zinc-400 uppercase tracking-widest mb-1"><?= __('USDT Balance (Platform)') ?></div>
             <div id="usdt-balance" class="text-3xl font-black text-white font-mono">Loading...</div>
-            <div class="text-[10px] text-emerald-400"><?= htmlspecialchars($usdtContract) ?></div>
+            <div class="text-[10px] text-emerald-400 font-mono truncate max-w-[150px]" title="<?= htmlspecialchars($usdtContract) ?>"><?= htmlspecialchars($usdtContract) ?></div>
         </div>
         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5">
             <div class="text-xs text-zinc-400 uppercase tracking-widest mb-1"><?= __('USDC Balance (Platform)') ?></div>
             <div id="usdc-balance" class="text-3xl font-black text-white font-mono">Loading...</div>
-            <div class="text-[10px] text-emerald-400"><?= htmlspecialchars($usdcContract) ?></div>
+            <div class="text-[10px] text-emerald-400 font-mono truncate max-w-[150px]" title="<?= htmlspecialchars($usdcContract) ?>"><?= htmlspecialchars($usdcContract) ?></div>
         </div>
         <div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5">
             <div class="text-xs text-zinc-400 uppercase tracking-widest mb-1"><?= __('Quick Links') ?></div>
@@ -684,9 +684,20 @@ require_once __DIR__ . '/../private/includes/header.php';
             const r = await fetch((window.activeNearRpcUrl || 'https://free.rpc.fastnear.com'), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(balPayload)});
             const j = await r.json();
             const amt = j && j.result && j.result.amount ? j.result.amount : '0';
-            const near = (window.nearApi ? nearApi.utils.format.formatNearAmount(amt) : (parseInt(amt)/1e24).toFixed(4));
+            // Always produce a short, layout-safe number (max 4 decimals) so the stat card never overflows
+            let nearDisplay = '0';
+            try {
+                if (window.nearApi && nearApi.utils && typeof nearApi.utils.format.formatNearAmount === 'function') {
+                    const formatted = nearApi.utils.format.formatNearAmount(amt);
+                    nearDisplay = parseFloat(formatted || '0').toFixed(4);
+                } else {
+                    nearDisplay = (parseFloat(amt) / 1e24).toFixed(4);
+                }
+            } catch (_) {
+                nearDisplay = (parseFloat(amt) / 1e24).toFixed(4);
+            }
             const el = document.getElementById('near-balance');
-            if (el) el.textContent = near + ' Ⓝ';
+            if (el) el.textContent = nearDisplay + ' Ⓝ';
         } catch (e) { const el = document.getElementById('near-balance'); if (el) el.textContent = 'Error'; }
 
         // 2. USDT + USDC balances (via nearView)
