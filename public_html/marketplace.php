@@ -109,10 +109,19 @@ require_once __DIR__ . '/../private/includes/header.php';
         if (!btnTextEl) return;
         try {
             const w = await initNearWallet();
-            if (w && w.isSignedIn()) {
-                const addr = w.getAccountId();
-                btnTextEl.innerText = addr || '<?= addslashes(__('Connect Wallet to Trade')) ?>';
-                if (container) container.classList.add('opacity-80');
+            const addr = w ? w.getAccountId() : null;
+            if (addr) {
+                // Show the current address (prefers DB-bound near_wallet_address if user is web2-logged,
+                // else the live wallet selector account). This way, if user has logged-in near address in DB,
+                // the button shows it instead of always falling back to "Connect NEAR wallet to trade".
+                btnTextEl.innerText = addr;
+                if (container) {
+                    if (w && w.isSignedIn()) {
+                        container.classList.add('opacity-80');
+                    } else {
+                        container.classList.remove('opacity-80');
+                    }
+                }
             } else {
                 btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
                 if (container) container.classList.remove('opacity-80');
