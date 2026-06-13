@@ -68,7 +68,7 @@ impl SoulMDAgentFi {
         let deposit = env::attached_deposit().as_yoctonear();
 
         let required: u128 = 600000000000000000000000; // 0.6 NEAR
-        assert!(deposit >= required, "Error: Minting requires exactly 0.6 NEAR");
+        assert_eq!(deposit, required, "Error: Minting requires exactly 0.6 NEAR");
 
         let key = format!("t:{}", token_id);
         assert!(self.tokens.get(&key).is_none(), "Error: Token ID already exists.");
@@ -131,7 +131,7 @@ impl SoulMDAgentFi {
         let mut token = self.tokens.get(&key).expect("Error: Token not found.");
 
         let sale_price = token.sale_price.expect("Error: Token not listed for sale.");
-        assert!(deposit >= sale_price.0, "Error: Insufficient deposit.");
+        assert_eq!(deposit, sale_price.0, "Error: Must attach exactly the sale price.");
 
         let prev_owner = token.owner_id.clone();
         let creator = token.metadata.creator_id.clone();
@@ -185,7 +185,7 @@ impl SoulMDAgentFi {
         let mut token = self.tokens.get(&key).expect("Error: Token not found.");
 
         let rent_price = token.rent_price.expect("Error: Token not listed for rent.");
-        assert!(deposit >= rent_price.0, "Error: Insufficient deposit for rent.");
+        assert_eq!(deposit, rent_price.0, "Error: Must attach exactly the rent price.");
 
         let platform_fee = rent_price.0 * 10 / 100;
         let owner_share = rent_price.0 - platform_fee;
@@ -202,6 +202,12 @@ impl SoulMDAgentFi {
         for r in to_delete {
             token.renters.remove(&r);
         }
+
+        // DoS protection: hard cap on concurrent renters per token (state bloat)
+        assert!(
+            token.renters.len() <= 50 || token.renters.contains_key(&renter),
+            "Error: Maximum active renters limit (50) reached."
+        );
 
         let mut current_expiry = *token.renters.get(&renter).unwrap_or(&now);
         if current_expiry < now {
