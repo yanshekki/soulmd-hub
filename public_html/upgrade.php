@@ -11,6 +11,12 @@ require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 require_once __DIR__ . '/../private/src/ApiSecurity.php';
 
+// STRICT: All NEAR FT token contract addresses MUST come from config.php only.
+// No hardcoded fallbacks allowed anywhere in the payment flow (per security policy).
+if (!defined('NEAR_USDT_CONTRACT') || !defined('NEAR_USDC_CONTRACT')) {
+    die('FATAL CONFIG ERROR: NEAR_USDT_CONTRACT and NEAR_USDC_CONTRACT must be defined in private/config.php (see config.example.php for values).');
+}
+
 session_start();
 
 // Centralized CSRF token (replaces repeated bin2hex block)
@@ -284,12 +290,12 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 
     // ============================================================
     // On-chain NEAR USDT/USDC payment JS (strict version)
-    // - Uses the wallet infrastructure that is already loaded on this page.
+    // - ALL token contract addresses come exclusively from private/config.php via NEAR_USDT_CONTRACT / NEAR_USDC_CONTRACT.
+    // - No hardcoded addresses allowed in this file (enforced at PHP require time + runtime guard).
     // - After successful ft_transfer_call we call the claim API which does REAL on-chain verification.
-    // - No bypasses. If the credit is not visible on-chain the claim will fail with a clear message.
     // ============================================================
-    const NEAR_USDT_CONTRACT = '<?= defined('NEAR_USDT_CONTRACT') ? NEAR_USDT_CONTRACT : 'usdt.tether-token.near' ?>';
-    const NEAR_USDC_CONTRACT = '<?= defined('NEAR_USDC_CONTRACT') ? NEAR_USDC_CONTRACT : '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1' ?>'; // VERIFY on explorer before real money
+    const NEAR_USDT_CONTRACT = '<?= NEAR_USDT_CONTRACT ?>';
+    const NEAR_USDC_CONTRACT = '<?= NEAR_USDC_CONTRACT ?>';
 
     async function payWithNearFt(tier, token) {
         const status = document.getElementById('near-payment-status');
@@ -313,11 +319,10 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             const displayAmount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT ?>';
             const msg = `upgrade:${tier}`;
 
-            // Defensive guard: never allow ft_transfer_call to be sent to the app contract itself.
-            // This was the cause of "MethodNotFound" failures when the token consts were empty/wrong
-            // (the wallet wrapper would fall back to hub contract for the action receiver).
+            // Runtime guard (defense in depth): if config was set to the wrong value (e.g. accidentally pointed at the app contract),
+            // refuse to construct the transaction. This is the only place in the payment flow that is allowed to decide the target.
             if (!tokenContract || tokenContract === hubContract) {
-                throw new Error('Payment misconfiguration: token contract for ' + token.toUpperCase() + ' resolved to "' + (tokenContract || '') + '". USDT/USDC upgrade is not available right now. Please contact support or use PayPal if shown.');
+                throw new Error('Payment misconfiguration: token contract for ' + token.toUpperCase() + ' resolved to "' + (tokenContract || '') + '". Check NEAR_USDT_CONTRACT / NEAR_USDC_CONTRACT in private/config.php.');
             }
 
             status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending $${displayAmount} worth of ${token.toUpperCase()} via ${tokenContract} (msg: ${msg})...`;
