@@ -530,7 +530,7 @@
 
         // 鎖定按鈕並顯示 Processing UI
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> ' + <?= json_encode(__('Processing...')) ?>;
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
@@ -545,7 +545,7 @@
             });
             
             // 🚨 靜默簽署完成，進入 2秒退避等待，顯示 Syncing UI
-            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing to DB...';
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> ' + <?= json_encode(__('Syncing to DB...')) ?>;
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             // 強制敲擊後端 API 更新 MySQL 價錢庫
@@ -569,7 +569,7 @@
                         matches = (wanted == null) ? (!now || now === "0" || now === null) : (now === wanted);
                     }
                     if (matches) {
-                        btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Syncing...';
+                        btn.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> ' + <?= json_encode(__('Syncing...')) ?>;
                         await new Promise(r => setTimeout(r, 1500));
                         await fetch(`/api/soul/${currentEditId}`);
                         location.reload();

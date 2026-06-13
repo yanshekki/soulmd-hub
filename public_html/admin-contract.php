@@ -234,7 +234,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             if (method.includes('token') || method.includes('set') || method.includes('remove')) {
                 try { await loadToken(); log('State re-loaded from chain after admin call (may have succeeded)'); } catch(_) {}
             }
-            alert("Admin call failed:\n" + err + "\n(State may still be updated — reload or re-load token to check.)");
+            const adminFailMsg = '<?= addslashes(__('Admin call failed')) ?>'.replace('{err}', err);
+            alert(adminFailMsg);
         } finally {
             btns.forEach(b => b.disabled = false);
         }

@@ -90,6 +90,14 @@ return [
         'Invalid price' => 'Invalid numerical price. Must be greater than 0.',
         'Blockchain transaction failed or rejected.' => 'Blockchain transaction failed or was rejected by your wallet provider.',
         'No description provided' => 'No SEO description provided',
+        // Web3 Resilience Recovery Messages (new)
+        'Mint succeeded on-chain! Reloading...' => 'Mint succeeded on-chain! Reloading...',
+        'Hash sync succeeded on-chain!' => 'Hash sync succeeded on-chain!',
+        'Success! Reloading...' => 'Success! Reloading...',
+        'Rented successfully! Reloading...' => 'Rented successfully! Reloading...',
+        'Rented!' => 'Rented!',
+        'Syncing...' => 'Syncing...',
+        'Admin call failed' => 'Admin call failed:\n{err}\n(State may still be updated — reload or re-load token to check.)',
     ],
     
     'zh' => [
@@ -177,5 +185,13 @@ return [
         'Invalid price' => '無效的價格數值，必須大於 0。',
         'Blockchain transaction failed or rejected.' => '區塊鏈交易失敗，或遭到您的錢包供應商拒絕。',
         'No description provided' => '未提供 SEO 簡短描述',
+        // Web3 Resilience Recovery Messages (new)
+        'Mint succeeded on-chain! Reloading...' => '鏈上鑄造成功！正在重新載入...',
+        'Hash sync succeeded on-chain!' => '鏈上雜湊同步成功！',
+        'Success! Reloading...' => '成功！正在重新載入...',
+        'Rented successfully! Reloading...' => '租用成功！正在重新載入...',
+        'Rented!' => '已租用！',
+        'Syncing...' => '同步中...',
+        'Admin call failed' => '管理員呼叫失敗：\n{err}\n（狀態可能已更新 — 請重新載入或重新載入 token 檢查。）',
     ]
 ];

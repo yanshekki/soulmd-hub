@@ -41,6 +41,10 @@ return [
         'Transaction Success' => 'Blockchain transaction successfully submitted!',
         'Swap fail' => 'Transaction Failed: ',
         'Floor Price' => 'Floor Price',
+        // Web3 Resilience Recovery (new)
+        'Success! Reloading...' => 'Success! Reloading...',
+        'Rented successfully! Reloading...' => 'Rented successfully! Reloading...',
+        'Rented!' => 'Rented!',
         'Floor Desc' => 'Backed Value. Burning this NFT guarantees a 0.45 NEAR base refund.',
         'Active Renters' => 'Active Renters',
         'Renter List' => 'Active Decentralized Renters List',
@@ -87,6 +91,10 @@ return [
         'Transaction Success' => '區塊鏈交易已成功提交！',
         'Swap fail' => '交易失敗：',
         'Floor Price' => '鑄造底價',
+        // Web3 Resilience Recovery (new)
+        'Success! Reloading...' => '成功！正在重新載入...',
+        'Rented successfully! Reloading...' => '租用成功！正在重新載入...',
+        'Rented!' => '已租用！',
         'Floor Desc' => '保底價值。銷毀 (Burn) 此 NFT 將保證退還 0.45 NEAR 的基礎價值。',
         'Active Renters' => '活躍承租人',
         'Renter List' => '去中心化活躍承租人列表',

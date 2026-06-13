@@ -50,6 +50,10 @@ return [
         'Rating failed' => 'Rating failed',
         'Operation failed' => 'Operation failed',
         'Login required' => 'Login required',
+        // Web3 Resilience Recovery (new)
+        'Success! Reloading...' => 'Success! Reloading...',
+        'Rented successfully! Reloading...' => 'Rented successfully! Reloading...',
+        'Rented!' => 'Rented!',
         'Forking...' => 'Forking...',
         'Fork failed' => 'Fork failed',
 
@@ -107,6 +111,10 @@ return [
         'Rating failed' => '提交評分失敗',
         'Operation failed' => '操作失敗',
         'Login required' => '請先登入',
+        // Web3 Resilience Recovery (new)
+        'Success! Reloading...' => '成功！正在重新載入...',
+        'Rented successfully! Reloading...' => '租用成功！正在重新載入...',
+        'Rented!' => '已租用！',
         'Forking...' => '正在分叉...',
         'Fork failed' => '分叉失敗',
 

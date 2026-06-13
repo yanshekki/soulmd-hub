@@ -58,6 +58,10 @@ return [
         'Rent success' => 'AI Agent successfully rented for 30 days! You can now interact with it in the Chat Engine.',
         'Transaction Success' => 'Blockchain transaction successfully submitted!',
         'Swap fail' => 'Blockchain Transaction Failed: ',
+        // Web3 Resilience Recovery (new)
+        'Success! Reloading...' => 'Success! Reloading...',
+        'Rented successfully! Reloading...' => 'Rented successfully! Reloading...',
+        'Rented!' => 'Rented!',
         'Rent Warning Desc' => "⚠️ RENTAL WARNING:\nThe original author retains the right to update or modify the model's core instructions at any time. The platform cannot guarantee that the model's performance or behavior will remain permanently unchanged.\n\nDo you wish to proceed and lease this AI model for 30 days?",
         
         // Errors
@@ -120,6 +124,10 @@ return [
         'Rent success' => 'AI 智能體成功租用 30 天！您現在可以在聊天引擎中與它進行互動。',
         'Transaction Success' => '區塊鏈交易已成功提交！',
         'Swap fail' => '區塊鏈交易失敗：',
+        // Web3 Resilience Recovery (new)
+        'Success! Reloading...' => '成功！正在重新載入...',
+        'Rented successfully! Reloading...' => '租用成功！正在重新載入...',
+        'Rented!' => '已租用！',
         'Rent Warning Desc' => "⚠️ 租賃警告：\n原作者保留隨時更新或修改該模型核心指令的權利。平台無法保證模型的效能或行為將永久保持不變。\n\n您是否同意繼續，並租賃此 AI 模型 30 天？",
         
         // Errors

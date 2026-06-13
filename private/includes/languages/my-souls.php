@@ -110,6 +110,14 @@ return [
         'Invalid price' => 'Invalid numerical price. Must be greater than 0.',
         'Blockchain transaction failed or rejected.' => 'Blockchain transaction failed or was rejected by your wallet provider.',
         'Active Renters' => 'Active Leases',
+        // Web3 Resilience Recovery Messages (new for modals)
+        'Mint succeeded on-chain! Reloading...' => 'Mint succeeded on-chain! Reloading...',
+        'Hash sync succeeded on-chain!' => 'Hash sync succeeded on-chain!',
+        'Success! Reloading...' => 'Success! Reloading...',
+        'Rented successfully! Reloading...' => 'Rented successfully! Reloading...',
+        'Rented!' => 'Rented!',
+        'Syncing...' => 'Syncing...',
+        'Admin call failed' => 'Admin call failed:\n{err}\n(State may still be updated — reload or re-load token to check.)',
         'Renter List' => 'Active Decentralized Leases List',
         'Expires At' => 'Lease Expires At',
         'No active renters' => 'No active decentralized leases at the moment.',
@@ -239,5 +247,13 @@ return [
         'Rent Expires At' => '租賃合約到期時間',
         'Enter Chat' => '進入對話引擎',
         'Go to Marketplace' => '前往 AgentFi 市集',
+        // Web3 Resilience Recovery Messages (new for modals)
+        'Mint succeeded on-chain! Reloading...' => '鏈上鑄造成功！正在重新載入...',
+        'Hash sync succeeded on-chain!' => '鏈上雜湊同步成功！',
+        'Success! Reloading...' => '成功！正在重新載入...',
+        'Rented successfully! Reloading...' => '租用成功！正在重新載入...',
+        'Rented!' => '已租用！',
+        'Syncing...' => '同步中...',
+        'Admin call failed' => '管理員呼叫失敗：\n{err}\n（狀態可能已更新 — 請重新載入或重新載入 token 檢查。）',
     ]
 ];
