@@ -164,6 +164,25 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById('wallet-status-container').classList.add('opacity-80');
         }
 
+        // Live subscription to selector store: fixes stale address display when user switches accounts
+        // in their NEAR wallet extension (e.g. after previous login, change active account, the button
+        // previously kept showing old address until manual refresh).
+        if (window.walletSelectorInstance && window.walletSelectorInstance.store && window.walletSelectorInstance.store.observable) {
+            window.walletSelectorInstance.store.observable.subscribe((state) => {
+                const btnTextEl = document.getElementById('wallet-btn-text');
+                const container = document.getElementById('wallet-status-container');
+                if (!btnTextEl) return;
+                const account = (state && state.accounts && state.accounts.length > 0) ? state.accounts[0].accountId : null;
+                if (account) {
+                    btnTextEl.innerText = account;
+                    if (container) container.classList.add('opacity-80');
+                } else {
+                    btnTextEl.innerText = '<?= addslashes(__('Connect Wallet to Trade')) ?>';
+                    if (container) container.classList.remove('opacity-80');
+                }
+            });
+        }
+
         loadMarketplace();
     });
 
