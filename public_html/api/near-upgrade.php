@@ -192,6 +192,14 @@ try {
 
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+
+    // Handle duplicate claim (unique violation on paypal_order_id) gracefully even if the pre-check was raced.
+    $errStr = (string)$e;
+    if (strpos($errStr, 'Duplicate') !== false || strpos($errStr, '1062') !== false || strpos($errStr, 'Integrity constraint violation') !== false) {
+        echo json_encode(['success' => false, 'error' => 'This on-chain upgrade payment has already been claimed.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => __('Entitlement error')], JSON_UNESCAPED_UNICODE);
 }

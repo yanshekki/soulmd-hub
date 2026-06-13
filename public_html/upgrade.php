@@ -180,12 +180,16 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <?= __('Connect the NEAR wallet you already bound for the Marketplace and pay the exact stablecoin amount on-chain. Lower fees, instant. The contract records a credit that we verify on-chain before applying your tier.') ?>
         </p>
 
+        <div class="mb-4 p-3 rounded-xl bg-amber-900/20 border border-amber-500/30 text-amber-300 text-xs">
+            ⚠️ <strong>Important for multiple payments:</strong> The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- VIP on NEAR -->
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
                     <div class="text-emerald-400 text-xs font-bold tracking-widest">STANDARD</div>
-                    <div class="font-bold text-lg">VIP — <?= NEAR_UPGRADE_VIP_USD_AMOUNT ?> USDT or USDC (30 days)</div>
+                    <div class="font-bold text-lg">VIP — $<?= NEAR_UPGRADE_VIP_USD_AMOUNT ?> USDT or USDC (30 days)</div>
                 </div>
                 <div class="flex gap-2 mt-auto">
                     <button onclick="payWithNearFt('vip','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></button>
@@ -197,7 +201,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
                 <div class="mb-3">
                     <div class="text-amber-400 text-xs font-bold tracking-widest">ADVANCED</div>
-                    <div class="font-bold text-lg">PRO — <?= NEAR_UPGRADE_PRO_USD_AMOUNT ?> USDT or USDC (30 days)</div>
+                    <div class="font-bold text-lg">PRO — $<?= NEAR_UPGRADE_PRO_USD_AMOUNT ?> USDT or USDC (30 days)</div>
                 </div>
                 <div class="flex gap-2 mt-auto">
                     <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
@@ -304,23 +308,45 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             }
 
             const tokenContract = (token === 'usdt') ? NEAR_USDT_CONTRACT : NEAR_USDC_CONTRACT;
-            const amount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT * 1000000 ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT * 1000000 ?>'; // from config, 6 decimals
+            const hubContract = '<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>';
+            const amount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT * 1000000 ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT * 1000000 ?>'; // raw on-chain units (6 decimals)
+            const displayAmount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT ?>';
             const msg = `upgrade:${tier}`;
 
-            status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending ${amount} ${token.toUpperCase()} to the contract (msg: ${msg})...`;
+            // Defensive guard: never allow ft_transfer_call to be sent to the app contract itself.
+            // This was the cause of "MethodNotFound" failures when the token consts were empty/wrong
+            // (the wallet wrapper would fall back to hub contract for the action receiver).
+            if (!tokenContract || tokenContract === hubContract) {
+                throw new Error('Payment misconfiguration: token contract for ' + token.toUpperCase() + ' resolved to "' + (tokenContract || '') + '". USDT/USDC upgrade is not available right now. Please contact support or use PayPal if shown.');
+            }
+
+            status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Requesting signature — sending $${displayAmount} worth of ${token.toUpperCase()} via ${tokenContract} (msg: ${msg})...`;
 
             // The existing wrapper supports arbitrary contractId — we use it here to call the TOKEN's ft_transfer_call
             const payResult = await wrapper.account().functionCall({
                 contractId: tokenContract,
                 methodName: 'ft_transfer_call',
                 args: {
-                    receiver_id: '<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>',
+                    receiver_id: hubContract,
                     amount: amount,
                     msg: msg
                 },
                 gas: '300000000000000',
                 attachedDeposit: '1'
             });
+
+            // Some wallet implementations resolve even on on-chain ActionError (e.g. MethodNotFound, insufficient storage, panic in ft_on_transfer).
+            // Inspect common shapes so we fail fast with a clear message instead of proceeding to claim.
+            const outcomeFailed = payResult && (
+                payResult.status?.Failure ||
+                payResult.error ||
+                (payResult.receipts_outcome && Array.isArray(payResult.receipts_outcome) && payResult.receipts_outcome.some(r => r?.outcome?.status?.Failure)) ||
+                (typeof payResult.status === 'object' && 'Failure' in payResult.status)
+            );
+            if (outcomeFailed) {
+                const errMsg = (window.getErrorMessage ? window.getErrorMessage(payResult) : 'On-chain transaction failed (see explorer for details)');
+                throw new Error(errMsg);
+            }
 
             status.className = 'mt-4 p-3 rounded-2xl text-sm font-medium border bg-emerald-900/30 text-emerald-200 border-emerald-500/40';
             status.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Transaction signed on-chain. Verifying credit...';

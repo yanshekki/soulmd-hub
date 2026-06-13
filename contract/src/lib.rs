@@ -383,6 +383,15 @@ impl SoulMDAgentFi {
         }
 
         let ts = env::block_timestamp().to_string();
+
+        // Overwrite behavior note: there is only one active credit slot per (account, tier).
+        // If a previous unclaimed credit existed it is replaced by this fresher ts.
+        // Caller (PHP claim) uses the exact ts + DB unique to ensure one-claim-per-payment.
+        // Paying twice quickly without claiming in between can cause the earlier payment's proof to be lost.
+        if let Some(prev) = Self::load_credit(&sender_id.to_string(), &tier) {
+            env::log_str(&format!("FT credit OVERWRITE for {} tier={} prev_ts={} new_ts={}", sender_id, tier, prev, ts));
+        }
+
         // State write (raw credit).
         Self::save_credit(&sender_id.to_string(), &tier, &ts);
 
@@ -401,6 +410,21 @@ impl SoulMDAgentFi {
         } else {
             "0".to_string()
         }
+    }
+
+    // Admin helpers for upgrade credit testing (called from admin-contract.php).
+    // These make the credit admin UI functional. Only platform_wallet.
+    // Note: these are manual overrides for testing / recovery. Normal flow uses ft_on_transfer.
+    pub fn admin_set_upgrade_credit(&mut self, account_id: AccountId, tier: String, ts: String) {
+        self.assert_platform();
+        Self::save_credit(&account_id.to_string(), &tier, &ts);
+        env::log_str(&format!("ADMIN set upgrade credit for {} tier={} ts={}", account_id, tier, ts));
+    }
+
+    pub fn admin_remove_upgrade_credit(&mut self, account_id: AccountId, tier: String) {
+        self.assert_platform();
+        Self::remove_credit(&account_id.to_string(), &tier);
+        env::log_str(&format!("ADMIN remove upgrade credit for {} tier={}", account_id, tier));
     }
 
     // Practical admin god-mode for soulmd-hub.near (raw storage)

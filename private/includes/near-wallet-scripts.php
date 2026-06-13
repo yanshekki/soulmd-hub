@@ -200,7 +200,22 @@ if (isset($_SESSION['user_id'])) {
                 
                 // 🚀 核心修復 1：單筆交易強制使用雙棲格式
                 account: () => ({
-                    functionCall: async ({ contractId: callContractId, methodName, args, gas, attachedDeposit, walletCallbackUrl }) => {
+                    functionCall: async (callOpts = {}) => {
+                        const callContractId = callOpts.contractId;
+                        const methodName = callOpts.methodName;
+                        const args = callOpts.args;
+                        const gas = callOpts.gas;
+                        const attachedDeposit = callOpts.attachedDeposit;
+                        const walletCallbackUrl = callOpts.walletCallbackUrl;
+
+                        // Guard: if caller explicitly passed contractId (even for FT payments) but it is empty,
+                        // do NOT silently fall back to the default hub contract. This prevents exactly the
+                        // bug where ft_transfer_call gets sent to soulmd-hub.near instead of the token contract.
+                        if (Object.prototype.hasOwnProperty.call(callOpts, 'contractId') &&
+                            (callContractId == null || callContractId === '')) {
+                            throw new Error('NEAR wallet: functionCall received empty contractId. For USDT/USDC upgrade payments this must be the token contract (never the app contract).');
+                        }
+
                         const wallet = await selector.wallet();
                         let mGas = (gas || "30000000000000").toString();
                         let mDep = (attachedDeposit || "0").toString();
@@ -212,8 +227,9 @@ if (isset($_SESSION['user_id'])) {
                             functionCall: { methodName: methodName, args: args || {}, gas: mGas, deposit: mDep }
                         };
 
+                        const receiverId = (callContractId != null && callContractId !== '') ? callContractId : contractId;
                         return wallet.signAndSendTransaction({
-                            receiverId: callContractId || contractId,
+                            receiverId: receiverId,
                             actions: [dualAction],
                             callbackUrl: walletCallbackUrl
                         });
