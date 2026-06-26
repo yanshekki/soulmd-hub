@@ -41,18 +41,35 @@ function makeSlug($str) {
     return rawurlencode(trim(preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\|]+/', '-', $str), '-'));
 }
 
+/**
+ * Safely extract a string value from input array.
+ * Prevents TypeError when client sends array/object for string fields.
+ * Returns default for non-scalar values. Trims by default (except for large content fields).
+ */
+function getStringInput(array $input, string $key, string $default = '', bool $doTrim = true): string {
+    if (!isset($input[$key])) {
+        return $default;
+    }
+    $val = $input[$key];
+    if (is_array($val) || is_object($val)) {
+        return $default;
+    }
+    $str = (string)$val;
+    return $doTrim ? trim($str) : $str;
+}
+
 if ($method === 'GET') {
     $page = max(1, (int)($_GET['page'] ?? 1));
     $limit = min((int)($_GET['limit'] ?? 12), 100); 
     $offset = ($page - 1) * $limit;
     
-    $q = trim($_GET['q'] ?? '');
-    $role = $_GET['role'] ?? '';
-    $fileType = $_GET['file_type'] ?? '';
-    $sort = $_GET['sort'] ?? 'newest';
-    $userIdFilter = $_GET['user_id'] ?? '';
-    $scope = $_GET['scope'] ?? 'public'; 
-    $isNftFilter = $_GET['is_nft'] ?? 'all'; 
+    $q            = getStringInput($_GET, 'q');
+    $role         = getStringInput($_GET, 'role');
+    $fileType     = getStringInput($_GET, 'file_type');
+    $sort         = getStringInput($_GET, 'sort', 'newest');
+    $userIdFilter = getStringInput($_GET, 'user_id');
+    $scope        = getStringInput($_GET, 'scope', 'public'); 
+    $isNftFilter  = getStringInput($_GET, 'is_nft', 'all'); 
 
     $whereSql = " WHERE 1=1";
     $binds = [];
@@ -159,13 +176,17 @@ if ($method === 'GET') {
 
     // CSRF / auth already handled centrally at top via ApiSecurity::initialize()
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $title = trim($input['title'] ?? '');
-    $content = $input['content'] ?? '';
-    $description = trim($input['description'] ?? '');
-    $role = $input['role'] ?? '';
-    $domain = trim($input['domain'] ?? '');
-    $compatibility = trim($input['compatibility'] ?? '');
-    $is_minting = !empty($input['is_minting']) ? 1 : 0;
+    if (!is_array($input)) {
+        $input = [];
+    }
+
+    $title       = getStringInput($input, 'title');
+    $content     = getStringInput($input, 'content', '', false); // do not trim large content/markdown/json
+    $description = getStringInput($input, 'description');
+    $role        = getStringInput($input, 'role');
+    $domain      = getStringInput($input, 'domain');
+    $compatibility = getStringInput($input, 'compatibility');
+    $is_minting  = !empty($input['is_minting']) ? 1 : 0;
     
     $walletStmt = $pdo->prepare("SELECT near_wallet_address FROM users WHERE id = ?");
     $walletStmt->execute([$userId]);
