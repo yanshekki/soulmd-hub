@@ -71,6 +71,11 @@ ErrorDocument 404 /404.php
     RewriteRule ^docs/?$ docs.php [L,QSA]
     
     RewriteRule ^api/paypal/?$ api/paypal.php [L,QSA]
+    RewriteRule ^api/market/gigs/?$ api/market-gigs.php [L,QSA]
+    RewriteRule ^api/market/gigs/([0-9]+)/assign/?$ api/market-gig-assign.php?id=$1 [L,QSA]
+    RewriteRule ^api/sync/push/?$ api/sync-push.php [L,QSA]
+    RewriteRule ^api/sync/pull/?$ api/sync-pull.php [L,QSA]
+    RewriteRule ^api/user/soul-balance/?$ api/user-soul-balance.php [L,QSA]
 
     # 乾淨路由
     RewriteCond %{REQUEST_FILENAME} !-f
