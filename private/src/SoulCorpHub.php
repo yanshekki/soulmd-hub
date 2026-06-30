@@ -118,12 +118,122 @@ class SoulCorpHub
             throw new RuntimeException('Assignment already in progress.', 4004);
         }
 
-        $pdo->prepare('UPDATE gigs SET status = "in_qc" WHERE id = ?')->execute([$gigId]);
+        $pdo->prepare('UPDATE gigs SET status = "assigned" WHERE id = ?')->execute([$gigId]);
         $pdo->prepare(
-            'UPDATE gig_assignments SET status = "submitted" WHERE id = ?'
+            'UPDATE gig_assignments SET status = "assigned" WHERE id = ?'
         )->execute([(int)$row['assignment_id']]);
 
-        return ['gig_id' => $gigId, 'status' => 'in_qc'];
+        return ['gig_id' => $gigId, 'status' => 'assigned'];
+    }
+
+    public static function submitGigForQc(PDO $pdo, int $userId, int $gigId, array $input = []): array
+    {
+        self::ensureTables($pdo);
+
+        $stmt = $pdo->prepare(
+            'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
+             FROM gigs g
+             INNER JOIN gig_assignments ga ON ga.gig_id = g.id
+             WHERE g.id = ? AND ga.assignee_user_id = ?
+             ORDER BY ga.id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$gigId, $userId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException('Gig assignment not found.', 404);
+        }
+        if ($row['status'] !== 'assigned') {
+            throw new RuntimeException('Gig must be in progress before QC submission.', 4006);
+        }
+        if (!in_array($row['assignment_status'], ['assigned', 'qc_rejected'], true)) {
+            throw new RuntimeException('Assignment is not ready for QC submission.', 4007);
+        }
+
+        $qcScore = $input['qc_score'] ?? ['overall' => 0.85];
+        if (!is_array($qcScore)) {
+            $qcScore = ['overall' => 0.85];
+        }
+
+        $pdo->prepare('UPDATE gigs SET status = "in_qc" WHERE id = ?')->execute([$gigId]);
+        $pdo->prepare(
+            'UPDATE gig_assignments SET status = "submitted", qc_score = ? WHERE id = ?'
+        )->execute([json_encode($qcScore, JSON_UNESCAPED_UNICODE), (int)$row['assignment_id']]);
+
+        return [
+            'gig_id' => $gigId,
+            'status' => 'in_qc',
+            'qc_score' => $qcScore,
+        ];
+    }
+
+    public static function rejectGigQc(PDO $pdo, int $userId, int $gigId, array $input = []): array
+    {
+        self::ensureTables($pdo);
+
+        $stmt = $pdo->prepare(
+            'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
+             FROM gigs g
+             INNER JOIN gig_assignments ga ON ga.gig_id = g.id
+             WHERE g.id = ? AND ga.assignee_user_id = ?
+             ORDER BY ga.id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$gigId, $userId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException('Gig assignment not found.', 404);
+        }
+        if ($row['status'] !== 'in_qc') {
+            throw new RuntimeException('Gig is not awaiting QC.', 4008);
+        }
+        if ($row['assignment_status'] !== 'submitted') {
+            throw new RuntimeException('Assignment has not been submitted for QC.', 4009);
+        }
+
+        $pdo->prepare('UPDATE gigs SET status = "assigned" WHERE id = ?')->execute([$gigId]);
+        $pdo->prepare(
+            'UPDATE gig_assignments SET status = "qc_rejected" WHERE id = ?'
+        )->execute([(int)$row['assignment_id']]);
+
+        return [
+            'gig_id' => $gigId,
+            'status' => 'assigned',
+            'qc_notes' => trim((string)($input['qc_notes'] ?? 'Revision requested.')),
+        ];
+    }
+
+    public static function disputeGig(PDO $pdo, int $userId, int $gigId, array $input = []): array
+    {
+        self::ensureTables($pdo);
+
+        $stmt = $pdo->prepare(
+            'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
+             FROM gigs g
+             INNER JOIN gig_assignments ga ON ga.gig_id = g.id
+             WHERE g.id = ? AND ga.assignee_user_id = ?
+             ORDER BY ga.id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$gigId, $userId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            throw new RuntimeException('Gig assignment not found.', 404);
+        }
+        if (!in_array($row['status'], ['assigned', 'in_qc'], true)) {
+            throw new RuntimeException('Gig cannot be disputed from current status.', 4010);
+        }
+
+        $pdo->prepare('UPDATE gigs SET status = "disputed" WHERE id = ?')->execute([$gigId]);
+        $pdo->prepare(
+            'UPDATE gig_assignments SET status = "qc_rejected" WHERE id = ?'
+        )->execute([(int)$row['assignment_id']]);
+
+        return [
+            'gig_id' => $gigId,
+            'status' => 'disputed',
+            'qc_notes' => trim((string)($input['qc_notes'] ?? 'Dispute opened.')),
+        ];
     }
 
     public static function completeGig(PDO $pdo, int $userId, int $gigId): array
@@ -143,8 +253,11 @@ class SoulCorpHub
         if (!$row) {
             throw new RuntimeException('Gig assignment not found.', 404);
         }
-        if (!in_array($row['status'], ['assigned', 'in_qc'], true)) {
-            throw new RuntimeException('Gig cannot be completed from current status.', 4005);
+        if ($row['status'] !== 'in_qc') {
+            throw new RuntimeException('Gig must pass QC before payout.', 4005);
+        }
+        if ($row['assignment_status'] !== 'submitted') {
+            throw new RuntimeException('Assignment has not been submitted for QC.', 4011);
         }
 
         $budget = (float)$row['budget_usdt'];
