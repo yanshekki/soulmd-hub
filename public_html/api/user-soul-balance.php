@@ -22,12 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 try {
     $security = ApiSecurity::initialize(true);
-    $tier = SoulCorpHub::getUserTier($security['pdo'], (int)$security['user_id']);
+    $userId = (int)$security['user_id'];
+    $tier = SoulCorpHub::getUserTier($security['pdo'], $userId);
+    $walletStmt = $security['pdo']->prepare('SELECT near_wallet_address FROM users WHERE id = ? LIMIT 1');
+    $walletStmt->execute([$userId]);
+    $walletRow = $walletStmt->fetch();
+
     echo json_encode([
         'success' => true,
         'soul_balance' => (float)($tier['soul_balance'] ?? 0),
         'soul_staked' => (float)($tier['soul_staked'] ?? 0),
         'tier' => $tier['tier'] ?? 'free',
+        'near_wallet_address' => $walletRow['near_wallet_address'] ?? null,
     ]);
 } catch (Throwable $e) {
     http_response_code(500);
