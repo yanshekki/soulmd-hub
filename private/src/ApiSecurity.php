@@ -13,7 +13,11 @@
  * - Removes massive duplication of getAuthUserId + CSRF boilerplate
  */
 
-require_once __DIR__ . '/../../private/config.php';
+$hubConfigPath = __DIR__ . '/../config.php';
+if (!is_file($hubConfigPath)) {
+    $hubConfigPath = __DIR__ . '/../config.example.php';
+}
+require_once $hubConfigPath;
 require_once __DIR__ . '/Database.php';
 
 class ApiSecurity {
@@ -121,6 +125,15 @@ class ApiSecurity {
     }
 
     /**
+     * Constant-time CSRF token comparison for session/browser mutating calls.
+     */
+    public static function csrfTokensMatch(string $serverToken, string $userToken): bool {
+        return $serverToken !== ''
+            && $userToken !== ''
+            && hash_equals($serverToken, $userToken);
+    }
+
+    /**
      * CSRF check (only called for session/browser mutating calls)
      */
     private static function enforceCsrfCheck(): void {
@@ -128,12 +141,12 @@ class ApiSecurity {
 
         $userCsrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
-        if (empty($userCsrfToken) && function_exists('getallheaders')) {
+        if ($userCsrfToken === '' && function_exists('getallheaders')) {
             $headers = getallheaders();
             $userCsrfToken = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
         }
 
-        if (empty($serverCsrfToken) || empty($userCsrfToken) || !hash_equals($serverCsrfToken, $userCsrfToken)) {
+        if (!self::csrfTokensMatch($serverCsrfToken, $userCsrfToken)) {
             http_response_code(403);
             $msg = function_exists('__') ? __('Security validation failed') : 'Security validation failed. Direct access blocked.';
             echo json_encode(['success' => false, 'error' => $msg]);

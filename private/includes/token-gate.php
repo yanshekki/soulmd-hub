@@ -69,14 +69,59 @@ function enforceSoulAccess(PDO $pdo, array &$soul, string $chatUserWallet, array
     }
 
     if ($soul['is_nft'] == 0) {
-        if ($soul['is_public'] == 1 || ($currentUser['id'] !== null && $soul['user_id'] === $currentUser['id'])) {
-            $hasAccess = true;
-        }
-        if (!$hasAccess) {
-            echo json_encode(['success' => true, 'reply' => __("Access Denied Private")], JSON_UNESCAPED_UNICODE); 
+        $currentUserId = $currentUser['id'] !== null ? (int)$currentUser['id'] : null;
+        if (!evaluateNonNftSoulAccess($soul, $currentUserId)) {
+            echo json_encode(['success' => true, 'reply' => __("Access Denied Private")], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
+}
+
+/**
+ * Pure access decision for non-NFT souls (public or owner).
+ * NFT paths are handled separately inside enforceSoulAccess.
+ */
+function evaluateNonNftSoulAccess(array $soul, ?int $currentUserId): bool
+{
+    if ((int)($soul['is_nft'] ?? 0) !== 0) {
+        return true;
+    }
+    if ((int)($soul['is_public'] ?? 0) === 1) {
+        return true;
+    }
+    if ($currentUserId !== null && (int)($soul['user_id'] ?? 0) === $currentUserId) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Compare on-chain metadata hash with the DB soul payload.
+ */
+function nftContentHashMatches(array $soul, array $tokenInfo): bool
+{
+    if (empty($soul['nft_salt'])) {
+        return false;
+    }
+    $currentDbHash = 'sha256:' . hash('sha256', ($soul['content'] ?? '') . $soul['nft_salt']);
+    return isset($tokenInfo['metadata']['extra'])
+        && $tokenInfo['metadata']['extra'] === $currentDbHash;
+}
+
+/**
+ * Decide whether a wallet has on-chain access to an NFT soul payload.
+ */
+function evaluateNftWalletAccess(array $tokenInfo, string $wallet): bool
+{
+    $chainOwner = $tokenInfo['owner_id'] ?? '';
+    if ($chainOwner === $wallet) {
+        return true;
+    }
+    if (!isset($tokenInfo['renters'][$wallet])) {
+        return false;
+    }
+    $expiryNano = (int)$tokenInfo['renters'][$wallet];
+    return $expiryNano > time() * 1000000000;
 }
 
 /**
