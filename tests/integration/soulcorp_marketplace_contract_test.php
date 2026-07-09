@@ -17,10 +17,15 @@ $requiredApis = [
     'public_html/api/market-gig-assign.php',
     'public_html/api/market-gig-start.php',
     'public_html/api/market-gig-submit-qc.php',
+    'public_html/api/market-gig-reject-qc.php',
+    'public_html/api/market-gig-dispute.php',
     'public_html/api/market-gig-complete.php',
+    'public_html/api/market-gig-cancel.php',
     'public_html/api/sync-pull.php',
     'public_html/api/sync-push.php',
     'public_html/api/user-soul-balance.php',
+    'public_html/api/user-stake-soul.php',
+    'public_html/api/near-upgrade.php',
 ];
 
 foreach ($requiredApis as $relativePath) {

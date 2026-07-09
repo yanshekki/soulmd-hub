@@ -54,6 +54,15 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </section>
 
+    <nav aria-label="Marketplace tabs" class="flex flex-wrap gap-3 mb-8">
+        <button type="button" id="tab-souls" onclick="switchMarketplaceTab('souls')" class="px-5 py-2.5 rounded-xl font-bold border border-purple-500/40 bg-purple-600 text-white shadow">
+            <?= __('AgentFi Souls') ?>
+        </button>
+        <button type="button" id="tab-gigs" onclick="switchMarketplaceTab('gigs')" class="px-5 py-2.5 rounded-xl font-bold border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white transition">
+            <?= __('SoulCorp Gigs') ?>
+        </button>
+    </nav>
+
     <div id="market-container" class="min-h-[400px]" aria-live="polite">
         <div class="flex flex-col items-center justify-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mb-4" role="status"></div>
@@ -81,7 +90,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 
 <script>
     let currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
-    const lang_ViewAsset = "<?= addslashes(__('View Asset')) ?>"; 
+    let activeMarketTab = new URLSearchParams(window.location.search).get('tab') || 'souls';
+    const lang_ViewAsset = "<?= addslashes(__('View Asset')) ?>";
+    const lang_GigBudget = "<?= addslashes(__('Gig Budget')) ?>";
+    const lang_GigSkills = "<?= addslashes(__('Required Skills')) ?>";
+    const lang_ExecutiveLounge = "<?= addslashes(__('Executive Lounge')) ?>";
+    const lang_OpenGig = "<?= addslashes(__('Open Gig')) ?>";
+    const lang_NoGigs = "<?= addslashes(__('No gigs')) ?>";
 
     function escapeHTML(str) {
         if (!str) return '';
@@ -218,6 +233,11 @@ require_once __DIR__ . '/../private/includes/header.php';
             });
         }
 
+        if (activeMarketTab === 'gigs') {
+            document.getElementById('tab-souls').className = 'px-5 py-2.5 rounded-xl font-bold border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white transition';
+            document.getElementById('tab-gigs').className = 'px-5 py-2.5 rounded-xl font-bold border border-purple-500/40 bg-purple-600 text-white shadow';
+        }
+
         loadMarketplace();
     });
 
@@ -337,6 +357,73 @@ require_once __DIR__ . '/../private/includes/header.php';
         container.innerHTML = html;
     }
 
+    function switchMarketplaceTab(tab) {
+        activeMarketTab = tab === 'gigs' ? 'gigs' : 'souls';
+        currentPage = 1;
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', activeMarketTab);
+        url.searchParams.delete('page');
+        window.history.replaceState({}, '', url.toString());
+        document.getElementById('tab-souls').className = activeMarketTab === 'souls'
+            ? 'px-5 py-2.5 rounded-xl font-bold border border-purple-500/40 bg-purple-600 text-white shadow'
+            : 'px-5 py-2.5 rounded-xl font-bold border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white transition';
+        document.getElementById('tab-gigs').className = activeMarketTab === 'gigs'
+            ? 'px-5 py-2.5 rounded-xl font-bold border border-purple-500/40 bg-purple-600 text-white shadow'
+            : 'px-5 py-2.5 rounded-xl font-bold border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white transition';
+        loadMarketplace();
+    }
+
+    async function loadGigsMarketplace() {
+        const container = document.getElementById('market-container');
+        const pagination = document.getElementById('pagination-container');
+
+        try {
+            const res = await fetch('/api/market-gigs.php?status=open');
+            const data = await res.json();
+            const gigs = Array.isArray(data.gigs) ? data.gigs : [];
+
+            if (!data.success || gigs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
+                        <i class="fas fa-briefcase text-4xl text-zinc-600 mb-4" aria-hidden="true"></i>
+                        <p class="text-zinc-400 font-medium">${lang_NoGigs}</p>
+                    </div>`;
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+            gigs.forEach((gig) => {
+                const skills = Array.isArray(gig.required_skills) ? gig.required_skills.join(', ') : '';
+                const loungeBadge = gig.executive_lounge
+                    ? `<span class="text-[10px] uppercase tracking-widest font-bold text-amber-300 border border-amber-400/30 bg-amber-500/10 px-2 py-1 rounded-full">${lang_ExecutiveLounge}</span>`
+                    : `<span class="text-[10px] uppercase tracking-widest font-bold text-emerald-300 border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 rounded-full">${lang_OpenGig}</span>`;
+                html += `
+                    <article class="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col gap-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <h3 class="text-xl font-bold text-white leading-tight">${escapeHTML(gig.title || 'Untitled gig')}</h3>
+                            ${loungeBadge}
+                        </div>
+                        <p class="text-sm text-zinc-400 leading-relaxed flex-grow">${escapeHTML(gig.description || '')}</p>
+                        <div class="text-sm text-zinc-300 space-y-1">
+                            <div><span class="text-zinc-500">${lang_GigBudget}:</span> <strong class="text-white">${Number(gig.budget_usdt || 0).toLocaleString()} USDT</strong></div>
+                            <div><span class="text-zinc-500">${lang_GigSkills}:</span> ${escapeHTML(skills || '—')}</div>
+                        </div>
+                        <p class="text-[11px] text-zinc-500">Use SoulCorp Desktop → Marketplace to accept and deliver this gig.</p>
+                    </article>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+            pagination.innerHTML = '';
+        } catch (error) {
+            container.innerHTML = `
+                <div class="text-center py-24 bg-zinc-900/20 border border-white/5 rounded-3xl shadow-inner">
+                    <p class="text-zinc-400 font-medium"><?= addslashes(__('Network Error')) ?></p>
+                </div>`;
+            pagination.innerHTML = '';
+        }
+    }
+
     async function loadMarketplace() {
         const container = document.getElementById('market-container');
         const pagination = document.getElementById('pagination-container');
@@ -347,6 +434,11 @@ require_once __DIR__ . '/../private/includes/header.php';
                 <p class="text-zinc-400 font-medium animate-pulse"><?= addslashes(__('Scanning...')) ?></p>
             </div>`;
         pagination.innerHTML = '';
+
+        if (activeMarketTab === 'gigs') {
+            await loadGigsMarketplace();
+            return;
+        }
 
         try {
             const wrapper = await initNearWallet();

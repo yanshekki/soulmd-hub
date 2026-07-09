@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
 
 loadTranslations('api');
 
@@ -143,6 +144,7 @@ try {
         $newExpiryStr = date('Y-m-d H:i:s', $newExpiry);
         $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?")
             ->execute([$purchasedTier, $newExpiryStr, $userId]);
+        SoulCorpHub::applyAccountTier($pdo, $userId, $purchasedTier, $newExpiryStr);
 
         $pdo->commit();
         echo json_encode(['success' => true, 'message' => __('Transaction COMPLETED'), 'status' => 'COMPLETED', 'new_tier' => $purchasedTier, 'expires_at' => $newExpiryStr], JSON_UNESCAPED_UNICODE);

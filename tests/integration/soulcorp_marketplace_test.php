@@ -106,7 +106,7 @@ $assigned = SoulCorpHub::assignGig($pdo, $workerId, $gigId);
 hub_test_assert_eq('assigned', $assigned['status'], 'gig assigned');
 
 $started = SoulCorpHub::startGig($pdo, $workerId, $gigId);
-hub_test_assert_eq('assigned', $started['status'], 'gig started');
+hub_test_assert_eq('in_progress', $started['status'], 'gig started');
 
 $submitted = SoulCorpHub::submitGigForQc($pdo, $workerId, $gigId, [
     'qc_score' => ['overall' => 0.92],
@@ -117,6 +117,18 @@ $completed = SoulCorpHub::completeGig($pdo, $workerId, $gigId);
 hub_test_assert_eq('completed', $completed['status'], 'gig completed');
 hub_test_assert_true((float)$completed['payout_usdt'] > 0, 'payout recorded');
 hub_test_assert_true((float)$completed['fee_usdt'] > 0, 'platform fee recorded');
+
+hub_test_section('Cancel open gig');
+
+$cancelled = SoulCorpHub::createGig($pdo, $posterId, [
+    'title' => 'Draft brief',
+    'description' => 'Will cancel',
+    'budget_usdt' => 300,
+    'required_skills' => ['copy'],
+]);
+$cancelGigId = (int)$cancelled['gig_id'];
+$cancelResult = SoulCorpHub::cancelGig($pdo, $posterId, $cancelGigId);
+hub_test_assert_eq('cancelled', $cancelResult['status'], 'open gig cancelled');
 
 hub_test_section('Sync pull');
 

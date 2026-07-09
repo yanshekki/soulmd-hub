@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
 
 loadTranslations('api');
 
@@ -202,6 +203,7 @@ try {
     $newExpiryStr = date('Y-m-d H:i:s', $newExpiry);
     $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?")
         ->execute([$tier, $newExpiryStr, $userId]);
+    SoulCorpHub::applyAccountTier($pdo, $userId, $tier, $newExpiryStr);
 
     $amountStr = ($tier === 'vip') ? number_format((float)NEAR_UPGRADE_VIP_USD_AMOUNT, 2) : number_format((float)NEAR_UPGRADE_PRO_USD_AMOUNT, 2);
     $paymentRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . $creditTsStr;

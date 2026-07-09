@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS gigs (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     budget_usdt DECIMAL(18,8) NOT NULL DEFAULT 0,
-    status ENUM('open','assigned','in_qc','completed','disputed','cancelled') DEFAULT 'open',
+    status ENUM('open','assigned','in_progress','in_qc','completed','disputed','cancelled') DEFAULT 'open',
     required_skills JSON,
     deadline DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

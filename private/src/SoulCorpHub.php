@@ -27,6 +27,93 @@ class SoulCorpHub
                 error_log('SoulCorpHub migration warning: ' . $e->getMessage());
             }
         }
+
+        self::ensureSchemaUpgrades($pdo);
+    }
+
+    private static function ensureSchemaUpgrades(PDO $pdo): void
+    {
+        try {
+            $pdo->exec(
+                "ALTER TABLE gigs MODIFY status ENUM('open','assigned','in_progress','in_qc','completed','disputed','cancelled') DEFAULT 'open'"
+            );
+        } catch (PDOException $e) {
+            error_log('SoulCorpHub schema upgrade (gigs.status): ' . $e->getMessage());
+        }
+    }
+
+    /** @return array<string, int> */
+    private static function tierRankMap(): array
+    {
+        return ['free' => 1, 'pro' => 2, 'vip' => 3];
+    }
+
+    private static function tierRank(string $tier): int
+    {
+        return self::tierRankMap()[strtolower($tier)] ?? 1;
+    }
+
+    /**
+     * Mirror account-level premium (users.tier) into marketplace user_tiers.
+     *
+     * @param array<string, mixed> $tierRow
+     * @return array<string, mixed>
+     */
+    private static function mergeAccountTierIntoRow(PDO $pdo, int $userId, array $tierRow): array
+    {
+        $accountStmt = $pdo->prepare('SELECT tier, vip_expires_at FROM users WHERE id = ? LIMIT 1');
+        $accountStmt->execute([$userId]);
+        $account = $accountStmt->fetch();
+        if (!$account) {
+            return $tierRow;
+        }
+
+        $accountTier = strtolower((string)($account['tier'] ?? 'free'));
+        $expiresAt = $account['vip_expires_at'] ?? null;
+        $isActivePremium = $accountTier !== 'free'
+            && $expiresAt
+            && strtotime((string)$expiresAt) > time();
+
+        $marketplaceTier = strtolower((string)($tierRow['tier'] ?? 'free'));
+
+        if ($isActivePremium && self::tierRank($accountTier) >= self::tierRank($marketplaceTier)) {
+            $stmt = $pdo->prepare(
+                'UPDATE user_tiers SET tier = ?, expires_at = ?, updated_at = NOW() WHERE user_id = ?'
+            );
+            $stmt->execute([$accountTier, $expiresAt, $userId]);
+            $tierRow['tier'] = $accountTier;
+            $tierRow['expires_at'] = $expiresAt;
+        }
+
+        return $tierRow;
+    }
+
+    public static function syncAccountTierToUserTiers(PDO $pdo, int $userId): array
+    {
+        self::ensureTables($pdo);
+        $stmt = $pdo->prepare('SELECT tier, soul_staked, soul_balance, expires_at FROM user_tiers WHERE user_id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $tierRow = $stmt->fetch();
+        if (!$tierRow) {
+            $pdo->prepare('INSERT INTO user_tiers (user_id, tier, soul_balance) VALUES (?, "free", 0)')->execute([$userId]);
+            $tierRow = ['tier' => 'free', 'soul_staked' => 0, 'soul_balance' => 0, 'expires_at' => null];
+        }
+
+        return self::mergeAccountTierIntoRow($pdo, $userId, $tierRow);
+    }
+
+    /**
+     * Called after PayPal / NEAR entitlement updates users.tier.
+     */
+    public static function applyAccountTier(PDO $pdo, int $userId, string $tier, ?string $expiresAt): void
+    {
+        self::ensureTables($pdo);
+        self::getUserTier($pdo, $userId);
+
+        $stmt = $pdo->prepare(
+            'UPDATE user_tiers SET tier = ?, expires_at = ?, updated_at = NOW() WHERE user_id = ?'
+        );
+        $stmt->execute([strtolower($tier), $expiresAt, $userId]);
     }
 
     public static function createGig(PDO $pdo, int $userId, array $input): array
@@ -119,19 +206,19 @@ class SoulCorpHub
         if (!$row) {
             throw new RuntimeException('Gig assignment not found.', 404);
         }
-        if ($row['status'] !== 'assigned') {
+        if (!in_array($row['status'], ['assigned', 'in_progress'], true)) {
             throw new RuntimeException('Gig is not ready to start.', 4003);
         }
-        if ($row['assignment_status'] !== 'assigned') {
+        if (!in_array($row['assignment_status'], ['assigned', 'qc_rejected'], true)) {
             throw new RuntimeException('Assignment already in progress.', 4004);
         }
 
-        $pdo->prepare('UPDATE gigs SET status = "assigned" WHERE id = ?')->execute([$gigId]);
+        $pdo->prepare('UPDATE gigs SET status = "in_progress" WHERE id = ?')->execute([$gigId]);
         $pdo->prepare(
             'UPDATE gig_assignments SET status = "assigned" WHERE id = ?'
         )->execute([(int)$row['assignment_id']]);
 
-        return ['gig_id' => $gigId, 'status' => 'assigned'];
+        return ['gig_id' => $gigId, 'status' => 'in_progress'];
     }
 
     public static function submitGigForQc(PDO $pdo, int $userId, int $gigId, array $input = []): array
@@ -151,7 +238,7 @@ class SoulCorpHub
         if (!$row) {
             throw new RuntimeException('Gig assignment not found.', 404);
         }
-        if ($row['status'] !== 'assigned') {
+        if (!in_array($row['status'], ['assigned', 'in_progress'], true)) {
             throw new RuntimeException('Gig must be in progress before QC submission.', 4006);
         }
         if (!in_array($row['assignment_status'], ['assigned', 'qc_rejected'], true)) {
@@ -162,16 +249,25 @@ class SoulCorpHub
         if (!is_array($qcScore)) {
             $qcScore = ['overall' => 0.85];
         }
+        $deliverableUrl = trim((string)($input['deliverable_url'] ?? ''));
 
         $pdo->prepare('UPDATE gigs SET status = "in_qc" WHERE id = ?')->execute([$gigId]);
-        $pdo->prepare(
-            'UPDATE gig_assignments SET status = "submitted", qc_score = ? WHERE id = ?'
-        )->execute([json_encode($qcScore, JSON_UNESCAPED_UNICODE), (int)$row['assignment_id']]);
+        $assignmentStmt = $pdo->prepare(
+            'UPDATE gig_assignments
+             SET status = "submitted", qc_score = ?, deliverable_url = ?
+             WHERE id = ?'
+        );
+        $assignmentStmt->execute([
+            json_encode($qcScore, JSON_UNESCAPED_UNICODE),
+            $deliverableUrl !== '' ? $deliverableUrl : null,
+            (int)$row['assignment_id'],
+        ]);
 
         return [
             'gig_id' => $gigId,
             'status' => 'in_qc',
             'qc_score' => $qcScore,
+            'deliverable_url' => $deliverableUrl !== '' ? $deliverableUrl : null,
         ];
     }
 
@@ -199,14 +295,14 @@ class SoulCorpHub
             throw new RuntimeException('Assignment has not been submitted for QC.', 4009);
         }
 
-        $pdo->prepare('UPDATE gigs SET status = "assigned" WHERE id = ?')->execute([$gigId]);
+        $pdo->prepare('UPDATE gigs SET status = "in_progress" WHERE id = ?')->execute([$gigId]);
         $pdo->prepare(
             'UPDATE gig_assignments SET status = "qc_rejected" WHERE id = ?'
         )->execute([(int)$row['assignment_id']]);
 
         return [
             'gig_id' => $gigId,
-            'status' => 'assigned',
+            'status' => 'in_progress',
             'qc_notes' => trim((string)($input['qc_notes'] ?? 'Revision requested.')),
         ];
     }
@@ -228,7 +324,7 @@ class SoulCorpHub
         if (!$row) {
             throw new RuntimeException('Gig assignment not found.', 404);
         }
-        if (!in_array($row['status'], ['assigned', 'in_qc'], true)) {
+        if (!in_array($row['status'], ['assigned', 'in_progress', 'in_qc'], true)) {
             throw new RuntimeException('Gig cannot be disputed from current status.', 4010);
         }
 
@@ -242,6 +338,28 @@ class SoulCorpHub
             'status' => 'disputed',
             'qc_notes' => trim((string)($input['qc_notes'] ?? 'Dispute opened.')),
         ];
+    }
+
+    public static function cancelGig(PDO $pdo, int $userId, int $gigId): array
+    {
+        self::ensureTables($pdo);
+
+        $stmt = $pdo->prepare('SELECT id, poster_user_id, status FROM gigs WHERE id = ? LIMIT 1');
+        $stmt->execute([$gigId]);
+        $gig = $stmt->fetch();
+        if (!$gig) {
+            throw new RuntimeException('Gig not found.', 404);
+        }
+        if ((int)$gig['poster_user_id'] !== $userId) {
+            throw new RuntimeException('Only the gig poster can cancel this listing.', 4012);
+        }
+        if ($gig['status'] !== 'open') {
+            throw new RuntimeException('Only open gigs can be cancelled.', 4013);
+        }
+
+        $pdo->prepare('UPDATE gigs SET status = "cancelled" WHERE id = ?')->execute([$gigId]);
+
+        return ['gig_id' => $gigId, 'status' => 'cancelled'];
     }
 
     public static function completeGig(PDO $pdo, int $userId, int $gigId): array
@@ -309,24 +427,60 @@ class SoulCorpHub
 
     public static function getUserTier(PDO $pdo, int $userId): array
     {
-        self::ensureTables($pdo);
-        $stmt = $pdo->prepare('SELECT tier, soul_staked, soul_balance, expires_at FROM user_tiers WHERE user_id = ? LIMIT 1');
-        $stmt->execute([$userId]);
-        $tier = $stmt->fetch();
+        return self::syncAccountTierToUserTiers($pdo, $userId);
+    }
 
-        if (!$tier) {
-            $pdo->prepare('INSERT INTO user_tiers (user_id, tier, soul_balance) VALUES (?, "free", 0)')->execute([$userId]);
-            return ['tier' => 'free', 'soul_staked' => 0, 'soul_balance' => 0, 'expires_at' => null];
+    /**
+     * @param list<array<string, mixed>> $queue
+     * @return array{processed: int, errors: list<string>}
+     */
+    public static function processSyncQueue(PDO $pdo, int $userId, array $queue): array
+    {
+        $processed = 0;
+        $errors = [];
+
+        foreach ($queue as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $type = (string)($item['type'] ?? '');
+            if ($type === '' && isset($item['title'])) {
+                $type = 'gig_create';
+            }
+
+            try {
+                match ($type) {
+                    'gig_create' => self::createGig($pdo, $userId, $item),
+                    'gig_assign' => self::assignGig($pdo, $userId, (int)($item['gig_id'] ?? 0)),
+                    'gig_start' => self::startGig($pdo, $userId, (int)($item['gig_id'] ?? 0)),
+                    'gig_qc_submit' => self::submitGigForQc($pdo, $userId, (int)($item['gig_id'] ?? 0), $item),
+                    'gig_complete' => self::completeGig($pdo, $userId, (int)($item['gig_id'] ?? 0)),
+                    'gig_reject_qc' => self::rejectGigQc($pdo, $userId, (int)($item['gig_id'] ?? 0), $item),
+                    'gig_dispute' => self::disputeGig($pdo, $userId, (int)($item['gig_id'] ?? 0), $item),
+                    default => throw new InvalidArgumentException("Unsupported sync queue item: {$type}"),
+                };
+                $processed++;
+            } catch (Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
         }
 
-        return $tier;
+        return ['processed' => $processed, 'errors' => $errors];
     }
 
     public static function pushSync(PDO $pdo, int $userId, array $payload): array
     {
-        $tier = self::getUserTier($pdo, $userId);
-        if (!in_array($tier['tier'], ['pro', 'vip'], true)) {
-            throw new RuntimeException('Insufficient tier for sync push.', 4001);
+        self::ensureTables($pdo);
+
+        $queue = $payload['queue'] ?? [];
+        if (!is_array($queue)) {
+            $queue = [];
+        }
+
+        $result = ['processed' => 0, 'errors' => []];
+        if ($queue !== []) {
+            $result = self::processSyncQueue($pdo, $userId, $queue);
         }
 
         $stmt = $pdo->prepare(
@@ -334,7 +488,12 @@ class SoulCorpHub
         );
         $stmt->execute([$userId, json_encode($payload, JSON_UNESCAPED_UNICODE)]);
 
-        return ['accepted' => true, 'sync_id' => (int)$pdo->lastInsertId()];
+        return [
+            'accepted' => true,
+            'sync_id' => (int)$pdo->lastInsertId(),
+            'processed' => $result['processed'],
+            'errors' => $result['errors'],
+        ];
     }
 
     public static function pullSync(PDO $pdo, int $userId): array
