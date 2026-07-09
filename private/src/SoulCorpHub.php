@@ -2,6 +2,13 @@
 
 class SoulCorpHub
 {
+    public const EXECUTIVE_LOUNGE_BUDGET_USDT = 5000.0;
+
+    public static function executiveLoungeForBudget(float $budgetUsdt): bool
+    {
+        return $budgetUsdt >= self::EXECUTIVE_LOUNGE_BUDGET_USDT;
+    }
+
     public static function ensureTables(PDO $pdo): void
     {
         $sqlPath = __DIR__ . '/../sql/20260630_soulcorp_marketplace.sql';
@@ -68,6 +75,7 @@ class SoulCorpHub
         return array_map(static function (array $row): array {
             $row['required_skills'] = json_decode($row['required_skills'] ?? '[]', true) ?: [];
             $row['gig_id'] = (int)$row['id'];
+            $row['executive_lounge'] = self::executiveLoungeForBudget((float)($row['budget_usdt'] ?? 0));
             unset($row['id']);
             return $row;
         }, $rows);
