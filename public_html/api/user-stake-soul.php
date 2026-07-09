@@ -45,7 +45,6 @@ try {
         exit;
     }
 
-    SoulCorpHub::ensureTables($pdo);
     $current = SoulCorpHub::getUserTier($pdo, $userId);
     $balance = (float)($current['soul_balance'] ?? 0);
     $currentTier = strtolower((string)($current['tier'] ?? 'free'));

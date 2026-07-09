@@ -9,39 +9,6 @@ class SoulCorpHub
         return $budgetUsdt >= self::EXECUTIVE_LOUNGE_BUDGET_USDT;
     }
 
-    public static function ensureTables(PDO $pdo): void
-    {
-        $sqlPath = __DIR__ . '/../sql/20260630_soulcorp_marketplace.sql';
-        if (!file_exists($sqlPath)) {
-            return;
-        }
-
-        $sql = file_get_contents($sqlPath);
-        foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
-            if ($statement === '' || str_starts_with($statement, '--')) {
-                continue;
-            }
-            try {
-                $pdo->exec($statement);
-            } catch (PDOException $e) {
-                error_log('SoulCorpHub migration warning: ' . $e->getMessage());
-            }
-        }
-
-        self::ensureSchemaUpgrades($pdo);
-    }
-
-    private static function ensureSchemaUpgrades(PDO $pdo): void
-    {
-        try {
-            $pdo->exec(
-                "ALTER TABLE gigs MODIFY status ENUM('open','assigned','in_progress','in_qc','completed','disputed','cancelled') DEFAULT 'open'"
-            );
-        } catch (PDOException $e) {
-            error_log('SoulCorpHub schema upgrade (gigs.status): ' . $e->getMessage());
-        }
-    }
-
     /** @return array<string, int> */
     private static function tierRankMap(): array
     {
@@ -90,7 +57,7 @@ class SoulCorpHub
 
     public static function syncAccountTierToUserTiers(PDO $pdo, int $userId): array
     {
-        self::ensureTables($pdo);
+
         $stmt = $pdo->prepare('SELECT tier, soul_staked, soul_balance, expires_at FROM user_tiers WHERE user_id = ? LIMIT 1');
         $stmt->execute([$userId]);
         $tierRow = $stmt->fetch();
@@ -107,7 +74,7 @@ class SoulCorpHub
      */
     public static function applyAccountTier(PDO $pdo, int $userId, string $tier, ?string $expiresAt): void
     {
-        self::ensureTables($pdo);
+
         self::getUserTier($pdo, $userId);
 
         $stmt = $pdo->prepare(
@@ -118,7 +85,7 @@ class SoulCorpHub
 
     public static function createGig(PDO $pdo, int $userId, array $input): array
     {
-        self::ensureTables($pdo);
+
 
         $title = trim((string)($input['title'] ?? ''));
         if ($title === '') {
@@ -151,7 +118,7 @@ class SoulCorpHub
 
     public static function listGigs(PDO $pdo, string $status = 'open'): array
     {
-        self::ensureTables($pdo);
+
         $stmt = $pdo->prepare(
             'SELECT id, poster_user_id, title, description, budget_usdt, status, required_skills, deadline, created_at
              FROM gigs WHERE status = ? ORDER BY created_at DESC LIMIT 100'
@@ -170,7 +137,7 @@ class SoulCorpHub
 
     public static function assignGig(PDO $pdo, int $userId, int $gigId): array
     {
-        self::ensureTables($pdo);
+
         $stmt = $pdo->prepare('SELECT id, status FROM gigs WHERE id = ? LIMIT 1');
         $stmt->execute([$gigId]);
         $gig = $stmt->fetch();
@@ -191,7 +158,7 @@ class SoulCorpHub
 
     public static function startGig(PDO $pdo, int $userId, int $gigId): array
     {
-        self::ensureTables($pdo);
+
 
         $stmt = $pdo->prepare(
             'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
@@ -223,7 +190,7 @@ class SoulCorpHub
 
     public static function submitGigForQc(PDO $pdo, int $userId, int $gigId, array $input = []): array
     {
-        self::ensureTables($pdo);
+
 
         $stmt = $pdo->prepare(
             'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
@@ -273,7 +240,7 @@ class SoulCorpHub
 
     public static function rejectGigQc(PDO $pdo, int $userId, int $gigId, array $input = []): array
     {
-        self::ensureTables($pdo);
+
 
         $stmt = $pdo->prepare(
             'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
@@ -309,7 +276,7 @@ class SoulCorpHub
 
     public static function disputeGig(PDO $pdo, int $userId, int $gigId, array $input = []): array
     {
-        self::ensureTables($pdo);
+
 
         $stmt = $pdo->prepare(
             'SELECT g.id, g.status, ga.id AS assignment_id, ga.status AS assignment_status
@@ -342,7 +309,7 @@ class SoulCorpHub
 
     public static function cancelGig(PDO $pdo, int $userId, int $gigId): array
     {
-        self::ensureTables($pdo);
+
 
         $stmt = $pdo->prepare('SELECT id, poster_user_id, status FROM gigs WHERE id = ? LIMIT 1');
         $stmt->execute([$gigId]);
@@ -364,7 +331,7 @@ class SoulCorpHub
 
     public static function completeGig(PDO $pdo, int $userId, int $gigId): array
     {
-        self::ensureTables($pdo);
+
 
         $stmt = $pdo->prepare(
             'SELECT g.id, g.status, g.budget_usdt, g.poster_user_id, ga.id AS assignment_id, ga.status AS assignment_status
@@ -471,7 +438,7 @@ class SoulCorpHub
 
     public static function pushSync(PDO $pdo, int $userId, array $payload): array
     {
-        self::ensureTables($pdo);
+
 
         $queue = $payload['queue'] ?? [];
         if (!is_array($queue)) {
