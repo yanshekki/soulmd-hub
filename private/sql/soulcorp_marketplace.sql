@@ -1,4 +1,5 @@
--- SoulCorp marketplace & sync extension (Phase 5)
+-- SoulCorp marketplace & sync schema
+-- Import once via phpMyAdmin or: mysql -u USER -p DB_NAME < private/sql/soulcorp_marketplace.sql
 
 CREATE TABLE IF NOT EXISTS gigs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
