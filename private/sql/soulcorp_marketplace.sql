@@ -1,5 +1,7 @@
--- SoulCorp marketplace & sync schema
--- Import once via phpMyAdmin or: mysql -u USER -p DB_NAME < private/sql/soulcorp_marketplace.sql
+-- SoulCorp marketplace & sync schema (fresh install)
+-- phpMyAdmin: Import this file into your soulmd-hub database.
+-- CLI: mysql -u USER -p DB_NAME < private/sql/soulcorp_marketplace.sql
+-- Existing DB with older gigs table? Also import soulcorp_marketplace_upgrade.sql
 
 CREATE TABLE IF NOT EXISTS gigs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
