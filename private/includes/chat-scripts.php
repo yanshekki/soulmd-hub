@@ -485,6 +485,30 @@
                 // 🚀 將 API 回傳的最終對話內容加入特徵去重 Set，防止稍後同步時被二次渲染
                 window.renderedContents.add('assistant_' + (data.reply || ''));
                 aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
+
+                // max_tokens 打頂時 finish_reason=length：顯示截斷提示，並引導升級
+                if (data.truncated) {
+                    const notice = document.createElement('div');
+                    notice.className = 'mt-3 pt-3 border-t border-amber-500/25 text-amber-300/95 text-xs leading-relaxed not-prose';
+                    const noticeText = document.createElement('div');
+                    noticeText.className = 'flex items-start gap-2';
+                    if (data.needs_upgrade) {
+                        noticeText.innerHTML = '<i class="fas fa-cut mt-0.5 shrink-0 opacity-90" aria-hidden="true"></i><span>' +
+                            <?= json_encode(__('Reply truncated notice'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
+                        const cta = document.createElement('button');
+                        cta.type = 'button';
+                        cta.className = 'mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 font-semibold transition';
+                        cta.innerHTML = '<i class="fas fa-crown" aria-hidden="true"></i> ' + <?= json_encode(__('Reply truncated upgrade CTA'), JSON_UNESCAPED_UNICODE) ?>;
+                        cta.addEventListener('click', () => showPaywall());
+                        notice.appendChild(noticeText);
+                        notice.appendChild(cta);
+                    } else {
+                        noticeText.innerHTML = '<i class="fas fa-cut mt-0.5 shrink-0 opacity-90" aria-hidden="true"></i><span>' +
+                            <?= json_encode(__('Reply truncated byok notice'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
+                        notice.appendChild(noticeText);
+                    }
+                    aiBubble.appendChild(notice);
+                }
             } else {
                 if (data.needs_upgrade) {
                     aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${data.error}</span>`;

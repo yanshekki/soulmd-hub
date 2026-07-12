@@ -341,6 +341,8 @@ if ($httpCode !== 200 || !empty($responseData['error'])) {
 }
 
 $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
+$finishReason = (string)($responseData['choices'][0]['finish_reason'] ?? '');
+$isTruncated = in_array($finishReason, ['length', 'max_tokens'], true);
 
 // 🚀 決定發送者身份 Sender Name
 $senderName = '';
@@ -377,7 +379,15 @@ try {
     
     $freshPdo->commit();
 
-    echo json_encode(['success' => true, 'reply' => $aiReply, 'sender_name' => __('AI Assistant')], JSON_UNESCAPED_UNICODE);
+    // BYOK: still flag truncation so UI can warn; no platform upgrade paywall
+    echo json_encode([
+        'success' => true,
+        'reply' => $aiReply,
+        'sender_name' => __('AI Assistant'),
+        'truncated' => $isTruncated,
+        'needs_upgrade' => false,
+        'finish_reason' => $finishReason,
+    ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
     if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();

@@ -472,6 +472,11 @@ if ($method === 'POST') {
         }
 
         $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
+        // OpenAI-compatible providers signal max_tokens stop via finish_reason=length (some use max_tokens)
+        $finishReason = (string)($responseData['choices'][0]['finish_reason'] ?? '');
+        $isTruncated = in_array($finishReason, ['length', 'max_tokens'], true);
+        // Free/VIP hit tier output caps; PRO already has the highest platform limit
+        $needsUpgradeForTruncation = $isTruncated && strtolower((string)($currentUser['tier'] ?? 'free')) !== 'pro';
 
         // 🚀 判定發送者身份 Sender Name
         $senderName = '';
@@ -511,8 +516,15 @@ if ($method === 'POST') {
 
             $freshPdo->commit();
             
-            // 🚀 回傳埋 sender_name
-            echo json_encode(['success' => true, 'reply' => $aiReply, 'sender_name' => __('AI Assistant')], JSON_UNESCAPED_UNICODE);
+            // 🚀 回傳埋 sender_name；truncated 時前端顯示升級提示
+            echo json_encode([
+                'success' => true,
+                'reply' => $aiReply,
+                'sender_name' => __('AI Assistant'),
+                'truncated' => $isTruncated,
+                'needs_upgrade' => $needsUpgradeForTruncation,
+                'finish_reason' => $finishReason,
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (Throwable $e) {
             if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();

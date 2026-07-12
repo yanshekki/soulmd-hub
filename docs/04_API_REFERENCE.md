@@ -230,12 +230,15 @@ Submits a instruction turn to the central platform gateway. Subject to account l
 {
   "success": true,
   "reply": "Compiling structures evaluated. Zero legacy layout anomalies detected.",
-  "sender_name": "AI Assistant"
+  "sender_name": "AI Assistant",
+  "truncated": false,
+  "needs_upgrade": false,
+  "finish_reason": "stop"
 }
 
 ```
 
-
+When the model stops early because the tier `max_tokens` cap was hit, `finish_reason` is `length` (or `max_tokens`), `truncated` is `true`, and `needs_upgrade` is `true` for Free/VIP so the client can prompt an upgrade. PRO keeps `needs_upgrade: false` (highest platform output cap).
 
 ### 3.3. Post Chat Message (BYOK Proxy Gateway)
 
@@ -249,10 +252,15 @@ Executes inference on user-provided compute matrices. Free of platform turn dedu
 {
   "success": true,
   "reply": "Inference generated utilizing custom BYOK cluster keys.",
-  "sender_name": "AI Assistant"
+  "sender_name": "AI Assistant",
+  "truncated": false,
+  "needs_upgrade": false,
+  "finish_reason": "stop"
 }
 
 ```
+
+BYOK may still set `truncated: true` if the proxy `max_tokens` is reached; `needs_upgrade` stays `false` (custom key, not a platform tier limit).
 
 
 
