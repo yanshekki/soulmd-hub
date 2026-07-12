@@ -1,7 +1,8 @@
 <?php
 /**
- * SoulMD Hub - Curated Mini Apps catalog (form-driven LLM tools).
- * Maps slug → form schema + optional soul_id (MINI_APP_SOUL_MAP) / builtin prompt.
+ * SoulMD Hub - Curated Mini Apps catalog (form-driven tools).
+ * Maps slug → form schema + MINI_APP_SOUL_MAP (int|int[] of public soul ids).
+ * Users pick a soul on /apps then continue in /chat (no in-app LLM run).
  */
 
 class MiniAppsCatalog
@@ -127,12 +128,81 @@ class MiniAppsCatalog
         ];
     }
 
+    /**
+     * Normalize MINI_APP_SOUL_MAP entry: int | int[] → positive unique ids (map order preserved).
+     *
+     * @return list<int>
+     */
+    public static function resolveSoulIds(string $slug): array
+    {
+        if (!defined('MINI_APP_SOUL_MAP') || !is_array(MINI_APP_SOUL_MAP) || !isset(MINI_APP_SOUL_MAP[$slug])) {
+            return [];
+        }
+        $raw = MINI_APP_SOUL_MAP[$slug];
+        if (is_int($raw) || is_string($raw) || is_float($raw)) {
+            $ids = [(int)$raw];
+        } elseif (is_array($raw)) {
+            $ids = array_map('intval', $raw);
+        } else {
+            return [];
+        }
+        $out = [];
+        $seen = [];
+        foreach ($ids as $id) {
+            if ($id > 0 && !isset($seen[$id])) {
+                $seen[$id] = true;
+                $out[] = $id;
+            }
+        }
+        return $out;
+    }
+
+    /** First mapped soul id, or 0 (compat). */
     public static function resolveSoulId(string $slug): int
     {
-        if (defined('MINI_APP_SOUL_MAP') && is_array(MINI_APP_SOUL_MAP) && isset(MINI_APP_SOUL_MAP[$slug])) {
-            return (int)MINI_APP_SOUL_MAP[$slug];
+        $ids = self::resolveSoulIds($slug);
+        return $ids[0] ?? 0;
+    }
+
+    /**
+     * Load public non-NFT soul metadata for mapped ids (no content).
+     *
+     * @param list<int> $ids
+     * @return list<array<string, mixed>>
+     */
+    public static function loadSoulMetas(PDO $pdo, array $ids): array
+    {
+        if ($ids === []) {
+            return [];
         }
-        return 0;
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT s.id, s.title, s.description, s.role, u.username
+                FROM souls s
+                LEFT JOIN users u ON u.id = s.user_id
+                WHERE s.id IN ({$placeholders})
+                  AND s.is_public = 1
+                  AND (s.is_nft = 0 OR s.is_nft IS NULL)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array_values($ids));
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(int)$row['id']] = [
+                'id' => (int)$row['id'],
+                'title' => (string)($row['title'] ?? ''),
+                'description' => (string)($row['description'] ?? ''),
+                'role' => (string)($row['role'] ?? ''),
+                'username' => (string)($row['username'] ?? ''),
+            ];
+        }
+        // Preserve map order
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($byId[$id])) {
+                $ordered[] = $byId[$id];
+            }
+        }
+        return $ordered;
     }
 
     /**
@@ -156,9 +226,9 @@ class MiniAppsCatalog
                     continue;
                 }
             }
-            $soulId = self::resolveSoulId($app['slug']);
-            // Hide apps until MINI_APP_SOUL_MAP has a positive soul_id
-            if ($soulId <= 0) {
+            $soulIds = self::resolveSoulIds($app['slug']);
+            // Hide apps until MINI_APP_SOUL_MAP has at least one positive soul id
+            if ($soulIds === []) {
                 continue;
             }
             $out[] = [
@@ -169,6 +239,7 @@ class MiniAppsCatalog
                 'description' => $desc,
                 'badge' => $app['badge'] ?? null,
                 'field_count' => count($app['fields'] ?? []),
+                'soul_count' => count($soulIds),
                 'soul_configured' => true,
                 'sort_order' => (int)($app['sort_order'] ?? 0),
             ];
@@ -191,20 +262,29 @@ class MiniAppsCatalog
     }
 
     /**
-     * Public detail with localized labels (no soul content / builtin prompt leaked as "soul").
+     * Public detail with localized labels + selectable soul intros (no soul content).
      *
      * @return array<string, mixed>|null
      */
-    public static function getPublicDetail(string $slug): ?array
+    public static function getPublicDetail(string $slug, ?PDO $pdo = null): ?array
     {
         $app = self::getBySlug($slug);
         if (!$app) {
             return null;
         }
-        // Same visibility rule as list: no mapped soul_id → hidden (404)
-        if (self::resolveSoulId($slug) <= 0) {
+        $mappedIds = self::resolveSoulIds($slug);
+        if ($mappedIds === []) {
             return null;
         }
+
+        $souls = [];
+        if ($pdo instanceof PDO) {
+            $souls = self::loadSoulMetas($pdo, $mappedIds);
+            if ($souls === []) {
+                return null; // none of the mapped ids are public/usable
+            }
+        }
+
         $fields = [];
         foreach ($app['fields'] as $f) {
             $field = [
@@ -229,7 +309,7 @@ class MiniAppsCatalog
             }
             $fields[] = $field;
         }
-        $soulId = self::resolveSoulId($slug);
+
         return [
             'slug' => $app['slug'],
             'icon' => $app['icon'],
@@ -238,9 +318,19 @@ class MiniAppsCatalog
             'description' => function_exists('__') ? __($app['desc_key']) : $app['desc_key'],
             'badge' => $app['badge'] ?? null,
             'fields' => $fields,
-            'soul_configured' => $soulId > 0,
-            'has_builtin_prompt' => !empty($app['builtin_prompt']),
+            'souls' => $souls,
+            'soul_count' => count($souls),
+            'soul_configured' => count($souls) > 0,
         ];
+    }
+
+    /** Whether soul_id is allowed for this app slug (map membership only). */
+    public static function isSoulAllowed(string $slug, int $soulId): bool
+    {
+        if ($soulId <= 0) {
+            return false;
+        }
+        return in_array($soulId, self::resolveSoulIds($slug), true);
     }
 
     /**
@@ -341,8 +431,9 @@ class MiniAppsCatalog
             $systemPrompt = (string)$app['builtin_prompt'];
         }
 
-        $maxWords = max(80, floor(($tierConfig['max_tokens'] ?? 500) * 0.75));
-        $systemPrompt .= "\n\n[MINI APP MODE] The user submitted a structured form. Answer comprehensively using the provided fields. Tables are welcome when listing options. Keep total response length practical (target under ~{$maxWords} words unless listing structured options).";
+        // Align length pressure with tier max_tokens (e.g. free 500) — same idea as chat word cap
+        $maxWords = max(40, floor(($tierConfig['max_tokens'] ?? 500) * 0.55));
+        $systemPrompt .= "\n\n[MINI APP MODE] Structured form answer. Be concise and fit within ~{$maxWords} words. Prefer a short table over long prose. Stop cleanly when the answer is complete.";
         return $systemPrompt;
     }
 }

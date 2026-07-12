@@ -179,7 +179,7 @@ define('FREE_MODEL', 'deepseek-v4-flash');
 define('FREE_MAX_TURNS', 10);              
 define('FREE_DAILY_LIMIT', 20);            
 define('FREE_MAX_INPUT_CHARS', 100);       
-define('FREE_MAX_AI_TOKENS', 500);         
+define('FREE_MAX_AI_TOKENS', 2000);         
 define('FREE_MEMORY_THRESHOLD', 10);       
 define('FREE_ALLOW_IMAGE', false);         
 
@@ -187,7 +187,7 @@ define('VIP_MODEL', 'deepseek-v4-flash');
 define('VIP_MAX_TURNS', 999999);           
 define('VIP_DAILY_LIMIT', 150);            
 define('VIP_MAX_INPUT_CHARS', 1000);       
-define('VIP_MAX_AI_TOKENS', 2000);         
+define('VIP_MAX_AI_TOKENS', 5000);         
 define('VIP_MEMORY_THRESHOLD', 20);        
 define('VIP_ALLOW_IMAGE', true);           
 
@@ -195,18 +195,18 @@ define('PRO_MODEL', 'deepseek-v4-pro');
 define('PRO_MAX_TURNS', 999999);           
 define('PRO_DAILY_LIMIT', 300);            
 define('PRO_MAX_INPUT_CHARS', 3000);       
-define('PRO_MAX_AI_TOKENS', 4000);         
+define('PRO_MAX_AI_TOKENS', 10000);         
 define('PRO_MEMORY_THRESHOLD', 30);        
 define('PRO_ALLOW_IMAGE', true);
 
 // ==========================================
-// 🧩 Mini Apps — public soul_id map (slug => souls.id)
-// Only apps with a positive id here are visible on /apps and runnable.
-// Unmapped / 0 / commented entries stay hidden. Use public non-NFT souls.
+// 🧩 Mini Apps — public soul_id map (slug => id | id[])
+// Users pick one mapped soul on /apps, then continue in /chat.
+// Only apps with at least one positive id are visible. Use public non-NFT souls.
 // ==========================================
 define('MINI_APP_SOUL_MAP', [
-    // 'name-advisor' => 12,
-    // 'feng-shui' => 13,
+    // 'name-advisor' => [12, 34, 56],  // multi: user chooses
+    // 'feng-shui' => 13,               // single id still supported
     // 'wedding-date' => 14,
     // 'virtual-companion' => 15,
     // 'daily-fortune' => 16,

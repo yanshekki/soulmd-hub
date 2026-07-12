@@ -35,6 +35,7 @@ return [
         // AI Engine Errors
         'AI Service timeout' => 'AI Service processing timeout.',
         'Engine Error' => 'Engine Error: :error',
+        'Empty AI reply' => 'The model returned no visible answer. Please try again in a moment.',
         'DB Sync Error' => 'DB Sync Error: :error',
         'Fatal Server Exception' => 'Fatal Server Exception: :error',
         
@@ -140,6 +141,8 @@ return [
         'Missing required app field' => 'Missing required field: :field',
         'App field too long' => 'Field ":field" exceeds the maximum of :max characters.',
         'Invalid app field value' => 'One or more form fields contain invalid values.',
+        'Invalid app soul' => 'The selected AI persona is not available for this mini app.',
+        'App empty AI reply' => 'The model returned an empty answer (output limit may have been used up by internal reasoning). Please try again or upgrade for a higher output budget.',
         'Anonymous' => 'Anonymous',
         'AI Assistant' => 'AI Assistant',
     ],
@@ -174,6 +177,7 @@ return [
         // AI Engine Errors
         'AI Service timeout' => 'AI 運算服務處理連線逾時。',
         'Engine Error' => '大模型引擎錯誤：:error',
+        'Empty AI reply' => '模型沒有回傳可見答案。請稍後再試一次。',
         'DB Sync Error' => '資料庫同步錯誤：:error',
         'Fatal Server Exception' => '伺服器嚴重例外錯誤：:error',
         
@@ -269,6 +273,8 @@ return [
         'Missing required app field' => '缺少必填欄位：:field',
         'App field too long' => '欄位「:field」超過上限 :max 個字元。',
         'Invalid app field value' => '表單欄位包含無效值。',
+        'Invalid app soul' => '所選 AI 角色不適用於此小程式。',
+        'App empty AI reply' => '模型回傳了空白答案（輸出額度可能被內部推理佔用）。請重試，或升級方案以取得更高輸出上限。',
         'Anonymous' => '匿名訪客',
         'AI Assistant' => 'AI 智能體',
     ]

@@ -303,6 +303,7 @@ loadTranslations('api-docs');
       "description": "Chinese naming / rename suggestions…",
       "badge": "popular",
       "field_count": 5,
+      "soul_count": 2,
       "soul_configured": true
     }
   ]
@@ -322,6 +323,7 @@ loadTranslations('api-docs');
                 <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Request Body Sample') ?></summary>
                     <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
   "slug": "name-advisor",
+  "soul_id": 7303,
   "fields": {
     "surname": "Chen",
     "gender": "female",
@@ -334,13 +336,10 @@ loadTranslations('api-docs');
                 <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
                     <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
   "success": true,
-  "reply": "Here are three name options…",
-  "sender_name": "AI Assistant",
-  "truncated": false,
-  "needs_upgrade": false,
-  "finish_reason": "stop",
-  "session_token": "app_name-advisor_ab12…",
-  "slug": "name-advisor"
+  "slug": "name-advisor",
+  "soul_id": 7303,
+  "content": "Surname: Chen\nGender style: Feminine\n…",
+  "chat_path": "/chat/7303"
 }</pre>
                 </details>
             </div>

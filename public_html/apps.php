@@ -1,7 +1,7 @@
 <?php
 /**
  * SoulMD Hub - Mini Apps Hub
- * Catalog of form-driven LLM tools (name advisor, feng shui, wedding dates, etc.)
+ * Pick a tool → fill form → choose a mapped soul → open chat with prefilled message.
  */
 
 require_once __DIR__ . '/../private/config.php';
@@ -15,6 +15,7 @@ $csrfToken = ensureCsrfToken();
 
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
+$chatBaseUrl = url('/chat'); // /chat or /zh/chat
 
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
@@ -30,7 +31,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         <p class="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed"><?= htmlspecialchars(__('Apps Subtitle')) ?></p>
     </header>
 
-    <!-- Catalog view -->
     <section id="catalog-view" aria-label="<?= htmlspecialchars(__('Apps Title')) ?>">
         <div class="flex flex-col sm:flex-row gap-3 mb-6">
             <div class="relative flex-1">
@@ -55,7 +55,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </section>
 
-    <!-- Detail / form / result -->
     <section id="detail-view" class="hidden max-w-3xl mx-auto" aria-live="polite">
         <button type="button" id="btn-back" class="mb-6 text-sm text-zinc-400 hover:text-emerald-400 transition inline-flex items-center gap-2">
             <i class="fas fa-arrow-left" aria-hidden="true"></i> <?= htmlspecialchars(__('Back to apps')) ?>
@@ -72,22 +71,24 @@ require_once __DIR__ . '/../private/includes/header.php';
                 </div>
             </div>
 
+            <div class="mb-8">
+                <h3 class="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fas fa-robot text-emerald-400" aria-hidden="true"></i>
+                    <?= htmlspecialchars(__('Choose AI soul')) ?>
+                </h3>
+                <div id="soul-picker" class="space-y-3" role="radiogroup" aria-label="<?= htmlspecialchars(__('Choose AI soul')) ?>"></div>
+                <p id="soul-picker-error" class="hidden mt-2 text-xs text-red-400"></p>
+            </div>
+
             <form id="app-form" class="space-y-5"></form>
+
+            <p id="form-error" class="hidden mt-4 text-sm text-red-400"></p>
 
             <button type="submit" form="app-form" id="run-btn"
                 class="mt-8 w-full py-4 bg-emerald-500 text-zinc-950 text-base font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed">
-                <span id="run-text"><i class="fas fa-bolt mr-1" aria-hidden="true"></i> <?= htmlspecialchars(__('Run app')) ?></span>
+                <span id="run-text"><i class="fas fa-comments mr-1" aria-hidden="true"></i> <?= htmlspecialchars(__('Start chat for AI reply')) ?></span>
                 <span id="run-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full" aria-hidden="true"></span>
             </button>
-
-            <div id="result-panel" class="hidden mt-8 pt-6 border-t border-white/10">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-bold text-white"><?= htmlspecialchars(__('Result')) ?></h3>
-                    <button type="button" id="btn-rerun" class="text-xs text-emerald-400 hover:text-emerald-300 transition"><?= htmlspecialchars(__('Try again')) ?></button>
-                </div>
-                <div id="result-body" class="prose prose-invert prose-sm prose-emerald max-w-none bg-zinc-950/60 border border-white/5 rounded-2xl p-5 text-zinc-200 leading-relaxed"></div>
-                <div id="truncation-notice" class="hidden mt-4"></div>
-            </div>
         </div>
     </section>
 </main>
@@ -95,32 +96,26 @@ require_once __DIR__ . '/../private/includes/header.php';
 <script>
 (function () {
     const csrfToken = <?= json_encode($csrfToken, JSON_UNESCAPED_UNICODE) ?>;
-    const upgradeUrl = <?= json_encode(url('/upgrade'), JSON_UNESCAPED_UNICODE) ?>;
+    const chatBaseUrl = <?= json_encode($chatBaseUrl, JSON_UNESCAPED_UNICODE) ?>;
     const i18n = {
         loading: <?= json_encode(__('Loading apps'), JSON_UNESCAPED_UNICODE) ?>,
         empty: <?= json_encode(__('No apps found'), JSON_UNESCAPED_UNICODE) ?>,
         failList: <?= json_encode(__('Failed to load apps'), JSON_UNESCAPED_UNICODE) ?>,
         failApp: <?= json_encode(__('Failed to load app'), JSON_UNESCAPED_UNICODE) ?>,
         network: <?= json_encode(__('Network error'), JSON_UNESCAPED_UNICODE) ?>,
-        emptyReply: <?= json_encode(__('Empty result'), JSON_UNESCAPED_UNICODE) ?>,
-        running: <?= json_encode(__('Running…'), JSON_UNESCAPED_UNICODE) ?>,
-        run: <?= json_encode(__('Run app'), JSON_UNESCAPED_UNICODE) ?>,
         hot: <?= json_encode(__('Hot'), JSON_UNESCAPED_UNICODE) ?>,
         popular: <?= json_encode(__('Popular'), JSON_UNESCAPED_UNICODE) ?>,
-        vipHint: <?= json_encode(__('Suggested VIP'), JSON_UNESCAPED_UNICODE) ?>,
-        truncNotice: <?= json_encode(__('Reply truncated notice'), JSON_UNESCAPED_UNICODE) ?>,
-        truncCta: <?= json_encode(__('Reply truncated upgrade CTA'), JSON_UNESCAPED_UNICODE) ?>,
-        truncPlain: <?= json_encode(__('Reply truncated plain'), JSON_UNESCAPED_UNICODE) ?>,
+        pickSoul: <?= json_encode(__('Please select an AI soul'), JSON_UNESCAPED_UNICODE) ?>,
+        byAuthor: <?= json_encode(__('By :name'), JSON_UNESCAPED_UNICODE) ?>,
+        roleLabel: <?= json_encode(__('Role'), JSON_UNESCAPED_UNICODE) ?>,
+        noDesc: <?= json_encode(__('No description provided.'), JSON_UNESCAPED_UNICODE) ?>,
+        soulsCount: <?= json_encode(__(':n AI options'), JSON_UNESCAPED_UNICODE) ?>,
     };
 
     let activeCategory = '';
     let searchTimer = null;
     let currentSlug = null;
-
-    if (typeof marked !== 'undefined') {
-        if (typeof marked.use === 'function') marked.use({ breaks: true, gfm: true });
-        else if (typeof marked.setOptions === 'function') { try { marked.setOptions({ breaks: true, gfm: true }); } catch (e) {} }
-    }
+    let selectedSoulId = null;
 
     function escapeHTML(str) {
         return String(str ?? '')
@@ -128,16 +123,10 @@ require_once __DIR__ . '/../private/includes/header.php';
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    function parseMarkdown(text) {
-        try {
-            if (typeof marked !== 'undefined' && marked.parse) return marked.parse(text || '');
-        } catch (e) {}
-        return escapeHTML(text || '').replace(/\n/g, '<br>');
-    }
-
-    function sanitizeHtml(html) {
-        if (typeof DOMPurify !== 'undefined') return DOMPurify.sanitize(html);
-        return html;
+    function randomSessionToken() {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
     }
 
     async function loadApps() {
@@ -170,6 +159,8 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
         grid.innerHTML = apps.map(app => {
             const icon = (app.icon || 'fa-puzzle-piece').replace(/[^a-z0-9-]/gi, '');
+            const n = app.soul_count || 1;
+            const countLabel = i18n.soulsCount.replace(':n', String(n));
             return `
             <button type="button" data-slug="${escapeHTML(app.slug)}"
                 class="app-card text-left group bg-zinc-900/60 border border-white/10 hover:border-emerald-400/40 rounded-3xl p-5 transition shadow-lg hover:-translate-y-0.5 duration-200">
@@ -179,6 +170,7 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                     <div class="flex flex-col items-end gap-1">
                         ${badgeHtml(app.badge)}
+                        <span class="text-[10px] text-zinc-500">${escapeHTML(countLabel)}</span>
                     </div>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-1.5 group-hover:text-emerald-300 transition">${escapeHTML(app.title)}</h3>
@@ -191,17 +183,62 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
+    function renderSoulPicker(souls) {
+        const box = document.getElementById('soul-picker');
+        const err = document.getElementById('soul-picker-error');
+        err.classList.add('hidden');
+        selectedSoulId = null;
+
+        if (!souls || !souls.length) {
+            box.innerHTML = `<p class="text-sm text-zinc-500">${escapeHTML(i18n.failApp)}</p>`;
+            return;
+        }
+
+        if (souls.length === 1) {
+            selectedSoulId = souls[0].id;
+        }
+
+        box.innerHTML = souls.map((s, idx) => {
+            const checked = (souls.length === 1 || idx === 0) ? 'checked' : '';
+            if (checked) selectedSoulId = s.id;
+            const desc = (s.description && s.description.trim()) ? s.description : i18n.noDesc;
+            const author = s.username
+                ? i18n.byAuthor.replace(':name', s.username)
+                : '';
+            return `
+            <label class="soul-option block cursor-pointer rounded-2xl border border-white/10 bg-zinc-950/50 p-4 hover:border-emerald-400/40 transition has-[:checked]:border-emerald-400/60 has-[:checked]:bg-emerald-500/5">
+                <div class="flex items-start gap-3">
+                    <input type="radio" name="soul_id" value="${s.id}" class="mt-1 accent-emerald-500" ${checked}>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span class="font-bold text-white text-sm">${escapeHTML(s.title || ('#' + s.id))}</span>
+                            ${s.role ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">${escapeHTML(i18n.roleLabel)}: ${escapeHTML(s.role)}</span>` : ''}
+                        </div>
+                        ${author ? `<div class="text-[11px] text-zinc-500 mb-1.5">${escapeHTML(author)}</div>` : ''}
+                        <p class="text-xs text-zinc-400 leading-relaxed line-clamp-4">${escapeHTML(desc)}</p>
+                    </div>
+                </div>
+            </label>`;
+        }).join('');
+
+        box.querySelectorAll('input[name="soul_id"]').forEach(inp => {
+            inp.addEventListener('change', () => {
+                selectedSoulId = parseInt(inp.value, 10) || null;
+                err.classList.add('hidden');
+            });
+        });
+    }
+
     async function openApp(slug) {
         currentSlug = slug;
+        selectedSoulId = null;
         document.getElementById('catalog-view').classList.add('hidden');
         document.getElementById('detail-view').classList.remove('hidden');
-        document.getElementById('result-panel').classList.add('hidden');
-        document.getElementById('result-body').innerHTML = '';
-        document.getElementById('truncation-notice').classList.add('hidden');
-        document.getElementById('truncation-notice').innerHTML = '';
+        document.getElementById('form-error').classList.add('hidden');
 
         const form = document.getElementById('app-form');
         form.innerHTML = `<div class="text-zinc-500 text-sm py-4">${escapeHTML(i18n.loading)}</div>`;
+        document.getElementById('soul-picker').innerHTML = `<div class="text-zinc-500 text-sm">${escapeHTML(i18n.loading)}</div>`;
 
         try {
             const res = await fetch('/api/apps?slug=' + encodeURIComponent(slug));
@@ -212,6 +249,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById('detail-desc').textContent = app.description;
             const icon = (app.icon || 'fa-puzzle-piece').replace(/[^a-z0-9-]/gi, '');
             document.getElementById('detail-icon').innerHTML = `<i class="fas ${escapeHTML(icon)}" aria-hidden="true"></i>`;
+            renderSoulPicker(app.souls || []);
             form.innerHTML = (app.fields || []).map(renderField).join('');
             history.replaceState(null, '', '#/' + encodeURIComponent(slug));
         } catch (e) {
@@ -247,16 +285,13 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     function showCatalog() {
         currentSlug = null;
+        selectedSoulId = null;
         document.getElementById('detail-view').classList.add('hidden');
         document.getElementById('catalog-view').classList.remove('hidden');
         history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 
     document.getElementById('btn-back').addEventListener('click', showCatalog);
-    document.getElementById('btn-rerun').addEventListener('click', () => {
-        document.getElementById('result-panel').classList.add('hidden');
-        window.scrollTo({ top: document.getElementById('app-form').offsetTop - 80, behavior: 'smooth' });
-    });
 
     document.querySelectorAll('.cat-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -280,9 +315,21 @@ require_once __DIR__ . '/../private/includes/header.php';
         e.preventDefault();
         if (!currentSlug) return;
 
-        const form = e.target;
+        const formErr = document.getElementById('form-error');
+        const soulErr = document.getElementById('soul-picker-error');
+        formErr.classList.add('hidden');
+        soulErr.classList.add('hidden');
+
+        const checked = document.querySelector('input[name="soul_id"]:checked');
+        selectedSoulId = checked ? (parseInt(checked.value, 10) || null) : selectedSoulId;
+        if (!selectedSoulId) {
+            soulErr.textContent = i18n.pickSoul;
+            soulErr.classList.remove('hidden');
+            return;
+        }
+
         const fields = {};
-        new FormData(form).forEach((v, k) => { fields[k] = String(v).trim(); });
+        new FormData(e.target).forEach((v, k) => { fields[k] = String(v).trim(); });
 
         const runBtn = document.getElementById('run-btn');
         const runText = document.getElementById('run-text');
@@ -291,13 +338,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         runText.classList.add('hidden');
         runLoading.classList.remove('hidden');
 
-        const resultPanel = document.getElementById('result-panel');
-        const resultBody = document.getElementById('result-body');
-        const truncBox = document.getElementById('truncation-notice');
-        resultPanel.classList.add('hidden');
-        truncBox.classList.add('hidden');
-        truncBox.innerHTML = '';
-
         try {
             const res = await fetch('/api/apps', {
                 method: 'POST',
@@ -305,42 +345,34 @@ require_once __DIR__ . '/../private/includes/header.php';
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': csrfToken,
                 },
-                body: JSON.stringify({ slug: currentSlug, fields }),
+                body: JSON.stringify({
+                    slug: currentSlug,
+                    soul_id: selectedSoulId,
+                    fields,
+                }),
             });
-            const raw = await res.text();
-            let data;
-            try { data = JSON.parse(raw); } catch (err) {
-                throw new Error(i18n.network);
+            const data = await res.json();
+            if (!data.success) {
+                formErr.textContent = data.error || i18n.failApp;
+                formErr.classList.remove('hidden');
+                return;
             }
 
-            if (!data.success) {
-                resultBody.innerHTML = `<span class="text-amber-400"><i class="fas fa-exclamation-circle"></i> ${escapeHTML(data.error || i18n.failApp)}</span>`;
-                resultPanel.classList.remove('hidden');
-                if (data.needs_upgrade) {
-                    truncBox.innerHTML = `<a href="${upgradeUrl}" class="inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-200 text-sm font-semibold hover:bg-amber-500/25 transition"><i class="fas fa-crown"></i> ${escapeHTML(i18n.truncCta)}</a>`;
-                    truncBox.classList.remove('hidden');
-                }
-            } else {
-                const reply = data.reply || i18n.emptyReply;
-                resultBody.innerHTML = sanitizeHtml(parseMarkdown(reply));
-                if (data.truncated) {
-                    if (data.needs_upgrade) {
-                        truncBox.innerHTML = `
-                            <div class="pt-3 border-t border-amber-500/25 text-amber-300/95 text-xs leading-relaxed">
-                                <div class="flex items-start gap-2"><i class="fas fa-cut mt-0.5"></i><span>${escapeHTML(i18n.truncNotice)}</span></div>
-                                <a href="${upgradeUrl}" class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 font-semibold transition"><i class="fas fa-crown"></i> ${escapeHTML(i18n.truncCta)}</a>
-                            </div>`;
-                    } else {
-                        truncBox.innerHTML = `<div class="pt-3 border-t border-amber-500/25 text-amber-300/95 text-xs flex items-start gap-2"><i class="fas fa-cut mt-0.5"></i><span>${escapeHTML(i18n.truncPlain)}</span></div>`;
-                    }
-                    truncBox.classList.remove('hidden');
-                }
-                resultPanel.classList.remove('hidden');
-                setTimeout(() => resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
-            }
+            const sessionToken = randomSessionToken();
+            try {
+                sessionStorage.setItem('soulmd_app_prefill', JSON.stringify({
+                    soulId: data.soul_id,
+                    content: data.content,
+                    slug: data.slug,
+                    ts: Date.now(),
+                }));
+            } catch (err) { /* private mode */ }
+
+            // chatBaseUrl is already lang-aware (/chat or /zh/chat)
+            window.location.href = chatBaseUrl.replace(/\/$/, '') + '/' + data.soul_id + '/' + sessionToken;
         } catch (err) {
-            resultBody.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> ${escapeHTML(err.message || i18n.network)}</span>`;
-            resultPanel.classList.remove('hidden');
+            formErr.textContent = err.message || i18n.network;
+            formErr.classList.remove('hidden');
         } finally {
             runBtn.disabled = false;
             runText.classList.remove('hidden');
@@ -348,7 +380,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    // Deep link #/slug
     const hash = (location.hash || '').replace(/^#\/?/, '');
     loadApps().then(() => {
         if (hash) openApp(decodeURIComponent(hash));

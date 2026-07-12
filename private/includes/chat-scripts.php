@@ -383,8 +383,12 @@
                     if (!isByokMode && userMessageCount >= MAX_TURNS) {
                         showPaywall();
                     }
+                    // Drop stale mini-app prefill if this session already has history
+                    try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (e) {}
                 } else {
                     appendMessage('assistant', <?= json_encode(__('Init message'), JSON_UNESCAPED_UNICODE) ?>, '<?= addslashes(__('AI Assistant')) ?>');
+                    // Mini Apps: auto-send form payload into this new chat session once
+                    setTimeout(tryMiniAppPrefillSend, 80);
                 }
             } else {
                 const errMsg = data.error || 'Access Denied';
@@ -401,6 +405,53 @@
             } else {
                 appendMessage('assistant', "⚠️ " + <?= json_encode(__('Browser core exception while compiling logs frame.'), JSON_UNESCAPED_UNICODE) ?>, '<?= addslashes(__('AI Assistant')) ?>');
             }
+        }
+    }
+
+    /**
+     * Mini Apps hub: after redirect to /chat/{soul}/{session}, send the form text once.
+     * Prefill stored in sessionStorage by /apps (key soulmd_app_prefill).
+     */
+    function tryMiniAppPrefillSend() {
+        let raw = null;
+        try { raw = sessionStorage.getItem('soulmd_app_prefill'); } catch (e) { return; }
+        if (!raw) return;
+
+        let payload = null;
+        try { payload = JSON.parse(raw); } catch (e) {
+            try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (err) {}
+            return;
+        }
+
+        const prefillSoul = parseInt(payload.soulId, 10) || 0;
+        const content = (payload.content && String(payload.content).trim()) || '';
+        const age = Date.now() - (parseInt(payload.ts, 10) || 0);
+        // Must match current soul; expire after 5 minutes
+        if (!content || prefillSoul !== soulId || age > 5 * 60 * 1000) {
+            try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (e) {}
+            return;
+        }
+
+        try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (e) {}
+
+        if (!isByokMode && userMessageCount >= MAX_TURNS) {
+            showPaywall();
+            return;
+        }
+        if (content.length > MAX_INPUT_CHARS) {
+            alert(<?= json_encode(__('Message exceeds chars limit.'), JSON_UNESCAPED_UNICODE) ?>.replace(':chars', MAX_INPUT_CHARS));
+            chatInput.value = content.slice(0, MAX_INPUT_CHARS);
+            updateCharCount(chatInput);
+            return;
+        }
+
+        chatInput.value = content;
+        updateCharCount(chatInput);
+        // Trigger the normal submit pipeline (tier limits, truncation upgrade, etc.)
+        if (typeof chatForm.requestSubmit === 'function') {
+            chatForm.requestSubmit();
+        } else {
+            sendBtn.click();
         }
     }
 
@@ -482,12 +533,15 @@
             }
 
             if (data.success) {
+                const replyText = (data.reply && String(data.reply).trim()) ? String(data.reply) : '';
                 // 🚀 將 API 回傳的最終對話內容加入特徵去重 Set，防止稍後同步時被二次渲染
-                window.renderedContents.add('assistant_' + (data.reply || ''));
-                aiBubble.innerHTML = DOMPurify.sanitize(parseMarkdown(data.reply || ''));
+                window.renderedContents.add('assistant_' + replyText);
+                aiBubble.innerHTML = replyText
+                    ? DOMPurify.sanitize(parseMarkdown(replyText))
+                    : `<span class="text-zinc-400 text-sm">${<?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>}</span>`;
 
-                // max_tokens 打頂時 finish_reason=length：顯示截斷提示，並引導升級
-                if (data.truncated) {
+                // 只有「有正文 + 真係被 max_tokens cut」先顯示截斷／升級提示（空 reply 唔當截斷）
+                if (replyText && data.truncated) {
                     const notice = document.createElement('div');
                     notice.className = 'mt-3 pt-3 border-t border-amber-500/25 text-amber-300/95 text-xs leading-relaxed not-prose';
                     const noticeText = document.createElement('div');

@@ -287,7 +287,7 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"slug": "name-advisor", "icon": "fa-signature", "category": "destiny", "title": "Name Advisor", "description": "Chinese naming…", "badge": "popular", "field_count": 5, "soul_configured": true}]}, null, 2)
+                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"slug": "name-advisor", "icon": "fa-signature", "category": "destiny", "title": "Name Advisor", "description": "Chinese naming…", "badge": "popular", "field_count": 5, "soul_count": 2, "soul_configured": true}]}, null, 2)
                             }]
                         },
                         {
@@ -308,11 +308,11 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "data": {"slug": "name-advisor", "title": "Name Advisor", "fields": [{"name": "surname", "type": "text", "label": "Surname", "required": true}]}}, null, 2)
+                                "body": JSON.stringify({"success": true, "data": {"slug": "name-advisor", "title": "Name Advisor", "fields": [{"name": "surname", "type": "text", "label": "Surname", "required": true}], "souls": [{"id": 7303, "title": "Naming Master", "description": "…", "role": "Advisor", "username": "creator"}]}}, null, 2)
                             }]
                         },
                         {
-                            "name": "Run Mini App",
+                            "name": "Validate Mini App (prefill for chat)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -323,6 +323,7 @@
                                     "mode": "raw",
                                     "raw": JSON.stringify({
                                         "slug": "name-advisor",
+                                        "soul_id": 7303,
                                         "fields": {
                                             "surname": "Chen",
                                             "gender": "female",
@@ -335,12 +336,12 @@
                                 "url": { "raw": "{{baseUrl}}/api/apps", "host": ["{{baseUrl}}"], "path": ["api", "apps"] }
                             },
                             "response": [{
-                                "name": "Run Success",
+                                "name": "Validated",
                                 "status": "OK",
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "reply": "Here are three name options…", "sender_name": "AI Assistant", "truncated": false, "needs_upgrade": false, "finish_reason": "stop", "slug": "name-advisor"}, null, 2)
+                                "body": JSON.stringify({"success": true, "slug": "name-advisor", "soul_id": 7303, "content": "Surname: Chen\n…", "chat_path": "/chat/7303"}, null, 2)
                             }]
                         }
                     ]

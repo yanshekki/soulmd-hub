@@ -353,7 +353,7 @@ Modifies an existing prompt archetype. Automatically clones a backup timeline re
 
 ## 5. Mini Apps
 
-Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares the same platform tier quotas as chat (`daily_limit`, `max_input`, `max_tokens`). Does **not** return soul source content.
+Form-driven tools backed by one or more public SOUL personas. Users pick a soul on `/apps`, then continue in **`/chat`** (tier limits / truncation upgrade apply there). Apps API does **not** call the LLM and never returns soul prompt content.
 
 ### 5.1. List / Describe Mini Apps
 
@@ -362,7 +362,7 @@ Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares t
 * **Query params:**
   * `category` (optional): `destiny` | `life` | `emotion`
   * `q` (optional): free-text search over title/description/slug
-  * `slug` (optional): when set, returns a single app detail with form `fields` schema instead of the list
+  * `slug` (optional): when set, returns a single app detail with form `fields` + selectable `souls[]`
 
 * **List Success Response (200 OK):**
 ```json
@@ -378,6 +378,7 @@ Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares t
       "description": "…",
       "badge": "popular",
       "field_count": 5,
+      "soul_count": 2,
       "soul_configured": true
     }
   ]
@@ -390,8 +391,6 @@ Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares t
   "success": true,
   "data": {
     "slug": "name-advisor",
-    "icon": "fa-signature",
-    "category": "destiny",
     "title": "Name Advisor",
     "description": "…",
     "fields": [
@@ -399,31 +398,37 @@ Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares t
         "name": "surname",
         "type": "text",
         "label": "Surname",
-        "placeholder": "e.g. Chen",
-        "required": true,
-        "maxlength": 20
+        "required": true
       }
     ],
-    "soul_configured": true,
-    "has_builtin_prompt": true
+    "souls": [
+      {
+        "id": 7303,
+        "title": "Naming Master",
+        "description": "Public soul intro…",
+        "role": "Advisor",
+        "username": "creator"
+      }
+    ],
+    "soul_count": 1,
+    "soul_configured": true
   }
 }
 ```
 
-### 5.2. Run Mini App
+### 5.2. Validate Mini App (prefill for chat)
 
 * **Method / Route:** `POST /apps`
-* **Authentication:** Session cookie (+ `X-CSRF-Token`) **or** `Authorization: Bearer` (VIP/PRO for API keys; Free keys rejected)
+* **Authentication:** Session cookie (+ `X-CSRF-Token`) **or** Bearer (public validate; no LLM)
 * **Request Body:**
 ```json
 {
   "slug": "name-advisor",
+  "soul_id": 7303,
   "fields": {
     "surname": "Chen",
     "gender": "female",
-    "birth_datetime": "1989-09-01 06:00",
-    "preferences": "gentle, wood/fire",
-    "count": "3"
+    "birth_datetime": "1989-09-01 06:00"
   }
 }
 ```
@@ -432,21 +437,18 @@ Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares t
 ```json
 {
   "success": true,
-  "reply": "Here are three name options…",
-  "sender_name": "AI Assistant",
-  "truncated": false,
-  "needs_upgrade": false,
-  "finish_reason": "stop",
-  "session_token": "app_name-advisor_ab12cd…",
-  "slug": "name-advisor"
+  "slug": "name-advisor",
+  "soul_id": 7303,
+  "content": "Surname: Chen\nGender style: Feminine\n…",
+  "chat_path": "/chat/7303"
 }
 ```
 
-When the model hits the tier `max_tokens` cap, `truncated` is `true` and Free/VIP receive `needs_upgrade: true`.
+Client stores `content` (e.g. sessionStorage), opens `/chat/{soul_id}/{session_token}`, and auto-sends via `POST /chat`. Tier `max_tokens` / daily limits / upgrade CTAs are enforced by the chat engine.
 
-* **Error cases:** missing/invalid fields (400), daily limit (403 + `needs_upgrade`), Free API key (403 + `needs_upgrade`), input over tier char limit (400), app not found (404).
+* **Error cases:** missing/invalid fields (400), `soul_id` not in map (400), app not found / no usable public souls (404).
 
-* **Soul binding:** `MINI_APP_SOUL_MAP` in `config.php` maps slug → public non-NFT `soul_id`. Apps **without** a positive mapped id are **hidden** from list/detail and cannot be run (404).
+* **Soul binding:** `MINI_APP_SOUL_MAP` maps slug → **int or int[]**. Single int remains supported. Empty / unmapped apps are **hidden**.
 
 ---
 

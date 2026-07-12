@@ -421,20 +421,64 @@ if ($method === 'POST') {
         
         session_write_close(); 
 
+        /**
+         * Extract visible assistant text. DeepSeek V4 / reasoner models often put tokens in
+         * reasoning_* while message.content is empty; finish_reason may still be "length".
+         */
+        $extractChatReply = static function (?array $choice): string {
+            if (!$choice) {
+                return '';
+            }
+            $msg = $choice['message'] ?? [];
+            $content = $msg['content'] ?? '';
+            if (is_array($content)) {
+                $parts = [];
+                foreach ($content as $part) {
+                    if (is_string($part)) {
+                        $parts[] = $part;
+                    } elseif (is_array($part)) {
+                        if (isset($part['text']) && is_string($part['text'])) {
+                            $parts[] = $part['text'];
+                        }
+                    }
+                }
+                $content = implode('', $parts);
+            }
+            $content = is_string($content) ? trim($content) : '';
+            if ($content !== '') {
+                return $content;
+            }
+            foreach (['reasoning_content', 'reasoning'] as $key) {
+                if (!empty($msg[$key]) && is_string($msg[$key])) {
+                    $r = trim($msg[$key]);
+                    if ($r !== '') {
+                        return $r;
+                    }
+                }
+            }
+            return '';
+        };
+
         $maxRetries = 3;      
         $retryDelay = 2;      
         $response = '';
         $httpCode = 0;
+        // Prefer answer tokens within the tier budget (V4 may spend max_tokens on CoT otherwise)
+        $useThinkingDisabled = true;
         
         for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
             $ch = curl_init();
-            $payload = json_encode([
+            $requestBody = [
                 "model" => $targetModel, 
                 "messages" => $finalPayloadMessages,
                 "max_tokens" => $tierConfig['max_tokens'], 
                 "temperature" => 0.7,
                 "stream" => false
-            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            ];
+            if ($useThinkingDisabled) {
+                $requestBody['thinking'] = ['type' => 'disabled'];
+            }
+            $payload = json_encode($requestBody, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 
             curl_setopt_array($ch, [
                 CURLOPT_URL => $targetApiUrl,
@@ -456,6 +500,16 @@ if ($method === 'POST') {
                 echo json_encode(['success' => false, 'error' => __('AI Service timeout')], JSON_UNESCAPED_UNICODE); 
                 exit; 
             }
+
+            if ($httpCode === 400 && $useThinkingDisabled) {
+                $errProbe = json_decode((string)$response, true);
+                $errMsg = strtolower((string)($errProbe['error']['message'] ?? $response));
+                if (strpos($errMsg, 'thinking') !== false || strpos($errMsg, 'unknown') !== false || strpos($errMsg, 'invalid') !== false) {
+                    $useThinkingDisabled = false;
+                    continue;
+                }
+            }
+
             if ($httpCode !== 429) break;
             if ($attempt < $maxRetries - 1) { 
                 sleep($retryDelay); 
@@ -471,12 +525,24 @@ if ($method === 'POST') {
             exit;
         }
 
-        $aiReply = $responseData['choices'][0]['message']['content'] ?? '';
+        $choice = $responseData['choices'][0] ?? null;
+        $aiReply = $extractChatReply(is_array($choice) ? $choice : null);
         // OpenAI-compatible providers signal max_tokens stop via finish_reason=length (some use max_tokens)
-        $finishReason = (string)($responseData['choices'][0]['finish_reason'] ?? '');
-        $isTruncated = in_array($finishReason, ['length', 'max_tokens'], true);
+        $finishReason = (string)($choice['finish_reason'] ?? '');
+        // Only treat as "truncated answer" when there is visible text; empty+length is a CoT budget bug, not a partial reply
+        $isTruncated = ($aiReply !== '') && in_array($finishReason, ['length', 'max_tokens'], true);
         // Free/VIP hit tier output caps; PRO already has the highest platform limit
         $needsUpgradeForTruncation = $isTruncated && strtolower((string)($currentUser['tier'] ?? 'free')) !== 'pro';
+
+        if ($aiReply === '') {
+            http_response_code(502);
+            echo json_encode([
+                'success' => false,
+                'error' => __('Empty AI reply'),
+                'finish_reason' => $finishReason,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
 
         // 🚀 判定發送者身份 Sender Name
         $senderName = '';

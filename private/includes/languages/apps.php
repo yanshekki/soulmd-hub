@@ -9,7 +9,7 @@ return [
 
         'Apps Badge' => 'Form-driven AI tools',
         'Apps Title' => 'Mini Apps',
-        'Apps Subtitle' => 'Choose a tool, fill the form, and get a structured answer from a specialized AI persona. Longer forms and replies work best on VIP / PRO.',
+        'Apps Subtitle' => 'Choose a tool, fill the form, pick an AI persona, then continue in chat for the answer. Longer replies work best on VIP / PRO.',
 
         'Search apps' => 'Search apps…',
         'All categories' => 'All',
@@ -19,6 +19,13 @@ return [
 
         'Back to apps' => 'All apps',
         'Run app' => 'Get AI answer',
+        'Start chat for AI reply' => 'Start chat for AI reply',
+        'Choose AI soul' => 'Choose an AI persona',
+        'Please select an AI soul' => 'Please select an AI persona before continuing.',
+        'By :name' => 'By :name',
+        'Role' => 'Role',
+        'No description provided.' => 'No description provided.',
+        ':n AI options' => ':n AI options',
         'Running…' => 'Running…',
         'Result' => 'Result',
         'Try again' => 'Edit & re-run',
@@ -120,7 +127,7 @@ return [
 
         'Apps Badge' => '表單驅動 AI 工具',
         'Apps Title' => 'AI 小程式',
-        'Apps Subtitle' => '揀一個工具、填表，即可獲得專精 AI 角色的結構化回覆。較長表單與完整答案建議使用 VIP / PRO。',
+        'Apps Subtitle' => '揀工具、填表、選擇 AI 角色，然後進入對話取得回覆。較長答案建議使用 VIP / PRO。',
 
         'Search apps' => '搜尋小程式…',
         'All categories' => '全部',
@@ -130,6 +137,13 @@ return [
 
         'Back to apps' => '全部小程式',
         'Run app' => '取得 AI 回覆',
+        'Start chat for AI reply' => '前往對話取得 AI 回覆',
+        'Choose AI soul' => '選擇 AI 角色',
+        'Please select an AI soul' => '請先選擇一個 AI 角色再繼續。',
+        'By :name' => '作者：:name',
+        'Role' => '角色',
+        'No description provided.' => '暫無介紹。',
+        ':n AI options' => ':n 個 AI 可選',
         'Running…' => '運算中…',
         'Result' => '結果',
         'Try again' => '修改並重跑',
