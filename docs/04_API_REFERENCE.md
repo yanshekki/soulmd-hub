@@ -351,9 +351,108 @@ Modifies an existing prompt archetype. Automatically clones a backup timeline re
 
 ---
 
-## 5. Rate Limits & Financial Response Errors
+## 5. Mini Apps
 
-### 5.1. Rate Limit / Turning Exhausted (403 Forbidden)
+Form-driven tools backed by curated SOUL personas (or builtin prompts). Shares the same platform tier quotas as chat (`daily_limit`, `max_input`, `max_tokens`). Does **not** return soul source content.
+
+### 5.1. List / Describe Mini Apps
+
+* **Method / Route:** `GET /apps`
+* **Authentication:** None (public)
+* **Query params:**
+  * `category` (optional): `destiny` | `life` | `emotion`
+  * `q` (optional): free-text search over title/description/slug
+  * `slug` (optional): when set, returns a single app detail with form `fields` schema instead of the list
+
+* **List Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "count": 1,
+  "data": [
+    {
+      "slug": "name-advisor",
+      "icon": "fa-signature",
+      "category": "destiny",
+      "title": "Name Advisor",
+      "description": "…",
+      "badge": "popular",
+      "field_count": 5,
+      "soul_configured": true
+    }
+  ]
+}
+```
+
+* **Detail Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "slug": "name-advisor",
+    "icon": "fa-signature",
+    "category": "destiny",
+    "title": "Name Advisor",
+    "description": "…",
+    "fields": [
+      {
+        "name": "surname",
+        "type": "text",
+        "label": "Surname",
+        "placeholder": "e.g. Chen",
+        "required": true,
+        "maxlength": 20
+      }
+    ],
+    "soul_configured": true,
+    "has_builtin_prompt": true
+  }
+}
+```
+
+### 5.2. Run Mini App
+
+* **Method / Route:** `POST /apps`
+* **Authentication:** Session cookie (+ `X-CSRF-Token`) **or** `Authorization: Bearer` (VIP/PRO for API keys; Free keys rejected)
+* **Request Body:**
+```json
+{
+  "slug": "name-advisor",
+  "fields": {
+    "surname": "Chen",
+    "gender": "female",
+    "birth_datetime": "1989-09-01 06:00",
+    "preferences": "gentle, wood/fire",
+    "count": "3"
+  }
+}
+```
+
+* **Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "reply": "Here are three name options…",
+  "sender_name": "AI Assistant",
+  "truncated": false,
+  "needs_upgrade": false,
+  "finish_reason": "stop",
+  "session_token": "app_name-advisor_ab12cd…",
+  "slug": "name-advisor"
+}
+```
+
+When the model hits the tier `max_tokens` cap, `truncated` is `true` and Free/VIP receive `needs_upgrade: true`.
+
+* **Error cases:** missing/invalid fields (400), daily limit (403 + `needs_upgrade`), Free API key (403 + `needs_upgrade`), input over tier char limit (400), app not found (404).
+
+* **Soul binding:** `MINI_APP_SOUL_MAP` in `config.php` maps slug → public non-NFT `soul_id`. Apps **without** a positive mapped id are **hidden** from list/detail and cannot be run (404).
+
+---
+
+## 6. Rate Limits & Financial Response Errors
+
+### 6.1. Rate Limit / Turning Exhausted (403 Forbidden)
 
 ```json
 {
@@ -364,7 +463,7 @@ Modifies an existing prompt archetype. Automatically clones a backup timeline re
 
 ```
 
-### 5.2. Token-Gating Asset Lock (200 OK - Intercept Reply Pattern)
+### 6.2. Token-Gating Asset Lock (200 OK - Intercept Reply Pattern)
 
 ```json
 {

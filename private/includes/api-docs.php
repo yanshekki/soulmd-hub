@@ -280,6 +280,72 @@ loadTranslations('api-docs');
             </details>
         </article>
 
+        <h3 class="text-xl font-bold text-pink-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-puzzle-piece" aria-hidden="true"></i> <?= __('Mini Apps') ?></h3>
+
+        <article class="mb-10 border-l-2 border-pink-500/60 pl-6 space-y-3">
+            <header class="flex items-center flex-wrap gap-2">
+                <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded border border-blue-500/30">GET</span>
+                <code class="text-base font-bold text-white">/api/apps</code>
+            </header>
+            <p class="text-sm text-zinc-400"><?= __('desc_apps_list') ?></p>
+            <p class="text-xs text-zinc-500 font-mono"><?= __('Query params:') ?> ?category=destiny&amp;q=name&amp;slug=name-advisor</p>
+            <div class="pt-1 flex flex-col gap-2">
+                <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "count": 1,
+  "data": [
+    {
+      "slug": "name-advisor",
+      "icon": "fa-signature",
+      "category": "destiny",
+      "title": "Name Advisor",
+      "description": "Chinese naming / rename suggestions…",
+      "badge": "popular",
+      "field_count": 5,
+      "soul_configured": true
+    }
+  ]
+}</pre>
+                </details>
+            </div>
+        </article>
+
+        <article class="mb-10 border-l-2 border-pink-500/60 pl-6 space-y-3">
+            <header class="flex items-center flex-wrap gap-2">
+                <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold rounded border border-emerald-500/30">POST</span>
+                <code class="text-base font-bold text-white">/api/apps</code>
+                <span class="text-[10px] bg-zinc-500/20 text-zinc-300 px-2 py-0.5 rounded border border-white/10"><?= __('Session or API Key') ?></span>
+            </header>
+            <p class="text-sm text-zinc-400"><?= __('desc_apps_run') ?></p>
+            <div class="pt-1 flex flex-col gap-2">
+                <details class="text-xs group"><summary class="text-cyan-400 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Request Body Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-cyan-300/90 overflow-x-auto">{
+  "slug": "name-advisor",
+  "fields": {
+    "surname": "Chen",
+    "gender": "female",
+    "birth_datetime": "1989-09-01 06:00",
+    "preferences": "gentle, wood/fire",
+    "count": "3"
+  }
+}</pre>
+                </details>
+                <details class="text-xs group"><summary class="text-emerald-500 group-open:text-zinc-500 cursor-pointer select-none font-medium hover:underline"><?= __('View Response Sample') ?></summary>
+                    <pre class="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 font-mono text-zinc-400 overflow-x-auto">{
+  "success": true,
+  "reply": "Here are three name options…",
+  "sender_name": "AI Assistant",
+  "truncated": false,
+  "needs_upgrade": false,
+  "finish_reason": "stop",
+  "session_token": "app_name-advisor_ab12…",
+  "slug": "name-advisor"
+}</pre>
+                </details>
+            </div>
+        </article>
+
         <h3 class="text-xl font-bold text-purple-400 mb-6 mt-12 flex items-center gap-2"><i class="fas fa-brain" aria-hidden="true"></i> <?= __('Core Souls Hub') ?></h3>
         
         <article class="mb-10 border-l-2 border-purple-500 pl-6 space-y-2">

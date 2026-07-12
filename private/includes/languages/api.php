@@ -132,6 +132,16 @@ return [
         'Custom API Engine Error' => "Custom API Engine Error: :error",
         'Wallet already bound' => 'Your account is already permanently bound to a wallet.',
         'Wallet already exists' => 'Action Blocked: This wallet address is already bound to another SoulMD Hub account!',
+
+        // Mini Apps
+        'App not found' => 'Mini app not found.',
+        'App soul not configured' => 'This mini app has no bound soul and no built-in prompt. Configure MINI_APP_SOUL_MAP or enable the builtin prompt.',
+        'App soul not available' => 'The bound soul for this mini app is not publicly available.',
+        'Missing required app field' => 'Missing required field: :field',
+        'App field too long' => 'Field ":field" exceeds the maximum of :max characters.',
+        'Invalid app field value' => 'One or more form fields contain invalid values.',
+        'Anonymous' => 'Anonymous',
+        'AI Assistant' => 'AI Assistant',
     ],
     
     'zh' => [
@@ -251,5 +261,15 @@ return [
         'Custom API Engine Error' => "自訂 API 引擎錯誤：:error",
         'Wallet already bound' => '操作被拒：您的帳號已經永久綁定過錢包了。',
         'Wallet already exists' => '綁定失敗：此錢包地址已經被其他帳號綁定過了！',
+
+        // Mini Apps
+        'App not found' => '找不到此小程式。',
+        'App soul not configured' => '此小程式尚未綁定 Soul，亦無內建提示詞。請設定 MINI_APP_SOUL_MAP 或啟用內建提示。',
+        'App soul not available' => '此小程式綁定的 Soul 目前不可公開使用。',
+        'Missing required app field' => '缺少必填欄位：:field',
+        'App field too long' => '欄位「:field」超過上限 :max 個字元。',
+        'Invalid app field value' => '表單欄位包含無效值。',
+        'Anonymous' => '匿名訪客',
+        'AI Assistant' => 'AI 智能體',
     ]
 ];

@@ -198,3 +198,16 @@ define('PRO_MAX_INPUT_CHARS', 3000);
 define('PRO_MAX_AI_TOKENS', 4000);         
 define('PRO_MEMORY_THRESHOLD', 30);        
 define('PRO_ALLOW_IMAGE', true);
+
+// ==========================================
+// 🧩 Mini Apps — public soul_id map (slug => souls.id)
+// Only apps with a positive id here are visible on /apps and runnable.
+// Unmapped / 0 / commented entries stay hidden. Use public non-NFT souls.
+// ==========================================
+define('MINI_APP_SOUL_MAP', [
+    // 'name-advisor' => 12,
+    // 'feng-shui' => 13,
+    // 'wedding-date' => 14,
+    // 'virtual-companion' => 15,
+    // 'daily-fortune' => 16,
+]);

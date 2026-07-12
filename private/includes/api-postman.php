@@ -264,6 +264,88 @@
                     ]
                 },
                 {
+                    "name": "<?= addslashes(__('Mini Apps')) ?>",
+                    "item": [
+                        {
+                            "name": "List Mini Apps",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/apps?category=destiny",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "apps"],
+                                    "query": [
+                                        {"key": "category", "value": "destiny", "description": "Optional: destiny | life | emotion"},
+                                        {"key": "q", "value": "", "description": "Optional search string"}
+                                    ]
+                                }
+                            },
+                            "response": [{
+                                "name": "Apps Listed",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"slug": "name-advisor", "icon": "fa-signature", "category": "destiny", "title": "Name Advisor", "description": "Chinese naming…", "badge": "popular", "field_count": 5, "soul_configured": true}]}, null, 2)
+                            }]
+                        },
+                        {
+                            "name": "Get Mini App Schema",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/apps?slug=name-advisor",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "apps"],
+                                    "query": [{"key": "slug", "value": "name-advisor"}]
+                                }
+                            },
+                            "response": [{
+                                "name": "App Schema",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "data": {"slug": "name-advisor", "title": "Name Advisor", "fields": [{"name": "surname", "type": "text", "label": "Surname", "required": true}]}}, null, 2)
+                            }]
+                        },
+                        {
+                            "name": "Run Mini App",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Content-Type", "value": "application/json"},
+                                    {"key": "Authorization", "value": "Bearer {{apiKey}}"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": JSON.stringify({
+                                        "slug": "name-advisor",
+                                        "fields": {
+                                            "surname": "Chen",
+                                            "gender": "female",
+                                            "birth_datetime": "1989-09-01 06:00",
+                                            "preferences": "gentle",
+                                            "count": "3"
+                                        }
+                                    }, null, 2)
+                                },
+                                "url": { "raw": "{{baseUrl}}/api/apps", "host": ["{{baseUrl}}"], "path": ["api", "apps"] }
+                            },
+                            "response": [{
+                                "name": "Run Success",
+                                "status": "OK",
+                                "code": 200,
+                                "_postman_previewlanguage": "json",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": JSON.stringify({"success": true, "reply": "Here are three name options…", "sender_name": "AI Assistant", "truncated": false, "needs_upgrade": false, "finish_reason": "stop", "slug": "name-advisor"}, null, 2)
+                            }]
+                        }
+                    ]
+                },
+                {
                     "name": "<?= addslashes(__('Core Souls Hub')) ?>",
                     "item": [
                         {

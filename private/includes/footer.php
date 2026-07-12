@@ -19,6 +19,7 @@ loadTranslations('footer');
             <nav aria-label="Footer Navigation" class="flex flex-wrap justify-center md:justify-end gap-6 text-sm font-medium text-zinc-400">
                 <a href="<?= url('/browse') ?>" title="<?= __('Browse Souls') ?>" class="hover:text-emerald-400 transition"><?= __('Browse Souls') ?></a>
                 <a href="<?= url('/marketplace') ?>" title="<?= __('Marketplace') ?>" class="hover:text-blue-400 transition flex items-center gap-1"><i class="fas fa-gem" aria-hidden="true"></i> <?= __('Marketplace') ?></a>
+                <a href="<?= url('/apps') ?>" title="<?= __('Apps') ?>" class="hover:text-emerald-400 transition flex items-center gap-1"><i class="fas fa-puzzle-piece" aria-hidden="true"></i> <?= __('Apps') ?></a>
                 <a href="<?= url('/my-chats') ?>" title="<?= __('My Chats') ?>" class="hover:text-emerald-400 transition"><?= __('My Chats') ?></a>
                 <a href="<?= url('/generate') ?>" title="<?= __('AI Generator') ?>" class="hover:text-emerald-400 transition"><?= __('AI Generator') ?></a>
                 <a href="<?= url('/billing') ?>" title="<?= __('Billing') ?>" class="hover:text-emerald-400 transition"><?= __('Billing') ?></a>

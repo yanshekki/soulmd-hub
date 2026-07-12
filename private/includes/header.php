@@ -163,6 +163,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
             <div class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium">
                 <a href="<?= url('/browse') ?>" class="text-zinc-400 hover:text-white transition"><?= __('Browse') ?></a>
                 <a href="<?= url('/marketplace') ?>" class="text-zinc-400 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-gem text-blue-400"></i> <?= __('Marketplace') ?></a>
+                <a href="<?= url('/apps') ?>" class="text-zinc-400 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-puzzle-piece text-emerald-400"></i> <?= __('Apps') ?></a>
                 <a href="<?= url('/my-chats') ?>" class="text-zinc-400 hover:text-white transition"><?= __('My Chats') ?></a>
                 <a href="<?= url('/upload') ?>" class="text-zinc-400 hover:text-white transition"><?= __('Upload') ?></a>
                 <a href="<?= url('/upgrade') ?>" class="text-amber-400 hover:text-amber-300 transition flex items-center gap-1.5 px-3 py-1 bg-amber-400/10 rounded-full border border-amber-400/20"><i class="fas fa-crown text-xs"></i> <?= __('Premium') ?></a>
@@ -213,6 +214,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         <div id="mobile-menu" class="hidden lg:hidden flex-col absolute top-full left-0 w-full bg-zinc-950/95 backdrop-blur-2xl border-b border-white/10 shadow-2xl p-5 gap-1.5 z-50">
             <a href="<?= url('/browse') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-compass w-6 text-center text-emerald-400"></i> <?= __('Browse') ?></a>
             <a href="<?= url('/marketplace') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-gem w-6 text-center text-blue-400"></i> <?= __('Marketplace') ?></a>
+            <a href="<?= url('/apps') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-puzzle-piece w-6 text-center text-emerald-400"></i> <?= __('Apps') ?></a>
             <a href="<?= url('/my-chats') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-comments w-6 text-center text-emerald-400"></i> <?= __('My Chats') ?></a>
             <a href="<?= url('/upload') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-cloud-upload-alt w-6 text-center text-emerald-400"></i> <?= __('Upload') ?></a>
             <a href="<?= url('/upgrade') ?>" class="p-3.5 text-base font-bold text-amber-400 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-crown w-6 text-center"></i> <?= __('Premium') ?></a>

@@ -16,9 +16,11 @@ return [
         // Sections
         'Authentication & Account' => 'Authentication & Account',
         'Interaction & Chat Engine' => 'Interaction & Chat Engine',
+        'Mini Apps' => 'Mini Apps',
         'Core Souls Hub' => 'Core Souls Hub',
         'Profiles & Social Interactions' => 'Profiles & Social Interactions',
         'Internal Web Utilities' => 'Internal Web Utilities',
+        'Session or API Key' => 'Session or API Key',
         
         // Endpoint Descriptions
         'desc_register' => 'Register a new user and generate an API key. Enforces secure alpha-numeric URL constraints.',
@@ -32,6 +34,9 @@ return [
         'desc_self_chat' => 'Headless BYOK proxy endpoint. Uses the user\'s custom encrypted keys stored in the database. Bypasses platform daily limits but enforces Web3 NFT token-gating.',
         'desc_my_chats' => 'Retrieve a list of all active chat sessions and compressed memory summaries for the authenticated user.',
         'desc_chat_sync' => 'Real-time Multiplayer Sync & Presence API. Validates connection heartbeats, tracks active online user counts, and returns incremental delta messages with sender identities.',
+
+        'desc_apps_list' => 'List curated form-driven mini apps (or fetch one app schema with ?slug=). Public. Does not expose soul prompt content. Optional filters: category, q.',
+        'desc_apps_run' => 'Run a mini app: validate form fields, apply tier input/daily limits, invoke the bound public soul (or builtin prompt), and return the model reply. Shares chat daily quotas and max_tokens. Browser sessions require X-CSRF-Token; Free tier API keys are rejected.',
         
         'desc_categories' => 'Fetch the complete white-list of roles/categories including their corresponding slug names and emoji icons.',
         'desc_souls_get' => 'List, search and filter public souls. Optimized with strict DB select limits.',
@@ -74,9 +79,11 @@ return [
         // Sections
         'Authentication & Account' => '使用者認證與安全帳號 API',
         'Interaction & Chat Engine' => '核心對話與大模型路由引擎 API',
+        'Mini Apps' => 'AI 小程式 (Mini Apps)',
         'Core Souls Hub' => '模型資產管理 API (Souls Hub)',
         'Profiles & Social Interactions' => '創作者主頁與社群互動 API',
         'Internal Web Utilities' => '前端瀏覽器專用內部工具 (Cookie 依賴)',
+        'Session or API Key' => 'Session 或 API 金鑰',
         
         // Endpoint Descriptions
         'desc_register' => '註冊新創作者帳號並自動發配 Secret API Key。內部強化網址安全規範校驗。',
@@ -90,6 +97,9 @@ return [
         'desc_self_chat' => '無狀態 BYOK 代理端點。使用用戶儲存於資料庫的加密專屬金鑰。此端點不扣除平台每日額度，但嚴格執行 Web3 NFT 門禁檢查。',
         'desc_my_chats' => '獲取當前登入用戶所有活躍的歷史對話列表，以及系統自動壓縮的記憶體摘要紀錄。',
         'desc_chat_sync' => '即時多人在線同步 API。驗證客戶端連線心跳、追蹤同一個聊天室內的在線人數，並使用 Delta Sync 技術增量下發附帶發送者名稱的新訊息。',
+
+        'desc_apps_list' => '列出策展中的表單式 AI 小程式（或以 ?slug= 取得單一 app 的表單 schema）。公開端點，不會回傳 Soul 提示詞原文。可選參數：category、q。',
+        'desc_apps_run' => '執行小程式：校驗表單欄位、套用方案的輸入字數與每日額度、呼叫綁定的公開 Soul（或內建提示詞），回傳模型答案。與 Chat 共用每日額度與 max_tokens。瀏覽器 Session 需帶 X-CSRF-Token；Free 方案的 API Key 會被拒絕。',
         
         'desc_categories' => '拉取目前系統白名單允許的所有 AI 適用角色分類、對應的 Slug 別名及前端 Emoji 圖標。',
         'desc_souls_get' => '分頁撈取、檢索大廳中公開的靈魂模型列表。內部經過極致索引優化。',
