@@ -13,9 +13,16 @@ session_start();
 loadTranslations('apps');
 $csrfToken = ensureCsrfToken();
 
+// SEO path: /apps/{slug} (no hash)
+$initialAppSlug = trim((string)($_GET['slug'] ?? ''));
+if ($initialAppSlug !== '' && !preg_match('/^[a-zA-Z0-9_-]+$/', $initialAppSlug)) {
+    $initialAppSlug = '';
+}
+
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');
 $chatBaseUrl = url('/chat'); // /chat or /zh/chat
+$appsBaseUrl = rtrim(url('/apps'), '/'); // /apps or /zh/apps
 
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
@@ -97,6 +104,8 @@ require_once __DIR__ . '/../private/includes/header.php';
 (function () {
     const csrfToken = <?= json_encode($csrfToken, JSON_UNESCAPED_UNICODE) ?>;
     const chatBaseUrl = <?= json_encode($chatBaseUrl, JSON_UNESCAPED_UNICODE) ?>;
+    const appsBaseUrl = <?= json_encode($appsBaseUrl, JSON_UNESCAPED_UNICODE) ?>;
+    const initialSlug = <?= json_encode($initialAppSlug, JSON_UNESCAPED_UNICODE) ?>;
     const i18n = {
         loading: <?= json_encode(__('Loading apps'), JSON_UNESCAPED_UNICODE) ?>,
         empty: <?= json_encode(__('No apps found'), JSON_UNESCAPED_UNICODE) ?>,
@@ -251,7 +260,17 @@ require_once __DIR__ . '/../private/includes/header.php';
             document.getElementById('detail-icon').innerHTML = `<i class="fas ${escapeHTML(icon)}" aria-hidden="true"></i>`;
             renderSoulPicker(app.souls || []);
             form.innerHTML = (app.fields || []).map(renderField).join('');
-            history.replaceState(null, '', '#/' + encodeURIComponent(slug));
+            const cleanPath = appsBaseUrl + '/' + encodeURIComponent(slug);
+            const cur = window.location.pathname.replace(/\/+$/, '');
+            const target = cleanPath.replace(/\/+$/, '');
+            if (cur !== target) {
+                history.pushState({ appSlug: slug }, '', cleanPath);
+            } else {
+                history.replaceState({ appSlug: slug }, '', cleanPath);
+            }
+            if (app.title) {
+                document.title = app.title + ' · ' + <?= json_encode(__('Apps Title'), JSON_UNESCAPED_UNICODE) ?>;
+            }
         } catch (e) {
             form.innerHTML = `<div class="text-red-400 text-sm py-4">${escapeHTML(e.message || i18n.failApp)}</div>`;
         }
@@ -288,7 +307,11 @@ require_once __DIR__ . '/../private/includes/header.php';
         selectedSoulId = null;
         document.getElementById('detail-view').classList.add('hidden');
         document.getElementById('catalog-view').classList.remove('hidden');
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+        document.title = <?= json_encode(__('SEO Title'), JSON_UNESCAPED_UNICODE) ?>;
+        const cleanPath = appsBaseUrl;
+        if (window.location.pathname.replace(/\/$/, '') !== cleanPath.replace(/\/$/, '')) {
+            history.pushState({ appSlug: null }, '', cleanPath);
+        }
     }
 
     document.getElementById('btn-back').addEventListener('click', showCatalog);
@@ -380,9 +403,36 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
     });
 
-    const hash = (location.hash || '').replace(/^#\/?/, '');
+    function slugFromPath() {
+        // Support /apps/{slug} and /zh/apps/{slug}
+        const path = window.location.pathname.replace(/\/+$/, '');
+        const base = appsBaseUrl.replace(/\/+$/, '');
+        if (path === base) return '';
+        if (path.indexOf(base + '/') === 0) {
+            const rest = path.slice(base.length + 1);
+            const seg = rest.split('/').filter(Boolean)[0] || '';
+            return /^[a-zA-Z0-9_-]+$/.test(seg) ? seg : '';
+        }
+        return '';
+    }
+
+    window.addEventListener('popstate', () => {
+        const slug = slugFromPath();
+        if (slug) openApp(slug);
+        else showCatalog();
+    });
+
+    // Legacy hash URLs: /apps#/feng-shui → /apps/feng-shui
+    const legacyHash = (location.hash || '').replace(/^#\/?/, '');
+    if (legacyHash && /^[a-zA-Z0-9_-]+$/.test(legacyHash) && !slugFromPath() && !initialSlug) {
+        history.replaceState(null, '', appsBaseUrl + '/' + encodeURIComponent(legacyHash));
+    }
+
+    const bootSlug = initialSlug || slugFromPath() || ((location.hash || '').replace(/^#\/?/, '') || '');
     loadApps().then(() => {
-        if (hash) openApp(decodeURIComponent(hash));
+        if (bootSlug && /^[a-zA-Z0-9_-]+$/.test(bootSlug)) {
+            openApp(bootSlug);
+        }
     });
 })();
 </script>

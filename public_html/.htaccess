@@ -40,6 +40,11 @@ ErrorDocument 404 /404.php
     RewriteCond %{THE_REQUEST} \s/+docs\.php[\s?] [NC]
     RewriteRule ^docs\.php$ /docs [R=301,L]
 
+    RewriteCond %{THE_REQUEST} \s/+apps\.php\?slug=([a-zA-Z0-9_-]+) [NC]
+    RewriteRule ^apps\.php$ /apps/%1? [R=301,L]
+    RewriteCond %{THE_REQUEST} \s/+apps\.php[\s?] [NC]
+    RewriteRule ^apps\.php$ /apps [R=301,L]
+
     RewriteRule ^change-password/?$ /my-setting [R=301,L]
 
     RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
@@ -55,6 +60,9 @@ ErrorDocument 404 /404.php
     # 🌟 核心商業、個人紀錄、帳單與公開頁面路由
     RewriteRule ^marketplace/?$ marketplace.php [L,QSA]
     RewriteRule ^generate/?$ generate.php [L,QSA]
+    # Mini Apps SEO routes: /apps and /apps/{slug}
+    RewriteRule ^apps/([a-zA-Z0-9_-]+)/?$ apps.php?slug=$1 [L,QSA]
+    RewriteRule ^apps/?$ apps.php [L,QSA]
     RewriteRule ^upload/?$ upload.php [L,QSA]
     RewriteRule ^my-souls/?$ my-souls.php [L,QSA]
     RewriteRule ^my-chats/?$ my-chats.php [L,QSA]
