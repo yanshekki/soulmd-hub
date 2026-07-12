@@ -88,7 +88,8 @@ $allowImage = constant("{$tierPrefix}_ALLOW_IMAGE") ? 'true' : 'false';
 // 🚀 SEO Enhancement: Dynamic i18n Titles for Sharable Links
 $pageTitle = __('Chat Session', ['title' => htmlspecialchars($soul['title'])]);
 $pageDesc = __('Live interaction with this specialized AI persona architecture.');
-$hideNavLinks = true; 
+// Show global header menu (Browse / Apps / Premium / etc.) like other pages
+$hideNavLinks = false;
 
 require_once __DIR__ . '/../private/includes/header.php';
 require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
@@ -119,7 +120,7 @@ if ($maskContent) {
 <textarea id="raw-soul-content" class="hidden" aria-hidden="true"><?= htmlspecialchars($rawContentForModal) ?></textarea>
 
 <!-- 🚀 SEO Enhancement: Semantic <main> tag -->
-<main class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col h-[calc(100vh-80px)]">
+<main class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col flex-1 min-h-0 h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-8.5rem)]">
     
     <header class="bg-zinc-900/80 border border-white/10 rounded-t-3xl p-4 flex justify-between items-center backdrop-blur-md shrink-0">
         <div class="flex items-center gap-3 w-full">
