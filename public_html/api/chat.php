@@ -569,7 +569,10 @@ if ($method === 'POST') {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
             } else {
                 if (!$isApiCall) {
-                    session_start();
+                    // May have been closed earlier via session_write_close(); reopen only if needed
+                    if (session_status() === PHP_SESSION_NONE) {
+                        session_start();
+                    }
                     $_SESSION['guest_daily_count'] = ($_SESSION['guest_daily_count'] ?? 0) + 1;
                     session_write_close();
                 }

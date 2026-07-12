@@ -12,8 +12,7 @@ require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
 $security = ApiSecurity::initialize(false);  // supports guest + logged, for future rate/throttle centralization
 $pdo = $security['pdo'];
-
-session_start();  // ensure
+// Session already started by ApiSecurity::ensureCsrfToken() — do not call session_start() again
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405); exit;
