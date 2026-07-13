@@ -26,6 +26,11 @@ class AppBootstrap
      */
     public static function loadConfig(bool $jsonErrors = false): void
     {
+        // Already bootstrapped in this request (also covers path-variant double includes)
+        if (defined('DB_HOST') && defined('APP_ENCRYPTION_KEY') && function_exists('loadTranslations')) {
+            self::$configLoaded = true;
+            return;
+        }
         if (self::$configLoaded && defined('DB_HOST') && function_exists('loadTranslations')) {
             return;
         }
@@ -38,7 +43,9 @@ class AppBootstrap
             self::fail(500, 'Server misconfigured: private/config.php missing', $jsonErrors);
         }
 
-        require_once $configPath;
+        // Prefer realpath so require_once treats symlink/path variants as one file
+        $resolved = realpath($configPath) ?: $configPath;
+        require_once $resolved;
 
         if (!defined('DB_HOST')) {
             self::fail(500, 'Server misconfigured: private/config.php missing DB constants', $jsonErrors);

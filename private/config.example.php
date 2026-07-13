@@ -9,6 +9,12 @@
  * After SSE (LlmStreamProxy::beginSse): never session_start / setcookie.
  */
 
+
+// Already loaded (AppBootstrap / multiple require paths) — do not re-define constants.
+if (defined('APP_ENCRYPTION_KEY')) {
+    return;
+}
+
 // 🚨 系統級安全加密金鑰 (請務必將下面堆亂碼換成你自己專屬的 32 位元強密碼)
 // 此金鑰用於 AES-256 雙向加密，一旦遺失將無法解密所有用戶的 API Key！
 define('APP_ENCRYPTION_KEY', 'xK9vP2mN4qL8zR1wT7jY5cB3hF6dG0sA');
@@ -87,6 +93,7 @@ $GLOBALS['i18n_strings'] = [];
 /**
  * 載入指定頁面的翻譯檔
  */
+if (!function_exists('loadTranslations')) {
 function loadTranslations($pageName) {
     $langFile = __DIR__ . "/includes/languages/{$pageName}.php";
     if (file_exists($langFile)) {
@@ -100,10 +107,12 @@ function loadTranslations($pageName) {
         }
     }
 }
+}
 
 /**
  * 全域翻譯助手函數
  */
+if (!function_exists('__')) {
 function __($key, $replacements = []) {
     $str = $GLOBALS['i18n_strings'][$key] ?? $key;
     if (!empty($replacements)) {
@@ -113,16 +122,19 @@ function __($key, $replacements = []) {
     }
     return $str;
 }
+}
 
 /**
  * URL 語言前綴助手函數
  */
+if (!function_exists('url')) {
 function url($path) {
     $path = ltrim($path, '/');
     if (CURRENT_LANG === DEFAULT_LANG) {
         return '/' . $path;
     }
     return '/' . CURRENT_LANG . '/' . $path;
+}
 }
 
 // ==========================================
