@@ -4,7 +4,6 @@
  * Handles encrypted storage of API Keys. (i18n Fully Patched)
  */
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/AppBootstrap.php';
 $app = AppBootstrap::forApi([
     'require_user' => true,
@@ -12,6 +11,8 @@ $app = AppBootstrap::forApi([
     'translations' => 'api',
     'json_header' => false,
 ]);
+// encryption.php uses APP_ENCRYPTION_KEY from config only (loaded by forApi)
+require_once __DIR__ . '/../../private/includes/encryption.php';
 $userId = $app['user_id'];
 $pdo = $app['pdo'];
 $isApiKey = !empty($app['is_api_key']);

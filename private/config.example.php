@@ -17,6 +17,7 @@ if (defined('APP_ENCRYPTION_KEY')) {
 
 // 🚨 系統級安全加密金鑰 (請務必將下面堆亂碼換成你自己專屬的 32 位元強密碼)
 // 此金鑰用於 AES-256 雙向加密，一旦遺失將無法解密所有用戶的 API Key！
+// ONLY define APP_ENCRYPTION_KEY here in config.php — never in encryption.php or elsewhere.
 define('APP_ENCRYPTION_KEY', 'xK9vP2mN4qL8zR1wT7jY5cB3hF6dG0sA');
 
 // ==========================================

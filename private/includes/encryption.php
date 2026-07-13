@@ -3,13 +3,18 @@
  * SoulMD Hub - AES-256-GCM Encryption Module (Authenticated)
  * ✅ Phase 2 修復：從 CBC 升級到 GCM 提供完整性保護，防 tampering。
  * 兼容舊 CBC 資料（fallback）。
+ *
+ * APP_ENCRYPTION_KEY is defined ONLY in private/config.php.
+ * Callers must bootstrap config first (AppBootstrap::forApi / forPage / loadConfig).
  */
 
-// 確保有引入 config.php 中的 APP_ENCRYPTION_KEY
 if (!defined('APP_ENCRYPTION_KEY')) {
-    define('APP_ENCRYPTION_KEY', 'fallback-insecure-key-change-it-now');
+    throw new RuntimeException(
+        'APP_ENCRYPTION_KEY is not defined. Load private/config.php via AppBootstrap first; never define the key in encryption.php.'
+    );
 }
 
+if (!function_exists('encryptData')) {
 function encryptData($plainText) {
     if(empty($plainText)) return '';
     // GCM IV 通常 12 bytes
@@ -20,7 +25,9 @@ function encryptData($plainText) {
     // 格式: base64( iv :: tag :: ciphertext )
     return base64_encode($iv . '::' . $tag . '::' . $encrypted);
 }
+}
 
+if (!function_exists('decryptData')) {
 function decryptData($encryptedText) {
     if(empty($encryptedText)) return '';
     $decoded = base64_decode($encryptedText);
@@ -49,4 +56,4 @@ function decryptData($encryptedText) {
     list($iv, $tag, $encrypted_data) = $parts;
     return openssl_decrypt($encrypted_data, 'aes-256-gcm', APP_ENCRYPTION_KEY, 0, $iv, $tag);
 }
-?>
+}

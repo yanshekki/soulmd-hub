@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../../private/src/AppBootstrap.php';
-require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
 require_once __DIR__ . '/../../private/src/LlmStreamProxy.php';
@@ -32,6 +31,8 @@ $app = AppBootstrap::forApi([
     'translations' => ['api', 'chat'],
     'json_header' => false, // CORS/Content-Type already set above
 ]);
+// After config is loaded — encryption.php must not define APP_ENCRYPTION_KEY itself
+require_once __DIR__ . '/../../private/includes/encryption.php';
 $userId = $app['user_id'] ? (int)$app['user_id'] : null;
 $pdo = $app['pdo'];
 
