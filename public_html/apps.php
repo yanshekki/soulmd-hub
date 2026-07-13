@@ -49,6 +49,9 @@ require_once __DIR__ . '/../private/includes/header.php';
             <div class="flex flex-wrap gap-2" id="category-filters" role="tablist">
                 <button type="button" data-cat="" class="cat-btn active px-4 py-2 rounded-full text-sm border border-emerald-400/40 bg-emerald-500/15 text-emerald-300 font-medium transition"><?= htmlspecialchars(__('All categories')) ?></button>
                 <button type="button" data-cat="destiny" class="cat-btn px-4 py-2 rounded-full text-sm border border-white/10 text-zinc-400 hover:border-emerald-400/40 hover:text-emerald-300 transition"><?= htmlspecialchars(__('cat_destiny')) ?></button>
+                <button type="button" data-cat="career" class="cat-btn px-4 py-2 rounded-full text-sm border border-white/10 text-zinc-400 hover:border-emerald-400/40 hover:text-emerald-300 transition"><?= htmlspecialchars(__('cat_career')) ?></button>
+                <button type="button" data-cat="legal" class="cat-btn px-4 py-2 rounded-full text-sm border border-white/10 text-zinc-400 hover:border-emerald-400/40 hover:text-emerald-300 transition"><?= htmlspecialchars(__('cat_legal')) ?></button>
+                <button type="button" data-cat="health" class="cat-btn px-4 py-2 rounded-full text-sm border border-white/10 text-zinc-400 hover:border-emerald-400/40 hover:text-emerald-300 transition"><?= htmlspecialchars(__('cat_health')) ?></button>
                 <button type="button" data-cat="life" class="cat-btn px-4 py-2 rounded-full text-sm border border-white/10 text-zinc-400 hover:border-emerald-400/40 hover:text-emerald-300 transition"><?= htmlspecialchars(__('cat_life')) ?></button>
                 <button type="button" data-cat="emotion" class="cat-btn px-4 py-2 rounded-full text-sm border border-white/10 text-zinc-400 hover:border-emerald-400/40 hover:text-emerald-300 transition"><?= htmlspecialchars(__('cat_emotion')) ?></button>
             </div>
@@ -62,40 +65,82 @@ require_once __DIR__ . '/../private/includes/header.php';
         </div>
     </section>
 
-    <section id="detail-view" class="hidden max-w-3xl mx-auto" aria-live="polite">
-        <button type="button" id="btn-back" class="mb-6 text-sm text-zinc-400 hover:text-emerald-400 transition inline-flex items-center gap-2">
+    <section id="detail-view" class="hidden max-w-6xl mx-auto w-full" aria-live="polite">
+        <button type="button" id="btn-back" class="mb-5 text-sm text-zinc-400 hover:text-emerald-400 transition inline-flex items-center gap-2">
             <i class="fas fa-arrow-left" aria-hidden="true"></i> <?= htmlspecialchars(__('Back to apps')) ?>
         </button>
 
-        <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-sm shadow-2xl">
-            <div class="flex items-start gap-4 mb-6">
-                <div id="detail-icon" class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl shrink-0">
-                    <i class="fas fa-puzzle-piece" aria-hidden="true"></i>
-                </div>
-                <div class="min-w-0">
-                    <h2 id="detail-title" class="text-2xl font-bold tracking-tight text-white"></h2>
-                    <p id="detail-desc" class="text-sm text-zinc-400 mt-1 leading-relaxed"></p>
-                </div>
+        <!-- App hero -->
+        <div class="flex items-start gap-3 sm:gap-4 mb-6 px-1">
+            <div id="detail-icon" class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg sm:text-xl shrink-0">
+                <i class="fas fa-puzzle-piece" aria-hidden="true"></i>
             </div>
+            <div class="min-w-0">
+                <h2 id="detail-title" class="text-xl sm:text-2xl font-bold tracking-tight text-white"></h2>
+                <p id="detail-desc" class="text-sm text-zinc-400 mt-1 leading-relaxed max-w-2xl"></p>
+            </div>
+        </div>
 
-            <div class="mb-8">
-                <h3 class="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
-                    <i class="fas fa-robot text-emerald-400" aria-hidden="true"></i>
-                    <?= htmlspecialchars(__('Choose AI soul')) ?>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+            <!-- Step 1: soul picker (compact + scrollable) -->
+            <aside class="lg:col-span-5 bg-zinc-900/60 border border-white/10 rounded-3xl overflow-hidden shadow-xl flex flex-col max-h-[min(70vh,640px)] lg:max-h-[calc(100dvh-12rem)] lg:sticky lg:top-24">
+                <div class="shrink-0 p-4 border-b border-white/5 bg-zinc-950/40">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-400 text-[11px] font-black flex items-center justify-center">1</span>
+                            <?= htmlspecialchars(__('Choose AI soul')) ?>
+                        </h3>
+                        <span id="soul-count-badge" class="text-[11px] font-mono text-zinc-500 tabular-nums"></span>
+                    </div>
+                    <div class="relative">
+                        <i class="fas fa-filter absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs" aria-hidden="true"></i>
+                        <input type="search" id="soul-filter" autocomplete="off"
+                            placeholder="<?= htmlspecialchars(__('Filter personas…')) ?>"
+                            class="w-full bg-zinc-950 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400/60 transition placeholder-zinc-600">
+                    </div>
+                </div>
+
+                <div id="soul-picker" role="listbox" aria-label="<?= htmlspecialchars(__('Choose AI soul')) ?>"
+                    class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5 min-h-[180px]"></div>
+
+                <!-- Selected preview (richer card) -->
+                <div id="soul-selected-bar" class="hidden shrink-0 border-t border-emerald-500/25 bg-gradient-to-b from-emerald-500/10 to-zinc-950/80 p-4 max-h-[42%] overflow-y-auto custom-scrollbar">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold"><?= htmlspecialchars(__('Selected')) ?></div>
+                        <div id="soul-selected-stats" class="flex items-center gap-2 text-[11px] text-zinc-400"></div>
+                    </div>
+                    <div id="soul-selected-title" class="text-sm sm:text-base font-bold text-white leading-snug"></div>
+                    <div id="soul-selected-meta" class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400"></div>
+                    <div id="soul-selected-tags" class="mt-2 flex flex-wrap gap-1.5"></div>
+                    <p id="soul-selected-desc" class="text-xs text-zinc-300 mt-2.5 leading-relaxed whitespace-pre-wrap"></p>
+                    <a id="soul-selected-link" href="#" target="_blank" rel="noopener"
+                        class="inline-flex items-center gap-1.5 mt-3 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition">
+                        <i class="fas fa-external-link-alt text-[10px]" aria-hidden="true"></i>
+                        <?= htmlspecialchars(__('View soul page')) ?>
+                    </a>
+                </div>
+                <p id="soul-picker-error" class="hidden shrink-0 px-4 py-2 text-xs text-red-400 border-t border-red-500/20"></p>
+            </aside>
+
+            <!-- Step 2: form -->
+            <div class="lg:col-span-7 bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-7 shadow-xl">
+                <h3 class="text-sm font-semibold text-zinc-200 flex items-center gap-2 mb-5">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-400 text-[11px] font-black flex items-center justify-center">2</span>
+                    <?= htmlspecialchars(__('Fill in details')) ?>
                 </h3>
-                <div id="soul-picker" class="space-y-3" role="radiogroup" aria-label="<?= htmlspecialchars(__('Choose AI soul')) ?>"></div>
-                <p id="soul-picker-error" class="hidden mt-2 text-xs text-red-400"></p>
+
+                <div id="app-disclaimer" class="hidden mb-4 text-xs text-amber-200/90 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2.5 leading-relaxed"></div>
+
+                <form id="app-form" class="space-y-4"></form>
+
+                <p id="form-error" class="hidden mt-4 text-sm text-red-400"></p>
+
+                <button type="submit" form="app-form" id="run-btn"
+                    class="mt-6 w-full py-3.5 sm:py-4 bg-emerald-500 text-zinc-950 text-sm sm:text-base font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/10 disabled:opacity-60 disabled:cursor-not-allowed sticky bottom-4">
+                    <span id="run-text"><i class="fas fa-comments mr-1" aria-hidden="true"></i> <?= htmlspecialchars(__('Start chat for AI reply')) ?></span>
+                    <span id="run-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full" aria-hidden="true"></span>
+                </button>
             </div>
-
-            <form id="app-form" class="space-y-5"></form>
-
-            <p id="form-error" class="hidden mt-4 text-sm text-red-400"></p>
-
-            <button type="submit" form="app-form" id="run-btn"
-                class="mt-8 w-full py-4 bg-emerald-500 text-zinc-950 text-base font-bold rounded-2xl hover:bg-emerald-400 transition flex items-center justify-center gap-3 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed">
-                <span id="run-text"><i class="fas fa-comments mr-1" aria-hidden="true"></i> <?= htmlspecialchars(__('Start chat for AI reply')) ?></span>
-                <span id="run-loading" class="hidden animate-spin h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full" aria-hidden="true"></span>
-            </button>
         </div>
     </section>
 </main>
@@ -119,12 +164,22 @@ require_once __DIR__ . '/../private/includes/header.php';
         roleLabel: <?= json_encode(__('Role'), JSON_UNESCAPED_UNICODE) ?>,
         noDesc: <?= json_encode(__('No description provided.'), JSON_UNESCAPED_UNICODE) ?>,
         soulsCount: <?= json_encode(__(':n AI options'), JSON_UNESCAPED_UNICODE) ?>,
+        noSoulsFound: <?= json_encode(__('No matching souls for this theme'), JSON_UNESCAPED_UNICODE) ?>,
+        noFilterMatch: <?= json_encode(__('No personas match your filter'), JSON_UNESCAPED_UNICODE) ?>,
+        filterPh: <?= json_encode(__('Filter personas…'), JSON_UNESCAPED_UNICODE) ?>,
+        likes: <?= json_encode(__('Likes'), JSON_UNESCAPED_UNICODE) ?>,
+        forks: <?= json_encode(__('Forks'), JSON_UNESCAPED_UNICODE) ?>,
+        modular: <?= json_encode(__('Modular'), JSON_UNESCAPED_UNICODE) ?>,
+        singleFile: <?= json_encode(__('Single file'), JSON_UNESCAPED_UNICODE) ?>,
+        viewSoul: <?= json_encode(__('View soul page'), JSON_UNESCAPED_UNICODE) ?>,
     };
 
     let activeCategory = '';
     let searchTimer = null;
     let currentSlug = null;
     let selectedSoulId = null;
+    /** @type {Array<{id:number,title:string,description:string,role:string,username:string}>} */
+    let currentSouls = [];
 
     function escapeHTML(str) {
         return String(str ?? '')
@@ -168,8 +223,6 @@ require_once __DIR__ . '/../private/includes/header.php';
         }
         grid.innerHTML = apps.map(app => {
             const icon = (app.icon || 'fa-puzzle-piece').replace(/[^a-z0-9-]/gi, '');
-            const n = app.soul_count || 1;
-            const countLabel = i18n.soulsCount.replace(':n', String(n));
             return `
             <button type="button" data-slug="${escapeHTML(app.slug)}"
                 class="app-card text-left group bg-zinc-900/60 border border-white/10 hover:border-emerald-400/40 rounded-3xl p-5 transition shadow-lg hover:-translate-y-0.5 duration-200">
@@ -179,7 +232,6 @@ require_once __DIR__ . '/../private/includes/header.php';
                     </div>
                     <div class="flex flex-col items-end gap-1">
                         ${badgeHtml(app.badge)}
-                        <span class="text-[10px] text-zinc-500">${escapeHTML(countLabel)}</span>
                     </div>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-1.5 group-hover:text-emerald-300 transition">${escapeHTML(app.title)}</h3>
@@ -192,50 +244,149 @@ require_once __DIR__ . '/../private/includes/header.php';
         });
     }
 
+    function initialFromTitle(title) {
+        const t = (title || '?').trim();
+        return escapeHTML(t.charAt(0) || '?');
+    }
+
+    function domainTagsHtml(soul, limit) {
+        const tags = Array.isArray(soul.domains) ? soul.domains : [];
+        if (!tags.length) return '';
+        return tags.slice(0, limit || 3).map(t =>
+            `<span class="inline-flex px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-zinc-400">${escapeHTML(t)}</span>`
+        ).join('');
+    }
+
+    function updateSelectedBar() {
+        const bar = document.getElementById('soul-selected-bar');
+        const titleEl = document.getElementById('soul-selected-title');
+        const metaEl = document.getElementById('soul-selected-meta');
+        const tagsEl = document.getElementById('soul-selected-tags');
+        const statsEl = document.getElementById('soul-selected-stats');
+        const descEl = document.getElementById('soul-selected-desc');
+        const linkEl = document.getElementById('soul-selected-link');
+        const soul = currentSouls.find(s => s.id === selectedSoulId);
+        if (!soul) {
+            bar.classList.add('hidden');
+            return;
+        }
+        titleEl.textContent = soul.title || ('#' + soul.id);
+
+        const roleLabel = soul.role_name || soul.role || '';
+        const metaBits = [];
+        if (soul.username) metaBits.push('<i class="fas fa-user text-[9px] opacity-70"></i> @' + escapeHTML(soul.username));
+        if (roleLabel) metaBits.push('<i class="fas fa-tag text-[9px] opacity-70"></i> ' + escapeHTML(roleLabel));
+        if (soul.file_type === 'full_soul_folder') metaBits.push(escapeHTML(i18n.modular));
+        else if (soul.file_type) metaBits.push(escapeHTML(i18n.singleFile));
+        metaEl.innerHTML = metaBits.length
+            ? metaBits.map(b => `<span class="inline-flex items-center gap-1">${b}</span>`).join('<span class="text-zinc-600">·</span>')
+            : '';
+
+        tagsEl.innerHTML = domainTagsHtml(soul, 6);
+
+        const likes = Number(soul.like_count || 0);
+        const forks = Number(soul.fork_count || 0);
+        statsEl.innerHTML = `
+            <span title="${escapeHTML(i18n.likes)}"><i class="fas fa-heart text-rose-400/80"></i> ${likes}</span>
+            <span title="${escapeHTML(i18n.forks)}"><i class="fas fa-code-branch text-sky-400/80"></i> ${forks}</span>`;
+
+        const desc = (soul.description && soul.description.trim()) ? soul.description.trim() : i18n.noDesc;
+        descEl.textContent = desc;
+
+        const uname = encodeURIComponent(soul.username || 'anonymous');
+        const roleSlug = encodeURIComponent((soul.role || 'other').toString().toLowerCase().replace(/\s+/g, '-'));
+        const titleSlug = encodeURIComponent((soul.title || 'soul').toString().toLowerCase().replace(/\s+/g, '-').slice(0, 80));
+        linkEl.href = `<?= url('/soul/') ?>${uname}/${soul.id}/${roleSlug}/${titleSlug}`;
+        linkEl.classList.remove('hidden');
+        bar.classList.remove('hidden');
+    }
+
     function renderSoulPicker(souls) {
+        currentSouls = Array.isArray(souls) ? souls.slice() : [];
+        const filterEl = document.getElementById('soul-filter');
+        if (filterEl) filterEl.value = '';
+        selectedSoulId = currentSouls.length ? currentSouls[0].id : null;
+        paintSoulList();
+        updateSelectedBar();
+    }
+
+    function paintSoulList() {
         const box = document.getElementById('soul-picker');
         const err = document.getElementById('soul-picker-error');
+        const badge = document.getElementById('soul-count-badge');
         err.classList.add('hidden');
-        selectedSoulId = null;
 
-        if (!souls || !souls.length) {
-            box.innerHTML = `<p class="text-sm text-zinc-500">${escapeHTML(i18n.failApp)}</p>`;
+        const filter = (document.getElementById('soul-filter')?.value || '').trim().toLowerCase();
+        let list = currentSouls;
+        if (filter) {
+            list = currentSouls.filter(s => {
+                const domains = Array.isArray(s.domains) ? s.domains.join(' ') : (s.domain || '');
+                const hay = [s.title, s.username, s.role, s.role_name, s.description, domains].join(' ').toLowerCase();
+                return hay.includes(filter);
+            });
+        }
+
+        badge.textContent = i18n.soulsCount.replace(':n', String(list.length));
+
+        if (!currentSouls.length) {
+            box.innerHTML = `<div class="px-3 py-8 text-center text-sm text-amber-300/90">${escapeHTML(i18n.noSoulsFound)}</div>`;
+            return;
+        }
+        if (!list.length) {
+            box.innerHTML = `<div class="px-3 py-8 text-center text-sm text-zinc-500">${escapeHTML(i18n.noFilterMatch)}</div>`;
             return;
         }
 
-        if (souls.length === 1) {
-            selectedSoulId = souls[0].id;
+        if (!list.some(s => s.id === selectedSoulId)) {
+            selectedSoulId = list[0].id;
         }
 
-        box.innerHTML = souls.map((s, idx) => {
-            const checked = (souls.length === 1 || idx === 0) ? 'checked' : '';
-            if (checked) selectedSoulId = s.id;
-            const desc = (s.description && s.description.trim()) ? s.description : i18n.noDesc;
-            const author = s.username
-                ? i18n.byAuthor.replace(':name', s.username)
-                : '';
+        box.innerHTML = list.map(s => {
+            const active = s.id === selectedSoulId;
+            const author = s.username ? '@' + s.username : '';
+            const role = s.role_name || s.role || '';
+            const likes = Number(s.like_count || 0);
+            const desc = (s.description && s.description.trim()) ? s.description.trim() : '';
+            const tags = domainTagsHtml(s, 2);
             return `
-            <label class="soul-option block cursor-pointer rounded-2xl border border-white/10 bg-zinc-950/50 p-4 hover:border-emerald-400/40 transition has-[:checked]:border-emerald-400/60 has-[:checked]:bg-emerald-500/5">
+            <button type="button" role="option" aria-selected="${active ? 'true' : 'false'}" data-soul-id="${s.id}"
+                class="soul-row w-full text-left rounded-xl px-3 py-2.5 transition border ${
+                    active
+                        ? 'bg-emerald-500/10 border-emerald-400/40 ring-1 ring-emerald-400/20'
+                        : 'bg-zinc-950/30 border-white/5 hover:bg-white/[0.04] hover:border-white/10'
+                }">
                 <div class="flex items-start gap-3">
-                    <input type="radio" name="soul_id" value="${s.id}" class="mt-1 accent-emerald-500" ${checked}>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-2 mb-1">
-                            <span class="font-bold text-white text-sm">${escapeHTML(s.title || ('#' + s.id))}</span>
-                            ${s.role ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">${escapeHTML(i18n.roleLabel)}: ${escapeHTML(s.role)}</span>` : ''}
-                        </div>
-                        ${author ? `<div class="text-[11px] text-zinc-500 mb-1.5">${escapeHTML(author)}</div>` : ''}
-                        <p class="text-xs text-zinc-400 leading-relaxed line-clamp-4">${escapeHTML(desc)}</p>
-                    </div>
+                    <span class="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-sm font-black mt-0.5 ${
+                        active ? 'bg-emerald-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300 border border-white/10'
+                    }">${initialFromTitle(s.title)}</span>
+                    <span class="min-w-0 flex-1">
+                        <span class="flex items-start justify-between gap-2">
+                            <span class="text-sm font-semibold text-white leading-snug line-clamp-2">${escapeHTML(s.title || ('#' + s.id))}</span>
+                            ${active ? '<i class="fas fa-check text-emerald-400 text-xs shrink-0 mt-1" aria-hidden="true"></i>' : ''}
+                        </span>
+                        <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
+                            ${author ? `<span class="truncate max-w-[9rem]">${escapeHTML(author)}</span>` : ''}
+                            ${role ? `<span class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">${escapeHTML(role)}</span>` : ''}
+                            ${likes > 0 ? `<span class="text-zinc-500"><i class="fas fa-heart text-rose-400/70 text-[9px]"></i> ${likes}</span>` : ''}
+                        </span>
+                        ${desc ? `<span class="mt-1.5 block text-[11px] text-zinc-400 leading-relaxed ${active ? 'line-clamp-3' : 'line-clamp-1'}">${escapeHTML(desc)}</span>` : ''}
+                        ${tags ? `<span class="mt-1.5 flex flex-wrap gap-1">${tags}</span>` : ''}
+                    </span>
                 </div>
-            </label>`;
+            </button>`;
         }).join('');
 
-        box.querySelectorAll('input[name="soul_id"]').forEach(inp => {
-            inp.addEventListener('change', () => {
-                selectedSoulId = parseInt(inp.value, 10) || null;
+        box.querySelectorAll('.soul-row').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedSoulId = parseInt(btn.getAttribute('data-soul-id'), 10) || null;
+                paintSoulList();
+                updateSelectedBar();
                 err.classList.add('hidden');
+                // Keep selected row in view + scroll selected panel into focus on mobile
+                btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             });
         });
+        updateSelectedBar();
     }
 
     async function openApp(slug) {
@@ -247,7 +398,9 @@ require_once __DIR__ . '/../private/includes/header.php';
 
         const form = document.getElementById('app-form');
         form.innerHTML = `<div class="text-zinc-500 text-sm py-4">${escapeHTML(i18n.loading)}</div>`;
-        document.getElementById('soul-picker').innerHTML = `<div class="text-zinc-500 text-sm">${escapeHTML(i18n.loading)}</div>`;
+        document.getElementById('soul-picker').innerHTML = `<div class="px-3 py-8 text-center text-sm text-zinc-500">${escapeHTML(i18n.loading)}</div>`;
+        document.getElementById('soul-selected-bar').classList.add('hidden');
+        document.getElementById('soul-count-badge').textContent = '';
 
         try {
             const res = await fetch('/api/apps?slug=' + encodeURIComponent(slug));
@@ -259,6 +412,14 @@ require_once __DIR__ . '/../private/includes/header.php';
             const icon = (app.icon || 'fa-puzzle-piece').replace(/[^a-z0-9-]/gi, '');
             document.getElementById('detail-icon').innerHTML = `<i class="fas ${escapeHTML(icon)}" aria-hidden="true"></i>`;
             renderSoulPicker(app.souls || []);
+            const disc = document.getElementById('app-disclaimer');
+            if (app.disclaimer) {
+                disc.textContent = app.disclaimer;
+                disc.classList.remove('hidden');
+            } else {
+                disc.textContent = '';
+                disc.classList.add('hidden');
+            }
             form.innerHTML = (app.fields || []).map(renderField).join('');
             const cleanPath = appsBaseUrl + '/' + encodeURIComponent(slug);
             const cur = window.location.pathname.replace(/\/+$/, '');
@@ -316,6 +477,10 @@ require_once __DIR__ . '/../private/includes/header.php';
 
     document.getElementById('btn-back').addEventListener('click', showCatalog);
 
+    document.getElementById('soul-filter').addEventListener('input', () => {
+        paintSoulList();
+    });
+
     document.querySelectorAll('.cat-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.cat-btn').forEach(b => {
@@ -343,11 +508,10 @@ require_once __DIR__ . '/../private/includes/header.php';
         formErr.classList.add('hidden');
         soulErr.classList.add('hidden');
 
-        const checked = document.querySelector('input[name="soul_id"]:checked');
-        selectedSoulId = checked ? (parseInt(checked.value, 10) || null) : selectedSoulId;
         if (!selectedSoulId) {
             soulErr.textContent = i18n.pickSoul;
             soulErr.classList.remove('hidden');
+            document.getElementById('soul-picker')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
 

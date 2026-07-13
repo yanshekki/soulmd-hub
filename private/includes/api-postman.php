@@ -287,7 +287,7 @@
                                 "code": 200,
                                 "_postman_previewlanguage": "json",
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
-                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"slug": "name-advisor", "icon": "fa-signature", "category": "destiny", "title": "Name Advisor", "description": "Chinese naming…", "badge": "popular", "field_count": 5, "soul_count": 2, "soul_configured": true}]}, null, 2)
+                                "body": JSON.stringify({"success": true, "count": 1, "data": [{"slug": "name-advisor", "icon": "fa-signature", "category": "destiny", "title": "Name Advisor", "description": "Chinese naming…", "badge": "popular", "field_count": 5, "search_keywords": "改名 命名 naming"}]}, null, 2)
                             }]
                         },
                         {

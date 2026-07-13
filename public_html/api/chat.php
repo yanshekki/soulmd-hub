@@ -8,6 +8,8 @@
 
 set_time_limit(180);
 
+// Default JSON; streaming path switches to text/event-stream via LlmStreamProxy::beginSse().
+// Do not echo anything before beginSse() or Content-Type cannot be changed.
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -23,6 +25,7 @@ require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/LlmStreamProxy.php';
 
 loadTranslations('api');
 loadTranslations('chat');
@@ -421,146 +424,142 @@ if ($method === 'POST') {
         
         session_write_close(); 
 
-        /**
-         * Extract visible assistant text. DeepSeek V4 / reasoner models often put tokens in
-         * reasoning_* while message.content is empty; finish_reason may still be "length".
-         */
-        $extractChatReply = static function (?array $choice): string {
-            if (!$choice) {
-                return '';
-            }
-            $msg = $choice['message'] ?? [];
-            $content = $msg['content'] ?? '';
-            if (is_array($content)) {
-                $parts = [];
-                foreach ($content as $part) {
-                    if (is_string($part)) {
-                        $parts[] = $part;
-                    } elseif (is_array($part)) {
-                        if (isset($part['text']) && is_string($part['text'])) {
-                            $parts[] = $part['text'];
-                        }
-                    }
-                }
-                $content = implode('', $parts);
-            }
-            $content = is_string($content) ? trim($content) : '';
-            if ($content !== '') {
-                return $content;
-            }
-            foreach (['reasoning_content', 'reasoning'] as $key) {
-                if (!empty($msg[$key]) && is_string($msg[$key])) {
-                    $r = trim($msg[$key]);
-                    if ($r !== '') {
-                        return $r;
-                    }
-                }
-            }
-            return '';
-        };
-
-        $maxRetries = 3;      
-        $retryDelay = 2;      
-        $response = '';
-        $httpCode = 0;
-        // Prefer answer tokens within the tier budget (V4 may spend max_tokens on CoT otherwise)
-        $useThinkingDisabled = true;
-        
-        for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
-            $ch = curl_init();
-            $requestBody = [
-                "model" => $targetModel, 
-                "messages" => $finalPayloadMessages,
-                "max_tokens" => $tierConfig['max_tokens'], 
-                "temperature" => 0.7,
-                "stream" => false
-            ];
-            if ($useThinkingDisabled) {
-                $requestBody['thinking'] = ['type' => 'disabled'];
-            }
-            $payload = json_encode($requestBody, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-
-            curl_setopt_array($ch, [
-                CURLOPT_URL => $targetApiUrl,
-                CURLOPT_RETURNTRANSFER => true, 
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => $payload, 
-                CURLOPT_CONNECTTIMEOUT => 10, 
-                CURLOPT_TIMEOUT => 120,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $targetApiKey]
-            ]);
-
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_errno($ch);
-            curl_close($ch);
-
-            if ($curlError) { 
-                http_response_code(504); 
-                echo json_encode(['success' => false, 'error' => __('AI Service timeout')], JSON_UNESCAPED_UNICODE); 
-                exit; 
-            }
-
-            if ($httpCode === 400 && $useThinkingDisabled) {
-                $errProbe = json_decode((string)$response, true);
-                $errMsg = strtolower((string)($errProbe['error']['message'] ?? $response));
-                if (strpos($errMsg, 'thinking') !== false || strpos($errMsg, 'unknown') !== false || strpos($errMsg, 'invalid') !== false) {
-                    $useThinkingDisabled = false;
-                    continue;
-                }
-            }
-
-            if ($httpCode !== 429) break;
-            if ($attempt < $maxRetries - 1) { 
-                sleep($retryDelay); 
-                $retryDelay *= 2; 
-            }
-        }
-        
-        $responseData = json_decode($response, true);
-        if ($httpCode !== 200 || !empty($responseData['error'])) {
-            http_response_code(400);
-            $errorDetail = $responseData['error']['message'] ?? __('Unknown Connection Failure');
-            echo json_encode(['success' => false, 'error' => __('Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE); 
-            exit;
-        }
-
-        $choice = $responseData['choices'][0] ?? null;
-        $aiReply = $extractChatReply(is_array($choice) ? $choice : null);
-        // OpenAI-compatible providers signal max_tokens stop via finish_reason=length (some use max_tokens)
-        $finishReason = (string)($choice['finish_reason'] ?? '');
-        // Only treat as "truncated answer" when there is visible text; empty+length is a CoT budget bug, not a partial reply
-        $isTruncated = ($aiReply !== '') && in_array($finishReason, ['length', 'max_tokens'], true);
-        // Free/VIP hit tier output caps; PRO already has the highest platform limit
-        $needsUpgradeForTruncation = $isTruncated && strtolower((string)($currentUser['tier'] ?? 'free')) !== 'pro';
-
-        if ($aiReply === '') {
-            http_response_code(502);
-            echo json_encode([
-                'success' => false,
-                'error' => __('Empty AI reply'),
-                'finish_reason' => $finishReason,
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        // 🚀 判定發送者身份 Sender Name
+        // 🚀 判定發送者身份（串流前先算好，完成後寫庫）
         $senderName = '';
         if ($currentUser['id']) {
             $senderName = $currentUser['username'];
         } else {
+            // session already closed; guest id may still be available from earlier open session
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
             if (empty($_SESSION['guest_id'])) {
                 $_SESSION['guest_id'] = bin2hex(random_bytes(8));
             }
             $shortId = strtoupper(substr($_SESSION['guest_id'], 0, 4));
             $senderName = __('Anonymous') . ' #' . $shortId;
+            session_write_close();
+        }
+
+        // Stream tokens (including thinking/reasoning) to the client as SSE
+        LlmStreamProxy::beginSse();
+        LlmStreamProxy::emit(['type' => 'status', 'phase' => 'generating']);
+
+        $baseRequest = [
+            'model' => $targetModel,
+            'messages' => $finalPayloadMessages,
+            'max_tokens' => $tierConfig['max_tokens'],
+            'temperature' => 0.7,
+        ];
+        // Enable thinking so reasoning_content streams during CoT (DeepSeek V4 default is enabled)
+        $baseRequest['thinking'] = ['type' => 'enabled'];
+
+        $maxRetries = 3;
+        $retryDelay = 2;
+        $streamResult = null;
+        $thinkingParamOk = true;
+
+        for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+            $requestBody = $baseRequest;
+            if (!$thinkingParamOk) {
+                unset($requestBody['thinking']);
+            }
+
+            $streamResult = LlmStreamProxy::streamCompletion(
+                $targetApiUrl,
+                $targetApiKey,
+                $requestBody,
+                static function (string $kind, string $text): void {
+                    if ($kind === 'thinking') {
+                        LlmStreamProxy::emit(['type' => 'thinking', 'text' => $text]);
+                    } else {
+                        LlmStreamProxy::emit(['type' => 'content', 'text' => $text]);
+                    }
+                },
+                150
+            );
+
+            // Never retry after any tokens were already pushed to the client (would duplicate UI).
+            $alreadyEmitted = !empty($streamResult['emitted_tokens']);
+
+            // If provider rejects thinking param, retry once without it (only when nothing streamed).
+            if (
+                !$alreadyEmitted
+                && $thinkingParamOk
+                && (int)$streamResult['http_code'] === 400
+                && LlmStreamProxy::isThinkingParamRejected(
+                    $streamResult['error'] ?? null,
+                    $streamResult['raw_error_body'] ?? null
+                )
+            ) {
+                $thinkingParamOk = false;
+                continue;
+            }
+
+            // Rate-limit retries only when the upstream failed before any tokens.
+            if ((int)$streamResult['http_code'] === 429 && !$alreadyEmitted && $attempt < $maxRetries - 1) {
+                sleep($retryDelay);
+                $retryDelay *= 2;
+                continue;
+            }
+
+            break;
+        }
+
+        if (!$streamResult) {
+            LlmStreamProxy::emit([
+                'type' => 'error',
+                'error' => __('AI Service timeout'),
+                'needs_upgrade' => false,
+            ]);
+            LlmStreamProxy::emitDone();
+            exit;
+        }
+
+        if (!empty($streamResult['error']) && $streamResult['content'] === '' && $streamResult['reasoning'] === '') {
+            $errorDetail = (string)$streamResult['error'];
+            if ((int)$streamResult['http_code'] === 0 || (int)$streamResult['http_code'] >= 500) {
+                LlmStreamProxy::emit([
+                    'type' => 'error',
+                    'error' => __('AI Service timeout'),
+                    'needs_upgrade' => false,
+                ]);
+            } else {
+                LlmStreamProxy::emit([
+                    'type' => 'error',
+                    'error' => __('Engine Error', ['error' => $errorDetail]),
+                    'needs_upgrade' => false,
+                ]);
+            }
+            LlmStreamProxy::emitDone();
+            exit;
+        }
+
+        $finishReason = (string)($streamResult['finish_reason'] ?? '');
+        $aiReply = LlmStreamProxy::pickReply(
+            (string)$streamResult['content'],
+            (string)$streamResult['reasoning']
+        );
+
+        // Only treat as truncated answer when there is visible text
+        $isTruncated = ($aiReply !== '') && in_array($finishReason, ['length', 'max_tokens'], true);
+        $needsUpgradeForTruncation = $isTruncated && strtolower((string)($currentUser['tier'] ?? 'free')) !== 'pro';
+
+        if ($aiReply === '') {
+            LlmStreamProxy::emit([
+                'type' => 'error',
+                'error' => __('Empty AI reply'),
+                'finish_reason' => $finishReason,
+                'needs_upgrade' => false,
+            ]);
+            LlmStreamProxy::emitDone();
+            exit;
         }
 
         try {
             $freshPdo = Database::getFreshConnection();
             $freshPdo->beginTransaction();
             
-            // 🚀 將 sender_name 寫入資料庫
             $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, sender_name, content) VALUES (?, ?, ?, ?, ?)");
             $ins->execute([$soulId, $sessionToken, 'user', $senderName, $dbContentToSave]);
             $ins->execute([$soulId, $sessionToken, 'assistant', __('AI Assistant'), $aiReply]);
@@ -569,7 +568,6 @@ if ($method === 'POST') {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
             } else {
                 if (!$isApiCall) {
-                    // May have been closed earlier via session_write_close(); reopen only if needed
                     if (session_status() === PHP_SESSION_NONE) {
                         session_start();
                     }
@@ -585,24 +583,46 @@ if ($method === 'POST') {
 
             $freshPdo->commit();
             
-            // 🚀 回傳埋 sender_name；truncated 時前端顯示升級提示
-            echo json_encode([
+            LlmStreamProxy::emit([
+                'type' => 'done',
                 'success' => true,
                 'reply' => $aiReply,
                 'sender_name' => __('AI Assistant'),
                 'truncated' => $isTruncated,
                 'needs_upgrade' => $needsUpgradeForTruncation,
                 'finish_reason' => $finishReason,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
+            LlmStreamProxy::emitDone();
 
         } catch (Throwable $e) {
             if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();
-            http_response_code(500); 
-            echo json_encode(['success' => false, 'error' => __('DB Sync Error', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
+            LlmStreamProxy::emit([
+                'type' => 'error',
+                'error' => __('DB Sync Error', ['error' => $e->getMessage()]),
+                'needs_upgrade' => false,
+            ]);
+            LlmStreamProxy::emitDone();
         }
     } catch (Throwable $e) {
-        http_response_code(500); 
-        echo json_encode(['success' => false, 'error' => __('Fatal Server Exception', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
+        // If SSE already started, emit error event; else JSON
+        if (!headers_sent() || (function_exists('headers_list') && stripos(implode(' ', headers_list()), 'text/event-stream') === false)) {
+            if (!headers_sent()) {
+                http_response_code(500);
+                header('Content-Type: application/json; charset=utf-8');
+            }
+            // When SSE headers already sent, fall through to emit
+        }
+        if (headers_sent() && stripos(implode("\n", headers_list()), 'text/event-stream') !== false) {
+            LlmStreamProxy::emit([
+                'type' => 'error',
+                'error' => __('Fatal Server Exception', ['error' => $e->getMessage()]),
+                'needs_upgrade' => false,
+            ]);
+            LlmStreamProxy::emitDone();
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => __('Fatal Server Exception', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
+        }
     }
 } else {
     http_response_code(405); 

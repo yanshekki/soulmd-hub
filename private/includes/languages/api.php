@@ -136,7 +136,7 @@ return [
 
         // Mini Apps
         'App not found' => 'Mini app not found.',
-        'App soul not configured' => 'This mini app has no bound soul and no built-in prompt. Configure MINI_APP_SOUL_MAP or enable the builtin prompt.',
+        'App soul not configured' => 'No public AI personas match this mini app theme right now.',
         'App soul not available' => 'The bound soul for this mini app is not publicly available.',
         'Missing required app field' => 'Missing required field: :field',
         'App field too long' => 'Field ":field" exceeds the maximum of :max characters.',
@@ -268,7 +268,7 @@ return [
 
         // Mini Apps
         'App not found' => '找不到此小程式。',
-        'App soul not configured' => '此小程式尚未綁定 Soul，亦無內建提示詞。請設定 MINI_APP_SOUL_MAP 或啟用內建提示。',
+        'App soul not configured' => '暫時沒有符合此小程式主題的公開 AI 角色。',
         'App soul not available' => '此小程式綁定的 Soul 目前不可公開使用。',
         'Missing required app field' => '缺少必填欄位：:field',
         'App field too long' => '欄位「:field」超過上限 :max 個字元。',

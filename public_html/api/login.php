@@ -59,7 +59,10 @@ $user = $stmt->fetch();
 if ($user && password_verify($password, $user['password'])) {
     
     // 防禦 Session Fixation 攻擊
-    session_start();
+    // ensureCsrfToken() may already have started the session — only start if idle
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     session_regenerate_id(true);
     
     $_SESSION['user_id'] = $user['id'];

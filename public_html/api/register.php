@@ -75,7 +75,10 @@ try {
     
     $userId = $pdo->lastInsertId();
 
-    session_start();
+    // Session may already be active (e.g. CSRF helper) — only start if idle
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     session_regenerate_id(true);
     
     $_SESSION['user_id'] = $userId;

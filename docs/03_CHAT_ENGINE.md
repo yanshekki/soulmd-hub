@@ -10,11 +10,13 @@ To accommodate both standard consumers and power users, the system implements a 
 * **Purpose:** Handles requests utilizing the platform's official API keys and compute quotas.
 * **Constraints:** Strictly enforces daily usage limits, maximum conversation turns, and input character counts based on the user's subscription tier (`FREE`, `VIP`, `PRO`).
 * **Capabilities:** Routes text-only requests to deep reasoning models and multimodal (image) requests to Vision AI models, provided the user's tier permits it.
+* **Streaming:** Proxies upstream completions as **SSE** (`text/event-stream`). Thinking/CoT tokens (`reasoning_content`) are emitted as `type: thinking`; answer tokens as `type: content`; final metadata as `type: done`. Shared helper: `private/src/LlmStreamProxy.php`.
 
 ### 2.2. BYOK Proxy Gateway (`/api/self-chat.php`)
 * **Purpose:** Serves as a stateless proxy for users bringing their own API keys (Bring Your Own Key).
 * **Constraints:** Bypasses platform-imposed daily limits and turn restrictions. However, it still strictly enforces Web3 Token-Gating access rights for NFT-based AI agents.
 * **Smart Fallback:** If a user submits a Vision request but lacks a custom Vision API key, the system seamlessly attempts to fall back to the official platform Vision allowance, deducting from their daily quota if eligible.
+* **Streaming:** Same SSE protocol as the official gateway; thinking deltas only when the custom provider emits reasoning fields.
 
 ## 3. Multiplayer Real-Time Sync (Delta Sync)
 

@@ -61,6 +61,8 @@ return [
         'Reply truncated notice' => 'Reply truncated: your plan\'s AI output limit was reached before the answer finished.',
         'Reply truncated upgrade CTA' => 'Upgrade for longer replies',
         'Reply truncated byok notice' => 'Reply truncated: the model hit the max output length for this request.',
+        'Thinking' => 'Thinking',
+        'Thinking done' => 'Thought process',
         
         // Web3 / AgentFi / BYOK Alerts
         'Security Interception' => "🛡️ **Security Interception Triggered**\nOff-chain AI template mismatch. The creator has modified the core instructions without updating the blockchain cryptographic hash. Access is suspended to protect your rental IP rights.",
@@ -133,6 +135,8 @@ return [
         'Reply truncated notice' => '回覆已截斷：目前方案的 AI 輸出長度上限已用盡，答案未能完整顯示。',
         'Reply truncated upgrade CTA' => '升級以獲得更長回覆',
         'Reply truncated byok notice' => '回覆已截斷：模型已達本次請求的最大輸出長度。',
+        'Thinking' => '思考中',
+        'Thinking done' => '思考過程',
         
         // Web3 / AgentFi / BYOK Alerts
         'Security Interception' => "🛡️ **觸發安全攔截 (Security Interception)**\n鏈下 AI 模板不符。創作者修改了核心指令，但並未更新區塊鏈上的加密 Hash。為保護您的租賃 IP 權益，系統已暫停存取。",

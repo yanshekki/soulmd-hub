@@ -493,6 +493,7 @@
         // 🚀 本地立即顯示，並帶上 "You" 身份
         appendMessage('user', contentToAppend, '<?= addslashes(__('You')) ?>');
         userMessageCount++;
+        let chatSucceeded = false;
         const aiBubble = appendMessage('assistant', '...', '<?= addslashes(__('AI Assistant')) ?>');
         
         const privacyToggle = document.getElementById('privacy-toggle');
@@ -513,67 +514,49 @@
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json', 
-                    'X-CSRF-Token': serverCsrfToken 
+                    'X-CSRF-Token': serverCsrfToken,
+                    'Accept': 'text/event-stream, application/json'
                 },
                 body: JSON.stringify(payload)
             });
 
-            const rawText = await res.text();
-            let data;
-            
-            try {
-                data = JSON.parse(rawText);
-            } catch (parseErr) {
-                if (rawText.includes('524') || rawText.includes('timeout') || rawText.includes('Cloudflare')) {
-                    aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-hourglass-end"></i> ` + <?= json_encode(__('Cloudflare Timeout'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
-                } else {
-                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-bug"></i> ` + <?= json_encode(__('Fatal Server Error'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
+            const contentType = (res.headers.get('content-type') || '').toLowerCase();
+            const isSse = contentType.includes('text/event-stream');
+
+            // JSON fallback (early validation errors before stream starts)
+            if (!isSse) {
+                const rawText = await res.text();
+                // Proxy may mislabel SSE as JSON — still parse if body is event-stream
+                if (rawText.startsWith('data:') || rawText.includes('\ndata:')) {
+                    chatSucceeded = await consumeChatSseFromText(rawText, aiBubble);
+                    return;
                 }
+                let data;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {
+                    if (rawText.includes('524') || rawText.includes('timeout') || rawText.includes('Cloudflare')) {
+                        aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-hourglass-end"></i> ` + <?= json_encode(__('Cloudflare Timeout'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
+                    } else {
+                        aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-bug"></i> ` + <?= json_encode(__('Fatal Server Error'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
+                    }
+                    return;
+                }
+                chatSucceeded = !!(data && data.success);
+                applyChatResult(aiBubble, data);
                 return;
             }
 
-            if (data.success) {
-                const replyText = (data.reply && String(data.reply).trim()) ? String(data.reply) : '';
-                // 🚀 將 API 回傳的最終對話內容加入特徵去重 Set，防止稍後同步時被二次渲染
-                window.renderedContents.add('assistant_' + replyText);
-                aiBubble.innerHTML = replyText
-                    ? DOMPurify.sanitize(parseMarkdown(replyText))
-                    : `<span class="text-zinc-400 text-sm">${<?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>}</span>`;
-
-                // 只有「有正文 + 真係被 max_tokens cut」先顯示截斷／升級提示（空 reply 唔當截斷）
-                if (replyText && data.truncated) {
-                    const notice = document.createElement('div');
-                    notice.className = 'mt-3 pt-3 border-t border-amber-500/25 text-amber-300/95 text-xs leading-relaxed not-prose';
-                    const noticeText = document.createElement('div');
-                    noticeText.className = 'flex items-start gap-2';
-                    if (data.needs_upgrade) {
-                        noticeText.innerHTML = '<i class="fas fa-cut mt-0.5 shrink-0 opacity-90" aria-hidden="true"></i><span>' +
-                            <?= json_encode(__('Reply truncated notice'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
-                        const cta = document.createElement('button');
-                        cta.type = 'button';
-                        cta.className = 'mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 font-semibold transition';
-                        cta.innerHTML = '<i class="fas fa-crown" aria-hidden="true"></i> ' + <?= json_encode(__('Reply truncated upgrade CTA'), JSON_UNESCAPED_UNICODE) ?>;
-                        cta.addEventListener('click', () => showPaywall());
-                        notice.appendChild(noticeText);
-                        notice.appendChild(cta);
-                    } else {
-                        noticeText.innerHTML = '<i class="fas fa-cut mt-0.5 shrink-0 opacity-90" aria-hidden="true"></i><span>' +
-                            <?= json_encode(__('Reply truncated byok notice'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
-                        notice.appendChild(noticeText);
-                    }
-                    aiBubble.appendChild(notice);
-                }
-            } else {
-                if (data.needs_upgrade) {
-                    aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${data.error}</span>`;
-                    showPaywall();
-                } else {
-                    aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> ${data.error || <?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>}`;
-                }
-            }
+            // ── SSE streaming (thinking + content) ──
+            chatSucceeded = await consumeChatSse(res, aiBubble);
         } catch (err) {
             aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-wifi"></i> ` + <?= json_encode(__('Network error. Connection failed.'), JSON_UNESCAPED_UNICODE) ?> + `</span>`;
         } finally {
+            // Roll back optimistic turn count if the request did not complete successfully
+            if (!chatSucceeded) {
+                userMessageCount = Math.max(0, userMessageCount - 1);
+            }
+
             chatInput.disabled = false;
             sendBtn.disabled = false;
             sendBtn.classList.remove('opacity-80', 'cursor-not-allowed');
@@ -591,6 +574,311 @@
             setTimeout(scrollToBottom, 50);
         }
     });
+
+    /**
+     * Build streaming bubble: collapsible thinking + live content.
+     */
+    function initStreamingBubble(aiBubble) {
+        aiBubble.classList.remove('prose', 'prose-invert', 'prose-sm', 'prose-emerald');
+        aiBubble.innerHTML = '';
+
+        const thinkingWrap = document.createElement('details');
+        thinkingWrap.className = 'thinking-block not-prose mb-3 rounded-xl border border-violet-500/25 bg-violet-500/5 overflow-hidden';
+        thinkingWrap.open = true;
+        thinkingWrap.hidden = true;
+
+        const summary = document.createElement('summary');
+        summary.className = 'cursor-pointer select-none px-3 py-2 text-xs font-semibold text-violet-300/95 flex items-center gap-2 list-none';
+        summary.innerHTML = '<i class="fas fa-brain text-violet-400 animate-pulse" aria-hidden="true"></i><span class="thinking-label">' +
+            <?= json_encode(__('Thinking'), JSON_UNESCAPED_UNICODE) ?> +
+            '</span><span class="thinking-spinner ml-auto inline-flex gap-0.5" aria-hidden="true">' +
+            '<span class="w-1 h-1 bg-violet-400 rounded-full animate-bounce"></span>' +
+            '<span class="w-1 h-1 bg-violet-400 rounded-full animate-bounce" style="animation-delay:0.15s"></span>' +
+            '<span class="w-1 h-1 bg-violet-400 rounded-full animate-bounce" style="animation-delay:0.3s"></span>' +
+            '</span>';
+
+        const thinkingBody = document.createElement('pre');
+        thinkingBody.className = 'thinking-body max-h-48 overflow-y-auto px-3 pb-3 text-[11px] leading-relaxed text-zinc-400 whitespace-pre-wrap font-mono border-t border-violet-500/15';
+
+        thinkingWrap.appendChild(summary);
+        thinkingWrap.appendChild(thinkingBody);
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'stream-content prose prose-invert prose-sm prose-emerald max-w-none';
+        contentEl.innerHTML = '<div class="flex gap-1 items-center h-4 opacity-60"><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span><span class="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></span></div>';
+
+        aiBubble.appendChild(thinkingWrap);
+        aiBubble.appendChild(contentEl);
+
+        return { thinkingWrap, thinkingBody, contentEl, summary };
+    }
+
+    function appendTruncationNotice(aiBubble, data) {
+        if (!data || !data.truncated) return;
+        const notice = document.createElement('div');
+        notice.className = 'mt-3 pt-3 border-t border-amber-500/25 text-amber-300/95 text-xs leading-relaxed not-prose';
+        const noticeText = document.createElement('div');
+        noticeText.className = 'flex items-start gap-2';
+        if (data.needs_upgrade) {
+            noticeText.innerHTML = '<i class="fas fa-cut mt-0.5 shrink-0 opacity-90" aria-hidden="true"></i><span>' +
+                <?= json_encode(__('Reply truncated notice'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
+            const cta = document.createElement('button');
+            cta.type = 'button';
+            cta.className = 'mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 font-semibold transition';
+            cta.innerHTML = '<i class="fas fa-crown" aria-hidden="true"></i> ' + <?= json_encode(__('Reply truncated upgrade CTA'), JSON_UNESCAPED_UNICODE) ?>;
+            cta.addEventListener('click', () => showPaywall());
+            notice.appendChild(noticeText);
+            notice.appendChild(cta);
+        } else {
+            noticeText.innerHTML = '<i class="fas fa-cut mt-0.5 shrink-0 opacity-90" aria-hidden="true"></i><span>' +
+                <?= json_encode(__('Reply truncated byok notice'), JSON_UNESCAPED_UNICODE) ?> + '</span>';
+            notice.appendChild(noticeText);
+        }
+        aiBubble.appendChild(notice);
+    }
+
+    function applyChatResult(aiBubble, data) {
+        if (data && data.success) {
+            const replyText = (data.reply && String(data.reply).trim()) ? String(data.reply) : '';
+            window.renderedContents.add('assistant_' + replyText);
+            aiBubble.innerHTML = replyText
+                ? DOMPurify.sanitize(parseMarkdown(replyText))
+                : `<span class="text-zinc-400 text-sm">${<?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>}</span>`;
+            if (replyText && data.truncated) {
+                appendTruncationNotice(aiBubble, data);
+            }
+        } else if (data && data.needs_upgrade) {
+            aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${escapeHTML(data.error || '')}</span>`;
+            showPaywall();
+        } else {
+            aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> ${escapeHTML((data && data.error) || <?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>)}</span>`;
+        }
+    }
+
+    function escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    /**
+     * Shared SSE event application for live + offline (mislabelled) streams.
+     * @returns {{ok:boolean, finalData:object|null, streamError:object|null, thinkingText:string, contentText:string, contentStarted:boolean, ui:object}}
+     */
+    function createStreamState(aiBubble) {
+        const ui = initStreamingBubble(aiBubble);
+        return {
+            ui,
+            thinkingText: '',
+            contentText: '',
+            contentStarted: false,
+            lastRender: 0,
+            pendingRender: null,
+            finalData: null,
+            streamError: null,
+        };
+    }
+
+    function finalizeThinkingHeader(ui, thinkingText) {
+        if (!thinkingText) return;
+        ui.thinkingWrap.hidden = false;
+        const label = ui.summary.querySelector('.thinking-label');
+        if (label) label.textContent = <?= json_encode(__('Thinking done'), JSON_UNESCAPED_UNICODE) ?>;
+        const spin = ui.summary.querySelector('.thinking-spinner');
+        if (spin) spin.remove();
+        const icon = ui.summary.querySelector('.fa-brain');
+        if (icon) icon.classList.remove('animate-pulse');
+    }
+
+    function applySseEvent(state, evt) {
+        if (!evt || typeof evt !== 'object') return;
+        const type = evt.type;
+        const ui = state.ui;
+
+        if (type === 'thinking' && evt.text) {
+            state.thinkingText += evt.text;
+            ui.thinkingWrap.hidden = false;
+            ui.thinkingBody.textContent = state.thinkingText;
+            ui.thinkingBody.scrollTop = ui.thinkingBody.scrollHeight;
+            scrollToBottom();
+        } else if (type === 'content' && evt.text) {
+            if (!state.contentStarted) {
+                state.contentStarted = true;
+                if (state.thinkingText) {
+                    ui.thinkingWrap.open = false;
+                    finalizeThinkingHeader(ui, state.thinkingText);
+                }
+                ui.contentEl.innerHTML = '';
+            }
+            state.contentText += evt.text;
+            const now = Date.now();
+            const run = () => {
+                state.lastRender = Date.now();
+                state.pendingRender = null;
+                ui.contentEl.innerHTML = DOMPurify.sanitize(parseMarkdown(state.contentText || ''));
+                scrollToBottom();
+            };
+            if (now - state.lastRender > 80) {
+                run();
+            } else if (!state.pendingRender) {
+                state.pendingRender = setTimeout(run, 80 - (now - state.lastRender));
+            }
+        } else if (type === 'done') {
+            state.finalData = evt;
+        } else if (type === 'error') {
+            state.streamError = evt;
+        }
+    }
+
+    function parseSseChunkIntoState(state, buffer) {
+        // Returns remaining unparsed buffer
+        let sep;
+        while ((sep = buffer.indexOf('\n\n')) !== -1) {
+            const rawEvent = buffer.slice(0, sep);
+            buffer = buffer.slice(sep + 2);
+            const lines = rawEvent.split(/\r?\n/);
+            for (const line of lines) {
+                if (!line.startsWith('data:')) continue;
+                const dataStr = line.slice(5).trim();
+                if (!dataStr || dataStr === '[DONE]') continue;
+                try {
+                    applySseEvent(state, JSON.parse(dataStr));
+                } catch (_) { /* ignore partial / non-json */ }
+            }
+        }
+        return buffer;
+    }
+
+    function flushSseBuffer(state, buffer) {
+        if (!buffer || !buffer.trim()) return;
+        const lines = buffer.split(/\r?\n/);
+        for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const dataStr = line.slice(5).trim();
+            if (!dataStr || dataStr === '[DONE]') continue;
+            try {
+                applySseEvent(state, JSON.parse(dataStr));
+            } catch (_) {}
+        }
+    }
+
+    /**
+     * Finish UI after stream ends. Returns true on successful reply.
+     */
+    function finishStreamState(state, aiBubble) {
+        if (state.pendingRender) {
+            clearTimeout(state.pendingRender);
+            state.pendingRender = null;
+        }
+
+        const ui = state.ui;
+
+        if (state.streamError) {
+            if (state.contentText || state.thinkingText) {
+                // Keep partial text; still mark incomplete (no done)
+                if (state.contentText) {
+                    ui.contentEl.innerHTML = DOMPurify.sanitize(parseMarkdown(state.contentText));
+                } else if (state.thinkingText) {
+                    // Reasoning-only partial: show as body, hide duplicate thinking panel
+                    ui.thinkingWrap.hidden = true;
+                    ui.contentEl.innerHTML = DOMPurify.sanitize(parseMarkdown(state.thinkingText));
+                }
+                finalizeThinkingHeader(ui, state.thinkingText);
+                const errNote = document.createElement('div');
+                errNote.className = 'mt-2 text-red-400 text-xs not-prose';
+                errNote.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + escapeHTML(state.streamError.error || <?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>);
+                aiBubble.appendChild(errNote);
+            } else {
+                applyChatResult(aiBubble, {
+                    success: false,
+                    error: state.streamError.error,
+                    needs_upgrade: !!state.streamError.needs_upgrade,
+                });
+            }
+            if (state.streamError.needs_upgrade) showPaywall();
+            return false;
+        }
+
+        const replyText = (state.finalData && state.finalData.reply && String(state.finalData.reply).trim())
+            ? String(state.finalData.reply)
+            : (state.contentText.trim() || state.thinkingText.trim());
+
+        if (!replyText) {
+            aiBubble.innerHTML = `<span class="text-zinc-400 text-sm">${<?= json_encode(__('Failed to get response.'), JSON_UNESCAPED_UNICODE) ?>}</span>`;
+            return false;
+        }
+
+        window.renderedContents.add('assistant_' + replyText);
+
+        // Authoritative final answer
+        const finalReply = (state.finalData && state.finalData.reply)
+            ? String(state.finalData.reply)
+            : replyText;
+
+        // If model only produced reasoning (no content tokens), show it once as the answer
+        // — do not mirror the same text in both thinking panel and body.
+        if (!state.contentStarted && state.thinkingText && finalReply.trim() === state.thinkingText.trim()) {
+            ui.thinkingWrap.hidden = true;
+            ui.contentEl.innerHTML = DOMPurify.sanitize(parseMarkdown(finalReply));
+        } else {
+            ui.contentEl.innerHTML = DOMPurify.sanitize(parseMarkdown(finalReply));
+            if (state.thinkingText) {
+                finalizeThinkingHeader(ui, state.thinkingText);
+                // Keep thinking collapsed after answer
+                ui.thinkingWrap.open = false;
+                ui.thinkingWrap.hidden = false;
+            }
+        }
+
+        if (state.finalData) {
+            appendTruncationNotice(aiBubble, state.finalData);
+        }
+        scrollToBottom();
+        // Success only when server confirmed done (DB saved)
+        return !!(state.finalData && state.finalData.success);
+    }
+
+    /**
+     * Consume SSE from /api/chat or /api/self-chat and update bubble live.
+     * @returns {Promise<boolean>} true if done.success
+     */
+    async function consumeChatSse(res, aiBubble) {
+        if (!res.body) {
+            aiBubble.innerHTML = `<span class="text-red-400"><i class="fas fa-exclamation-circle"></i> HTTP ${res.status}</span>`;
+            return false;
+        }
+
+        const state = createStreamState(aiBubble);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            buffer = parseSseChunkIntoState(state, buffer);
+        }
+        // Final decoder flush + trailing partial event
+        buffer += decoder.decode();
+        buffer = parseSseChunkIntoState(state, buffer);
+        flushSseBuffer(state, buffer);
+
+        return finishStreamState(state, aiBubble);
+    }
+
+    /**
+     * Offline SSE parse (when Content-Type was wrong but body is event-stream text).
+     * @returns {Promise<boolean>}
+     */
+    async function consumeChatSseFromText(rawText, aiBubble) {
+        const state = createStreamState(aiBubble);
+        let buffer = parseSseChunkIntoState(state, rawText);
+        flushSseBuffer(state, buffer);
+        return finishStreamState(state, aiBubble);
+    }
 
     // 🌟 4. 多人在線心跳與增量同步 (Delta Sync)
     async function syncHeartbeat() {

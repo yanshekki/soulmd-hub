@@ -1,10 +1,9 @@
 <?php
 /**
  * SoulMD Hub - Mini Apps API
- * GET  /api/apps           — list curated mini apps
- * GET  /api/apps?slug=...  — app detail + form schema + soul choices (intros only)
- * POST /api/apps           — validate fields + soul_id, return formatted content for chat prefill
- *                            (does NOT call the LLM — client redirects to /chat)
+ * GET  /api/apps           — list curated mini apps (theme catalog)
+ * GET  /api/apps?slug=...  — form schema + souls from keyword search
+ * POST /api/apps           — validate fields + soul_id, return chat prefill content
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -59,7 +58,6 @@ if ($method !== 'POST') {
     exit;
 }
 
-// --- POST: validate only, return content for chat redirect ---
 $input = json_decode(file_get_contents('php://input'), true);
 if (!is_array($input)) {
     http_response_code(400);
@@ -78,23 +76,15 @@ if ($slug === '' || !is_array($fieldsIn)) {
 }
 
 $app = MiniAppsCatalog::getBySlug($slug);
-if (!$app || MiniAppsCatalog::resolveSoulIds($slug) === []) {
+if (!$app) {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => __('App not found')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-if (!MiniAppsCatalog::isSoulAllowed($slug, $soulId)) {
+if (!MiniAppsCatalog::isSoulAllowed($pdo, $slug, $soulId)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => __('Invalid app soul')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// Confirm soul still public / non-NFT
-$metas = MiniAppsCatalog::loadSoulMetas($pdo, [$soulId]);
-if ($metas === []) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => __('App soul not available')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

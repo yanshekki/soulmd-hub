@@ -225,40 +225,42 @@ Submits a instruction turn to the central platform gateway. Subject to account l
 ```
 
 
-* **Success Response (200 OK):**
-```json
-{
-  "success": true,
-  "reply": "Compiling structures evaluated. Zero legacy layout anomalies detected.",
-  "sender_name": "AI Assistant",
-  "truncated": false,
-  "needs_upgrade": false,
-  "finish_reason": "stop"
-}
+* **Success Response:** **SSE** (`Content-Type: text/event-stream`) once inference starts. Pre-stream validation failures still return JSON (`application/json`).
 
+Each SSE line is `data: {json}` terminated by a blank line. Event shapes:
+
+```text
+data: {"type":"status","phase":"generating"}
+
+data: {"type":"thinking","text":"...chain-of-thought token..."}
+
+data: {"type":"content","text":"...answer token..."}
+
+data: {"type":"done","success":true,"reply":"full answer","sender_name":"AI Assistant","truncated":false,"needs_upgrade":false,"finish_reason":"stop"}
+
+data: [DONE]
 ```
 
-When the model stops early because the tier `max_tokens` cap was hit, `finish_reason` is `length` (or `max_tokens`), `truncated` is `true`, and `needs_upgrade` is `true` for Free/VIP so the client can prompt an upgrade. PRO keeps `needs_upgrade: false` (highest platform output cap).
+Error during/after stream start:
+
+```text
+data: {"type":"error","error":"...","needs_upgrade":false}
+data: [DONE]
+```
+
+* `thinking` events carry model chain-of-thought (`reasoning_content`) when the upstream model supports thinking mode.
+* `content` events carry the visible answer tokens.
+* `done.reply` is the authoritative full answer (content preferred; falls back to reasoning if content is empty).
+* When the model stops early because the tier `max_tokens` cap was hit, `finish_reason` is `length` (or `max_tokens`), `truncated` is `true`, and `needs_upgrade` is `true` for Free/VIP so the client can prompt an upgrade. PRO keeps `needs_upgrade: false`.
 
 ### 3.3. Post Chat Message (BYOK Proxy Gateway)
 
-Executes inference on user-provided compute matrices. Free of platform turn deductions.
+Executes inference on user-provided compute matrices. Free of platform turn deductions. Same **SSE streaming** protocol as `POST /chat` (thinking deltas only if the custom provider emits `reasoning_content` / `reasoning`).
 
 * **Method / Route:** `POST /self-chat`
 * **Authentication:** `Session Cookie Required`
 * **Request Body:** *(Identical mapping layout as standard `POST /chat`)*
-* **Success Response (200 OK):**
-```json
-{
-  "success": true,
-  "reply": "Inference generated utilizing custom BYOK cluster keys.",
-  "sender_name": "AI Assistant",
-  "truncated": false,
-  "needs_upgrade": false,
-  "finish_reason": "stop"
-}
-
-```
+* **Success Response:** SSE stream ending with `type: done` (same schema as official gateway). `needs_upgrade` is always `false` on BYOK.
 
 BYOK may still set `truncated: true` if the proxy `max_tokens` is reached; `needs_upgrade` stays `false` (custom key, not a platform tier limit).
 
@@ -353,7 +355,7 @@ Modifies an existing prompt archetype. Automatically clones a backup timeline re
 
 ## 5. Mini Apps
 
-Form-driven tools backed by one or more public SOUL personas. Users pick a soul on `/apps`, then continue in **`/chat`** (tier limits / truncation upgrade apply there). Apps API does **not** call the LLM and never returns soul prompt content.
+Form-driven tools backed by public SOUL personas discovered via **theme keyword search** (title/role/domain/compatibility/description). Users pick a soul on `/apps`, then continue in **`/chat`**. Apps API does **not** call the LLM and never returns soul prompt content.
 
 ### 5.1. List / Describe Mini Apps
 
@@ -448,7 +450,7 @@ Client stores `content` (e.g. sessionStorage), opens `/chat/{soul_id}/{session_t
 
 * **Error cases:** missing/invalid fields (400), `soul_id` not in map (400), app not found / no usable public souls (404).
 
-* **Soul binding:** `MINI_APP_SOUL_MAP` maps slug → **int or int[]**. Single int remains supported. Empty / unmapped apps are **hidden**.
+* **Soul discovery:** each app defines comma-separated `search_keywords` in the catalog; `GET ?slug=` returns public non-NFT souls whose **title** matches any keyword (OR). `POST` requires `soul_id` to still match that title search.
 
 ---
 

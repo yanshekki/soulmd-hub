@@ -199,15 +199,5 @@ define('PRO_MAX_AI_TOKENS', 10000);
 define('PRO_MEMORY_THRESHOLD', 30);        
 define('PRO_ALLOW_IMAGE', true);
 
-// ==========================================
-// 🧩 Mini Apps — public soul_id map (slug => id | id[])
-// Users pick one mapped soul on /apps, then continue in /chat.
-// Only apps with at least one positive id are visible. Use public non-NFT souls.
-// ==========================================
-define('MINI_APP_SOUL_MAP', [
-    // 'name-advisor' => [12, 34, 56],  // multi: user chooses
-    // 'feng-shui' => 13,               // single id still supported
-    // 'wedding-date' => 14,
-    // 'virtual-companion' => 15,
-    // 'daily-fortune' => 16,
-]);
+// Mini Apps: themes live in MiniAppsCatalog with search_keywords.
+// Souls are discovered via public search (no MINI_APP_SOUL_MAP).

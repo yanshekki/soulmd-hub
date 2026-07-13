@@ -303,8 +303,7 @@ loadTranslations('api-docs');
       "description": "Chinese naming / rename suggestions…",
       "badge": "popular",
       "field_count": 5,
-      "soul_count": 2,
-      "soul_configured": true
+      "search_keywords": "改名 命名 naming"
     }
   ]
 }</pre>

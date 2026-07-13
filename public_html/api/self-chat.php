@@ -25,6 +25,7 @@ require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/LlmStreamProxy.php';
 
 // 🌍 載入全域 API 與 Chat 語言包以獲取 Anonymous 翻譯
 loadTranslations('api');
@@ -308,43 +309,9 @@ if ($isVisionRequest) {
 }
 
 // ==========================================
-// 7. 發送請求至 OpenAI-Compatible API (BYOK)
+// 7. 串流請求至 OpenAI-Compatible API (BYOK)
 // ==========================================
-session_write_close(); 
-
-$ch = curl_init();
-curl_setopt_array($ch, [
-    CURLOPT_URL => $targetApiUrl,
-    CURLOPT_RETURNTRANSFER => true, 
-    CURLOPT_CUSTOMREQUEST => 'POST',
-    CURLOPT_POSTFIELDS => json_encode([
-        "model" => $targetModel, 
-        "messages" => $apiMessages, 
-        "max_tokens" => 2500, 
-        "temperature" => 0.7
-    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
-    CURLOPT_CONNECTTIMEOUT => 10, 
-    CURLOPT_TIMEOUT => 90,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $targetApiKey]
-]);
-
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); 
-curl_close($ch);
-
-$responseData = json_decode($response, true);
-if ($httpCode !== 200 || !empty($responseData['error'])) {
-    http_response_code(400);
-    $errorDetail = $responseData['error']['message'] ?? __('Unknown Connection Failure');
-    echo json_encode(['success' => false, 'error' => __('Custom API Engine Error', ['error' => $errorDetail])], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-$aiReply = $responseData['choices'][0]['message']['content'] ?? '';
-$finishReason = (string)($responseData['choices'][0]['finish_reason'] ?? '');
-$isTruncated = in_array($finishReason, ['length', 'max_tokens'], true);
-
-// 🚀 決定發送者身份 Sender Name
+// 🚀 決定發送者身份（串流前）
 $senderName = '';
 if ($currentUser['id']) {
     $senderName = $currentUser['username'];
@@ -356,6 +323,60 @@ if ($currentUser['id']) {
     $senderName = __('Anonymous') . ' #' . $shortId;
 }
 
+session_write_close();
+
+LlmStreamProxy::beginSse();
+LlmStreamProxy::emit(['type' => 'status', 'phase' => 'generating']);
+
+// BYOK: do not force thinking param (providers vary); stream whatever deltas arrive
+$streamResult = LlmStreamProxy::streamCompletion(
+    $targetApiUrl,
+    $targetApiKey,
+    [
+        'model' => $targetModel,
+        'messages' => $apiMessages,
+        'max_tokens' => 2500,
+        'temperature' => 0.7,
+    ],
+    static function (string $kind, string $text): void {
+        if ($kind === 'thinking') {
+            LlmStreamProxy::emit(['type' => 'thinking', 'text' => $text]);
+        } else {
+            LlmStreamProxy::emit(['type' => 'content', 'text' => $text]);
+        }
+    },
+    120
+);
+
+if (!empty($streamResult['error']) && $streamResult['content'] === '' && $streamResult['reasoning'] === '') {
+    $errorDetail = (string)$streamResult['error'];
+    LlmStreamProxy::emit([
+        'type' => 'error',
+        'error' => __('Custom API Engine Error', ['error' => $errorDetail]),
+        'needs_upgrade' => false,
+    ]);
+    LlmStreamProxy::emitDone();
+    exit;
+}
+
+$finishReason = (string)($streamResult['finish_reason'] ?? '');
+$aiReply = LlmStreamProxy::pickReply(
+    (string)$streamResult['content'],
+    (string)$streamResult['reasoning']
+);
+$isTruncated = ($aiReply !== '') && in_array($finishReason, ['length', 'max_tokens'], true);
+
+if ($aiReply === '') {
+    LlmStreamProxy::emit([
+        'type' => 'error',
+        'error' => __('Empty AI reply'),
+        'finish_reason' => $finishReason,
+        'needs_upgrade' => false,
+    ]);
+    LlmStreamProxy::emitDone();
+    exit;
+}
+
 // ==========================================
 // 8. 儲存對話紀錄 (無縫接軌前端 UI)
 // ==========================================
@@ -363,7 +384,6 @@ try {
     $freshPdo = Database::getFreshConnection();
     $freshPdo->beginTransaction();
     
-    // 🚀 將 sender_name 寫入資料庫
     $ins = $freshPdo->prepare("INSERT INTO chat_messages (soul_id, session_token, role, sender_name, content) VALUES (?, ?, ?, ?, ?)");
     $ins->execute([$soulId, $sessionToken, 'user', $senderName, $dbContentToSave]);
     $ins->execute([$soulId, $sessionToken, 'assistant', __('AI Assistant'), $aiReply]);
@@ -379,19 +399,24 @@ try {
     
     $freshPdo->commit();
 
-    // BYOK: still flag truncation so UI can warn; no platform upgrade paywall
-    echo json_encode([
+    LlmStreamProxy::emit([
+        'type' => 'done',
         'success' => true,
         'reply' => $aiReply,
         'sender_name' => __('AI Assistant'),
         'truncated' => $isTruncated,
         'needs_upgrade' => false,
         'finish_reason' => $finishReason,
-    ], JSON_UNESCAPED_UNICODE);
+    ]);
+    LlmStreamProxy::emitDone();
 
 } catch (Throwable $e) {
     if (isset($freshPdo) && $freshPdo->inTransaction()) $freshPdo->rollBack();
-    http_response_code(500); 
-    echo json_encode(['success' => false, 'error' => __('DB Sync Error', ['error' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
+    LlmStreamProxy::emit([
+        'type' => 'error',
+        'error' => __('DB Sync Error', ['error' => $e->getMessage()]),
+        'needs_upgrade' => false,
+    ]);
+    LlmStreamProxy::emitDone();
 }
 ?>

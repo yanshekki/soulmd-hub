@@ -35,8 +35,8 @@ return [
         'desc_my_chats' => 'Retrieve a list of all active chat sessions and compressed memory summaries for the authenticated user.',
         'desc_chat_sync' => 'Real-time Multiplayer Sync & Presence API. Validates connection heartbeats, tracks active online user counts, and returns incremental delta messages with sender identities.',
 
-        'desc_apps_list' => 'List curated form-driven mini apps (or fetch one app schema with ?slug=). Detail includes selectable public souls (title/description only; no prompt content). Optional filters: category, q. Apps without MINI_APP_SOUL_MAP ids are hidden.',
-        'desc_apps_run' => 'Validate mini-app form fields and soul_id (must be in MINI_APP_SOUL_MAP for that slug). Returns formatted message content for client redirect to /chat/{soul_id}/{session}. Does not call the LLM — chat API applies tier limits and generates the reply.',
+        'desc_apps_list' => 'List curated form-driven mini apps (or fetch one app schema with ?slug=). Detail includes public souls matching the app theme keywords (title/description only; no prompt content). Optional filters: category, q.',
+        'desc_apps_run' => 'Validate mini-app form fields and soul_id (must be a public non-NFT soul matching the app theme keywords). Returns formatted message content for client redirect to /chat/{soul_id}/{session}. Does not call the LLM — chat API applies tier limits and generates the reply.',
         
         'desc_categories' => 'Fetch the complete white-list of roles/categories including their corresponding slug names and emoji icons.',
         'desc_souls_get' => 'List, search and filter public souls. Optimized with strict DB select limits.',
@@ -98,8 +98,8 @@ return [
         'desc_my_chats' => '獲取當前登入用戶所有活躍的歷史對話列表，以及系統自動壓縮的記憶體摘要紀錄。',
         'desc_chat_sync' => '即時多人在線同步 API。驗證客戶端連線心跳、追蹤同一個聊天室內的在線人數，並使用 Delta Sync 技術增量下發附帶發送者名稱的新訊息。',
 
-        'desc_apps_list' => '列出策展中的表單式 AI 小程式（或以 ?slug= 取得表單 schema 與可選 Soul 列表）。Detail 只含 title/description 等介紹，不含提示詞原文。可選參數：category、q。未在 MINI_APP_SOUL_MAP 綁定 id 的 app 會隱藏。',
-        'desc_apps_run' => '校驗小程式表單與 soul_id（必須屬於該 slug 的 MINI_APP_SOUL_MAP）。回傳格式化訊息 content，供前端跳轉 /chat/{soul_id}/{session}。本端點不呼叫 LLM；由 Chat API 套用方案限制並生成回覆。',
+        'desc_apps_list' => '列出策展中的表單式 AI 小程式（或以 ?slug= 取得表單 schema 與主題關鍵字搜尋到的公開 Soul 列表）。Detail 只含 title/description 等介紹，不含提示詞原文。可選參數：category、q。',
+        'desc_apps_run' => '校驗小程式表單與 soul_id（必須為符合該 app 主題關鍵字的公開非 NFT Soul）。回傳格式化訊息 content，供前端跳轉 /chat/{soul_id}/{session}。本端點不呼叫 LLM；由 Chat API 套用方案限制並生成回覆。',
         
         'desc_categories' => '拉取目前系統白名單允許的所有 AI 適用角色分類、對應的 Slug 別名及前端 Emoji 圖標。',
         'desc_souls_get' => '分頁撈取、檢索大廳中公開的靈魂模型列表。內部經過極致索引優化。',
