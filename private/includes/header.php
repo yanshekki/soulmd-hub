@@ -132,6 +132,14 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
         .tag-input-field:focus { outline: none !important; box-shadow: none !important; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        /* Global print: never show marketing / renew banners on receipts or chat print */
+        @media print {
+            .no-print,
+            .expired-sub-banner,
+            #expired-sub-banner {
+                display: none !important;
+            }
+        }
     </style>
     
     <?php if (defined('GOOGLE_ANALYTICS_ID') && !empty(GOOGLE_ANALYTICS_ID) && GOOGLE_ANALYTICS_ID !== 'YOUR_GOOGLE_ANALYTICS_ID_HERE'): ?>
@@ -270,13 +278,14 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
 
     <main class="flex-grow flex flex-col relative z-10">
         <?php if ($showExpiredBanner && !isset($hideGlobalBanner)): ?>
-            <div class="w-full bg-red-900/50 border-b border-red-500/30 px-4 py-2.5 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-red-200 z-40 backdrop-blur-md shadow-lg text-center">
+            <!-- no-print: never appear on invoice / chat / any print layout -->
+            <div id="expired-sub-banner" class="no-print expired-sub-banner w-full bg-red-900/50 border-b border-red-500/30 px-4 py-2.5 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-red-200 z-40 backdrop-blur-md shadow-lg text-center">
                 <div class="flex items-center justify-center gap-2">
-                    <i class="fas fa-exclamation-triangle text-red-400 animate-pulse text-base"></i>
+                    <i class="fas fa-exclamation-triangle text-red-400 animate-pulse text-base" aria-hidden="true"></i>
                     <span class="font-medium"><?= __('Your premium subscription has expired. API access and advanced features are currently locked.') ?></span>
                 </div>
                 <a href="<?= url('/upgrade') ?>" class="px-4 py-1 bg-red-500 hover:bg-red-400 text-zinc-950 font-black rounded-lg transition shadow-md text-xs whitespace-nowrap flex items-center gap-1">
-                    <i class="fas fa-sync-alt text-[10px]"></i> <?= __('Renew Now') ?>
+                    <i class="fas fa-sync-alt text-[10px]" aria-hidden="true"></i> <?= __('Renew Now') ?>
                 </a>
             </div>
         <?php endif; ?>

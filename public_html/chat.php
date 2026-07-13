@@ -132,7 +132,7 @@ if ($maskContent) {
             print-color-adjust: exact !important;
             color-adjust: exact !important;
         }
-        nav, footer, .no-print,
+        nav, footer, .no-print, .expired-sub-banner, #expired-sub-banner,
         #chat-form,
         #loading-history {
             display: none !important;
@@ -141,7 +141,8 @@ if ($maskContent) {
         body > header,
         body > nav,
         main > header,
-        main > aside {
+        main > aside,
+        #expired-sub-banner {
             display: none !important;
         }
         main {

@@ -85,8 +85,8 @@ require_once __DIR__ . '/../private/includes/header.php';
             print-color-adjust: exact !important;
             color-adjust: exact !important;
         }
-        nav, footer, .no-print { 
-            display: none !important; 
+        nav, footer, .no-print, .expired-sub-banner, #expired-sub-banner {
+            display: none !important;
         }
         /* 將外層容器歸零，保持卡片與畫面 1:1 比例 */
         .print-container {
