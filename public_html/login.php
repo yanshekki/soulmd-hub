@@ -4,15 +4,14 @@
  * 🚀 V7 FINAL: Extension Only, Nuke on Load & 1-Click Auto-Sign UX
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
-$csrfToken = ApiSecurity::ensureCsrfToken();
-
-loadTranslations('login');
+$app = AppBootstrap::forPage([
+    'translations' => 'login',
+    'csrf' => true,
+    'seo' => true,
+]);
+$csrfToken = $app['csrf'];
 
 // Safe same-origin relative redirect after login (e.g. /upgrade or /zh/upgrade)
 $afterLogin = url('/my-souls');

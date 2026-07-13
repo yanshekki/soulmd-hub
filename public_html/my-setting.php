@@ -4,26 +4,18 @@
  * 🚀 V7 FINAL: Extension Only, 1-Click Auto-Bind UX & Error Recovery Nuke
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
-
-// Centralized CSRF token (replaces repeated bin2hex block)
-$csrfToken = ensureCsrfToken();
-
-loadTranslations('my-setting');
-
-$userId = $_SESSION['user_id'];
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$app = AppBootstrap::forPage([
+    'translations' => 'my-setting',
+    'csrf' => true,
+    'db' => true,
+    'require_login' => true,
+    'seo' => true,
+]);
+$csrfToken = $app['csrf'];
+$userId = (int)$app['user_id'];
+$pdo = $app['pdo'];
 
 $stmt = $pdo->prepare("SELECT username, email, api_key, near_wallet_address FROM users WHERE id = ?");
 $stmt->execute([$userId]);

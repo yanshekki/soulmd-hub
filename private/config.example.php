@@ -3,6 +3,10 @@
  * SoulMD Hub - Core Configuration Matrix
  * (Includes Multi-Tier Permissions, PayPal SDK, DeepSeek Core & Dynamic i18n Engine)
  * 🚀 Web2.5 Mainnet AgentFi Production Edition (RPC Nodes Centralized)
+ *
+ * Entry points: prefer AppBootstrap::forPage() / forApi() (private/src/AppBootstrap.php)
+ * instead of hand-rolling require + session_start + loadTranslations + CSRF.
+ * After SSE (LlmStreamProxy::beginSse): never session_start / setcookie.
  */
 
 // 🚨 系統級安全加密金鑰 (請務必將下面堆亂碼換成你自己專屬的 32 位元強密碼)

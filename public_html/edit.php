@@ -5,12 +5,9 @@
  * 🚀 Patched: Fully integrated with the unified NearRpcService layer.
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-require_once __DIR__ . '/../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
-
-require_once __DIR__ . '/../private/includes/soul-page-setup.php';  // shared session, CSRF, loadTranslations, pdo, user_id with upload.php + edit.php
+require_once __DIR__ . '/../private/src/NearRpcService.php'; // 🚀 中央 RPC 服務
+// Shared session / CSRF / DB / login via AppBootstrap
+require_once __DIR__ . '/../private/includes/soul-page-setup.php';
 
 // edit-specific continues below (soul fetch, lazy sync, permission, etc.)
 

@@ -5,24 +5,20 @@
  * 🚀 V5 SEO Optimized: a11y ARIA Live Regions, Semantic Main Tag, and Form Labels
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-
-loadTranslations('chat');
-
-// Centralized CSRF token (replaces repeated bin2hex block)
-$csrfToken = ensureCsrfToken();
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$app = AppBootstrap::forPage([
+    'translations' => 'chat',
+    'csrf' => true,
+    'db' => true,
+    'seo' => true,
+]);
+$csrfToken = $app['csrf'];
+$pdo = $app['pdo'];
 
 $soulId = (int)($_GET['soul_id'] ?? 0);
 $sessionToken = $_GET['session_token'] ?? '';
-$userId = $_SESSION['user_id'] ?? 0;
+$userId = (int)($app['user_id'] ?? 0);
 
 if (!$soulId) {
     header('Location: ' . url('/browse'));

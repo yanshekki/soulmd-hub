@@ -5,11 +5,8 @@
  * 🚀 Patched: Standardized SEO Meta i18n variables
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-
-require_once __DIR__ . '/../private/includes/soul-page-setup.php';  // shared session, CSRF, loadTranslations, pdo, user_id with upload.php + edit.php
+// Shared session / CSRF / DB / login via AppBootstrap (see soul-page-setup.php)
+require_once __DIR__ . '/../private/includes/soul-page-setup.php';
 
 // upload-specific: always new soul
 $isEditMode = false;

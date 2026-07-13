@@ -5,15 +5,17 @@
  * SEO: /apps/{slug} and /apps/{slug}/{soul-title-slug}, SSR meta, JSON-LD, sitemap.
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 require_once __DIR__ . '/../private/src/MiniAppsCatalog.php';
-require_once __DIR__ . '/../private/includes/seo.php';
 
-session_start();
-loadTranslations('apps');
-$csrfToken = ensureCsrfToken();
+$appBoot = AppBootstrap::forPage([
+    'translations' => 'apps',
+    'csrf' => true,
+    'db' => true,
+    'seo' => true,
+]);
+$csrfToken = $appBoot['csrf'];
+// Note: MiniAppsCatalog / page logic may open its own PDO when needed via Database
 
 // SEO path: /apps/{slug} or /apps/{slug}/{soul-title-slug}
 $initialAppSlug = trim((string)($_GET['slug'] ?? ''));

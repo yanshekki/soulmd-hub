@@ -5,10 +5,14 @@
  * 🚀 V5 SEO Optimized: Accessible Viewport, Preconnects, Semantic HTML & Safe Analytics
  */
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// Safe session via unified bootstrap (no-op if already active / headers sent)
+if (!class_exists('AppBootstrap', false)) {
+    require_once __DIR__ . '/../src/AppBootstrap.php';
 }
-loadTranslations('header');
+AppBootstrap::sessionStart();
+if (function_exists('loadTranslations')) {
+    loadTranslations('header');
+}
 
 // Remember Me
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_token'])) {

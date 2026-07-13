@@ -19,35 +19,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/LlmStreamProxy.php';
 
-// 🌍 載入全域 API 與 Chat 語言包以獲取 Anonymous 翻譯
-loadTranslations('api');
-loadTranslations('chat');
-
-$security = ApiSecurity::initialize(true);  // requires auth (api_key or session + CSRF)
-$userId = $security['user_id'];
-$pdo = $security['pdo'];
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Unified API bootstrap (config + ApiSecurity + translations). Trust $app['user_id']
+// for both session and api_key paths — do NOT overwrite with $_SESSION only.
+$app = AppBootstrap::forApi([
+    'require_user' => true,
+    'translations' => ['api', 'chat'],
+    'json_header' => false, // CORS/Content-Type already set above
+]);
+$userId = $app['user_id'] ? (int)$app['user_id'] : null;
+$pdo = $app['pdo'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405); 
     echo json_encode(['success' => false, 'error' => __('Method Not Allowed')], JSON_UNESCAPED_UNICODE); 
     exit;
 }
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$userId = $_SESSION['user_id'] ?? null;
 
 if (!$userId) {
     http_response_code(401); 
@@ -58,8 +50,7 @@ if (!$userId) {
 // ==========================================
 // 🚀 核心防白嫖引擎：過期降級與跨日重置 (Fallback 扣費所需)
 // ==========================================
-function getCurrentUser($pdo) {
-    $userId = $_SESSION['user_id'];
+function getCurrentUser($pdo, int $userId) {
     $today = date('Y-m-d');
 
     // 🚀 補上撈取 username
@@ -92,15 +83,14 @@ function getCurrentUser($pdo) {
     ];
 }
 
-$currentUser = getCurrentUser($pdo);
+$currentUser = getCurrentUser($pdo, $userId);
 if (!$currentUser) {
     http_response_code(401); 
     echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE); 
     exit;
 }
 
-// CSRF / auth already enforced by ApiSecurity::initialize(true) at top
-// (skipped for valid api_key, enforced for session)
+// CSRF / auth already enforced by AppBootstrap::forApi / ApiSecurity
 
 // 接收參數與 BYOK 檢查
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -323,7 +313,8 @@ if ($currentUser['id']) {
     $senderName = __('Anonymous') . ' #' . $shortId;
 }
 
-session_write_close();
+// Streaming contract: all session writes finished; never session_start after beginSse()
+AppBootstrap::sessionClose();
 
 LlmStreamProxy::beginSse();
 LlmStreamProxy::emit(['type' => 'status', 'phase' => 'generating']);

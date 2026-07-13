@@ -20,25 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php';
 require_once __DIR__ . '/../../private/includes/token-gate.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/LlmStreamProxy.php';
 
-loadTranslations('api');
-loadTranslations('chat');
-
-$security = ApiSecurity::initialize(false);
-$userId   = $security['user_id'];
-$pdo      = $security['pdo'];
-$isApiKey = $security['is_api_key'];
+// Unified API bootstrap (guest allowed). Do not re-session_start after SSE begins.
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'translations' => ['api', 'chat'],
+    'json_header' => false, // Content-Type / CORS set above
+]);
+$userId   = $app['user_id'];
+$pdo      = $app['pdo'];
+$isApiKey = $app['is_api_key'];
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Centralized security already handled by ApiSecurity::initialize() above.
-// $isApiKey and $userId are available. Keep old var names for minimal diff in rest of file.
+// Centralized security already handled by AppBootstrap::forApi() above.
 $isApiCall = $isApiKey;
 $apiUserId = $userId;
 
@@ -438,7 +437,8 @@ if ($method === 'POST') {
             }
         }
 
-        session_write_close();
+        // Streaming contract: all session writes done; never session_start after beginSse()
+        AppBootstrap::sessionClose();
 
         // Stream tokens (including thinking/reasoning) to the client as SSE
         LlmStreamProxy::beginSse();

@@ -7,26 +7,15 @@
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Bootstrap order matters: config → Database → ApiSecurity (class lives in private/src)
-$configPath = __DIR__ . '/../../private/config.php';
-if (!is_file($configPath)) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Missing private/config.php']);
-    exit;
-}
-require_once $configPath;
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
 
-if (!class_exists('ApiSecurity')) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'ApiSecurity class not loaded']);
-    exit;
-}
-
-$security = ApiSecurity::initialize(false);  // guest + logged-in; CSRF/session via ApiSecurity
-$pdo = $security['pdo'];
-// Session already started by ApiSecurity::ensureCsrfToken() — do not call session_start() again
+// Unified API bootstrap (guest + logged-in). Session via AppBootstrap — do not session_start again.
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$pdo = $app['pdo'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405); exit;

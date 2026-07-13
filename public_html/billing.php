@@ -5,29 +5,19 @@
  * 🚀 V6 FIXED: Synchronized with V16 Dual-Action Near Scripts & Strict Error Handling
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
-
-// Use ApiSecurity only for CSRF token setup on this normal HTML page.
-// Do NOT call ApiSecurity::initialize() here — it forces Content-Type: application/json
-// which would break the HTML output for /billing.
-$csrfToken = ApiSecurity::ensureCsrfToken();
-
-// 🌍 載入此頁面的專屬獨立多語言詞典
-loadTranslations('billing');
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$userId = (int)$_SESSION['user_id'];
+// HTML page: forPage never sets application/json (unlike ApiSecurity::initialize)
+$app = AppBootstrap::forPage([
+    'translations' => 'billing',
+    'csrf' => true,
+    'db' => true,
+    'require_login' => true,
+    'seo' => true,
+]);
+$csrfToken = $app['csrf'];
+$pdo = $app['pdo'];
+$userId = (int)$app['user_id'];
 
 // =========================================================
 // 1. 撈取訂閱狀態與過期判定 (Expiration Logic)

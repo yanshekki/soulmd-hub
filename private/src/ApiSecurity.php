@@ -13,23 +13,9 @@
  * - Removes massive duplication of getAuthUserId + CSRF boilerplate
  */
 
-$hubConfigPath = __DIR__ . '/../config.php';
-if (!is_file($hubConfigPath)) {
-    $hubConfigPath = __DIR__ . '/../config.example.php';
-}
-require_once $hubConfigPath;
-// Fail fast with a clear message instead of "Undefined constant DB_HOST"
-if (!defined('DB_HOST')) {
-    if (!headers_sent()) {
-        header('Content-Type: application/json; charset=utf-8');
-    }
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Server misconfigured: private/config.php missing DB constants',
-    ]);
-    exit;
-}
+// Config + DB constants via unified bootstrap (also defines loadTranslations)
+require_once __DIR__ . '/AppBootstrap.php';
+AppBootstrap::loadConfig(true);
 require_once __DIR__ . '/Database.php';
 
 class ApiSecurity {
@@ -41,6 +27,9 @@ class ApiSecurity {
      * @param bool $requireUser  Whether to force a valid user (most endpoints true)
      * @return array  ['user_id' => int|null, 'is_api_key' => bool, 'pdo' => PDO, 'api_key' => string|null]
      *                Exits with JSON error (401/403/429) on any failure.
+     *
+     * Prefer AppBootstrap::forApi() for new endpoints (loads config + translations too).
+     * Do NOT call initialize() from HTML pages — it forces JSON Content-Type.
      */
     public static function initialize(bool $requireUser = true): array {
         // Always ensure JSON content type for APIs (files can override before calling if they want)
@@ -127,12 +116,13 @@ class ApiSecurity {
      * or for CSRF-protected browser mutating calls.
      */
     public static function ensureCsrfToken(): string {
-        if (session_status() === PHP_SESSION_NONE) {
-            // Never call session_start after body/headers already flushed (e.g. SSE stream)
-            if (headers_sent()) {
-                return (string)($_SESSION['chat_csrf_token'] ?? '');
-            }
-            session_start();
+        // Unified safe session (no-op if already active or headers sent / SSE)
+        if (!class_exists('AppBootstrap', false)) {
+            require_once __DIR__ . '/AppBootstrap.php';
+        }
+        AppBootstrap::sessionStart();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return (string)($_SESSION['chat_csrf_token'] ?? '');
         }
         if (empty($_SESSION['chat_csrf_token'])) {
             $_SESSION['chat_csrf_token'] = bin2hex(random_bytes(32));

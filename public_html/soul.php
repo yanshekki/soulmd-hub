@@ -5,29 +5,19 @@
  * 🚀 V6 ULTIMATE: Synced with V16 Dual-Action Near Scripts & Exposed Error Traces
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-    session_start();
-}
-
-// Centralized CSRF (global helper defined at bottom of ApiSecurity.php)
-$csrfToken = function_exists('ensureCsrfToken')
-    ? ensureCsrfToken()
-    : ApiSecurity::ensureCsrfToken();
-
-if (function_exists('loadTranslations')) {
-    loadTranslations('soul');
-}
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$app = AppBootstrap::forPage([
+    'translations' => 'soul',
+    'csrf' => true,
+    'db' => true,
+    'seo' => true,
+]);
+$csrfToken = $app['csrf'];
+$pdo = $app['pdo'];
 
 $id = (int)($_GET['id'] ?? 0);
-$userId = $_SESSION['user_id'] ?? 0;
+$userId = (int)($app['user_id'] ?? 0);
 
 if (!$id) {
     header('Location: ' . url('/browse'));
