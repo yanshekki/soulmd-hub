@@ -71,8 +71,8 @@ if ($is_api) {
     }
 }
 
-if ($cookie_lang !== $current_lang) {
-    setcookie('soulmd_lang', $current_lang, time() + (86400 * 30), '/'); 
+if ($cookie_lang !== $current_lang && !headers_sent()) {
+    setcookie('soulmd_lang', $current_lang, time() + (86400 * 30), '/');
 }
 
 define('CURRENT_LANG', $current_lang);

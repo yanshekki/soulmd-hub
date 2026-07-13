@@ -7,15 +7,21 @@
 
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
 require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/includes/seo.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
 
-// Centralized CSRF token (replaces repeated bin2hex block)
-$csrfToken = ensureCsrfToken();
+// Centralized CSRF (global helper defined at bottom of ApiSecurity.php)
+$csrfToken = function_exists('ensureCsrfToken')
+    ? ensureCsrfToken()
+    : ApiSecurity::ensureCsrfToken();
 
-loadTranslations('soul');
+if (function_exists('loadTranslations')) {
+    loadTranslations('soul');
+}
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();

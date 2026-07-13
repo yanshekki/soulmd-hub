@@ -18,6 +18,18 @@ if (!is_file($hubConfigPath)) {
     $hubConfigPath = __DIR__ . '/../config.example.php';
 }
 require_once $hubConfigPath;
+// Fail fast with a clear message instead of "Undefined constant DB_HOST"
+if (!defined('DB_HOST')) {
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Server misconfigured: private/config.php missing DB constants',
+    ]);
+    exit;
+}
 require_once __DIR__ . '/Database.php';
 
 class ApiSecurity {
@@ -116,6 +128,10 @@ class ApiSecurity {
      */
     public static function ensureCsrfToken(): string {
         if (session_status() === PHP_SESSION_NONE) {
+            // Never call session_start after body/headers already flushed (e.g. SSE stream)
+            if (headers_sent()) {
+                return (string)($_SESSION['chat_csrf_token'] ?? '');
+            }
             session_start();
         }
         if (empty($_SESSION['chat_csrf_token'])) {

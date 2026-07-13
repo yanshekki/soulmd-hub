@@ -6,11 +6,25 @@
  */
 
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../private/config.php';
+
+// Bootstrap order matters: config → Database → ApiSecurity (class lives in private/src)
+$configPath = __DIR__ . '/../../private/config.php';
+if (!is_file($configPath)) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Missing private/config.php']);
+    exit;
+}
+require_once $configPath;
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 
-$security = ApiSecurity::initialize(false);  // supports guest + logged, for future rate/throttle centralization
+if (!class_exists('ApiSecurity')) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'ApiSecurity class not loaded']);
+    exit;
+}
+
+$security = ApiSecurity::initialize(false);  // guest + logged-in; CSRF/session via ApiSecurity
 $pdo = $security['pdo'];
 // Session already started by ApiSecurity::ensureCsrfToken() — do not call session_start() again
 
@@ -26,9 +40,6 @@ $lastMsgId = (int)($_GET['last_id'] ?? 0);
 if (!$soulId || empty($sessionToken) || !preg_match('/^[a-zA-Z0-9_-]{8,128}$/', $sessionToken)) {
     http_response_code(400); exit;
 }
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
 
 // 產生獨一無二嘅訪客/用戶識別碼 (用於區分有幾多個人)
 $userId = $_SESSION['user_id'] ?? null;

@@ -418,28 +418,27 @@ if ($method === 'POST') {
             }
         }
 
-        if (!$isApiCall) { 
-            $_SESSION['last_chat_time'] = time(); 
+        if (!$isApiCall) {
+            $_SESSION['last_chat_time'] = time();
         }
-        
-        session_write_close(); 
 
-        // 🚀 判定發送者身份（串流前先算好，完成後寫庫）
+        // 🚀 判定發送者身份 + guest 用量（必須在 SSE begin 前完成：串流後再 session_start 會 headers already sent）
         $senderName = '';
         if ($currentUser['id']) {
             $senderName = $currentUser['username'];
         } else {
-            // session already closed; guest id may still be available from earlier open session
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
             if (empty($_SESSION['guest_id'])) {
                 $_SESSION['guest_id'] = bin2hex(random_bytes(8));
             }
             $shortId = strtoupper(substr($_SESSION['guest_id'], 0, 4));
             $senderName = __('Anonymous') . ' #' . $shortId;
-            session_write_close();
+            // Count guest chat now (quota already checked). After SSE, session cannot be reopened safely.
+            if (!$isApiCall) {
+                $_SESSION['guest_daily_count'] = (int)($_SESSION['guest_daily_count'] ?? 0) + 1;
+            }
         }
+
+        session_write_close();
 
         // Stream tokens (including thinking/reasoning) to the client as SSE
         LlmStreamProxy::beginSse();
@@ -566,15 +565,8 @@ if ($method === 'POST') {
             
             if ($currentUser['id']) {
                 $freshPdo->prepare("UPDATE users SET daily_chat_count = daily_chat_count + 1 WHERE id = ?")->execute([$currentUser['id']]);
-            } else {
-                if (!$isApiCall) {
-                    if (session_status() === PHP_SESSION_NONE) {
-                        session_start();
-                    }
-                    $_SESSION['guest_daily_count'] = ($_SESSION['guest_daily_count'] ?? 0) + 1;
-                    session_write_close();
-                }
             }
+            // Guest daily count already incremented in session before SSE (cannot session_start after body).
 
             if ($updateMemory) {
                 $freshPdo->prepare("INSERT INTO chat_memory (session_token, summary, last_message_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE summary = VALUES(summary), last_message_id = VALUES(last_message_id)")

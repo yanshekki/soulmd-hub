@@ -9,8 +9,17 @@ require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
 require_once __DIR__ . '/../private/includes/seo.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
 
+// config.php defines loadTranslations — fail clearly if deploy/config is incomplete
+if (!function_exists('loadTranslations')) {
+    http_response_code(500);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Server misconfigured: loadTranslations() missing (check private/config.php).';
+    exit;
+}
 loadTranslations('soul-versions');
 
 $db = Database::getInstance();
