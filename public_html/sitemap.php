@@ -2,9 +2,10 @@
 /**
  * SoulMD Hub - SEO sitemaps (quality-first).
  *
- * /sitemap.xml           → sitemapindex (static + curated souls)
- * /sitemap-static.xml    → hub pages, docs, mini apps
- * /sitemap-souls.xml     → small set of high-signal public souls only
+ * /sitemap.xml              → sitemapindex
+ * /sitemap-static.xml       → hub pages, docs, mini app shells
+ * /sitemap-apps-souls.xml   → /apps/{slug}/{soul-title} theme pairings
+ * /sitemap-souls.xml        → small set of high-signal public soul pages
  *
  * Why: dumping tens of thousands of thin public souls burns crawl budget
  * and tanks Search Console indexed/discovered ratio.
@@ -24,13 +25,18 @@ global $SUPPORTED_LANGS;
 const SITEMAP_SOUL_LIMIT = 400;
 /** Minimum content length (chars) to be considered non-thin. */
 const SITEMAP_MIN_CONTENT_LEN = 1000;
+/** Theme-matched souls per mini app for /apps/{slug}/{title-slug} URLs. */
+const SITEMAP_APP_SOULS_PER_APP = 8;
 
 $part = isset($_GET['part']) ? strtolower(trim((string)$_GET['part'])) : '';
 // Allow clean paths rewritten as ?part=
 if ($part === '' && !empty($_SERVER['REQUEST_URI'])) {
-    if (preg_match('#sitemap-static\.xml#', (string)$_SERVER['REQUEST_URI'])) {
+    $uri = (string)$_SERVER['REQUEST_URI'];
+    if (preg_match('#sitemap-static\.xml#', $uri)) {
         $part = 'static';
-    } elseif (preg_match('#sitemap-souls\.xml#', (string)$_SERVER['REQUEST_URI'])) {
+    } elseif (preg_match('#sitemap-apps-souls\.xml#', $uri) || preg_match('#sitemap-app-souls\.xml#', $uri)) {
+        $part = 'apps-souls';
+    } elseif (preg_match('#sitemap-souls\.xml#', $uri)) {
         $part = 'souls';
     }
 }
@@ -42,6 +48,11 @@ if ($part === '' || $part === 'index') {
 
 if ($part === 'static') {
     emitStaticUrlset($baseUrl);
+    exit;
+}
+
+if ($part === 'apps-souls' || $part === 'app-souls') {
+    emitAppsSoulsUrlset($baseUrl);
     exit;
 }
 
@@ -100,7 +111,7 @@ function emitSitemapIndex(string $baseUrl): void
     $today = date('Y-m-d');
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     echo '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-    foreach (['sitemap-static.xml', 'sitemap-souls.xml'] as $file) {
+    foreach (['sitemap-static.xml', 'sitemap-apps-souls.xml', 'sitemap-souls.xml'] as $file) {
         echo "  <sitemap>\n";
         echo '    <loc>' . htmlspecialchars($baseUrl . '/' . $file) . "</loc>\n";
         echo '    <lastmod>' . $today . "</lastmod>\n";
@@ -159,6 +170,87 @@ function emitStaticUrlset(string $baseUrl): void
             }
             emitUrl($loc, $alternates, $today, $meta['changefreq'], $meta['priority']);
         }
+    }
+
+    echo '</urlset>';
+}
+
+/**
+ * Intent URLs: /apps/{mini-app}/{soul-title-slug}
+ * One curated pairing per theme soul — high commercial intent for SEO.
+ */
+function emitAppsSoulsUrlset(string $baseUrl): void
+{
+    global $SUPPORTED_LANGS;
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
+
+    $today = date('Y-m-d');
+    $perApp = max(1, min(20, (int)SITEMAP_APP_SOULS_PER_APP));
+
+    try {
+        $db = Database::getInstance();
+        $pdo = $db->getConnection();
+
+        foreach (MiniAppsCatalog::allRaw() as $app) {
+            if (empty($app['enabled']) || empty($app['slug'])) {
+                continue;
+            }
+            $appSlug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$app['slug']);
+            if ($appSlug === '') {
+                continue;
+            }
+
+            $keywords = MiniAppsCatalog::searchKeywordsForApp($app);
+            // searchPublicSouls caps at 50; request a bit more then take top N unique title-slugs
+            $souls = MiniAppsCatalog::searchPublicSouls($pdo, $keywords, min(50, max($perApp * 2, $perApp)));
+            if ($souls === []) {
+                continue;
+            }
+
+            $seenSlugs = [];
+            $emitted = 0;
+            foreach ($souls as $soul) {
+                if ($emitted >= $perApp) {
+                    break;
+                }
+                if (!is_array($soul)) {
+                    continue;
+                }
+                $title = trim((string)($soul['title'] ?? ''));
+                if ($title === '') {
+                    continue;
+                }
+                $titleSlug = MiniAppsCatalog::titleToSlug($title);
+                if ($titleSlug === '' || $titleSlug === 'soul') {
+                    continue;
+                }
+                // Dedupe by title-slug within this app
+                if (isset($seenSlugs[$titleSlug])) {
+                    continue;
+                }
+                $seenSlugs[$titleSlug] = true;
+
+                // Path segment: encode for safe loc; apps.php rawurldecodes on resolve
+                $path = 'apps/' . $appSlug . '/' . rawurlencode($titleSlug);
+                $alternates = generateAlternates($baseUrl, $path);
+
+                $likes = (int)($soul['like_count'] ?? 0);
+                $forks = (int)($soul['fork_count'] ?? 0);
+                // Above bare soul pages, below app hub shell
+                $priority = ($likes + $forks >= 3) ? '0.72' : '0.68';
+
+                foreach (array_keys($SUPPORTED_LANGS) as $lang) {
+                    $langPrefix = ($lang === DEFAULT_LANG) ? '' : '/' . $lang;
+                    $loc = $baseUrl . $langPrefix . '/' . $path;
+                    emitUrl($loc, $alternates, $today, 'weekly', $priority);
+                }
+                $emitted++;
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('sitemap apps-souls error: ' . $e->getMessage());
     }
 
     echo '</urlset>';
