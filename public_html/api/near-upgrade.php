@@ -26,6 +26,7 @@ require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
+require_once __DIR__ . '/../../private/src/PremiumEntitlement.php';
 
 loadTranslations('api');
 
@@ -39,12 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$tier = strtolower(trim($input['tier'] ?? ''));
-$token = strtolower(trim($input['token'] ?? 'usdt')); // for logging/amount display only
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$tier = strtolower(trim((string)($input['tier'] ?? '')));
+$token = strtolower(trim((string)($input['token'] ?? 'usdt'))); // for logging/amount display only
 $payTx = $input['tx'] ?? null; // optional tx outcome from frontend for audit / future verification
 
-if (!in_array($tier, ['vip', 'pro'])) {
+if (!in_array($tier, ['vip', 'pro'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => __('Invalid tier')], JSON_UNESCAPED_UNICODE);
     exit;
@@ -52,15 +53,25 @@ if (!in_array($tier, ['vip', 'pro'])) {
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+$userId = (int)($_SESSION['user_id'] ?? 0);
+if ($userId <= 0) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 // Must have a bound NEAR wallet
 $uStmt = $pdo->prepare("SELECT near_wallet_address, tier, vip_expires_at FROM users WHERE id = ?");
 $uStmt->execute([$userId]);
-$user = $uStmt->fetch();
+$user = $uStmt->fetch(PDO::FETCH_ASSOC);
+if (!$user) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
-$nearAccount = trim($user['near_wallet_address'] ?? '');
-if (!$nearAccount) {
+$nearAccount = trim((string)($user['near_wallet_address'] ?? ''));
+if ($nearAccount === '') {
     echo json_encode([
         'success' => false,
         'error' => 'Please bind your NEAR wallet in My Settings → Web3 Wallet before using on-chain payments.',
@@ -140,13 +151,12 @@ if ($checkStmt->fetch()) {
     exit;
 }
 
-// Simple rate limit (session-based, like other APIs in project)
+// Simple rate limit (session-based). Do NOT stamp time until after we know claim will proceed past validation.
 if (isset($_SESSION['last_near_claim_time']) && (time() - $_SESSION['last_near_claim_time'] < 5)) {
     http_response_code(429);
     echo json_encode(['success' => false, 'error' => 'Too many claims, please wait a moment.'], JSON_UNESCAPED_UNICODE);
     exit;
 }
-$_SESSION['last_near_claim_time'] = time();
 
 // For manual claims (no payTx proof of a just-completed ft_transfer_call), require the credit to be very recent.
 // This prevents abuse where users bind a wallet that had an old/test/admin-set credit and claim free time
@@ -166,67 +176,56 @@ if ($isManualClaim) {
     }
 }
 
-// === Apply entitlement (exact same prorated logic as /api/paypal.php) ===
-// When upgrading VIP → PRO:
-//   - Calculate remaining unused VIP days' monetary value
-//   - Convert that value into equivalent PRO days (using daily price ratio)
-//   - Grant full 30-day PRO purchase + the converted bonus days
-// This implements the "top-up to PRO" behavior the user requested:
-// remaining VIP value is not lost, but converted.
-$now = time();
-$currentTier = $user['tier'] ?? 'free';
-$currentExpiry = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
-$isActivePremium = ($currentTier !== 'free' && $currentExpiry > $now);
-
-if ($isActivePremium && $currentTier === 'pro' && $tier === 'vip') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => __('Downgrade Guard')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-$purchasedSeconds = 30 * 24 * 60 * 60;
-
-if ($currentTier === 'vip' && $tier === 'pro' && $currentExpiry > $now) {
-    // Prorated VIP → PRO upgrade (exact same math as /api/paypal.php)
-    // Convert remaining unused VIP days' value into equivalent PRO days.
-    $remainingVipSeconds = $currentExpiry - $now;
-    $conversionRatio = (PRICE_VIP_MONTHLY / 30) / (PRICE_PRO_MONTHLY / 30);
-    $convertedProSeconds = $remainingVipSeconds * $conversionRatio;
-    $newExpiry = $now + $purchasedSeconds + $convertedProSeconds;
-} else {
-    $newExpiry = max($currentExpiry, $now) + $purchasedSeconds;
-}
+// === Apply entitlement via shared PremiumEntitlement (same as PayPal) ===
+$amountStr = ($tier === 'vip')
+    ? number_format((float)NEAR_UPGRADE_VIP_USD_AMOUNT, 2, '.', '')
+    : number_format((float)NEAR_UPGRADE_PRO_USD_AMOUNT, 2, '.', '');
+$currency = in_array($token, ['usdt', 'usdc'], true) ? strtoupper($token) : 'USDT';
 
 try {
-    $pdo->beginTransaction();
+    $result = PremiumEntitlement::applyPurchase(
+        $pdo,
+        $userId,
+        $tier,
+        $exactRef,
+        $amountStr,
+        $currency,
+        false // duplicate claim → error (NEAR already-claimed semantics)
+    );
 
-    $newExpiryStr = date('Y-m-d H:i:s', $newExpiry);
-    $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?")
-        ->execute([$tier, $newExpiryStr, $userId]);
-    SoulCorpHub::applyAccountTier($pdo, $userId, $tier, $newExpiryStr);
+    if (!empty($result['downgrade'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => __('Downgrade Guard')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (!empty($result['user_missing'])) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => __('Entitlement error')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (!empty($result['already'])) {
+        echo json_encode(['success' => false, 'error' => 'This on-chain upgrade payment has already been claimed.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (empty($result['ok'])) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => __('Entitlement error')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
-    $amountStr = ($tier === 'vip') ? number_format((float)NEAR_UPGRADE_VIP_USD_AMOUNT, 2) : number_format((float)NEAR_UPGRADE_PRO_USD_AMOUNT, 2);
-    $paymentRef = 'near-ft:' . $nearAccount . ':' . $tier . ':' . $creditTsStr;
-
-    $ins = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");
-    $ins->execute([$userId, $paymentRef, $amountStr, strtoupper($token), $tier, 'COMPLETED']);
-
-    $pdo->commit();
+    // Only throttle after a successful grant (failed claims should be retryable immediately)
+    $_SESSION['last_near_claim_time'] = time();
 
     echo json_encode([
         'success' => true,
         'message' => __('Transaction COMPLETED'),
         'status' => 'COMPLETED',
-        'new_tier' => $tier,
-        'expires_at' => $newExpiryStr
+        'new_tier' => $result['new_tier'] ?? $tier,
+        'expires_at' => $result['expires_at'] ?? null,
     ], JSON_UNESCAPED_UNICODE);
 
-} catch (Exception $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
-
-    // Handle duplicate claim (unique violation on paypal_order_id) gracefully even if the pre-check was raced.
-    $errStr = (string)$e;
-    if (strpos($errStr, 'Duplicate') !== false || strpos($errStr, '1062') !== false || strpos($errStr, 'Integrity constraint violation') !== false) {
+} catch (Throwable $e) {
+    if (PremiumEntitlement::isDuplicateKeyException($e)) {
         echo json_encode(['success' => false, 'error' => 'This on-chain upgrade payment has already been claimed.'], JSON_UNESCAPED_UNICODE);
         exit;
     }

@@ -14,8 +14,16 @@ $csrfToken = ApiSecurity::ensureCsrfToken();
 
 loadTranslations('login');
 
+// Safe same-origin relative redirect after login (e.g. /upgrade or /zh/upgrade)
+$afterLogin = url('/my-souls');
+$rawRedirect = trim((string)($_GET['redirect'] ?? ''));
+if ($rawRedirect !== '' && str_starts_with($rawRedirect, '/') && !str_starts_with($rawRedirect, '//')
+    && !preg_match('/[\r\n]/', $rawRedirect) && strlen($rawRedirect) < 512) {
+    $afterLogin = $rawRedirect;
+}
+
 if (isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/my-souls'));
+    header('Location: ' . $afterLogin);
     exit;
 }
 
@@ -173,7 +181,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
             
             if (data.success) {
-                window.location.href = '<?= url("/my-souls") ?>';
+                window.location.href = <?= json_encode($afterLogin, JSON_UNESCAPED_UNICODE) ?>;
             } else {
                 errorMsg.innerText = data.error || '<?= addslashes(__('Wallet not bound')) ?>';
                 errorBox.classList.remove('hidden');
@@ -226,7 +234,7 @@ require_once __DIR__ . '/../private/includes/header.php';
             const data = await res.json();
 
             if (data.success) {
-                window.location.href = '<?= url("/my-souls") ?>';
+                window.location.href = <?= json_encode($afterLogin, JSON_UNESCAPED_UNICODE) ?>;
             } else {
                 errorMsg.innerText = data.error || '<?= addslashes(__('Login failed.')) ?>';
                 errorBox.classList.remove('hidden');

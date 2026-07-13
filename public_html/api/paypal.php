@@ -1,7 +1,8 @@
 <?php
 /**
  * SoulMD Hub API
- * POST /api/paypal - Capture PayPal Order & Entitlement Engine (i18n Fixed)
+ * POST /api/paypal - Capture PayPal Order & Entitlement Engine
+ * Entitlement writes go through PremiumEntitlement (shared with NEAR).
  */
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -16,6 +17,7 @@ require_once __DIR__ . '/../../private/config.php';
 require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
+require_once __DIR__ . '/../../private/src/PremiumEntitlement.php';
 
 loadTranslations('api');
 
@@ -29,11 +31,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$orderId = $input['orderID'] ?? '';
-$purchasedTier = $input['tier'] ?? ''; 
+if (empty($userId)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => __('Unauthorized Session')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
-if (empty($orderId) || !in_array($purchasedTier, ['vip', 'pro'])) {
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$orderId = trim((string)($input['orderID'] ?? ''));
+$purchasedTier = strtolower(trim((string)($input['tier'] ?? '')));
+
+// PayPal order IDs are alphanumeric; reject obvious garbage early
+if ($orderId === '' || !preg_match('/^[A-Z0-9_-]{8,64}$/i', $orderId) || !in_array($purchasedTier, ['vip', 'pro'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => __('Malformed transaction')], JSON_UNESCAPED_UNICODE);
     exit;
@@ -41,27 +50,19 @@ if (empty($orderId) || !in_array($purchasedTier, ['vip', 'pro'])) {
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+$userId = (int)$_SESSION['user_id'];
 
-$uStmt = $pdo->prepare("SELECT tier, vip_expires_at FROM users WHERE id = ?");
-$uStmt->execute([$userId]);
-$currentUser = $uStmt->fetch();
-
-$currentTier = $currentUser['tier'];
-$currentExpiry = $currentUser['vip_expires_at'] ? strtotime($currentUser['vip_expires_at']) : 0;
-$now = time();
-$isActivePremium = ($currentTier !== 'free' && $currentExpiry > $now);
-
-if ($isActivePremium && $currentTier === 'pro' && $purchasedTier === 'vip') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => __('Downgrade Guard')], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-$checkStmt = $pdo->prepare("SELECT id, status FROM payments WHERE paypal_order_id = ?");
+// Idempotency: already captured/processed
+$checkStmt = $pdo->prepare("SELECT id, status, tier_purchased FROM payments WHERE paypal_order_id = ? LIMIT 1");
 $checkStmt->execute([$orderId]);
-if ($checkStmt->fetch()) {
-    echo json_encode(['success' => true, 'message' => __('Transaction already processed')], JSON_UNESCAPED_UNICODE);
+$existingPay = $checkStmt->fetch();
+if ($existingPay) {
+    echo json_encode([
+        'success' => true,
+        'message' => __('Transaction already processed'),
+        'status' => $existingPay['status'] ?? 'COMPLETED',
+        'new_tier' => $existingPay['tier_purchased'] ?? $purchasedTier,
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -73,9 +74,10 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_USERPWD, PAYPAL_CLIENT_ID . ':' . PAYPAL_SECRET);
 curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json', 'Accept-Language: en_US']);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
 $response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($httpCode !== 200) {
@@ -84,21 +86,27 @@ if ($httpCode !== 200) {
     exit;
 }
 
-$tokenData = json_decode($response, true);
+$tokenData = json_decode((string)$response, true);
 $accessToken = $tokenData['access_token'] ?? '';
+if ($accessToken === '') {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => __('Gateway auth failure')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $paypalBaseUrl . "/v2/checkout/orders/{$orderId}/capture");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: Bearer ' . $accessToken]);
+curl_setopt($ch, CURLOPT_TIMEOUT, 45);
 
 $captureResponse = curl_exec($ch);
-$captureHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$captureHttpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-$captureData = json_decode($captureResponse, true);
-$paypalStatus = $captureData['status'] ?? '';
+$captureData = json_decode((string)$captureResponse, true) ?? [];
+$paypalStatus = (string)($captureData['status'] ?? '');
 
 if ($captureHttpCode !== 200 && $captureHttpCode !== 201) {
     $errorDesc = $captureData['details'][0]['description'] ?? 'Payment authorization declined by issuer.';
@@ -107,57 +115,98 @@ if ($captureHttpCode !== 200 && $captureHttpCode !== 201) {
     exit;
 }
 
-$paidAmount = $captureData['purchase_units'][0]['payments']['captures'][0]['amount']['value'] ?? '0.00';
-$expectedAmount = ($purchasedTier === 'pro') ? PRICE_PRO_MONTHLY : PRICE_VIP_MONTHLY;
+// Only COMPLETED captures grant entitlement (PENDING must not succeed or block forever)
+if ($paypalStatus !== 'COMPLETED') {
+    http_response_code(402);
+    echo json_encode([
+        'success' => false,
+        'error' => __('Auth returned status', ['status' => $paypalStatus ?: 'UNKNOWN']),
+        'status' => $paypalStatus,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
-// ✅ Phase 2 業務邏輯修復：避免 float 精度問題，使用 bccomp (若無則 fallback)
+$capture = $captureData['purchase_units'][0]['payments']['captures'][0] ?? null;
+if (!is_array($capture)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => __('Gross amount mismatch')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$paidAmount = (string)($capture['amount']['value'] ?? '0.00');
+$paidCurrency = strtoupper((string)($capture['amount']['currency_code'] ?? ''));
+$captureStatus = (string)($capture['status'] ?? '');
+$expectedAmount = ($purchasedTier === 'pro') ? (string)PRICE_PRO_MONTHLY : (string)PRICE_VIP_MONTHLY;
+
+// Capture-level COMPLETED + USD + exact amount (not merely "not less than")
+if ($captureStatus !== '' && $captureStatus !== 'COMPLETED') {
+    http_response_code(402);
+    echo json_encode(['success' => false, 'error' => __('Auth returned status', ['status' => $captureStatus])], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+if ($paidCurrency !== 'USD') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => __('Gross amount mismatch')], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$amountOk = false;
 if (function_exists('bccomp')) {
-    if (bccomp((string)$paidAmount, (string)$expectedAmount, 2) < 0 && $paypalStatus === 'COMPLETED') {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => __('Gross amount mismatch')], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-} elseif ((float)$paidAmount + 0.001 < (float)$expectedAmount && $paypalStatus === 'COMPLETED') {
+    $amountOk = (bccomp($paidAmount, $expectedAmount, 2) === 0);
+} else {
+    $amountOk = (abs((float)$paidAmount - (float)$expectedAmount) < 0.005);
+}
+if (!$amountOk) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => __('Gross amount mismatch')], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 try {
-    $pdo->beginTransaction();
+    $result = PremiumEntitlement::applyPurchase(
+        $pdo,
+        $userId,
+        $purchasedTier,
+        $orderId,
+        $paidAmount,
+        'USD',
+        true // duplicate claim → success (idempotent)
+    );
 
-    $insStmt = $pdo->prepare("INSERT INTO payments (user_id, paypal_order_id, amount, currency, tier_purchased, status) VALUES (?, ?, ?, ?, ?, ?)");
-    $insStmt->execute([$userId, $orderId, $paidAmount, 'USD', $purchasedTier, $paypalStatus]);
-
-    $purchasedSeconds = 30 * 24 * 60 * 60; 
-
-    if ($paypalStatus === 'COMPLETED') {
-        if ($currentTier === 'vip' && $purchasedTier === 'pro' && $currentExpiry > $now) {
-            $remainingVipSeconds = $currentExpiry - $now;
-            $conversionRatio = (PRICE_VIP_MONTHLY / 30) / (PRICE_PRO_MONTHLY / 30);
-            $convertedProSeconds = $remainingVipSeconds * $conversionRatio;
-            $newExpiry = $now + $purchasedSeconds + $convertedProSeconds;
-        } else {
-            $newExpiry = max($currentExpiry, $now) + $purchasedSeconds;
-        }
-
-        $newExpiryStr = date('Y-m-d H:i:s', $newExpiry);
-        $pdo->prepare("UPDATE users SET tier = ?, vip_expires_at = ? WHERE id = ?")
-            ->execute([$purchasedTier, $newExpiryStr, $userId]);
-        SoulCorpHub::applyAccountTier($pdo, $userId, $purchasedTier, $newExpiryStr);
-
-        $pdo->commit();
-        echo json_encode(['success' => true, 'message' => __('Transaction COMPLETED'), 'status' => 'COMPLETED', 'new_tier' => $purchasedTier, 'expires_at' => $newExpiryStr], JSON_UNESCAPED_UNICODE);
-    } elseif ($paypalStatus === 'PENDING') {
-        $pdo->commit();
-        echo json_encode(['success' => true, 'message' => __('Transaction PENDING'), 'status' => 'PENDING', 'new_tier' => 'free'], JSON_UNESCAPED_UNICODE);
-    } else {
-        $pdo->commit();
-        echo json_encode(['success' => false, 'error' => __('Auth returned status', ['status' => $paypalStatus]), 'status' => $paypalStatus], JSON_UNESCAPED_UNICODE);
+    if (!empty($result['downgrade'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => __('Downgrade Guard')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (!empty($result['user_missing'])) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => __('Entitlement error')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (!empty($result['already'])) {
+        echo json_encode(['success' => true, 'message' => __('Transaction already processed')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    // Hard require success flag — never report COMPLETED without ok
+    if (empty($result['ok']) || empty($result['expires_at'])) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => __('Entitlement error')], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
-} catch (Exception $e) {
-    if ($pdo->inTransaction()) { $pdo->rollBack(); }
+    echo json_encode([
+        'success' => true,
+        'message' => __('Transaction COMPLETED'),
+        'status' => 'COMPLETED',
+        'new_tier' => $result['new_tier'] ?? $purchasedTier,
+        'expires_at' => $result['expires_at'],
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Throwable $e) {
+    if (PremiumEntitlement::isDuplicateKeyException($e)) {
+        echo json_encode(['success' => true, 'message' => __('Transaction already processed')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => __('Entitlement error')], JSON_UNESCAPED_UNICODE);
 }

@@ -23,10 +23,18 @@ return [
         'Type your message...' => 'Type your message here, Ctrl+V to paste an image, Ctrl+Enter to send...',
         'Copied!' => 'Copied to Clipboard!',
         
-        'Your Premium Subscription has Expired!  ' => 'Your Premium Subscription has Expired! ⏳',
+        // Paywall modal (stable keys — do not embed emoji in keys)
+        'Paywall Expired Title' => 'Your Premium Subscription has Expired! ⚠️',
+        'Paywall Unlock Title' => 'Unlock Full AI Power 🚀',
+        'Paywall Expired Desc' => 'Your access window has closed. Please renew your SaaS plan to restore Headless API access and chat token quotas.',
+        'Paywall Unlock Desc' => 'You have reached the free trial limit or tried to access a premium feature.',
+        // Legacy keys (keep for any old templates)
+        'Your Premium Subscription has Expired!  ' => 'Your Premium Subscription has Expired! ⚠️',
+        'Your Premium Subscription has Expired! ⚠️' => 'Your Premium Subscription has Expired! ⚠️',
         'Unlock Full AI Power  ' => 'Unlock Full AI Reasoning Power 🚀',
-        'Your access window has closed. Please renew your plan to restore active token clusters.' => 'Your access window has closed. Please renew your SaaS plan to restore Headless API access and active token clusters.',
-        'You\'ve reached the free trial limit or tried to access a premium feature.' => 'You\'ve reached the free trial context limit or attempted to trigger a premium multi-modal feature.',
+        'Unlock Full AI Power 🚀' => 'Unlock Full AI Reasoning Power 🚀',
+        'Your access window has closed. Please renew your plan to restore active token clusters.' => 'Your access window has closed. Please renew your SaaS plan to restore Headless API access and chat token quotas.',
+        'You\'ve reached the free trial limit or tried to access a premium feature.' => 'You have reached the free trial limit or tried to access a premium feature.',
         
         'VIP Plan' => 'VIP Standard Plan',
         '/mo' => '/mo',
@@ -35,7 +43,7 @@ return [
         'Up to chars characters' => 'Up to <b>:chars</b> characters per prompt',
         'Vision AI: Snapshot upload features' => '<b>Vision AI</b>: Snapshot image analysis',
         'Smart context sliding snapshots' => 'Smart sliding context memory retention',
-        'Renew VIP Pass' => 'Renew VIP Pass',
+        'Renew VIP Pass' => 'Renew VIP Plan',
         'Upgrade to VIP' => 'Upgrade to VIP',
         
         'Most Powerful' => 'Ultimate Power',
@@ -45,7 +53,7 @@ return [
         'Unlimited advanced reasoning slots' => '<b>Unlimited</b> advanced reasoning requests',
         'Massive chars characters' => 'Massive <b>:chars</b> input characters',
         'High snapshot memory snap (30 layers)' => 'Deep snapshot memory retention (30 layers)',
-        'Renew PRO Pass' => 'Renew PRO Pass',
+        'Renew PRO Pass' => 'Renew PRO Plan',
         'Get PRO Access' => 'Get PRO Access',
         
         'Init message' => 'Initialization complete. Agent loaded and ready. What would you like to discuss today?',
@@ -63,6 +71,11 @@ return [
         'Reply truncated byok notice' => 'Reply truncated: the model hit the max output length for this request.',
         'Thinking' => 'Thinking',
         'Thinking done' => 'Thought process',
+        'Print chat' => 'Print chat',
+        'Print reply' => 'Print',
+        'CHAT TRANSCRIPT' => 'Chat Transcript',
+        'CHAT REPLY' => 'Chat Reply',
+        'Print footer note' => 'Generated on SoulMD Hub. Educational / reference use only — results are not guaranteed.',
         
         // Web3 / AgentFi / BYOK Alerts
         'Security Interception' => "🛡️ **Security Interception Triggered**\nOff-chain AI template mismatch. The creator has modified the core instructions without updating the blockchain cryptographic hash. Access is suspended to protect your rental IP rights.",
@@ -97,10 +110,18 @@ return [
         'Type your message...' => '在此輸入您的訊息，按 Ctrl+V 貼上圖片進行 Vision 分析，按 Ctrl+Enter 發送...',
         'Copied!' => '已複製到剪貼簿！',
         
-        'Your Premium Subscription has Expired!  ' => '您的進階訂閱已過期！ ⏳',
-        'Unlock Full AI Power  ' => '解鎖無限制的 AI 算力 🚀',
-        'Your access window has closed. Please renew your plan to restore active token clusters.' => '您的 API 存取權限已關閉。請續訂您的 SaaS 方案以恢復 Headless API 存取與對話 Token 額度。',
-        'You\'ve reached the free trial limit or tried to access a premium feature.' => '您已達到免費試用的上下文記憶上限，或嘗試觸發高階的多模態 (Vision AI) 運算功能。',
+        // Paywall modal（穩定 key，唔將 emoji 寫入 key）
+        'Paywall Expired Title' => '您的進階訂閱已過期！ ⚠️',
+        'Paywall Unlock Title' => '解鎖完整 AI 算力 🚀',
+        'Paywall Expired Desc' => '您的 API 存取權限已關閉。請續訂 SaaS 方案，以恢復 Headless API 存取與對話 Token 額度。',
+        'Paywall Unlock Desc' => '您已達到免費試用額度，或嘗試使用進階功能。',
+        // 舊 key 相容
+        'Your Premium Subscription has Expired!  ' => '您的進階訂閱已過期！ ⚠️',
+        'Your Premium Subscription has Expired! ⚠️' => '您的進階訂閱已過期！ ⚠️',
+        'Unlock Full AI Power  ' => '解鎖完整 AI 算力 🚀',
+        'Unlock Full AI Power 🚀' => '解鎖完整 AI 算力 🚀',
+        'Your access window has closed. Please renew your plan to restore active token clusters.' => '您的 API 存取權限已關閉。請續訂 SaaS 方案，以恢復 Headless API 存取與對話 Token 額度。',
+        'You\'ve reached the free trial limit or tried to access a premium feature.' => '您已達到免費試用額度，或嘗試使用進階功能。',
         
         'VIP Plan' => 'VIP 標準方案',
         '/mo' => '/ 月',
@@ -137,6 +158,11 @@ return [
         'Reply truncated byok notice' => '回覆已截斷：模型已達本次請求的最大輸出長度。',
         'Thinking' => '思考中',
         'Thinking done' => '思考過程',
+        'Print chat' => '列印對話',
+        'Print reply' => '列印',
+        'CHAT TRANSCRIPT' => '對話紀錄',
+        'CHAT REPLY' => '回覆列印',
+        'Print footer note' => '由 SoulMD Hub 產生。僅供教育／參考用途，不保證任何結果。',
         
         // Web3 / AgentFi / BYOK Alerts
         'Security Interception' => "🛡️ **觸發安全攔截 (Security Interception)**\n鏈下 AI 模板不符。創作者修改了核心指令，但並未更新區塊鏈上的加密 Hash。為保護您的租賃 IP 權益，系統已暫停存取。",

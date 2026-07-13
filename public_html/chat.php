@@ -119,6 +119,84 @@ if ($maskContent) {
 
 <textarea id="raw-soul-content" class="hidden" aria-hidden="true"><?= htmlspecialchars($rawContentForModal) ?></textarea>
 
+<style>
+    /* Chat print — mirrors invoice.php (0 page margin / padding) */
+    @media print {
+        @page {
+            margin: 0; /* eliminate browser default white borders */
+            size: auto;
+        }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #09090b !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        nav, footer, .no-print,
+        #chat-form,
+        #loading-history {
+            display: none !important;
+        }
+        /* Site chrome + chat chrome hide */
+        body > header,
+        body > nav,
+        main > header,
+        main > aside {
+            display: none !important;
+        }
+        main {
+            display: block !important;
+            height: auto !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        #chat-box {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+            border-radius: 0 !important;
+            background: #09090b !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+        }
+        .print-only-header {
+            display: flex !important;
+            margin: 0 !important;
+            padding: 1.25rem 1.5rem !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        .chat-msg {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin: 0 !important;
+            padding: 0.75rem 1.5rem !important;
+        }
+        .chat-msg:last-child {
+            padding-bottom: 1.5rem !important;
+        }
+        .chat-msg-print-btn {
+            display: none !important;
+        }
+        .chat-bubble {
+            max-width: 100% !important;
+            box-shadow: none !important;
+        }
+    }
+    .print-only-header {
+        display: none;
+    }
+</style>
+
 <!-- 🚀 SEO Enhancement: Semantic <main> tag -->
 <main class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col flex-1 min-h-0 h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-8.5rem)]">
     
@@ -163,7 +241,10 @@ if ($maskContent) {
                 </label>
             <?php endif; ?>
 
-            <button id="share-btn" onclick="shareChat(this)" aria-label="<?= __('Share URL') ?>" class="<?= $isPrivate ? 'hidden ' : '' ?>px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <button type="button" id="print-chat-btn" onclick="printChatTranscript()" aria-label="<?= __('Print chat') ?>" class="no-print px-3 sm:px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 rounded-xl text-sm font-medium transition flex items-center gap-2 mr-2">
+                <i class="fas fa-print" aria-hidden="true"></i> <span class="hidden sm:inline"><?= __('Print chat') ?></span>
+            </button>
+            <button id="share-btn" onclick="shareChat(this)" aria-label="<?= __('Share URL') ?>" class="<?= $isPrivate ? 'hidden ' : '' ?>no-print px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition flex items-center gap-2">
                 <i class="fas fa-share-alt" aria-hidden="true"></i> <span class="hidden sm:inline"><?= __('Share URL') ?></span>
             </button>
         </div>
@@ -176,6 +257,19 @@ if ($maskContent) {
 
     <!-- 🚀 SEO Enhancement: role="log" & aria-live="polite" for Screen Readers -->
     <div id="chat-box" role="log" aria-live="polite" aria-atomic="false" class="flex-grow bg-zinc-950 border-x border-white/10 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar scroll-smooth">
+        <!-- Visible only when printing entire transcript (invoice-style branding) -->
+        <div class="print-only-header flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-6 mb-6 gap-4">
+            <div>
+                <div class="text-2xl font-black tracking-tighter text-white flex items-center gap-2">
+                    SoulMD <span class="text-emerald-400 text-[10px] px-2 py-0.5 bg-emerald-900/30 rounded-full font-mono">HUB</span>
+                </div>
+                <p class="text-zinc-500 text-xs mt-2 font-mono"><?= htmlspecialchars($soul['title'] ?? 'Chat') ?></p>
+            </div>
+            <div class="text-left sm:text-right">
+                <div class="text-lg font-bold text-zinc-300 tracking-widest uppercase"><?= htmlspecialchars(__('CHAT TRANSCRIPT')) ?></div>
+                <p class="text-zinc-500 text-xs font-mono mt-1" id="print-transcript-date"></p>
+            </div>
+        </div>
         <div class="flex justify-center items-center h-full" id="loading-history">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" aria-label="Loading history"></div>
         </div>

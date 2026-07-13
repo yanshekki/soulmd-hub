@@ -273,6 +273,154 @@
         });
     }
 
+    const CHAT_SOUL_TITLE = <?= json_encode($soul['title'] ?? 'Chat', JSON_UNESCAPED_UNICODE) ?>;
+    const I18N_PRINT_REPLY = <?= json_encode(__('Print reply'), JSON_UNESCAPED_UNICODE) ?>;
+    const I18N_PRINT_CHAT = <?= json_encode(__('Print chat'), JSON_UNESCAPED_UNICODE) ?>;
+    const I18N_CHAT_REPLY = <?= json_encode(__('CHAT REPLY'), JSON_UNESCAPED_UNICODE) ?>;
+    const I18N_CHAT_TRANSCRIPT = <?= json_encode(__('CHAT TRANSCRIPT'), JSON_UNESCAPED_UNICODE) ?>;
+    const I18N_PRINT_FOOTER = <?= json_encode(__('Print footer note'), JSON_UNESCAPED_UNICODE) ?>;
+
+    /**
+     * Invoice-style HTML shell for single-message print (iframe).
+     */
+    function buildPrintDocument(opts) {
+        const title = opts.title || CHAT_SOUL_TITLE;
+        const label = opts.label || I18N_CHAT_REPLY;
+        const bodyHtml = opts.bodyHtml || '';
+        const when = opts.when || new Date().toLocaleString();
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHTML(label)} — ${escapeHTML(title)}</title>
+<style>
+  @page { margin: 0; size: auto; }
+  html, body {
+    margin: 0 !important; padding: 0 !important;
+    background: #09090b; color: #e4e4e7;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
+  }
+  .wrap { max-width: 100%; width: 100%; margin: 0; padding: 0; }
+  .card {
+    background: #09090b; border: none; border-radius: 0;
+    padding: 1.25rem 1.5rem; margin: 0; box-shadow: none;
+  }
+  .hdr {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1.5rem; margin-bottom: 1.5rem;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .brand { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; }
+  .badge {
+    font-size: 10px; font-family: ui-monospace, monospace; font-weight: 700;
+    color: #34d399; background: rgba(6,78,59,0.35); border-radius: 999px; padding: 2px 8px; margin-left: 6px;
+  }
+  .sub { color: #71717a; font-size: 12px; font-family: ui-monospace, monospace; margin-top: 8px; }
+  .label { font-size: 1.1rem; font-weight: 700; color: #d4d4d8; letter-spacing: 0.12em; text-transform: uppercase; }
+  .body { font-size: 14px; line-height: 1.65; color: #e4e4e7; }
+  .body h1,.body h2,.body h3 { color: #fff; margin: 1em 0 0.4em; }
+  .body p { margin: 0.6em 0; }
+  .body pre, .body code { font-family: ui-monospace, monospace; font-size: 12px; }
+  .body pre {
+    background: #09090b; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem; padding: 0.75rem 1rem; overflow-x: auto; white-space: pre-wrap;
+  }
+  .body blockquote {
+    border-left: 3px solid #34d399; margin: 0.75em 0; padding: 0.25em 0 0.25em 0.9em; color: #a1a1aa;
+  }
+  .body ul, .body ol { padding-left: 1.25rem; }
+  .body img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+  .ft {
+    margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: center; font-size: 10px; color: #71717a; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+</style></head><body>
+<div class="wrap"><div class="card">
+  <div class="hdr">
+    <div>
+      <div class="brand">SoulMD <span class="badge">HUB</span></div>
+      <div class="sub">${escapeHTML(title)}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">${escapeHTML(label)}</div>
+      <div class="sub">${escapeHTML(when)}</div>
+    </div>
+  </div>
+  <div class="body">${bodyHtml}</div>
+  <div class="ft">${escapeHTML(I18N_PRINT_FOOTER)}</div>
+</div></div>
+</body></html>`;
+    }
+
+    function printHtmlDocument(html) {
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
+        const run = () => {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (e) {}
+            setTimeout(() => { try { iframe.remove(); } catch (_) {} }, 1500);
+        };
+        // Give styles a tick to apply
+        setTimeout(run, 250);
+    }
+
+    /** Print entire conversation (page @media print, invoice-style card on #chat-box). */
+    function printChatTranscript() {
+        const dateEl = document.getElementById('print-transcript-date');
+        if (dateEl) dateEl.textContent = new Date().toLocaleString();
+        document.body.classList.add('printing-chat');
+        window.print();
+        setTimeout(() => document.body.classList.remove('printing-chat'), 800);
+    }
+    window.printChatTranscript = printChatTranscript;
+
+    /** Print a single message node (assistant reply). */
+    function printMessageNode(msgEl) {
+        if (!msgEl) return;
+        const bubble = msgEl.querySelector('.chat-bubble');
+        if (!bubble) return;
+        // Expand thinking for print
+        const details = bubble.querySelectorAll('details');
+        details.forEach(d => { d.open = true; });
+        const clone = bubble.cloneNode(true);
+        clone.querySelectorAll('.chat-msg-print-btn, .no-print').forEach(el => el.remove());
+        printHtmlDocument(buildPrintDocument({
+            title: CHAT_SOUL_TITLE,
+            label: I18N_CHAT_REPLY,
+            bodyHtml: clone.innerHTML,
+            when: new Date().toLocaleString(),
+        }));
+    }
+    window.printMessageNode = printMessageNode;
+
+    function attachPrintButton(msgDiv, bubble) {
+        if (!msgDiv || !bubble) return;
+        if (msgDiv.querySelector('.chat-msg-print-btn')) return;
+        // Skip loading placeholders
+        if (bubble.querySelector('.animate-bounce') && !bubble.querySelector('.stream-content, .prose p, .prose h1, .prose h2, pre, li')) {
+            // still may be streaming — allow if has thinking or content
+            if (!bubble.querySelector('.thinking-block, .stream-content')) return;
+        }
+        const bar = document.createElement('div');
+        bar.className = 'chat-msg-print-btn no-print flex mt-1.5 ' + (msgDiv.classList.contains('items-end') ? 'justify-end' : 'justify-start');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-emerald-300 transition';
+        btn.innerHTML = '<i class="fas fa-print text-[10px]" aria-hidden="true"></i> ' + escapeHTML(I18N_PRINT_REPLY);
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            printMessageNode(msgDiv);
+        });
+        bar.appendChild(btn);
+        msgDiv.appendChild(bar);
+    }
+
     // 🚀 訊息渲染 (支援 Sender Identity UI 及 去重緩存)
     function appendMessage(role, content, senderName = null, msgId = null) {
         if (msgId && msgId > lastMessageId) {
@@ -288,7 +436,8 @@
         if (content !== '...') window.renderedContents.add(dedupKey);
 
         const msgDiv = document.createElement('div');
-        msgDiv.className = `flex flex-col w-full mb-4 ${role === 'user' ? 'items-end' : 'items-start'}`;
+        msgDiv.className = `chat-msg flex flex-col w-full mb-4 ${role === 'user' ? 'items-end' : 'items-start'}`;
+        msgDiv.dataset.role = role;
 
         // 🚀 加入發送者名字
         if (senderName) {
@@ -302,7 +451,7 @@
         bubbleWrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
 
         const bubble = document.createElement('div');
-        bubble.className = `max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${
+        bubble.className = `chat-bubble max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${
             role === 'user' 
             ? 'bg-emerald-500 text-zinc-950 rounded-tr-sm' 
             : 'bg-zinc-800 border border-white/5 text-zinc-200 rounded-tl-sm prose prose-invert prose-sm prose-emerald'
@@ -337,6 +486,11 @@
         bubbleWrapper.appendChild(bubble);
         msgDiv.appendChild(bubbleWrapper);
         chatBox.appendChild(msgDiv);
+
+        // Print button for finished assistant replies (not loading placeholder)
+        if (role === 'assistant' && content !== '...') {
+            attachPrintButton(msgDiv, bubble);
+        }
         
         scrollToBottom();
         return bubble;
@@ -384,7 +538,7 @@
                         showPaywall();
                     }
                     // Drop stale mini-app prefill if this session already has history
-                    try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (e) {}
+                    clearMiniAppPrefill();
                 } else {
                     appendMessage('assistant', <?= json_encode(__('Init message'), JSON_UNESCAPED_UNICODE) ?>, '<?= addslashes(__('AI Assistant')) ?>');
                     // Mini Apps: auto-send form payload into this new chat session once
@@ -409,17 +563,54 @@
     }
 
     /**
-     * Mini Apps hub: after redirect to /chat/{soul}/{session}, send the form text once.
-     * Prefill stored in sessionStorage by /apps (key soulmd_app_prefill).
+     * Mini Apps hub: open /chat with ?prefill=localStorageKey (new tab) or legacy keys.
+     * localStorage is shared across tabs; sessionStorage is NOT (so new-tab open failed before).
      */
-    function tryMiniAppPrefillSend() {
+    function getMiniAppPrefillRaw() {
         let raw = null;
-        try { raw = sessionStorage.getItem('soulmd_app_prefill'); } catch (e) { return; }
+        let storageKey = null;
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const qKey = params.get('prefill');
+            if (qKey && /^soulmd_app_prefill_[\w-]+$/.test(qKey)) {
+                storageKey = qKey;
+                raw = localStorage.getItem(qKey);
+            }
+            if (!raw) {
+                storageKey = 'soulmd_app_prefill';
+                raw = localStorage.getItem('soulmd_app_prefill') || sessionStorage.getItem('soulmd_app_prefill');
+            }
+        } catch (e) {
+            return { raw: null, storageKey: null };
+        }
+        return { raw, storageKey };
+    }
+
+    function clearMiniAppPrefill(storageKey) {
+        try {
+            if (storageKey) localStorage.removeItem(storageKey);
+            localStorage.removeItem('soulmd_app_prefill');
+            sessionStorage.removeItem('soulmd_app_prefill');
+        } catch (e) {}
+        // Strip ?prefill= from URL so refresh does not re-send
+        try {
+            if (window.location.search && window.location.search.indexOf('prefill=') !== -1) {
+                const u = new URL(window.location.href);
+                u.searchParams.delete('prefill');
+                history.replaceState(null, '', u.pathname + (u.search || '') + (u.hash || ''));
+            }
+        } catch (e) {}
+    }
+
+    function tryMiniAppPrefillSend() {
+        const { raw, storageKey } = getMiniAppPrefillRaw();
         if (!raw) return;
 
         let payload = null;
-        try { payload = JSON.parse(raw); } catch (e) {
-            try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (err) {}
+        try {
+            payload = JSON.parse(raw);
+        } catch (e) {
+            clearMiniAppPrefill(storageKey);
             return;
         }
 
@@ -428,11 +619,11 @@
         const age = Date.now() - (parseInt(payload.ts, 10) || 0);
         // Must match current soul; expire after 5 minutes
         if (!content || prefillSoul !== soulId || age > 5 * 60 * 1000) {
-            try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (e) {}
+            clearMiniAppPrefill(storageKey);
             return;
         }
 
-        try { sessionStorage.removeItem('soulmd_app_prefill'); } catch (e) {}
+        clearMiniAppPrefill(storageKey);
 
         if (!isByokMode && userMessageCount >= MAX_TURNS) {
             showPaywall();
@@ -647,6 +838,8 @@
             if (replyText && data.truncated) {
                 appendTruncationNotice(aiBubble, data);
             }
+            const msgDiv = aiBubble.closest('.chat-msg');
+            if (msgDiv && replyText) attachPrintButton(msgDiv, aiBubble);
         } else if (data && data.needs_upgrade) {
             aiBubble.innerHTML = `<span class="text-amber-400"><i class="fas fa-lock"></i> ${escapeHTML(data.error || '')}</span>`;
             showPaywall();
@@ -835,6 +1028,8 @@
         if (state.finalData) {
             appendTruncationNotice(aiBubble, state.finalData);
         }
+        const msgDiv = aiBubble.closest('.chat-msg');
+        if (msgDiv) attachPrintButton(msgDiv, aiBubble);
         scrollToBottom();
         // Success only when server confirmed done (DB saved)
         return !!(state.finalData && state.finalData.success);

@@ -159,10 +159,13 @@ define('NEAR_USDC_CONTRACT', '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6
 // ==========================================
 // 💰 Premium SaaS Tier Pricing Architecture (USD/30 Days)
 // ==========================================
+// PayPal + display prices. NEAR_UPGRADE_* aliases the same values.
+// ⚠️ Changing prices requires redeploying NEAR contract ft_on_transfer thresholds
+// (hardcoded 4_990_000 / 14_990_000 raw units = $4.99 / $14.99 @ 6 decimals).
 define('PRICE_VIP_MONTHLY', '4.99');
 define('PRICE_PRO_MONTHLY', '14.99');
 
-// NEAR on-chain upgrade amounts use the same USD values (to avoid duplication; converted to 6-decimal units in JS/contract)
+// NEAR on-chain upgrade amounts (same USD; JS multiplies by 1e6 for FT units)
 define('NEAR_UPGRADE_VIP_USD_AMOUNT', PRICE_VIP_MONTHLY);
 define('NEAR_UPGRADE_PRO_USD_AMOUNT', PRICE_PRO_MONTHLY);
 
@@ -178,7 +181,7 @@ define('IMAGE_QUALITY', 0.6);
 define('FREE_MODEL', 'deepseek-v4-flash'); 
 define('FREE_MAX_TURNS', 10);              
 define('FREE_DAILY_LIMIT', 20);            
-define('FREE_MAX_INPUT_CHARS', 100);       
+define('FREE_MAX_INPUT_CHARS', 1000);       
 define('FREE_MAX_AI_TOKENS', 2000);         
 define('FREE_MEMORY_THRESHOLD', 10);       
 define('FREE_ALLOW_IMAGE', false);         
@@ -186,7 +189,7 @@ define('FREE_ALLOW_IMAGE', false);
 define('VIP_MODEL', 'deepseek-v4-flash');  
 define('VIP_MAX_TURNS', 999999);           
 define('VIP_DAILY_LIMIT', 150);            
-define('VIP_MAX_INPUT_CHARS', 1000);       
+define('VIP_MAX_INPUT_CHARS', 3000);       
 define('VIP_MAX_AI_TOKENS', 5000);         
 define('VIP_MEMORY_THRESHOLD', 20);        
 define('VIP_ALLOW_IMAGE', true);           
@@ -194,7 +197,7 @@ define('VIP_ALLOW_IMAGE', true);
 define('PRO_MODEL', 'deepseek-v4-pro');    
 define('PRO_MAX_TURNS', 999999);           
 define('PRO_DAILY_LIMIT', 300);            
-define('PRO_MAX_INPUT_CHARS', 3000);       
+define('PRO_MAX_INPUT_CHARS', 8000);       
 define('PRO_MAX_AI_TOKENS', 10000);         
 define('PRO_MEMORY_THRESHOLD', 30);        
 define('PRO_ALLOW_IMAGE', true);

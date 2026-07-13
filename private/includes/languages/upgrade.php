@@ -19,6 +19,10 @@ return [
         'Subscription active until' => 'Subscription active until: <b class="text-zinc-200">:date</b>',
         'Prorated Upgrade Active' => '<b>Prorated Upgrade Active:</b> Upgrading to PRO now will automatically convert your remaining VIP days into extra PRO balance!',
         'View Billing History' => 'View Billing Ledger & Invoices',
+        'Login required to purchase' => 'Sign in to purchase VIP or PRO. You can browse plans freely without an account.',
+        'Log in to upgrade' => 'Log in to upgrade',
+        'Log in to purchase' => 'Log in to purchase',
+        'Log in to claim' => 'Log in to claim',
         
         // VIP Plan Card
         'Standard Plan' => 'Standard SaaS API Plan',
@@ -49,7 +53,9 @@ return [
         
         // Legal Footer
         'Terms of Purchase & No Refund Policy:' => 'Terms of Purchase & No Refund Policy:',
-        'Legal Text' => 'By proceeding with the payment, you agree to our Terms of Service. All transactions are final and processed securely via NEAR blockchain (USDT/USDC on-chain). Because this service provides immediate access to digital API resources, smart contract syncing, and premium server capacities, <span class="text-red-400/80 font-semibold">all payments are strictly non-refundable</span> under any circumstances, including partial usage or account termination.',
+        'Legal Text' => 'By proceeding with the payment, you agree to our Terms of Service. Transactions may be processed via <b>PayPal</b> and/or <b>NEAR blockchain</b> (USDT/USDC on-chain). Because this service provides immediate access to digital API resources, smart contract syncing, and premium server capacities, <span class="text-red-400/80 font-semibold">all payments are strictly non-refundable</span> under any circumstances, including partial usage or account termination.',
+        'Stack more days via PayPal or NEAR below if needed.' => 'Need more time? Stack +30 days with PayPal above or NEAR USDT/USDC below.',
+        'Stack +30 days via PayPal or NEAR below.' => 'Stack +30 days with PayPal above or NEAR USDT/USDC below.',
         
         // JavaScript Checkout States
         'Verifying transaction...' => 'Verifying cryptographic transaction signature. Do not close this browser...',
@@ -73,6 +79,10 @@ return [
         'Subscription active until' => '訂閱有效期限至：<b class="text-zinc-200">:date</b>',
         'Prorated Upgrade Active' => '<b>按比例升級生效中：</b> 現在升級至 PRO，系統將自動把您剩餘的 VIP 天數轉換為對應的 PRO 方案天數！',
         'View Billing History' => '查看帳單與交易紀錄',
+        'Login required to purchase' => '購買 VIP 或 PRO 需要先登入。未登入亦可自由瀏覽方案內容。',
+        'Log in to upgrade' => '登入以升級',
+        'Log in to purchase' => '登入以購買',
+        'Log in to claim' => '登入以領取',
         
         // VIP Plan Card
         'Standard Plan' => '標準 SaaS API 方案',
@@ -103,7 +113,9 @@ return [
         
         // Legal Footer
         'Terms of Purchase & No Refund Policy:' => '購買條款與不退款政策：',
-        'Legal Text' => '繼續付款即表示您同意我們的服務條款。所有交易均透過 NEAR 區塊鏈 (USDT/USDC 鏈上) 安全處理且為最終決定。由於本服務提供即時的數位 API 資源存取、智能合約同步及優質的伺服器算力，<span class="text-red-400/80 font-semibold">在任何情況下所有付款皆嚴格禁止退款</span>，這包括部分使用或帳號終止之情形。',
+        'Legal Text' => '繼續付款即表示您同意我們的服務條款。交易可經 <b>PayPal</b> 及／或 <b>NEAR 區塊鏈</b>（USDT/USDC 鏈上）處理。由於本服務提供即時的數位 API 資源存取、智能合約同步及優質的伺服器算力，<span class="text-red-400/80 font-semibold">在任何情況下所有付款皆嚴格禁止退款</span>，這包括部分使用或帳號終止之情形。',
+        'Stack more days via PayPal or NEAR below if needed.' => '需要延長？可用上方 PayPal 或下方 NEAR USDT/USDC 再疊加 +30 天。',
+        'Stack +30 days via PayPal or NEAR below.' => '可用上方 PayPal 或下方 NEAR USDT/USDC 疊加 +30 天。',
         
         // JavaScript Checkout States
         'Verifying transaction...' => '正在驗證加密交易簽章，請勿關閉此瀏覽器...',

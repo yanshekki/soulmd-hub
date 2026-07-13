@@ -623,6 +623,185 @@ class MiniAppsCatalog
                     ['name' => 'question', 'type' => 'textarea', 'label_key' => 'field_zodiac_q', 'placeholder_key' => 'ph_zodiac_q', 'required' => true, 'maxlength' => 250],
                 ],
             ],
+            // --- New apps mapped to common public soul themes (title keywords) ---
+            [
+                'slug' => 'coding-mentor',
+                'icon' => 'fa-code',
+                'category' => 'career',
+                'title_key' => 'app_coding_title',
+                'desc_key' => 'app_coding_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 78,
+                'enabled' => true,
+                'badge' => 'popular',
+                'search_keywords' => '工程師,工程,編程,程式,開發,engineer,軟體,全端,架構師,devops',
+                'builtin_prompt' => "You are a senior software engineering mentor. Explain trade-offs, sketch designs, review approach, and give concrete next steps. Prefer short tables for options. Do not dump huge code dumps unless asked; never help with malware, exploits, or unauthorized access. Respond in the user's language.",
+                'fields' => [
+                    ['name' => 'stack', 'type' => 'text', 'label_key' => 'field_code_stack', 'placeholder_key' => 'ph_code_stack', 'required' => true, 'maxlength' => 80],
+                    ['name' => 'level', 'type' => 'select', 'label_key' => 'field_code_level', 'required' => true, 'options' => [
+                        ['value' => 'beginner', 'label_key' => 'opt_level_beginner'],
+                        ['value' => 'mid', 'label_key' => 'opt_level_mid'],
+                        ['value' => 'senior', 'label_key' => 'opt_level_senior'],
+                    ]],
+                    ['name' => 'task', 'type' => 'textarea', 'label_key' => 'field_code_task', 'placeholder_key' => 'ph_code_task', 'required' => true, 'maxlength' => 400],
+                    ['name' => 'constraints', 'type' => 'textarea', 'label_key' => 'field_code_constraints', 'placeholder_key' => 'ph_code_constraints', 'required' => false, 'maxlength' => 200],
+                ],
+            ],
+            [
+                'slug' => 'study-tutor',
+                'icon' => 'fa-graduation-cap',
+                'category' => 'life',
+                'title_key' => 'app_study_title',
+                'desc_key' => 'app_study_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 38,
+                'enabled' => true,
+                'badge' => 'hot',
+                'search_keywords' => '導師,補習,考試,tutor,學習,閱讀,教育,老師,教師',
+                'builtin_prompt' => "You are a patient study tutor. Break topics into steps, check understanding with short questions, and build a realistic study plan. Encourage honest learning; do not complete graded exams or cheat for the user. Respond in the user's language.",
+                'fields' => [
+                    ['name' => 'subject', 'type' => 'text', 'label_key' => 'field_study_subject', 'placeholder_key' => 'ph_study_subject', 'required' => true, 'maxlength' => 80],
+                    ['name' => 'level', 'type' => 'select', 'label_key' => 'field_study_level', 'required' => true, 'options' => [
+                        ['value' => 'primary', 'label_key' => 'opt_study_primary'],
+                        ['value' => 'secondary', 'label_key' => 'opt_study_secondary'],
+                        ['value' => 'uni', 'label_key' => 'opt_study_uni'],
+                        ['value' => 'adult', 'label_key' => 'opt_study_adult'],
+                    ]],
+                    ['name' => 'goal', 'type' => 'text', 'label_key' => 'field_study_goal', 'placeholder_key' => 'ph_study_goal', 'required' => true, 'maxlength' => 120],
+                    ['name' => 'stuck', 'type' => 'textarea', 'label_key' => 'field_study_stuck', 'placeholder_key' => 'ph_study_stuck', 'required' => true, 'maxlength' => 300],
+                ],
+            ],
+            [
+                'slug' => 'cooking-coach',
+                'icon' => 'fa-utensils',
+                'category' => 'life',
+                'title_key' => 'app_cooking_title',
+                'desc_key' => 'app_cooking_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 39,
+                'enabled' => true,
+                'badge' => null,
+                'search_keywords' => '烹飪,料理,廚師,私廚,食譜,chef,kitchen,烘焙,主廚,咖啡',
+                'builtin_prompt' => "You are a practical home-cooking coach / private chef advisor. Give recipes or meal plans with ingredients, steps, timing, and substitutions. Note food-safety basics. Flag common allergens when relevant; user must verify medical dietary needs. Respond in the user's language.",
+                'fields' => [
+                    ['name' => 'cuisine', 'type' => 'text', 'label_key' => 'field_cook_cuisine', 'placeholder_key' => 'ph_cook_cuisine', 'required' => false, 'maxlength' => 60],
+                    ['name' => 'meal_type', 'type' => 'select', 'label_key' => 'field_cook_meal', 'required' => true, 'options' => [
+                        ['value' => 'quick', 'label_key' => 'opt_cook_quick'],
+                        ['value' => 'dinner', 'label_key' => 'opt_cook_dinner'],
+                        ['value' => 'batch', 'label_key' => 'opt_cook_batch'],
+                        ['value' => 'dessert', 'label_key' => 'opt_cook_dessert'],
+                        ['value' => 'drink', 'label_key' => 'opt_cook_drink'],
+                    ]],
+                    ['name' => 'ingredients', 'type' => 'textarea', 'label_key' => 'field_cook_ing', 'placeholder_key' => 'ph_cook_ing', 'required' => true, 'maxlength' => 250],
+                    ['name' => 'constraints', 'type' => 'textarea', 'label_key' => 'field_cook_constraints', 'placeholder_key' => 'ph_cook_constraints', 'required' => false, 'maxlength' => 150],
+                ],
+            ],
+            [
+                'slug' => 'language-partner',
+                'icon' => 'fa-language',
+                'category' => 'life',
+                'title_key' => 'app_lang_title',
+                'desc_key' => 'app_lang_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 40,
+                'enabled' => true,
+                'badge' => null,
+                'search_keywords' => '語言,英語,英文,日語,日文,韓語,翻譯,language,語伴,spanish,dutch,法文,德文',
+                'builtin_prompt' => "You are a language practice partner and light tutor. Correct gently, explain why, and offer natural alternatives. Match the user's target language in practice lines; explain in their preferred language when helpful. Not a certified exam scorer. Respond primarily in the user's language unless they ask for target-language immersion.",
+                'fields' => [
+                    ['name' => 'target_lang', 'type' => 'text', 'label_key' => 'field_lang_target', 'placeholder_key' => 'ph_lang_target', 'required' => true, 'maxlength' => 40],
+                    ['name' => 'level', 'type' => 'select', 'label_key' => 'field_lang_level', 'required' => true, 'options' => [
+                        ['value' => 'a1', 'label_key' => 'opt_lang_a1'],
+                        ['value' => 'a2', 'label_key' => 'opt_lang_a2'],
+                        ['value' => 'b1', 'label_key' => 'opt_lang_b1'],
+                        ['value' => 'b2', 'label_key' => 'opt_lang_b2'],
+                        ['value' => 'c1', 'label_key' => 'opt_lang_c1'],
+                    ]],
+                    ['name' => 'mode', 'type' => 'select', 'label_key' => 'field_lang_mode', 'required' => true, 'options' => [
+                        ['value' => 'chat', 'label_key' => 'opt_lang_chat'],
+                        ['value' => 'correct', 'label_key' => 'opt_lang_correct'],
+                        ['value' => 'vocab', 'label_key' => 'opt_lang_vocab'],
+                        ['value' => 'translate', 'label_key' => 'opt_lang_translate'],
+                    ]],
+                    ['name' => 'text', 'type' => 'textarea', 'label_key' => 'field_lang_text', 'placeholder_key' => 'ph_lang_text', 'required' => true, 'maxlength' => 400],
+                ],
+            ],
+            [
+                'slug' => 'interview-coach',
+                'icon' => 'fa-user-tie',
+                'category' => 'career',
+                'title_key' => 'app_interview_title',
+                'desc_key' => 'app_interview_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 79,
+                'enabled' => true,
+                'badge' => 'hot',
+                'search_keywords' => '面試,履歷,職涯,求職,career,resume,interview,職場,獵頭,面試官,headhunter,recruiter,就業',
+                'builtin_prompt' => "You are a career and interview coach. Help structure STAR answers, critique resume bullets for clarity (not fabricate experience), and run mock Q&A. Be honest about weak spots. Not a recruiter guarantee of offers. Respond in the user's language.",
+                'fields' => [
+                    ['name' => 'role', 'type' => 'text', 'label_key' => 'field_iv_role', 'placeholder_key' => 'ph_iv_role', 'required' => true, 'maxlength' => 80],
+                    ['name' => 'focus', 'type' => 'select', 'label_key' => 'field_iv_focus', 'required' => true, 'options' => [
+                        ['value' => 'mock', 'label_key' => 'opt_iv_mock'],
+                        ['value' => 'resume', 'label_key' => 'opt_iv_resume'],
+                        ['value' => 'story', 'label_key' => 'opt_iv_story'],
+                        ['value' => 'salary', 'label_key' => 'opt_iv_salary'],
+                    ]],
+                    ['name' => 'background', 'type' => 'textarea', 'label_key' => 'field_iv_bg', 'placeholder_key' => 'ph_iv_bg', 'required' => true, 'maxlength' => 350],
+                    ['name' => 'question', 'type' => 'textarea', 'label_key' => 'field_iv_q', 'placeholder_key' => 'ph_iv_q', 'required' => false, 'maxlength' => 200],
+                ],
+            ],
+            [
+                'slug' => 'music-coach',
+                'icon' => 'fa-music',
+                'category' => 'life',
+                'title_key' => 'app_music_title',
+                'desc_key' => 'app_music_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 41,
+                'enabled' => true,
+                'badge' => null,
+                'search_keywords' => '音樂,鋼琴,吉他,作曲,樂理,music,piano,聲樂,小提琴',
+                'builtin_prompt' => "You are a music practice coach. Give technique tips, practice routines, listening analysis, or songwriting structure. Stay educational; respect copyright (no full copyrighted sheet dumps). Respond in the user's language.",
+                'fields' => [
+                    ['name' => 'instrument', 'type' => 'text', 'label_key' => 'field_music_inst', 'placeholder_key' => 'ph_music_inst', 'required' => true, 'maxlength' => 40],
+                    ['name' => 'level', 'type' => 'select', 'label_key' => 'field_music_level', 'required' => true, 'options' => [
+                        ['value' => 'beginner', 'label_key' => 'opt_level_beginner'],
+                        ['value' => 'mid', 'label_key' => 'opt_level_mid'],
+                        ['value' => 'advanced', 'label_key' => 'opt_level_advanced'],
+                    ]],
+                    ['name' => 'goal', 'type' => 'select', 'label_key' => 'field_music_goal', 'required' => true, 'options' => [
+                        ['value' => 'practice', 'label_key' => 'opt_music_practice'],
+                        ['value' => 'theory', 'label_key' => 'opt_music_theory'],
+                        ['value' => 'compose', 'label_key' => 'opt_music_compose'],
+                        ['value' => 'listen', 'label_key' => 'opt_music_listen'],
+                    ]],
+                    ['name' => 'detail', 'type' => 'textarea', 'label_key' => 'field_music_detail', 'placeholder_key' => 'ph_music_detail', 'required' => true, 'maxlength' => 300],
+                ],
+            ],
+            [
+                'slug' => 'product-coach',
+                'icon' => 'fa-lightbulb',
+                'category' => 'career',
+                'title_key' => 'app_product_title',
+                'desc_key' => 'app_product_desc',
+                'disclaimer_key' => 'disclaimer_general',
+                'sort_order' => 80,
+                'enabled' => true,
+                'badge' => null,
+                'search_keywords' => '產品經理,產品,UX,product,用戶體驗,產品設計,discovery',
+                'builtin_prompt' => "You are a product / UX sparring partner. Help frame problems, users, metrics, and MVP scope. Prefer crisp prioritisation tables. Not legal, financial, or medical advice. Respond in the user's language.",
+                'fields' => [
+                    ['name' => 'product', 'type' => 'text', 'label_key' => 'field_pm_product', 'placeholder_key' => 'ph_pm_product', 'required' => true, 'maxlength' => 100],
+                    ['name' => 'stage', 'type' => 'select', 'label_key' => 'field_pm_stage', 'required' => true, 'options' => [
+                        ['value' => 'idea', 'label_key' => 'opt_pm_idea'],
+                        ['value' => 'mvp', 'label_key' => 'opt_pm_mvp'],
+                        ['value' => 'growth', 'label_key' => 'opt_pm_growth'],
+                        ['value' => 'ux', 'label_key' => 'opt_pm_ux'],
+                    ]],
+                    ['name' => 'users', 'type' => 'text', 'label_key' => 'field_pm_users', 'placeholder_key' => 'ph_pm_users', 'required' => true, 'maxlength' => 120],
+                    ['name' => 'problem', 'type' => 'textarea', 'label_key' => 'field_pm_problem', 'placeholder_key' => 'ph_pm_problem', 'required' => true, 'maxlength' => 350],
+                ],
+            ],
         ];
     }
 
@@ -633,6 +812,63 @@ class MiniAppsCatalog
     {
         $kw = trim((string)($app['search_keywords'] ?? ''));
         return $kw !== '' ? $kw : (string)($app['slug'] ?? '');
+    }
+
+    /**
+     * URL path segment from a soul title (SEO: /apps/{app}/{title-slug}).
+     * Keeps CJK; normalizes spaces/punctuation to hyphens. Not percent-encoded.
+     */
+    public static function titleToSlug(string $title): string
+    {
+        $title = trim($title);
+        if ($title === '') {
+            return 'soul';
+        }
+        $title = mb_strtolower($title, 'UTF-8');
+        $title = preg_replace('/[\s_:\/?#\[\]@!$&\'()*+,;=<>\\\\|.]+/u', '-', $title) ?? $title;
+        $title = preg_replace('/-+/u', '-', $title) ?? $title;
+        $title = trim($title, '-');
+        if ($title === '') {
+            return 'soul';
+        }
+        if (function_exists('mb_substr')) {
+            return mb_substr($title, 0, 80, 'UTF-8');
+        }
+        return substr($title, 0, 80);
+    }
+
+    /**
+     * Match a public soul row by title slug (from URL path).
+     *
+     * @param list<array<string, mixed>> $souls
+     * @return array<string, mixed>|null
+     */
+    public static function findSoulByTitleSlug(array $souls, string $titleSlug): ?array
+    {
+        $want = self::titleToSlug(rawurldecode($titleSlug));
+        if ($want === '') {
+            return null;
+        }
+        foreach ($souls as $soul) {
+            if (!is_array($soul)) {
+                continue;
+            }
+            $got = self::titleToSlug((string)($soul['title'] ?? ''));
+            if ($got === $want) {
+                return $soul;
+            }
+        }
+        // Fallback: compare without re-slug if client sent already-normalized segment
+        $wantLoose = mb_strtolower(trim(rawurldecode($titleSlug)), 'UTF-8');
+        foreach ($souls as $soul) {
+            if (!is_array($soul)) {
+                continue;
+            }
+            if (mb_strtolower(trim((string)($soul['title'] ?? '')), 'UTF-8') === $wantLoose) {
+                return $soul;
+            }
+        }
+        return null;
     }
 
     /**

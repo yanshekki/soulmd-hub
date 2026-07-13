@@ -19,30 +19,33 @@ if (!defined('NEAR_USDT_CONTRACT') || !defined('NEAR_USDC_CONTRACT')) {
 
 session_start();
 
-// Centralized CSRF token (replaces repeated bin2hex block)
+// Public pricing page: guests may browse. Purchase / claim requires login.
 $csrfToken = ensureCsrfToken();
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
+$isLoggedIn = !empty($_SESSION['user_id']);
+$userId = $isLoggedIn ? (int)$_SESSION['user_id'] : null;
 
 loadTranslations('upgrade');
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+$currentTier = 'free';
+$expiresAt = 0;
+$user = ['username' => '', 'tier' => 'free', 'vip_expires_at' => null];
 
-$stmt = $pdo->prepare("SELECT tier, vip_expires_at, username FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-$currentTier = $user['tier'] ?? 'free';
-$expiresAt = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
+if ($isLoggedIn) {
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+    $stmt = $pdo->prepare("SELECT tier, vip_expires_at, username FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch() ?: $user;
+    $currentTier = $user['tier'] ?? 'free';
+    $expiresAt = $user['vip_expires_at'] ? strtotime($user['vip_expires_at']) : 0;
+}
 
 $isActivePremium = ($currentTier !== 'free' && $expiresAt > time());
 $isVip = ($currentTier === 'vip' && $isActivePremium);
 $isPro = ($currentTier === 'pro' && $isActivePremium);
+
+// After login, return here (purchase flow)
+$loginUrl = url('/login') . '?redirect=' . rawurlencode(url('/upgrade'));
 
 // SEO Meta
 $pageTitle = __('SEO Title');
@@ -51,13 +54,16 @@ $pageDesc = __('SEO Desc');
 require_once __DIR__ . '/../private/includes/header.php';
 ?>
 <?php
-// Include the shared NEAR wallet bridge (it outputs the <link> for styles + <script> for the bundle + the big inline wallet init code).
-// We emit it here so the wallet functions (initNearWallet, getErrorMessage, etc.) are available for the on-chain payment buttons.
-require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
+// Wallet bridge only needed when logged in (purchase / claim)
+if ($isLoggedIn) {
+    require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
+}
+// PayPal JS SDK (buttons only render when logged in)
+if ($isLoggedIn && defined('PAYPAL_CLIENT_ID') && PAYPAL_CLIENT_ID !== '' && PAYPAL_CLIENT_ID !== 'your_paypal_client_id_here') {
+    $paypalClientId = PAYPAL_CLIENT_ID;
+    echo '<script src="https://www.paypal.com/sdk/js?client-id=' . htmlspecialchars($paypalClientId, ENT_QUOTES) . '&currency=USD&disable-funding=credit,card"></script>' . "\n";
+}
 ?>
-<!-- PayPal SDK hidden for now. Users pay via NEAR USDT/USDC on-chain instead.
-<script src="https://www.paypal.com/sdk/js?client-id=<?= PAYPAL_CLIENT_ID ?>&currency=USD&disable-funding=credit,card"></script>
--->
 
 <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow flex flex-col">
     
@@ -130,12 +136,26 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     <button disabled class="w-full py-3 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition flex items-center justify-center gap-2 text-sm">
                         <i class="fas fa-check-circle" aria-hidden="true"></i> <?= __('Already Subscribed') ?>
                     </button>
+                    <p class="mt-2 text-[10px] text-zinc-500 text-center"><?= __('Stack more days via PayPal or NEAR below if needed.') ?></p>
+                    <?php if ($isLoggedIn): ?>
+                        <div class="mt-3 space-y-2">
+                            <div class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold text-center"><i class="fab fa-paypal text-blue-400"></i> PayPal · +30 days</div>
+                            <div id="paypal-button-container-vip-stack" class="min-h-[45px]"></div>
+                        </div>
+                    <?php endif; ?>
                 <?php elseif ($isPro): ?>
                     <button disabled class="w-full py-3 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition flex items-center justify-center gap-2 text-sm">
                         <i class="fas fa-ban" aria-hidden="true"></i> <?= __('VIP purchase disabled (PRO active - downgrade not allowed)') ?>
                     </button>
+                <?php elseif (!$isLoggedIn): ?>
+                    <a href="<?= htmlspecialchars($loginUrl) ?>" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-500/10">
+                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i> <?= __('Log in to purchase') ?>
+                    </a>
                 <?php else: ?>
-                    <!-- PayPal buttons hidden. Users now pay via NEAR USDT/USDC on-chain (see section below) -->
+                    <div class="space-y-2">
+                        <div class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold text-center"><i class="fab fa-paypal text-blue-400"></i> PayPal</div>
+                        <div id="paypal-button-container-vip" class="min-h-[45px]"></div>
+                    </div>
                 <?php endif; ?>
             </div>
         </article>
@@ -170,10 +190,25 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             
             <div class="pt-4 border-t border-emerald-500/10 mt-auto">
                 <?php if ($isPro): ?>
-                    <span class="px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider"><?= __('Current') ?></span>
-                    <!-- PRO stacking available via NEAR payment section below (add +30 days each time) -->
+                    <div class="flex flex-col items-center gap-3">
+                        <span class="px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider"><?= __('Current') ?></span>
+                        <p class="text-[10px] text-zinc-500 text-center"><?= __('Stack +30 days via PayPal or NEAR below.') ?></p>
+                        <?php if ($isLoggedIn): ?>
+                            <div class="w-full space-y-2">
+                                <div class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold text-center"><i class="fab fa-paypal text-blue-400"></i> PayPal · +30 days</div>
+                                <div id="paypal-button-container-pro-stack" class="min-h-[45px]"></div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php elseif (!$isLoggedIn): ?>
+                    <a href="<?= htmlspecialchars($loginUrl) ?>" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-500/10">
+                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i> <?= __('Log in to purchase') ?>
+                    </a>
                 <?php else: ?>
-                    <!-- PayPal buttons hidden. Users now pay via NEAR USDT/USDC on-chain (see section below) -->
+                    <div class="space-y-2">
+                        <div class="text-[10px] uppercase tracking-widest text-emerald-500/70 font-bold text-center"><i class="fab fa-paypal text-blue-400"></i> PayPal</div>
+                        <div id="paypal-button-container-pro" class="min-h-[45px]"></div>
+                    </div>
                 <?php endif; ?>
             </div>
         </article>
@@ -193,6 +228,15 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
             ⚠️ <strong><?= __('Important for multiple payments:') ?></strong> <?= __('The on-chain credit is a single slot per tier. Pay → wait for the success redirect + claim to complete before sending another USDT/USDC payment if you want to stack time. Paying a second time before claiming will overwrite the previous credit proof (you will have paid for both but only the last one will be claimable). Each distinct successful payment can be claimed once.') ?>
         </div>
 
+        <?php if (!$isLoggedIn): ?>
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-center">
+                <p class="text-sm text-emerald-100/90 mb-3"><?= __('Login required to purchase') ?></p>
+                <a href="<?= htmlspecialchars($loginUrl) ?>" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold rounded-xl transition shadow-lg shadow-emerald-500/15">
+                    <i class="fas fa-sign-in-alt" aria-hidden="true"></i> <?= __('Log in to upgrade') ?>
+                </a>
+            </div>
+        <?php endif; ?>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- VIP on NEAR -->
             <div class="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 flex flex-col">
@@ -201,7 +245,11 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     <div class="font-bold text-lg"><?= sprintf(__('VIP — $%s USDT or USDC (30 days)'), NEAR_UPGRADE_VIP_USD_AMOUNT) ?></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <?php if ($isPro): ?>
+                    <?php if (!$isLoggedIn): ?>
+                        <a href="<?= htmlspecialchars($loginUrl) ?>" class="flex-1 py-2.5 text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-xl border border-white/10 transition">
+                            <i class="fas fa-lock mr-1" aria-hidden="true"></i> <?= __('Log in to purchase') ?>
+                        </a>
+                    <?php elseif ($isPro): ?>
                         <button disabled class="flex-1 py-2.5 bg-zinc-800/50 text-zinc-500 font-bold rounded-xl cursor-not-allowed border border-white/5 transition text-sm">
                             <?= __('VIP purchase disabled (PRO active - downgrade not allowed)') ?>
                         </button>
@@ -219,14 +267,20 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     <div class="font-bold text-lg"><?= sprintf(__('PRO — $%s USDT or USDC (30 days)'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></div>
                 </div>
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
-                    <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
+                    <?php if (!$isLoggedIn): ?>
+                        <a href="<?= htmlspecialchars($loginUrl) ?>" class="flex-1 py-2.5 text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-xl border border-white/10 transition">
+                            <i class="fas fa-lock mr-1" aria-hidden="true"></i> <?= __('Log in to purchase') ?>
+                        </a>
+                    <?php else: ?>
+                        <button onclick="payWithNearFt('pro','usdt')" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDT'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
+                        <button onclick="payWithNearFt('pro','usdc')" class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-bold rounded-xl transition"><?= sprintf(__('Pay with %s USDC'), NEAR_UPGRADE_PRO_USD_AMOUNT) ?></button>
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <?php if ($isPro): ?>
+            <?php if ($isLoggedIn && $isPro): ?>
                 <p class="mt-3 text-xs text-amber-400"><?= __('Purchasing PRO while having active PRO will stack +30 days to your subscription.') ?></p>
-            <?php elseif ($isVip): ?>
+            <?php elseif ($isLoggedIn && $isVip): ?>
                 <p class="mt-3 text-xs text-emerald-400 text-center"><?= __('Purchasing VIP while having active VIP will add another 30 days to your subscription (stacking).') ?></p>
                 <p class="mt-3 text-xs text-amber-400 text-center" ><?= __('Upgrading from VIP to PRO will convert your remaining VIP value into additional PRO days.') ?></p>
             <?php endif; ?>
@@ -234,7 +288,7 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 
         <div id="near-payment-status" class="hidden mt-4 p-3 rounded-2xl text-sm font-medium border" aria-live="polite"></div>
 
-        <!-- Manual Claim for users who paid on-chain but frontend claim failed due to wallet errors -->
+        <!-- Manual Claim: login required -->
         <div class="mt-8 p-5 bg-zinc-900/70 border border-white/10 rounded-3xl">
             <div class="flex items-start gap-3">
                 <i class="fas fa-wallet text-emerald-400 mt-1" aria-hidden="true"></i>
@@ -243,15 +297,21 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     <p class="text-sm text-zinc-400 mb-3">
                         <?= __('If your <code>ft_transfer_call</code> succeeded on the blockchain (you can check on nearblocks.io) but this page showed an error (e.g. wallet "Request validation error"), click below to claim. Manual claim only works for credits granted in the last hour.') ?>
                     </p>
-                    <div class="flex flex-wrap gap-3">
-                        <button onclick="manualClaimNear('vip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
-                            <i class="fas fa-check-circle"></i> <?= __('Claim VIP upgrade') ?>
-                        </button>
-                        <button onclick="manualClaimNear('pro')" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
-                            <i class="fas fa-check-circle"></i> <?= __('Claim PRO upgrade') ?>
-                        </button>
-                    </div>
-                    <p class="mt-2 text-[10px] text-zinc-500"><?= __('You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.') ?></p>
+                    <?php if (!$isLoggedIn): ?>
+                        <a href="<?= htmlspecialchars($loginUrl) ?>" class="inline-flex items-center gap-2 px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-2xl border border-white/10 transition">
+                            <i class="fas fa-lock" aria-hidden="true"></i> <?= __('Log in to claim') ?>
+                        </a>
+                    <?php else: ?>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="manualClaimNear('vip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i> <?= __('Claim VIP upgrade') ?>
+                            </button>
+                            <button onclick="manualClaimNear('pro')" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm font-bold rounded-2xl transition flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i> <?= __('Claim PRO upgrade') ?>
+                            </button>
+                        </div>
+                        <p class="mt-2 text-[10px] text-zinc-500"><?= __('You must be logged in with the NEAR wallet that sent the payment. The system will verify the on-chain credit automatically.') ?></p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -266,27 +326,30 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 </main>
 
 <script>
-    // PayPal integration hidden. Users now pay exclusively via NEAR USDT/USDC on-chain (see NEAR section below).
-    /*
+    // ============================================================
+    // PayPal checkout (restored alongside NEAR on-chain payments)
+    // ============================================================
     function renderPayPalButton(containerId, tierName, priceStr) {
-        if (!document.getElementById(containerId)) return;
+        if (typeof paypal === 'undefined' || !paypal.Buttons) return;
+        const el = document.getElementById(containerId);
+        if (!el) return;
 
         paypal.Buttons({
-            style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+            style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 42 },
             createOrder: function(data, actions) {
                 return actions.order.create({
                     purchase_units: [{
-                        description: `SoulMD Hub - ${tierName.toUpperCase()} License Pass (30 Days)`,
-                        amount: { currency_code: 'USD', value: priceStr }
+                        description: 'SoulMD Hub - ' + String(tierName).toUpperCase() + ' License Pass (30 Days)',
+                        amount: { currency_code: 'USD', value: String(priceStr) }
                     }]
                 });
             },
             onApprove: function(data, actions) {
                 const statusBox = document.getElementById('payment-status');
                 statusBox.classList.remove('hidden', 'bg-red-900/50', 'text-red-200', 'border-red-500', 'bg-emerald-900/50', 'text-emerald-400', 'border-emerald-500');
-                statusBox.classList.add('bg-blue-900/50', 'text-blue-200', 'border', 'border-blue-500', 'block');
-                
-                // Loading State
+                statusBox.classList.add('bg-blue-900/50', 'text-blue-200', 'border', 'border-blue-500');
+                statusBox.style.display = 'block';
+
                 statusBox.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> <?= addslashes(__('Verifying transaction...')) ?>';
                 statusBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -301,10 +364,9 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                         statusBox.classList.replace('bg-blue-900/50', 'bg-emerald-900/50');
                         statusBox.classList.replace('text-blue-200', 'text-emerald-400');
                         statusBox.classList.replace('border-blue-500', 'border-emerald-500');
-                        
-                        // Success State
+
                         statusBox.innerHTML = '<i class="fas fa-check-circle mr-2"></i> ' + orderData.message + '<br><span class="text-xs sm:text-sm mt-2 block text-emerald-200/70"><i class="fas fa-sync fa-spin mr-1"></i><?= addslashes(__('Syncing subscription...')) ?></span>';
-                        
+
                         setTimeout(() => { window.location.href = '<?= url("/billing") ?>'; }, 2500);
                     } else {
                         statusBox.classList.replace('bg-blue-900/50', 'bg-red-900/50');
@@ -318,13 +380,25 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
                     statusBox.classList.replace('border-blue-500', 'border-red-500');
                     statusBox.innerHTML = '<i class="fas fa-wifi mr-2"></i> <?= addslashes(__('Connection timeout.')) ?>';
                 });
+            },
+            onError: function(err) {
+                console.error('PayPal error', err);
+                const statusBox = document.getElementById('payment-status');
+                if (!statusBox) return;
+                statusBox.classList.remove('hidden');
+                statusBox.className = 'max-w-2xl mx-auto mb-10 p-5 rounded-2xl text-center border font-bold text-sm shadow-xl bg-red-900/50 text-red-200 border-red-500';
+                statusBox.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> PayPal error. Please try again or use NEAR USDT/USDC below.';
             }
         }).render('#' + containerId);
     }
 
-    // renderPayPalButton('paypal-button-container-vip', 'vip', '<?= PRICE_VIP_MONTHLY ?>');
-    // renderPayPalButton('paypal-button-container-pro', 'pro', '<?= PRICE_PRO_MONTHLY ?>');
-    */
+    // Mount PayPal buttons when SDK + containers are present (logged-in only)
+    if (typeof paypal !== 'undefined' && paypal.Buttons) {
+        renderPayPalButton('paypal-button-container-vip', 'vip', '<?= PRICE_VIP_MONTHLY ?>');
+        renderPayPalButton('paypal-button-container-vip-stack', 'vip', '<?= PRICE_VIP_MONTHLY ?>');
+        renderPayPalButton('paypal-button-container-pro', 'pro', '<?= PRICE_PRO_MONTHLY ?>');
+        renderPayPalButton('paypal-button-container-pro-stack', 'pro', '<?= PRICE_PRO_MONTHLY ?>');
+    }
 
     // ============================================================
     // On-chain NEAR USDT/USDC payment JS (strict version)
@@ -334,8 +408,18 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
     // ============================================================
     const NEAR_USDT_CONTRACT = '<?= NEAR_USDT_CONTRACT ?>';
     const NEAR_USDC_CONTRACT = '<?= NEAR_USDC_CONTRACT ?>';
+    const IS_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;
+    const LOGIN_URL = <?= json_encode($loginUrl, JSON_UNESCAPED_UNICODE) ?>;
+
+    function requireLoginForPurchase() {
+        if (IS_LOGGED_IN) return true;
+        window.location.href = LOGIN_URL;
+        return false;
+    }
 
     async function payWithNearFt(tier, token) {
+        if (!requireLoginForPurchase()) return;
+
         const status = document.getElementById('near-payment-status');
         if (!status) return;
 
@@ -344,6 +428,9 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
         status.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Initializing NEAR wallet...';
 
         try {
+            if (typeof window.initNearWallet !== 'function') {
+                throw new Error(<?= json_encode(__('Login required to purchase'), JSON_UNESCAPED_UNICODE) ?>);
+            }
             const wrapper = await window.initNearWallet();
             if (!wrapper || !wrapper.getAccountId()) {
                 status.innerHTML = '<i class="fas fa-plug mr-2"></i> Please connect your NEAR wallet first...';
@@ -353,7 +440,10 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
 
             const tokenContract = (token === 'usdt') ? NEAR_USDT_CONTRACT : NEAR_USDC_CONTRACT;
             const hubContract = '<?= defined('NEAR_CONTRACT_ID') ? NEAR_CONTRACT_ID : 'soulmd-hub.near' ?>';
-            const amount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT * 1000000 ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT * 1000000 ?>'; // raw on-chain units (6 decimals)
+            // Raw FT amount (6 decimals). Integer math — keep in sync with contract ft_on_transfer thresholds (4_990_000 / 14_990_000).
+            const amount = (tier === 'vip')
+                ? '<?= (string)(int)round((float)NEAR_UPGRADE_VIP_USD_AMOUNT * 1000000) ?>'
+                : '<?= (string)(int)round((float)NEAR_UPGRADE_PRO_USD_AMOUNT * 1000000) ?>';
             const displayAmount = (tier === 'vip') ? '<?= NEAR_UPGRADE_VIP_USD_AMOUNT ?>' : '<?= NEAR_UPGRADE_PRO_USD_AMOUNT ?>';
             const msg = `upgrade:${tier}`;
 
@@ -473,6 +563,8 @@ require_once __DIR__ . '/../private/includes/near-wallet-scripts.php';
     // (e.g. "ProviderError: Request validation error", "Transaction not found but maybe executed").
     // The claim API is safe to call multiple times; it will only succeed once per credit.
     async function manualClaimNear(tier) {
+        if (!requireLoginForPurchase()) return;
+
         const status = document.getElementById('near-payment-status');
         if (!status) return;
 

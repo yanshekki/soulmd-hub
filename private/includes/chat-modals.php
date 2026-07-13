@@ -35,10 +35,10 @@
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/50 shrink-0 select-none">
             <div>
                 <h3 class="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                    <?= $isExpired ? __('Your Premium Subscription has Expired! ⚠️') : __('Unlock Full AI Power 🚀') ?>
+                    <?= $isExpired ? __('Paywall Expired Title') : __('Paywall Unlock Title') ?>
                 </h3>
                 <p class="text-xs sm:text-sm text-zinc-400 mt-1 leading-tight">
-                    <?= $isExpired ? __('Your access window has closed. Please renew your plan to restore active token clusters.') : __('You\'ve reached the free trial limit or tried to access a premium feature.') ?>
+                    <?= $isExpired ? __('Paywall Expired Desc') : __('Paywall Unlock Desc') ?>
                 </p>
             </div>
             <button type="button" onclick="closePaywall()" class="text-zinc-400 hover:text-white transition pl-2 focus:outline-none"><i class="fas fa-times text-xl"></i></button>

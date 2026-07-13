@@ -6,28 +6,47 @@
  */
 
 function setSEO($title = '', $description = '', $image = '') {
+    global $seoExtraGraph, $seoCanonical, $seoKeywords, $seoNoIndex;
+
     $baseTitle = 'SoulMD Hub - The Ultimate Multi-Modal AI Agent Platform';
     $baseDesc = 'Discover, interact, and build powerful AI personas. Featuring Elite Reasoning Engine, Vision AI, and smart sliding memory.';
     $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-hub.ysk.hk';
     $defaultImage = $baseUrl . '/images/icon-512x512.png'; 
 
-    // 如果沒有傳入 Title 或 Description，自動使用平台最佳化預設值
-    $fullTitle = $title ? $title . ' | SoulMD Hub' : $baseTitle;
+    // Title already including brand should not double-append
+    $fullTitle = $title !== '' && $title !== null
+        ? (preg_match('/\|\s*SoulMD Hub\s*$/iu', (string)$title) ? (string)$title : ((string)$title . ' | SoulMD Hub'))
+        : $baseTitle;
     $fullDesc = $description ?: $baseDesc;
     $ogImage = $image ?: $defaultImage;
     
-    // 獲取當前完整 URL
-    $currentUrl = $baseUrl . $_SERVER['REQUEST_URI'];
+    // Prefer explicit canonical (clean path without query noise)
+    if (!empty($seoCanonical) && is_string($seoCanonical)) {
+        $currentUrl = $seoCanonical;
+    } else {
+        $reqPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        if (!is_string($reqPath) || $reqPath === '') {
+            $reqPath = '/';
+        }
+        $currentUrl = $baseUrl . $reqPath;
+    }
     
     // 判斷是否為首頁 (用於 Schema.org 動態輸出)
-    $isHomepage = ($_SERVER['REQUEST_URI'] === '/' || $_SERVER['REQUEST_URI'] === '/zh/' || $_SERVER['REQUEST_URI'] === '/en/');
+    $pathOnly = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    $isHomepage = ($pathOnly === '/' || $pathOnly === '/zh/' || $pathOnly === '/en/' || $pathOnly === '/zh' || $pathOnly === '/en');
 
     // HTML Meta
     echo '<title>' . htmlspecialchars($fullTitle) . '</title>' . "\n";
     echo '<meta name="description" content="' . htmlspecialchars($fullDesc) . '">' . "\n";
+    if (!empty($seoKeywords) && is_string($seoKeywords)) {
+        echo '<meta name="keywords" content="' . htmlspecialchars($seoKeywords) . '">' . "\n";
+    }
     
     // Advanced Robots Control for Rich Snippets
-    echo '<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">' . "\n";
+    $robots = !empty($seoNoIndex)
+        ? 'noindex, follow'
+        : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+    echo '<meta name="robots" content="' . htmlspecialchars($robots) . '">' . "\n";
 
     // Open Graph (Facebook, LinkedIn, Discord)
     echo '<meta property="og:title" content="' . htmlspecialchars($fullTitle) . '">' . "\n";
@@ -36,10 +55,13 @@ function setSEO($title = '', $description = '', $image = '') {
     echo '<meta property="og:url" content="' . htmlspecialchars($currentUrl) . '">' . "\n";
     echo '<meta property="og:type" content="website">' . "\n";
     echo '<meta property="og:site_name" content="SoulMD Hub">' . "\n";
+    echo '<meta property="og:locale" content="' . htmlspecialchars(
+        (defined('CURRENT_LANG') && CURRENT_LANG === 'zh') ? 'zh_HK' : 'en_US'
+    ) . '">' . "\n";
 
     // Twitter Card
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
-    echo '<meta name="twitter:site" content="@soulmd_hub">' . "\n"; // 若未來有 Twitter 可替換
+    echo '<meta name="twitter:site" content="@soulmd_hub">' . "\n";
     echo '<meta name="twitter:title" content="' . htmlspecialchars($fullTitle) . '">' . "\n";
     echo '<meta name="twitter:description" content="' . htmlspecialchars($fullDesc) . '">' . "\n";
     echo '<meta name="twitter:image" content="' . htmlspecialchars($ogImage) . '">' . "\n";
@@ -111,6 +133,15 @@ function setSEO($title = '', $description = '', $image = '') {
             "isPartOf" => ["@id" => $baseUrl . "/#website"],
             "about" => ["@id" => $baseUrl . "/#software"]
         ];
+    }
+
+    // Page-level extra nodes (apps, docs, etc.)
+    if (!empty($seoExtraGraph) && is_array($seoExtraGraph)) {
+        foreach ($seoExtraGraph as $node) {
+            if (is_array($node) && !empty($node['@type'])) {
+                $schema['@graph'][] = $node;
+            }
+        }
     }
 
     echo '<script type="application/ld+json">' . "\n" . json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n" . '</script>' . "\n";

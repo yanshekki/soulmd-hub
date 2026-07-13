@@ -10,6 +10,7 @@ header('Cache-Control: public, max-age=3600');
 
 require_once __DIR__ . '/../private/config.php';
 require_once __DIR__ . '/../private/src/Database.php';
+require_once __DIR__ . '/../private/src/MiniAppsCatalog.php';
 
 $db = Database::getInstance();
 $pdo = $db->getConnection();
@@ -52,28 +53,6 @@ $staticPages = [
     'browse' => ['changefreq' => 'daily', 'priority' => '0.9'],
     'marketplace' => ['changefreq' => 'hourly', 'priority' => '0.9'],
     'apps' => ['changefreq' => 'weekly', 'priority' => '0.85'],
-    'apps/name-advisor' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/feng-shui' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/mingli-ask' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/wedding-date' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/virtual-companion' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/daily-fortune' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/tarot-draw' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/legal-review' => ['changefreq' => 'weekly', 'priority' => '0.75'],
-    'apps/sales-coach' => ['changefreq' => 'weekly', 'priority' => '0.75'],
-    'apps/fitness-plan' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/therapy-checkin' => ['changefreq' => 'weekly', 'priority' => '0.75'],
-    'apps/invest-brief' => ['changefreq' => 'weekly', 'priority' => '0.75'],
-    'apps/brand-story' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/leadership-sparring' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/medical-edu' => ['changefreq' => 'weekly', 'priority' => '0.75'],
-    'apps/parenting-guide' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/nutrition-plan' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/sleep-coach' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/writing-coach' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/travel-planner' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/pet-care' => ['changefreq' => 'weekly', 'priority' => '0.7'],
-    'apps/zodiac-match' => ['changefreq' => 'weekly', 'priority' => '0.7'],
     'generate' => ['changefreq' => 'weekly', 'priority' => '0.8'],
     'api-docs' => ['changefreq' => 'monthly', 'priority' => '0.7'],
     'upgrade' => ['changefreq' => 'weekly', 'priority' => '0.8'],
@@ -86,6 +65,18 @@ $staticPages = [
     'docs/usecases' => ['changefreq' => 'weekly', 'priority' => '0.7'],
     'docs/future' => ['changefreq' => 'weekly', 'priority' => '0.7']
 ];
+
+// All enabled Mini Apps — always stay in sync with MiniAppsCatalog (no hardcoding)
+foreach (MiniAppsCatalog::allRaw() as $app) {
+    if (empty($app['enabled']) || empty($app['slug'])) {
+        continue;
+    }
+    $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$app['slug']);
+    if ($slug === '') {
+        continue;
+    }
+    $staticPages['apps/' . $slug] = ['changefreq' => 'weekly', 'priority' => '0.75'];
+}
 
 $today = date('Y-m-d');
 
