@@ -16,21 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
 require_once __DIR__ . '/../../private/src/MiniAppsCatalog.php';
 
-loadTranslations('apps');
-
-require_once __DIR__ . '/../../private/src/AppBootstrap.php';
-$app = AppBootstrap::forApi([
+// Load config + i18n first (never call loadTranslations before bootstrap)
+$boot = AppBootstrap::forApi([
     'require_user' => false,
     'enforce_csrf' => true,
-    'translations' => 'api',
+    'translations' => ['api', 'apps'],
     'json_header' => false,
 ]);
-$userId = $app['user_id'];
-$pdo = $app['pdo'];
-$isApiKey = $app['is_api_key'];
-$method   = $_SERVER['REQUEST_METHOD'];
+$userId = $boot['user_id'];
+$pdo = $boot['pdo'];
+$isApiKey = !empty($boot['is_api_key']);
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
     $slug = trim((string)($_GET['slug'] ?? ''));
@@ -79,8 +78,8 @@ if ($slug === '' || !is_array($fieldsIn)) {
     exit;
 }
 
-$app = MiniAppsCatalog::getBySlug($slug);
-if (!$app) {
+$catalogApp = MiniAppsCatalog::getBySlug($slug);
+if (!$catalogApp) {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => __('App not found')], JSON_UNESCAPED_UNICODE);
     exit;
@@ -92,14 +91,14 @@ if (!MiniAppsCatalog::isSoulAllowed($pdo, $slug, $soulId)) {
     exit;
 }
 
-[$ok, $fieldErr, $sanitized] = MiniAppsCatalog::validateFields($app, $fieldsIn);
+[$ok, $fieldErr, $sanitized] = MiniAppsCatalog::validateFields($catalogApp, $fieldsIn);
 if (!$ok) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => $fieldErr], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$content = MiniAppsCatalog::formatUserMessage($app, $sanitized);
+$content = MiniAppsCatalog::formatUserMessage($catalogApp, $sanitized);
 
 echo json_encode([
     'success' => true,
