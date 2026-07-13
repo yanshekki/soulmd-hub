@@ -14,9 +14,11 @@
 header('Content-Type: application/xml; charset=utf-8');
 header('Cache-Control: public, max-age=3600');
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 require_once __DIR__ . '/../private/src/MiniAppsCatalog.php';
+
+AppBootstrap::loadConfig(false);
+require_once __DIR__ . '/../private/src/Database.php';
 
 $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-hub.ysk.hk';
 global $SUPPORTED_LANGS;

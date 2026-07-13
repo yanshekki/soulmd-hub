@@ -4,13 +4,15 @@
  * 🚀 V9 FIXED: Cleaned Wrapper Implementation (Syncs with V16 Dual-Action Format)
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-
-loadTranslations('marketplace');
+$app = AppBootstrap::forPage([
+    'translations' => 'marketplace',
+    'csrf' => false,
+    'db' => false,
+    'require_login' => false,
+    'seo' => true,
+]);
 
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');

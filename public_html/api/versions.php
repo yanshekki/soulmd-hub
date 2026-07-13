@@ -17,18 +17,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
-
 // 🌍 載入後端 API 全域專屬語言包
-loadTranslations('api');
-
-$security = ApiSecurity::initialize(false);
-$userId   = $security['user_id'];
-$pdo      = $security['pdo'];
-$isApiKey = $security['is_api_key'];
-
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = $app['is_api_key'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ==========================================

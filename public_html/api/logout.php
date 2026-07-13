@@ -14,13 +14,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit; 
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = !empty($app['is_api_key']);
+$apiKey = $app['api_key'] ?? null;
 
-$security = ApiSecurity::initialize(false);  // logout can work with or without prior full auth check
-$pdo = $security['pdo'];
-// Session already started by ApiSecurity::ensureCsrfToken()
 
 if (isset($_SESSION['user_id'])) {
     try {

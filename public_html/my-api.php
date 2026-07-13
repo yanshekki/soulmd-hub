@@ -7,9 +7,7 @@
 
 $isPublicApiPage = $isPublicApiPage ?? false;
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
 $apiKey = 'YOUR_API_KEY';
 $isPremiumActive = false;
@@ -17,17 +15,20 @@ $userTier = 'free';
 $isExpired = false;
 $isAdmin = false;
 $nearWallet = null;
+$pdo = null;
+$userId = null;
 
 if (!$isPublicApiPage) {
-    session_start();
-    if (!isset($_SESSION['user_id'])) {
-        header('Location: ' . url('/login'));
-        exit;
-    }
-
-    $db = Database::getInstance();
-    $pdo = $db->getConnection();
-    $userId = $_SESSION['user_id'];
+    $app = AppBootstrap::forPage([
+        'translations' => 'my-api',
+        'csrf' => true,
+        'db' => true,
+        'require_login' => true,
+        'seo' => true,
+    ]);
+    $csrfToken = $app['csrf'];
+    $pdo = $app['pdo'];
+    $userId = (int)$app['user_id'];
 
     $stmt = $pdo->prepare("SELECT username, api_key, tier, vip_expires_at, near_wallet_address FROM users WHERE id = ?");
     $stmt->execute([$userId]);
@@ -39,7 +40,7 @@ if (!$isPublicApiPage) {
         $nearWallet = $userRow['near_wallet_address'];
         $expiry = $userRow['vip_expires_at'] ? strtotime($userRow['vip_expires_at']) : 0;
         
-        if (in_array(strtolower($userRow['username']), ['yanshekki', 'ysk', 'ysklimited', 'ki'])) {
+        if (in_array(strtolower($userRow['username']), ['yanshekki', 'ysk', 'ysklimited', 'ki'], true)) {
             $isAdmin = true;
         }
         
@@ -56,13 +57,18 @@ if (!$isPublicApiPage) {
         $apiKey = bin2hex(random_bytes(32));
         $pdo->prepare("UPDATE users SET api_key = ? WHERE id = ?")->execute([$apiKey, $userId]);
     }
+} else {
+    $app = AppBootstrap::forPage([
+        'translations' => 'my-api',
+        'csrf' => true,
+        'db' => false,
+        'require_login' => false,
+        'seo' => true,
+    ]);
+    $csrfToken = $app['csrf'];
 }
 
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
-$csrfToken = ensureCsrfToken();
-
-$baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : ("https://" . $_SERVER['HTTP_HOST']);
-loadTranslations('my-api');
+$baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : ("https://" . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
 
 // 🚀 SEO Enhancement: Dynamic Meta Titles and Descriptions based on Page Context
 $pageTitle = $isPublicApiPage ? __('SEO Title Public') : __('SEO Title Private');

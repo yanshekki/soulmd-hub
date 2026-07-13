@@ -18,16 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/src/NearRpcService.php'; // 🚀 引入中央 RPC 服務
 require_once __DIR__ . '/../../private/includes/token-gate.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
-
-$security = ApiSecurity::initialize(false);   // allow public GET; auth checked inside per-method
-$userId   = $security['user_id'];
-$pdo      = $security['pdo'];
-$isApiKey = $security['is_api_key'];
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = !empty($app['is_api_key']);
+$apiKey = $app['api_key'] ?? null;
 
 $id = (int)($_GET['id'] ?? 0);
 

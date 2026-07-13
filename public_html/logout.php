@@ -4,15 +4,17 @@
  * 🚀 V7 FINAL: Sync Web2 PHP Logout with Web3 LocalStorage Nuke
  */
 
-require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
+AppBootstrap::loadConfig(false);
+AppBootstrap::sessionStart();
 loadTranslations('logout');
-
-session_start();
 
 // 1. 徹底摧毀 Web2 的 PHP Session
 $_SESSION = [];
-session_destroy();
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_destroy();
+}
 
 // 2. 清除可能存在的 Remember Me Cookie (保持極致安全)
 if (isset($_COOKIE['remember_token'])) {

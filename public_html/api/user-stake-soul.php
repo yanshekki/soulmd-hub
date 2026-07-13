@@ -9,9 +9,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -21,7 +18,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    $security = ApiSecurity::initialize(true);
+    require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => true,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = $app['is_api_key'];
     $userId = (int)$security['user_id'];
     $pdo = $security['pdo'];
 

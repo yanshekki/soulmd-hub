@@ -4,17 +4,19 @@
  * Handles encrypted storage of API Keys. (i18n Fully Patched)
  */
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
 require_once __DIR__ . '/../../private/includes/encryption.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
-
-loadTranslations('api');
-
-$security = ApiSecurity::initialize(true);  // requires login + CSRF for session POSTs
-$userId = $security['user_id'];
-$pdo = $security['pdo'];
-$method = $_SERVER['REQUEST_METHOD'];
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => true,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = !empty($app['is_api_key']);
+$apiKey = $app['api_key'] ?? null;
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
     $stmt = $pdo->prepare("SELECT * FROM user_llm_settings WHERE user_id = ?");

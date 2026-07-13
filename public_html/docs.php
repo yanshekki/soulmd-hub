@@ -4,11 +4,16 @@
  * (i18n Fully Bound, Mobile-Responsive Tabs & Strict LFI Whitelist Engine)
  * 🚀 V5 SEO Optimized: Semantic Article Tag, a11y Navigation, Dynamic Title Routing
  */
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
+$app = AppBootstrap::forPage([
+    'translations' => 'docs',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => false,
+    'seo' => true,
+]);
+$pdo = $app['pdo'];
 
 $allowedTabs = ['intro', 'solutions', 'usecases', 'future'];
 $currentTab = $_GET['tab'] ?? 'intro';
@@ -16,9 +21,6 @@ $currentTab = $_GET['tab'] ?? 'intro';
 if (!in_array($currentTab, $allowedTabs)) {
     $currentTab = 'intro';
 }
-
-// 載入全域與當前 Tab 的語言檔
-loadTranslations('docs');
 
 $tabLangPath = __DIR__ . '/../private/includes/languages/docs/' . $currentTab . '.php';
 if (file_exists($tabLangPath)) {

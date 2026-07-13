@@ -6,15 +6,18 @@
 header('Content-Type: application/json; charset=utf-8');
 
 try {
-    require_once __DIR__ . '/../../private/config.php';
-    require_once __DIR__ . '/../../private/src/Database.php';
     require_once __DIR__ . '/../../private/src/NearAuthService.php';
-    require_once __DIR__ . '/../../private/src/ApiSecurity.php';
-
-    loadTranslations('api');
-
-    $security = ApiSecurity::initialize(false);  // wallet login creates the session
-    $pdo = $security['pdo'];
+    require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+    $app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => false,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = !empty($app['is_api_key']);
+$apiKey = $app['api_key'] ?? null;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);

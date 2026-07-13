@@ -5,14 +5,17 @@
  * 🚀 V5 SEO Optimized: Semantic <main> tag, ARIA labels, and Accessible Pagination
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-loadTranslations('my-chats');
+$app = AppBootstrap::forPage([
+    'translations' => 'my-chats',
+    'csrf' => false,
+    'db' => false,
+    'require_login' => false,
+    'seo' => true,
+]);
 
-$isLoggedIn = isset($_SESSION['user_id']);
+$isLoggedIn = !empty($app['user_id']);
 
 $pageTitle = __('SEO Title');
 $pageDesc = __('SEO Desc');

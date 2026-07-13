@@ -22,17 +22,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200); exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
 require_once __DIR__ . '/../../private/src/PremiumEntitlement.php';
-
-loadTranslations('api');
-
-$security = ApiSecurity::initialize(true);  // session + CSRF enforced (no api_key expected for this claim usually)
-$userId = $security['user_id'];
-$pdo = $security['pdo'];
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => true,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = !empty($app['is_api_key']);
+$apiKey = $app['api_key'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

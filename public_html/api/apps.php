@@ -16,16 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
 require_once __DIR__ . '/../../private/src/MiniAppsCatalog.php';
 
-loadTranslations('api');
 loadTranslations('apps');
 
-$security = ApiSecurity::initialize(false);
-$pdo      = $security['pdo'];
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = $app['is_api_key'];
 $method   = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {

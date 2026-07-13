@@ -1,4 +1,7 @@
 <?php
+/**
+ * SoulMD Hub API - Marketplace gigs list / create
+ */
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -9,25 +12,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
 require_once __DIR__ . '/../../private/src/SoulCorpHub.php';
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
     if ($method === 'GET') {
-        $security = ApiSecurity::initialize(false);
-        $gigs = SoulCorpHub::listGigs($security['pdo'], $_GET['status'] ?? 'open');
+        $app = AppBootstrap::forApi([
+            'require_user' => false,
+            'enforce_csrf' => true,
+            'translations' => 'api',
+            'json_header' => false,
+        ]);
+        $gigs = SoulCorpHub::listGigs($app['pdo'], $_GET['status'] ?? 'open');
         echo json_encode(['success' => true, 'gigs' => $gigs]);
         exit;
     }
 
     if ($method === 'POST') {
-        $security = ApiSecurity::initialize(true);
+        $app = AppBootstrap::forApi([
+            'require_user' => true,
+            'enforce_csrf' => true,
+            'translations' => 'api',
+            'json_header' => false,
+        ]);
         $input = json_decode(file_get_contents('php://input'), true) ?: [];
-        $result = SoulCorpHub::createGig($security['pdo'], (int)$security['user_id'], $input);
+        $result = SoulCorpHub::createGig($app['pdo'], (int)$app['user_id'], $input);
         echo json_encode(['success' => true] + $result);
         exit;
     }

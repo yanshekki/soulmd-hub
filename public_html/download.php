@@ -5,15 +5,17 @@
  * 🚀 Patched: Integrated Web3 Ownership (NFT) Authorization Checks for Secure Downloads
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-loadTranslations('download');
+$app = AppBootstrap::forPage([
+    'translations' => 'download',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => false,
+    'seo' => false,
+]);
 
-session_start();
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$pdo = $app['pdo'];
 
 $username = $_GET['username'] ?? '';
 $soulId = (int)($_GET['id'] ?? 0);

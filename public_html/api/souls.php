@@ -16,16 +16,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit; 
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
-
-$security = ApiSecurity::initialize(false);   // false = public list is allowed without auth
-$userId   = $security['user_id'];
-$pdo      = $security['pdo'];
-$isApiKey = $security['is_api_key'];
-
-$method = $_SERVER['REQUEST_METHOD'];
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => true,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = !empty($app['is_api_key']);
+$apiKey = $app['api_key'] ?? null;
 
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));

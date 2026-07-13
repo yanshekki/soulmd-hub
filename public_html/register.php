@@ -5,18 +5,21 @@
  * 🚀 V5 SEO Optimized: Semantic <main> tag, a11y Form Labels, and ARIA Live Regions
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
+$app = AppBootstrap::forPage([
+    'translations' => 'register',
+    'csrf' => false,
+    'db' => false,
+    'require_login' => false,
+    'seo' => true,
+]);
 
 // Redirect if already logged in
-if (isset($_SESSION['user_id'])) {
+if (!empty($app['user_id'])) {
     header('Location: ' . url('/my-souls'));
     exit;
 }
-
-loadTranslations('register');
 
 // 🚀 SEO Meta
 $pageTitle = __('Sign up');

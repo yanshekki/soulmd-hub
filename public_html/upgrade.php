@@ -6,33 +6,32 @@
  * 🚀 V5 SEO Optimized: Semantic Pricing Sections, a11y Enhancements, and SaaS Keywords
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
+
+$app = AppBootstrap::forPage([
+    'translations' => 'upgrade',
+    'csrf' => true,
+    'db' => true,
+    'require_login' => false,
+    'seo' => true,
+]);
 
 // STRICT: All NEAR FT token contract addresses MUST come from config.php only.
-// No hardcoded fallbacks allowed anywhere in the payment flow (per security policy).
 if (!defined('NEAR_USDT_CONTRACT') || !defined('NEAR_USDC_CONTRACT')) {
     die('FATAL CONFIG ERROR: NEAR_USDT_CONTRACT and NEAR_USDC_CONTRACT must be defined in private/config.php (see config.example.php for values).');
 }
 
-session_start();
-
 // Public pricing page: guests may browse. Purchase / claim requires login.
-$csrfToken = ensureCsrfToken();
-$isLoggedIn = !empty($_SESSION['user_id']);
-$userId = $isLoggedIn ? (int)$_SESSION['user_id'] : null;
-
-loadTranslations('upgrade');
+$csrfToken = $app['csrf'];
+$isLoggedIn = !empty($app['user_id']);
+$userId = $isLoggedIn ? (int)$app['user_id'] : null;
+$pdo = $app['pdo'];
 
 $currentTier = 'free';
 $expiresAt = 0;
 $user = ['username' => '', 'tier' => 'free', 'vip_expires_at' => null];
 
 if ($isLoggedIn) {
-    $db = Database::getInstance();
-    $pdo = $db->getConnection();
     $stmt = $pdo->prepare("SELECT tier, vip_expires_at, username FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch() ?: $user;

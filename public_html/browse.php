@@ -5,14 +5,17 @@
  * 🚀 V5 SEO Optimized: a11y ARIA labels, Link Titles, and Enhanced Crawler Navigation
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-loadTranslations('browse');
+$app = AppBootstrap::forPage([
+    'translations' => 'browse',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => false,
+    'seo' => true,
+]);
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$pdo = $app['pdo'];
 
 $categories = $pdo->query("SELECT name, slug, icon FROM categories ORDER BY id ASC")->fetchAll();
 $trendingTags = $pdo->query("SELECT name FROM tags_domain WHERE usage_count > 0 ORDER BY usage_count DESC LIMIT 10")->fetchAll(PDO::FETCH_COLUMN);

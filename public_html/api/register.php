@@ -15,19 +15,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../private/config.php';
-require_once __DIR__ . '/../../private/src/Database.php';
-require_once __DIR__ . '/../../private/src/ApiSecurity.php';
-
-// 🌍 載入後端 API 全域專屬語言包
-loadTranslations('api');
-
-// Allow calls without CSRF for automation (cronjobs that auto-register members).
-// Use ensureCsrfToken only for token setup (no enforcement for this public auth endpoint).
-ApiSecurity::ensureCsrfToken();
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
+require_once __DIR__ . '/../../private/src/AppBootstrap.php';
+$app = AppBootstrap::forApi([
+    'require_user' => false,
+    'enforce_csrf' => false,
+    'translations' => 'api',
+    'json_header' => false,
+]);
+$userId = $app['user_id'];
+$pdo = $app['pdo'];
+$isApiKey = $app['is_api_key'];
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     // 💡 補回 JSON_UNESCAPED_UNICODE
@@ -76,9 +73,7 @@ try {
     $userId = $pdo->lastInsertId();
 
     // Session may already be active (e.g. CSRF helper) — only start if idle
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    AppBootstrap::sessionStart();
     session_regenerate_id(true);
     
     $_SESSION['user_id'] = $userId;

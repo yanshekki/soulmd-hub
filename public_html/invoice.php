@@ -4,23 +4,18 @@
  * (Dynamic i18n Internationalization & Pixel-Perfect Dark Mode Print Edition)
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
+$app = AppBootstrap::forPage([
+    'translations' => 'invoice',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => true,
+    'seo' => true,
+]);
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
-
-// 🌍 載入此頁面的專屬獨立多語言詞典
-loadTranslations('invoice');
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-$userId = $_SESSION['user_id'];
+$pdo = $app['pdo'];
+$userId = (int)$app['user_id'];
 $invoiceId = (int)($_GET['id'] ?? 0);
 
 // 🛡️ 安全機制：只允許用戶查看屬於自己的訂單

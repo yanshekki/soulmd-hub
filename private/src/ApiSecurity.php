@@ -31,7 +31,11 @@ class ApiSecurity {
      * Prefer AppBootstrap::forApi() for new endpoints (loads config + translations too).
      * Do NOT call initialize() from HTML pages — it forces JSON Content-Type.
      */
-    public static function initialize(bool $requireUser = true): array {
+    /**
+     * @param bool $requireUser   Force authenticated user (session or api_key)
+     * @param bool $enforceCsrf   Enforce CSRF on mutating browser requests (false for login/register)
+     */
+    public static function initialize(bool $requireUser = true, bool $enforceCsrf = true): array {
         // Always ensure JSON content type for APIs (files can override before calling if they want)
         if (!headers_sent()) {
             header('Content-Type: application/json; charset=utf-8');
@@ -85,7 +89,7 @@ class ApiSecurity {
 
             // CSRF enforcement only for non-GET mutating requests in session mode
             $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-            if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'])) {
+            if ($enforceCsrf && !in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
                 self::enforceCsrfCheck();
             }
         }

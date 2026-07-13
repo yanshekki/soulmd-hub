@@ -4,27 +4,19 @@
  * 🚀 V5.2 FIXED: Bulletproof API Error Handling & Strict JSON Parsing
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
-require_once __DIR__ . '/../private/src/ApiSecurity.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
+$app = AppBootstrap::forPage([
+    'translations' => 'my-souls',
+    'csrf' => true,
+    'db' => true,
+    'require_login' => true,
+    'seo' => true,
+]);
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . url('/login'));
-    exit;
-}
-
-// Centralized CSRF token (replaces repeated bin2hex block)
-$csrfToken = ensureCsrfToken();
-
-loadTranslations('my-souls');
-
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
-$user_id = $_SESSION['user_id'];
+$csrfToken = $app['csrf'];
+$pdo = $app['pdo'];
+$user_id = (int)$app['user_id'];
 $uStmt = $pdo->prepare("SELECT username, near_wallet_address FROM users WHERE id = ?");
 $uStmt->execute([$user_id]);
 $currentUserRow = $uStmt->fetch();

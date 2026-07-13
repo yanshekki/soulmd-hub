@@ -4,15 +4,16 @@
  * (Dynamic i18n Internationalization Edition)
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+$app = AppBootstrap::forPage([
+    'translations' => '404',
+    'csrf' => false,
+    'db' => false,
+    'require_login' => false,
+    'seo' => true,
+]);
 
-// 🌍 載入專屬語言包
-loadTranslations('404');
 
 http_response_code(404);
 

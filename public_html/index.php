@@ -7,14 +7,17 @@
  * 🚀 V5.1 Patched: 100% i18n Language Dictionary Compliance
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-loadTranslations('index');
+$app = AppBootstrap::forPage([
+    'translations' => 'index',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => false,
+    'seo' => true,
+]);
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$pdo = $app['pdo'];
 
 // 🚨 完美修復：加入 OR is_nft IS NULL 確保舊模型被計算在全站分享數內
 $statsSouls = $pdo->query("SELECT COUNT(*) FROM souls WHERE is_public = 1 AND (is_nft = 0 OR is_nft IS NULL)")->fetchColumn();

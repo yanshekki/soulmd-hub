@@ -5,15 +5,17 @@
  * 🚀 V6 FIXED: Synced with V16 Dual-Action Format & Exposed Error Traces
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-loadTranslations('profile');
+$app = AppBootstrap::forPage([
+    'translations' => 'profile',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => false,
+    'seo' => true,
+]);
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$pdo = $app['pdo'];
 
 $usernameParam = $_GET['username'] ?? '';
 $userStmt = $pdo->prepare("SELECT id, username, created_at FROM users WHERE username = ?");

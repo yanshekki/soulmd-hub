@@ -22,17 +22,18 @@
  * - All calls use the audited wallet scripts + improved error handling.
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/src/Database.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-loadTranslations('admin-contract'); // will fall back gracefully if missing
+$app = AppBootstrap::forPage([
+    'translations' => 'admin-contract',
+    'csrf' => false,
+    'db' => true,
+    'require_login' => false,
+    'seo' => true,
+]);
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
-
-$userId = $_SESSION['user_id'] ?? 0;
+$pdo = $app['pdo'];
+$userId = (int)($app['user_id'] ?? 0);
 $currentUserWallet = null;
 
 if ($userId > 0) {

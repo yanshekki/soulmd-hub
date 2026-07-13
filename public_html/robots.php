@@ -8,7 +8,8 @@
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: public, max-age=86400'); // 緩存 24 小時，減輕爬蟲高頻存取負載
 
-require_once __DIR__ . '/../private/config.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
+AppBootstrap::loadConfig(false);
 
 $baseUrl = defined('BASE_URL') ? BASE_URL : 'https://soulmd-hub.ysk.hk';
 

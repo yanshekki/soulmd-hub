@@ -5,11 +5,15 @@
  * 🚀 V5 SEO Optimized: Semantic Forms, a11y ARIA Live Regions, and Labeled Inputs
  */
 
-require_once __DIR__ . '/../private/config.php';
-require_once __DIR__ . '/../private/includes/seo.php';
+require_once __DIR__ . '/../private/src/AppBootstrap.php';
 
-session_start();
-loadTranslations('generate');
+$app = AppBootstrap::forPage([
+    'translations' => 'generate',
+    'csrf' => false,
+    'db' => false,
+    'require_login' => false,
+    'seo' => true,
+]);
 
 // SEO Meta
 $pageTitle = __('SEO Title');

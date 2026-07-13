@@ -180,7 +180,9 @@ class AppBootstrap
         self::loadTranslationPacks($translations);
 
         $requireUser = array_key_exists('require_user', $opts) ? (bool)$opts['require_user'] : true;
-        $security = ApiSecurity::initialize($requireUser);
+        // login/register: ensure token exists but do not enforce CSRF on the auth POST itself
+        $enforceCsrf = array_key_exists('enforce_csrf', $opts) ? (bool)$opts['enforce_csrf'] : true;
+        $security = ApiSecurity::initialize($requireUser, $enforceCsrf);
 
         return [
             'user_id' => $security['user_id'],
