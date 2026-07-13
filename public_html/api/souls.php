@@ -27,6 +27,7 @@ $userId = $app['user_id'];
 $pdo = $app['pdo'];
 $isApiKey = !empty($app['is_api_key']);
 $apiKey = $app['api_key'] ?? null;
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 function incrementTags($pdo, $table, $tagsString) {
     $tags = array_filter(array_map('trim', explode(',', $tagsString)));
