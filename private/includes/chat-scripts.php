@@ -29,14 +29,29 @@
     let currentImageBase64 = null;
     let isByokMode = false;
 
-    // --- 免責聲明 Modal ---
+    // --- 免責聲明 Modal（全螢幕阻擋；須蓋過 header/footer）---
     const agreementKey = `soulmd_agreement_${soulId}_${sessionToken}`;
+    function showDisclaimerModal() {
+        const el = document.getElementById('disclaimer-modal');
+        if (!el) return;
+        // Re-parent to <body> end so no parent stacking context can bury it
+        if (el.parentElement !== document.body) {
+            document.body.appendChild(el);
+        }
+        el.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    function hideDisclaimerModal() {
+        const el = document.getElementById('disclaimer-modal');
+        if (el) el.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
     if (!localStorage.getItem(agreementKey)) {
-        document.getElementById('disclaimer-modal').classList.remove('hidden');
+        showDisclaimerModal();
     }
     function acceptDisclaimer() {
         localStorage.setItem(agreementKey, 'true');
-        document.getElementById('disclaimer-modal').classList.add('hidden');
+        hideDisclaimerModal();
     }
     function declineDisclaimer() {
         window.location.href = '<?= url("/browse") ?>';

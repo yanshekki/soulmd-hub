@@ -8,7 +8,7 @@ loadTranslations('footer');
 ?>
 </main>
 
-<footer class="w-full border-t border-white/10 bg-zinc-950 py-10 mt-auto relative z-10">
+<footer class="w-full border-t border-white/10 bg-zinc-950 py-10 mt-auto relative z-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             

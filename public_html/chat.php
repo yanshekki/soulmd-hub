@@ -88,8 +88,10 @@ $pageDesc = __('Live interaction with this specialized AI persona architecture.'
 $hideNavLinks = false;
 
 require_once __DIR__ . '/../private/includes/header.php';
-require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
+// Chat modals (architecture / paywall / image) — after header, before main
 require_once __DIR__ . '/../private/includes/chat-modals.php';
+// Disclaimer is included after global footer (see bottom of this file) so it
+// always stacks above footer chrome and stays centered on screen.
 
 if ($maskContent) {
     $rawContentForModal = "🔒 **" . __('Protected') . "**\n\n" . __('Protected NFT Msg');
@@ -302,5 +304,9 @@ if ($maskContent) {
 
 </main>
 
-<?php require_once __DIR__ . '/../private/includes/chat-scripts.php'; ?>
 <?php require_once __DIR__ . '/../private/includes/footer.php'; ?>
+<?php
+// Blocking legal modal last in <body> — above sticky header + site footer
+require_once __DIR__ . '/../private/includes/disclaimer-modal.php';
+?>
+<?php require_once __DIR__ . '/../private/includes/chat-scripts.php'; ?>
