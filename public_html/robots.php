@@ -29,5 +29,6 @@ echo "Disallow: /billing\n";
 echo "Disallow: /invoice\n";
 echo "Disallow: /api/\n\n";
 
-// 🌍 權威站點地圖宣告
+// 🌍 Sitemap index (static hub pages + curated high-signal souls only — not all public souls)
+$baseUrl = rtrim($baseUrl, '/');
 echo "Sitemap: " . $baseUrl . "/sitemap.xml\n";

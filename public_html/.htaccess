@@ -55,7 +55,10 @@ ErrorDocument 404 /404.php
     # ==========================================
     # 2. 內部重寫 (Internal Rewrites)
     # ==========================================
+    # SEO: quality-first sitemaps (index + static hub + curated souls only)
     RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]
+    RewriteRule ^sitemap-static\.xml$ sitemap.php?part=static [L,QSA]
+    RewriteRule ^sitemap-souls\.xml$ sitemap.php?part=souls [L,QSA]
     RewriteRule ^robots\.txt$ robots.php [L,QSA]
     RewriteRule ^api-docs/?$ api-docs.php [L,QSA]
     
