@@ -153,7 +153,14 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
     </script>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen flex flex-col relative">
-    <header class="w-full <?= isset($navAbsolute) && $navAbsolute ? 'absolute top-0 left-0 right-0 z-50' : 'mb-2 relative z-50' ?>">
+    <?php
+    // Stay above chat/app modals (z-[200]–z-[500]) so nav remains usable when popups open
+    $headerZ = 'z-[1000]';
+    $headerPos = (isset($navAbsolute) && $navAbsolute)
+        ? "absolute top-0 left-0 right-0 {$headerZ}"
+        : "sticky top-0 {$headerZ} mb-2 bg-zinc-950/95 backdrop-blur-md border-b border-white/5";
+    ?>
+    <header class="w-full <?= $headerPos ?>">
         <nav class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 flex justify-between items-center">
             <a href="<?= url('/') ?>" class="flex items-center gap-2 text-xl sm:text-2xl font-bold tracking-tighter hover:text-emerald-400 transition shrink-0 select-none">
                 SoulMD <span class="text-emerald-400 text-[9px] px-2 py-0.5 bg-emerald-900/30 rounded-full font-mono">HUB</span>
@@ -211,7 +218,7 @@ $clean_base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : 'https://soulmd-h
         </nav>
 
         <?php if (!isset($hideNavLinks) || !$hideNavLinks): ?>
-        <div id="mobile-menu" class="hidden lg:hidden flex-col absolute top-full left-0 w-full bg-zinc-950/95 backdrop-blur-2xl border-b border-white/10 shadow-2xl p-5 gap-1.5 z-50">
+        <div id="mobile-menu" class="hidden lg:hidden flex-col absolute top-full left-0 w-full bg-zinc-950/95 backdrop-blur-2xl border-b border-white/10 shadow-2xl p-5 gap-1.5 z-[1001]">
             <a href="<?= url('/browse') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-compass w-6 text-center text-emerald-400"></i> <?= __('Browse') ?></a>
             <a href="<?= url('/marketplace') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-gem w-6 text-center text-blue-400"></i> <?= __('Marketplace') ?></a>
             <a href="<?= url('/apps') ?>" class="p-3.5 text-base font-bold text-zinc-300 hover:bg-white/5 rounded-2xl transition flex items-center gap-4"><i class="fas fa-puzzle-piece w-6 text-center text-emerald-400"></i> <?= __('Apps') ?></a>

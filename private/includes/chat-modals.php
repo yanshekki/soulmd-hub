@@ -6,13 +6,13 @@
  */
 ?>
 
-<div id="image-viewer-modal" class="hidden fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImageModal()">
-    <button type="button" class="absolute top-6 right-6 text-white hover:text-emerald-400 text-3xl transition focus:outline-none"><i class="fas fa-times"></i></button>
-    <img id="image-viewer-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+<div id="image-viewer-modal" class="hidden fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 pt-20 sm:pt-24 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImageModal()">
+    <button type="button" class="absolute top-20 sm:top-24 right-6 text-white hover:text-emerald-400 text-3xl transition focus:outline-none"><i class="fas fa-times"></i></button>
+    <img id="image-viewer-img" src="" class="max-w-full max-h-[min(90vh,calc(100dvh-7rem))] object-contain rounded-xl shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
 </div>
 
-<div id="soul-info-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[500] p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-3xl w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+<div id="soul-info-modal" class="hidden fixed inset-0 bg-black/80 flex items-start sm:items-center justify-center z-[500] p-4 pt-20 sm:pt-24 backdrop-blur-sm opacity-0 transition-opacity duration-300 overflow-y-auto">
+    <div class="bg-zinc-900 border border-white/10 rounded-3xl max-w-3xl w-full max-h-[calc(100dvh-6.5rem)] my-auto flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/30 shrink-0">
             <h3 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
                 <i class="fas fa-layer-group text-emerald-400"></i> <?= __('Soul Architecture') ?>
@@ -29,8 +29,8 @@
     </div>
 </div>
 
-<div id="paywall-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[200] p-4 backdrop-blur-md opacity-0 transition-opacity duration-300">
-    <div class="bg-zinc-900 border <?= $isExpired ? 'border-red-500/40 shadow-red-500/5' : 'border-emerald-500/30 shadow-emerald-500/5' ?> rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+<div id="paywall-modal" class="hidden fixed inset-0 bg-black/90 flex items-start sm:items-center justify-center z-[200] p-4 pt-20 sm:pt-24 backdrop-blur-md opacity-0 transition-opacity duration-300 overflow-y-auto">
+    <div class="bg-zinc-900 border <?= $isExpired ? 'border-red-500/40 shadow-red-500/5' : 'border-emerald-500/30 shadow-emerald-500/5' ?> rounded-3xl max-w-4xl w-full max-h-[calc(100dvh-6.5rem)] my-auto flex flex-col overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
         
         <div class="p-5 sm:p-6 border-b border-white/10 flex justify-between items-center bg-zinc-950/50 shrink-0 select-none">
             <div>

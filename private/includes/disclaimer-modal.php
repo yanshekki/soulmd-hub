@@ -8,8 +8,8 @@
 // 🌍 載入免責聲明組件專屬語言包
 loadTranslations('disclaimer-modal');
 ?>
-<div id="disclaimer-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[400] p-4 backdrop-blur-md">
-    <div class="bg-zinc-900 border border-emerald-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl transform scale-100 transition-transform duration-300">
+<div id="disclaimer-modal" class="hidden fixed inset-0 bg-black/90 flex items-start sm:items-center justify-center z-[400] p-4 pt-20 sm:pt-24 backdrop-blur-md overflow-y-auto">
+    <div class="bg-zinc-900 border border-emerald-500/30 rounded-3xl max-w-2xl w-full max-h-[calc(100dvh-6.5rem)] my-auto flex flex-col overflow-hidden shadow-2xl transform scale-100 transition-transform duration-300">
         
         <div class="p-6 border-b border-white/10 bg-zinc-950/40 shrink-0">
             <h3 class="text-xl font-bold tracking-tight text-amber-400 flex items-center gap-2">
